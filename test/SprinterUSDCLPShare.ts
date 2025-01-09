@@ -1,9 +1,7 @@
 import {
-  time,
   loadFixture,
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
-import { expect } from "chai";
+import {expect} from "chai";
 import hre from "hardhat";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
@@ -15,11 +13,11 @@ describe("SprinterUSDCLPShare", function () {
     const SprinterUSDCLPShare = await hre.ethers.getContractFactory("SprinterUSDCLPShare");
     const lpToken = await SprinterUSDCLPShare.deploy(manager.address);
 
-    return { lpToken, manager, user, user2 };
+    return {lpToken, manager, user, user2};
   };
 
   it("Should have default values", async function () {
-    const { lpToken, manager } = await loadFixture(deployLPToken);
+    const {lpToken, manager} = await loadFixture(deployLPToken);
 
     expect(await lpToken.MANAGER()).to.equal(manager.address);
     expect(await lpToken.name()).to.equal("Sprinter USDC LP Share");
@@ -29,7 +27,7 @@ describe("SprinterUSDCLPShare", function () {
   });
 
   it("Should allow manager to mint", async function () {
-    const { lpToken, manager, user } = await loadFixture(deployLPToken);
+    const {lpToken, manager, user} = await loadFixture(deployLPToken);
 
     expect(await lpToken.connect(manager).mint(user.address, 100n))
       .to.emit(lpToken, "Transfer")
@@ -39,14 +37,14 @@ describe("SprinterUSDCLPShare", function () {
   });
 
   it("Should not allow others to mint", async function () {
-    const { lpToken, user } = await loadFixture(deployLPToken);
+    const {lpToken, user} = await loadFixture(deployLPToken);
 
     await expect(lpToken.connect(user).mint(user.address, 100n))
       .to.be.revertedWithCustomError(lpToken, "AccessDenied()");
   });
 
   it("Should allow manager to burn", async function () {
-    const { lpToken, manager, user } = await loadFixture(deployLPToken);
+    const {lpToken, manager, user} = await loadFixture(deployLPToken);
 
     await lpToken.connect(manager).mint(user.address, 100n);
     expect(await lpToken.connect(manager).burn(user.address, 30n))
@@ -57,7 +55,7 @@ describe("SprinterUSDCLPShare", function () {
   });
 
   it("Should not allow others to burn", async function () {
-    const { lpToken, manager, user } = await loadFixture(deployLPToken);
+    const {lpToken, manager, user} = await loadFixture(deployLPToken);
 
     await lpToken.connect(manager).mint(user.address, 100n);
     await expect(lpToken.connect(user).burn(user.address, 30n))
@@ -65,7 +63,7 @@ describe("SprinterUSDCLPShare", function () {
   });
 
   it("Should allow others to transfer", async function () {
-    const { lpToken, manager, user, user2 } = await loadFixture(deployLPToken);
+    const {lpToken, manager, user, user2} = await loadFixture(deployLPToken);
 
     await lpToken.connect(manager).mint(user.address, 100n);
     expect(await lpToken.connect(user).transfer(user2.address, 30n))

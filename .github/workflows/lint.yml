@@ -1,0 +1,31 @@
+name: Linter check
+
+on: [pull_request]
+
+jobs:
+  lint-solidity:
+    name: Lint Solidity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2.4.0
+      - uses: actions/setup-node@v2.5.1
+        with:
+          node-version: [22.x]
+
+      - run: npm ci
+
+      - name: Run linter
+        run: npm run lint:solidity
+
+  lint-ts:
+    name: Lint TS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2.4.0
+      - uses: actions/setup-node@v2.5.1
+        with:
+          node-version: [22.x]
+
+      - run: npm ci
+      - name: Run linter
+        run: npm run lint:ts

@@ -2,8 +2,9 @@
 pragma solidity 0.8.28;
 
 import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import {IManagedToken} from './interfaces/IManagedToken.sol';
 
-contract ManagedToken is ERC20Permit {
+contract ManagedToken is IManagedToken, ERC20Permit {
     address immutable public MANAGER;
 
     error AccessDenied();
@@ -26,5 +27,9 @@ contract ManagedToken is ERC20Permit {
 
     function burn(address from, uint256 amount) external onlyManager() {
         _burn(from, amount);
+    }
+
+    function spendAllowance(address owner, address spender, uint256 value) external onlyManager() {
+        _spendAllowance(owner, spender, value);
     }
 }

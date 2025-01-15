@@ -8,13 +8,15 @@ import {
     ERC4626Upgradeable,
     Math
 } from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
+import {AccessControlUpgradeable} from '@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol';
 import {ERC7201Helper} from './utils/ERC7201Helper.sol';
 import {IManagedToken} from './interfaces/IManagedToken.sol';
 
-contract LiquidityHub is ERC4626Upgradeable {
+contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
     using Math for uint256;
 
     IManagedToken immutable public SHARES;
+    bytes32 public constant ASSETS_UPDATE_ROLE = "ASSETS_UPDATE_ROLE";
 
     error ZeroAddress();
     error NotImplemented();
@@ -37,7 +39,7 @@ contract LiquidityHub is ERC4626Upgradeable {
         _disableInitializers();
     }
 
-    function initialize(IERC20 asset_) external initializer() {
+    function initialize(IERC20 asset_, address admin) external initializer() {
         ERC4626Upgradeable.__ERC4626_init(asset_);
         require(
             IERC20Metadata(address(asset_)).decimals() <= IERC20Metadata(address(SHARES)).decimals(),
@@ -45,6 +47,7 @@ contract LiquidityHub is ERC4626Upgradeable {
         );
         // Deliberately not initializing ERC20Upgradable because its
         // functionality is delegated to SHARES.
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
     }
 
     function name() public pure override(IERC20Metadata, ERC20Upgradeable) returns (string memory) {
@@ -86,6 +89,28 @@ contract LiquidityHub is ERC4626Upgradeable {
 
     function totalAssets() public view virtual override returns (uint256) {
         return _getStorage().totalAssets;
+    }
+
+    function _convertToShares(uint256 assets, Math.Rounding rounding) internal view virtual override returns (uint256) {
+        (uint256 supplyShares, uint256 supplyAssets) = _getTotals();
+        return assets.mulDiv(supplyShares, supplyAssets, rounding);
+    }
+
+    function _convertToAssets(uint256 shares, Math.Rounding rounding) internal view virtual override returns (uint256) {
+        (uint256 supplyShares, uint256 supplyAssets) = _getTotals();
+        return shares.mulDiv(supplyAssets, supplyShares, rounding);
+    }
+
+    function _getTotals() internal view returns (uint256 supply, uint256 assets) {
+        supply = totalSupply();
+        if (supply == 0) {
+            supply = 10 ** _decimalsOffset();
+        }
+        assets = totalAssets();
+        if (assets == 0) {
+            assets = 1;
+        }
+        return (supply, assets);
     }
 
     function _update(address from, address to, uint256 value) internal virtual override {

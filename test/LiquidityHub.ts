@@ -24,7 +24,7 @@ describe("LiquidityHub", function () {
     const LP = 10n ** (await lpToken.decimals());
 
     const liquidityHubImpl = await deploy("LiquidityHub", deployer, {nonce: startingNonce + 1}, lpToken.target);
-    const liquidityHubInit = (await liquidityHubImpl.initialize.populateTransaction(usdc.target)).data;
+    const liquidityHubInit = (await liquidityHubImpl.initialize.populateTransaction(usdc.target, admin.address)).data;
     const liquidityHubProxy = await deploy(
       "TransparentUpgradeableProxy", deployer, {nonce: startingNonce + 2},
       liquidityHubImpl.target, admin, liquidityHubInit
@@ -74,6 +74,34 @@ describe("LiquidityHub", function () {
     await expect(tx)
       .to.emit(usdc, "Transfer")
       .withArgs(user.address, liquidityHub.target, 10n * USDC);
+    expect(await lpToken.balanceOf(user.address)).to.equal(10n * LP);
+    expect(await lpToken.totalSupply()).to.equal(10n * LP);
+    expect(await liquidityHub.totalSupply()).to.equal(10n * LP);
+    expect(await liquidityHub.totalAssets()).to.equal(10n * USDC);
+    expect(await liquidityHub.balanceOf(user.address)).to.equal(10n * LP);
+    expect(await usdc.balanceOf(user.address)).to.equal(0n);
+    expect(await usdc.balanceOf(liquidityHub.target)).to.equal(10n * USDC);
+  });
+
+  it("Should allow to deposit twice", async function () {
+    const {lpToken, liquidityHub, usdc, deployer, user, USDC, LP} = await loadFixture(deployAll);
+
+    await usdc.connect(deployer).transfer(user.address, 10n * USDC);
+    await usdc.connect(user).approve(liquidityHub.target, 10n * USDC);
+    const tx = liquidityHub.connect(user).deposit(3n * USDC, user.address);
+    await expect(tx)
+      .to.emit(lpToken, "Transfer")
+      .withArgs(ZERO_ADDRESS, user.address, 3n * LP);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(user.address, liquidityHub.target, 3n * USDC);
+    const tx2 = liquidityHub.connect(user).deposit(7n * USDC, user.address);
+    await expect(tx2)
+      .to.emit(lpToken, "Transfer")
+      .withArgs(ZERO_ADDRESS, user.address, 7n * LP);
+    await expect(tx2)
+      .to.emit(usdc, "Transfer")
+      .withArgs(user.address, liquidityHub.target, 7n * USDC);
     expect(await lpToken.balanceOf(user.address)).to.equal(10n * LP);
     expect(await lpToken.totalSupply()).to.equal(10n * LP);
     expect(await liquidityHub.totalSupply()).to.equal(10n * LP);
@@ -194,5 +222,35 @@ describe("LiquidityHub", function () {
     expect(await liquidityHub.balanceOf(user.address)).to.equal(0n);
     expect(await usdc.balanceOf(user2.address)).to.equal(10n * USDC);
     expect(await usdc.balanceOf(liquidityHub.target)).to.equal(0n);
+  });
+
+  it("Should allow to deposit and withdraw multiple times", async function () {
+    const {lpToken, liquidityHub, usdc, deployer, user, USDC, LP} = await loadFixture(deployAll);
+
+    await usdc.connect(deployer).transfer(user.address, 10n * USDC);
+    await usdc.connect(user).approve(liquidityHub.target, 10n * USDC);
+    const tx = liquidityHub.connect(user).deposit(3n * USDC, user.address);
+    await expect(tx)
+      .to.emit(lpToken, "Transfer")
+      .withArgs(ZERO_ADDRESS, user.address, 3n * LP);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(user.address, liquidityHub.target, 3n * USDC);
+    await liquidityHub.connect(user).withdraw(1n * USDC, user.address, user.address);
+    const tx2 = liquidityHub.connect(user).deposit(7n * USDC, user.address);
+    await expect(tx2)
+      .to.emit(lpToken, "Transfer")
+      .withArgs(ZERO_ADDRESS, user.address, 7n * LP);
+    await expect(tx2)
+      .to.emit(usdc, "Transfer")
+      .withArgs(user.address, liquidityHub.target, 7n * USDC);
+    await liquidityHub.connect(user).withdraw(4n * USDC, user.address, user.address);
+    expect(await lpToken.balanceOf(user.address)).to.equal(5n * LP);
+    expect(await lpToken.totalSupply()).to.equal(5n * LP);
+    expect(await liquidityHub.totalSupply()).to.equal(5n * LP);
+    expect(await liquidityHub.totalAssets()).to.equal(5n * USDC);
+    expect(await liquidityHub.balanceOf(user.address)).to.equal(5n * LP);
+    expect(await usdc.balanceOf(user.address)).to.equal(5n * USDC);
+    expect(await usdc.balanceOf(liquidityHub.target)).to.equal(5n * USDC);
   });
 });

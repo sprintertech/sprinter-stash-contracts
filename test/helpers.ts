@@ -8,7 +8,9 @@ export async function getCreateAddress(from: AddressLike, nonce: number): Promis
   return hre.ethers.getCreateAddress({from: await resolveAddress(from), nonce});
 }
 
-export async function getContractAt(contractName: string, address: AddressLike, signer?: Signer): Promise<BaseContract> {
+export async function getContractAt(contractName: string, address: AddressLike, signer?: Signer):
+  Promise<BaseContract>
+{
   return hre.ethers.getContractAt(contractName, await resolveAddress(address), signer);
 }
 

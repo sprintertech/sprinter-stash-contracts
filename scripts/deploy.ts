@@ -16,7 +16,7 @@ async function main() {
   if (isAddress(process.env.USDC)) {
     usdc = process.env.USDC;
   } else {
-    const testUSDC = await deploy("TestUSDC", deployer, {});
+    const testUSDC = (await deploy("TestUSDC", deployer, {})) as TestUSDC;
     usdc = await testUSDC.getAddress();
   }
 

@@ -25,6 +25,7 @@ export default tseslint.config(
       "no-var": "error",
       "object-curly-spacing": ["error", "never"],
       "prefer-const": "error",
+      "@typescript-eslint/no-explicit-any": "off",
       quotes: ["error", "double"],
       semi: "off",
     }

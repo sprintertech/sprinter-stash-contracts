@@ -1,72 +1,27 @@
-const chai = require("chai");
-const {expect} = chai;
 import hre from "hardhat";
+import {AddressLike, resolveAddress, Signer, BaseContract, zeroPadBytes, toUtf8Bytes, ContractMethodArgs} from "ethers";
 
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-const ZERO_BYTES32 = "0x0000000000000000000000000000000000000000000000000000000000000000";
+export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+export const ZERO_BYTES32 = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
-const getCreateAddress = (from, nonce) => {
-  return hre.ethers.getCreateAddress({from: from.address || from.target || from, nonce});
-};
+export async function getCreateAddress(from: AddressLike, nonce: number): Promise<string> {
+  return hre.ethers.getCreateAddress({from: await resolveAddress(from), nonce});
+}
 
-const getContractAt = async (contractName, address, signer) => {
-  return hre.ethers.getContractAt(contractName, address, signer);
-};
+export async function getContractAt(contractName: string, address: AddressLike, signer: Signer): Promise<BaseContract> {
+  return hre.ethers.getContractAt(contractName, await resolveAddress(address), signer);
+}
 
-const deploy = async (contractName, signer, txParams, ...params) => {
+export async function deploy(contractName: string, signer: Signer, txParams: object, ...params: ContractMethodArgs):
+  Promise<BaseContract>
+{
   const factory = await hre.ethers.getContractFactory(contractName, signer);
   const instance = await factory.deploy(...params, txParams);
   await instance.waitForDeployment();
   return instance;
-};
+}
 
-const stringToNumber = (value) => {
-  if (value && value.toString().startsWith("0x")) {
-    return value;
-  }
-  let converted;
-  try {
-    converted = BigInt(value);
-  } catch(err) {
-    return value;
-  }
-  return converted <= BigInt(Number.MAX_SAFE_INTEGER) ? parseInt(converted) : converted;
-};
-
-const mixToArray = (mix) => {
-  if (Array.isArray(mix)) {
-    return mix;
-  }
-  const result = [];
-  for (let i = 0;; i++) {
-    const el = mix[i];
-    if (el === undefined) {
-      return result;
-    }
-    result.push(stringToNumber(el));
-  }
-};
-
-// This is needed to access events from contracts touched by transaction.
-const expectContractEvents = async (tx, contract, expectedEvents) => {
-  const receipt = await tx;
-  const txEvents = await contract.getPastEvents("allEvents", {
-    fromBlock: receipt.blockNumber,
-    toBlock: receipt.blockNumber,
-  });
-  const events = txEvents.filter(event => event.transactionHash == tx.transactionHash);
-  expect(events.length).to.equal(expectedEvents.length);
-  events.forEach((event, index) => {
-    expect(event.event).to.equal(expectedEvents[index][0]);
-    const convertedEvents = expectedEvents[index].slice(1).map(stringToNumber);
-    expect(mixToArray(event.returnValues)).to.eql(convertedEvents);
-  });
-};
-
-const toBytes32 = (str) => {
+export function toBytes32(str: string) {
   if (str.length > 32) throw new Error("String too long");
-  return padRight(utf8ToHex(str), 64);
-};
-
-module.exports = {getCreateAddress, getContractAt, deploy, toBytes32,
-  expectContractEvents, ZERO_ADDRESS, ZERO_BYTES32,};
+  return zeroPadBytes(toUtf8Bytes(str), 64);
+}

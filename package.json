@@ -9,7 +9,7 @@
     "lint": "npm run lint:solidity && npm run lint:ts",
     "lint:solidity": "solhint contracts/**/*.sol",
     "lint:ts": "eslint",
-    "test": "hardhat test"
+    "test": "hardhat test --typecheck"
   },
   "repository": {
     "type": "git",

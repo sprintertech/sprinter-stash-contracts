@@ -5,33 +5,39 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {
   getCreateAddress, getContractAt, deploy,
-  expectContractEvents, toBytes32, ZERO_ADDRESS, ZERO_BYTES32
+  ZERO_ADDRESS
 } from "./helpers";
+import {
+  TestUSDC, SprinterUSDCLPShare, LiquidityHub, TransparentUpgradeableProxy, ProxyAdmin
+} from "../typechain-types";
 
 describe("LiquidityHub", function () {
   const deployAll = async () => {
     const [deployer, admin, user, user2, user3] = await hre.ethers.getSigners();
 
-    const usdc = await deploy("TestUSDC", deployer, {});
+    const usdc = (await deploy("TestUSDC", deployer, {})) as TestUSDC;
 
     const USDC = 10n ** (await usdc.decimals());
 
     const startingNonce = await deployer.getNonce();
 
-    const liquidityHubAddress = getCreateAddress(deployer, startingNonce + 2);
-    const SprinterUSDCLPShare = await hre.ethers.getContractFactory("SprinterUSDCLPShare");
-    const lpToken = await deploy("SprinterUSDCLPShare", deployer, {nonce: startingNonce + 0}, liquidityHubAddress);
+    const liquidityHubAddress = await getCreateAddress(deployer, startingNonce + 2);
+    const lpToken = (
+      await deploy("SprinterUSDCLPShare", deployer, {nonce: startingNonce + 0}, liquidityHubAddress)
+    ) as SprinterUSDCLPShare;
     const LP = 10n ** (await lpToken.decimals());
 
-    const liquidityHubImpl = await deploy("LiquidityHub", deployer, {nonce: startingNonce + 1}, lpToken.target);
+    const liquidityHubImpl = (
+      await deploy("LiquidityHub", deployer, {nonce: startingNonce + 1}, lpToken.target)
+    ) as LiquidityHub;
     const liquidityHubInit = (await liquidityHubImpl.initialize.populateTransaction(usdc.target, admin.address)).data;
-    const liquidityHubProxy = await deploy(
+    const liquidityHubProxy = (await deploy(
       "TransparentUpgradeableProxy", deployer, {nonce: startingNonce + 2},
       liquidityHubImpl.target, admin, liquidityHubInit
-    );
-    const liquidityHub = await getContractAt('LiquidityHub', liquidityHubAddress, deployer);
-    const liquidityHubProxyAdminAddress = getCreateAddress(liquidityHubProxy, 1);
-    const liquidityHubAdmin = await getContractAt("ProxyAdmin", liquidityHubProxyAdminAddress, admin);
+    )) as TransparentUpgradeableProxy;
+    const liquidityHub = (await getContractAt("LiquidityHub", liquidityHubAddress, deployer)) as LiquidityHub;
+    const liquidityHubProxyAdminAddress = await getCreateAddress(liquidityHubProxy, 1);
+    const liquidityHubAdmin = (await getContractAt("ProxyAdmin", liquidityHubProxyAdminAddress, admin)) as ProxyAdmin;
 
 
     return {deployer, admin, user, user2, user3, usdc, lpToken,

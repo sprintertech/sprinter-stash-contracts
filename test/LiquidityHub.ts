@@ -39,7 +39,6 @@ describe("LiquidityHub", function () {
     const liquidityHubProxyAdminAddress = await getCreateAddress(liquidityHubProxy, 1);
     const liquidityHubAdmin = (await getContractAt("ProxyAdmin", liquidityHubProxyAdminAddress, admin)) as ProxyAdmin;
 
-
     return {deployer, admin, user, user2, user3, usdc, lpToken,
       liquidityHub, liquidityHubProxy, liquidityHubAdmin, USDC, LP};
   };

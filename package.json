@@ -5,11 +5,13 @@
   "main": "index.js",
   "scripts": {
     "compile": "hardhat compile",
+    "deploy": "hardhat run ./scripts/deploy.ts",
     "hardhat": "hardhat",
     "lint": "npm run lint:solidity && npm run lint:ts",
     "lint:solidity": "solhint contracts/**/*.sol",
     "lint:ts": "eslint",
-    "test": "hardhat test --typecheck"
+    "test": "hardhat test --typecheck",
+    "test:deploy": "ts-node --files ./scripts/deploy.ts"
   },
   "repository": {
     "type": "git",
@@ -29,6 +31,7 @@
   "devDependencies": {
     "@eslint/js": "^9.17.0",
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "dotenv": "^16.4.7",
     "eslint": "^9.17.0",
     "hardhat": "^2.22.17",
     "solhint": "^5.0.4",

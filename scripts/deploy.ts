@@ -44,7 +44,7 @@ async function main() {
   assert(liquidityHubAddress == liquidityHubProxy.target, "LiquidityHub address mismatch");
 
   console.log();
-  console.log(`Admin: ${lpToken.target}`);
+  console.log(`Admin: ${admin}`);
   console.log(`SprinterUSDCLPShare: ${lpToken.target}`);
   console.log(`LiquidityHub: ${liquidityHub.target}`);
   console.log(`LiquidityHubProxyAdmin: ${liquidityHubAdmin.target}`);

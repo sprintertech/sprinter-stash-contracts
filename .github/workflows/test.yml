@@ -8,25 +8,19 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [22.x]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2.4.0
-      - uses: actions/cache@v2.1.7
+        uses: actions/checkout@v4
+      - name: Install Node.js 22
+        uses: actions/setup-node@v4
         with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-      - name: Install Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v2.5.1
-        with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 22
+          cache: 'npm'
       - name: Install dependencies
         run: npm ci
       - name: Compile contracts
         run: npm run compile
       - name: Hardhat Tests
         run: npm run test
+      - name: Deploy Tests
+        run: npm run test:deploy

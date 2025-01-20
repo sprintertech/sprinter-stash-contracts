@@ -29,7 +29,7 @@ describe("SprinterUSDCLPShare", function () {
   it("Should allow manager to mint", async function () {
     const {lpToken, manager, user} = await loadFixture(deployLPToken);
 
-    expect(await lpToken.connect(manager).mint(user.address, 100n))
+    await expect(lpToken.connect(manager).mint(user.address, 100n))
       .to.emit(lpToken, "Transfer")
       .withArgs(ZERO_ADDRESS, user.address, 100n);
     expect(await lpToken.balanceOf(user.address)).to.equal(100n);
@@ -47,7 +47,7 @@ describe("SprinterUSDCLPShare", function () {
     const {lpToken, manager, user} = await loadFixture(deployLPToken);
 
     await lpToken.connect(manager).mint(user.address, 100n);
-    expect(await lpToken.connect(manager).burn(user.address, 30n))
+    await expect(lpToken.connect(manager).burn(user.address, 30n))
       .to.emit(lpToken, "Transfer")
       .withArgs(user.address, ZERO_ADDRESS, 30n);
     expect(await lpToken.balanceOf(user.address)).to.equal(70n);
@@ -66,7 +66,7 @@ describe("SprinterUSDCLPShare", function () {
     const {lpToken, manager, user, user2} = await loadFixture(deployLPToken);
 
     await lpToken.connect(manager).mint(user.address, 100n);
-    expect(await lpToken.connect(user).transfer(user2.address, 30n))
+    await expect(lpToken.connect(user).transfer(user2.address, 30n))
       .to.emit(lpToken, "Transfer")
       .withArgs(user.address, user2.address, 30n);
     expect(await lpToken.balanceOf(user.address)).to.equal(70n);

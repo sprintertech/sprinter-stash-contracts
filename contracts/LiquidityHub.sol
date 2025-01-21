@@ -112,7 +112,7 @@ contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
     }
 
     function balanceOf(address owner) public view virtual override(IERC20, ERC20Upgradeable) returns (uint256) {
-        return IERC20(address(SHARES)).balanceOf(owner);
+        return IERC20(address(SHARES)).balanceOf(owner) + _simulateSettleDeposit(owner);
     }
 
     function transfer(address, uint256) public pure override(IERC20, ERC20Upgradeable) returns (bool) {
@@ -189,32 +189,40 @@ contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
     }
 
     function _deposit(address caller, address receiver, uint256 assets, uint256 /*shares*/) internal virtual override {
+        _settleWithdraw(caller, caller, caller);
+        _settleDeposit(caller, receiver);
         LiquidityHubStorage storage $ = _getStorage();
         SafeERC20.safeTransferFrom(IERC20(asset()), caller, address(this), assets);
-        _settleDeposit(caller, receiver);
         PendingDeposit storage pendingDeposit = $.pendingDeposits[receiver];
         pendingDeposit.assets += assets;
         pendingDeposit.adjustmentId = $.lastAdjustmentId;
         emit DepositRequest(caller, receiver, assets);
     }
 
-    function _settleDeposit(address caller, address receiver) internal {
+    function _simulateSettleDeposit(address receiver) internal view returns (uint256) {
         LiquidityHubStorage storage $ = _getStorage();
         PendingDeposit storage pendingDeposit = $.pendingDeposits[receiver];
         uint256 assets = pendingDeposit.assets;
-        uint256 settleAdjustmentId = pendingDeposit.adjustmentId + 1;
         if (assets == 0) {
-            return;
+            return 0;
         }
+        uint256 settleAdjustmentId = pendingDeposit.adjustmentId + 1;
         if (settleAdjustmentId > $.lastAdjustmentId) {
-            return;
+            return 0;
         }
-        pendingDeposit.assets = 0;
-        pendingDeposit.adjustmentId = 0;
         AdjustmentRecord memory adjustmentRecord = $.adjustmentRecords[settleAdjustmentId];
         uint256 shares = _toShares(
             assets, adjustmentRecord.totalShares, adjustmentRecord.totalAssets, Math.Rounding.Floor
         );
+        return shares;
+    }
+
+    function _settleDeposit(address caller, address receiver) internal {
+        uint256 shares = _simulateSettleDeposit(receiver);
+        PendingDeposit storage pendingDeposit = _getStorage().pendingDeposits[receiver];
+        uint256 assets = pendingDeposit.assets;
+        pendingDeposit.assets = 0;
+        pendingDeposit.adjustmentId = 0;
         _mint(receiver, shares);
         emit Deposit(caller, receiver, assets, shares);
     }
@@ -226,11 +234,12 @@ contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
         uint256 /*assets*/,
         uint256 shares
     ) internal virtual override {
+        _settleDeposit(caller, owner);
+        _settleWithdraw(caller, receiver, owner);
         LiquidityHubStorage storage $ = _getStorage();
         if (caller != owner) {
             _spendAllowance(owner, caller, shares);
         }
-        _settleWithdraw(caller, receiver, owner);
         PendingWithdraw storage pendingWithdraw = $.pendingWithdrawals[receiver];
         pendingWithdraw.shares += shares;
         pendingWithdraw.adjustmentId = $.lastAdjustmentId;
@@ -243,10 +252,10 @@ contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
         LiquidityHubStorage storage $ = _getStorage();
         PendingWithdraw storage pendingWithdraw = $.pendingWithdrawals[receiver];
         uint256 shares = pendingWithdraw.shares;
-        uint256 settleAdjustmentId = pendingWithdraw.adjustmentId + 1;
         if (shares == 0) {
             return;
         }
+        uint256 settleAdjustmentId = pendingWithdraw.adjustmentId + 1;
         if (settleAdjustmentId > $.lastAdjustmentId) {
             return;
         }

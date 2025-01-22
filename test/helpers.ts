@@ -25,5 +25,5 @@ export async function deploy(contractName: string, signer: Signer, txParams: obj
 
 export function toBytes32(str: string) {
   if (str.length > 32) throw new Error("String too long");
-  return zeroPadBytes(toUtf8Bytes(str), 64);
+  return zeroPadBytes(toUtf8Bytes(str), 32);
 }

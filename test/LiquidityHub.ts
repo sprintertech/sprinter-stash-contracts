@@ -5,7 +5,7 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {
   getCreateAddress, getContractAt, deploy,
-  ZERO_ADDRESS, ZERO_BYTES32, toBytes32,
+  ZERO_ADDRESS, ZERO_BYTES32,
 } from "./helpers";
 import {
   TestUSDC, SprinterUSDCLPShare, LiquidityHub, TransparentUpgradeableProxy, ProxyAdmin,
@@ -20,7 +20,6 @@ describe("LiquidityHub", function () {
     const [deployer, admin, user, user2, user3] = await hre.ethers.getSigners();
 
     const DEFAULT_ADMIN_ROLE = ZERO_BYTES32;
-    const ASSETS_ADJUST_ROLE = toBytes32("ASSETS_ADJUST_ROLE");
 
     const usdc = (await deploy("TestUSDC", deployer, {})) as TestUSDC;
     const liquidityPool = (await deploy("TestLiquidityPool", deployer, {}, usdc.target)) as TestLiquidityPool;
@@ -38,7 +37,9 @@ describe("LiquidityHub", function () {
     const liquidityHubImpl = (
       await deploy("LiquidityHub", deployer, {nonce: startingNonce + 1}, lpToken.target, liquidityPool.target)
     ) as LiquidityHub;
-    const liquidityHubInit = (await liquidityHubImpl.initialize.populateTransaction(usdc.target, admin.address)).data;
+    const liquidityHubInit = (await liquidityHubImpl.initialize.populateTransaction(
+      usdc.target, admin.address, admin.address)
+    ).data;
     const liquidityHubProxy = (await deploy(
       "TransparentUpgradeableProxy", deployer, {nonce: startingNonce + 2},
       liquidityHubImpl.target, admin, liquidityHubInit
@@ -48,7 +49,6 @@ describe("LiquidityHub", function () {
     const liquidityHubAdmin = (await getContractAt("ProxyAdmin", liquidityHubProxyAdminAddress, admin)) as ProxyAdmin;
 
     await liquidityPool.grantRole(DEFAULT_ADMIN_ROLE, liquidityHub.target);
-    await liquidityHub.connect(admin).grantRole(ASSETS_ADJUST_ROLE, admin.address);
 
     return {deployer, admin, user, user2, user3, usdc, lpToken,
       liquidityHub, liquidityHubProxy, liquidityHubAdmin, USDC, LP, liquidityPool};
@@ -369,13 +369,17 @@ describe("LiquidityHub", function () {
     await liquidityHub.connect(user).withdraw(1n * USDC, user.address, user.address);
     await liquidityHub.connect(user).deposit(7n * USDC, user.address);
     await liquidityHub.connect(admin).adjustTotalAssets(0n, INCREASE);
+    expect(await liquidityHub.releasedAssets()).to.equal(1n * USDC);
     await liquidityHub.connect(user).withdraw(4n * USDC, user.address, user.address);
+    expect(await liquidityHub.releasedAssets()).to.equal(0n);
     await liquidityHub.connect(admin).adjustTotalAssets(0n, INCREASE);
+    expect(await liquidityHub.releasedAssets()).to.equal(4n * USDC);
     await liquidityHub.connect(user).settle(user.address);
     expect(await lpToken.balanceOf(user.address)).to.equal(5n * LP);
     expect(await lpToken.totalSupply()).to.equal(5n * LP);
     expect(await liquidityHub.totalSupply()).to.equal(5n * LP);
     expect(await liquidityHub.totalAssets()).to.equal(5n * USDC);
+    expect(await liquidityHub.releasedAssets()).to.equal(0n);
     expect(await liquidityHub.balanceOf(user.address)).to.equal(5n * LP);
     expect(await usdc.balanceOf(user.address)).to.equal(5n * USDC);
     expect(await usdc.balanceOf(liquidityPool.target)).to.equal(5n * USDC);
@@ -402,6 +406,7 @@ describe("LiquidityHub", function () {
     expect(await lpToken.totalSupply()).to.equal(0n);
     expect(await liquidityHub.totalSupply()).to.equal(0n);
     expect(await liquidityHub.totalAssets()).to.equal(0n);
+    expect(await liquidityHub.releasedAssets()).to.equal(0n);
     expect(await liquidityHub.balanceOf(user.address)).to.equal(0n);
     expect(await usdc.balanceOf(user.address)).to.equal(0n);
     expect(await usdc.balanceOf(liquidityPool.target)).to.equal(10n * USDC);
@@ -414,6 +419,7 @@ describe("LiquidityHub", function () {
     expect(await lpToken.totalSupply()).to.equal(0n);
     expect(await liquidityHub.totalSupply()).to.equal(10n * LP);
     expect(await liquidityHub.totalAssets()).to.equal(10n * USDC);
+    expect(await liquidityHub.releasedAssets()).to.equal(0n);
     expect(await liquidityHub.balanceOf(user.address)).to.equal(10n * LP);
     expect(await usdc.balanceOf(user.address)).to.equal(0n);
     expect(await usdc.balanceOf(liquidityPool.target)).to.equal(10n * USDC);
@@ -427,9 +433,34 @@ describe("LiquidityHub", function () {
     expect(await lpToken.totalSupply()).to.equal(10n * LP);
     expect(await liquidityHub.totalSupply()).to.equal(10n * LP);
     expect(await liquidityHub.totalAssets()).to.equal(10n * USDC);
+    expect(await liquidityHub.releasedAssets()).to.equal(0n);
     expect(await liquidityHub.balanceOf(user.address)).to.equal(10n * LP);
     expect(await usdc.balanceOf(user.address)).to.equal(0n);
     expect(await usdc.balanceOf(liquidityPool.target)).to.equal(10n * USDC);
     expect(await usdc.balanceOf(liquidityHub.target)).to.equal(0n);
+  });
+
+  it("Should allow to do 0 assets adjustment on empty hub", async function () {
+    const {
+      lpToken, liquidityHub, usdc,
+      liquidityPool, admin,
+    } = await loadFixture(deployAll);
+
+    await expect(liquidityHub.connect(admin).adjustTotalAssets(0n, INCREASE))
+      .to.emit(liquidityHub, "TotalAssetsAdjustment")
+      .withArgs(0n, 0n);
+    expect(await lpToken.totalSupply()).to.equal(0n);
+    expect(await liquidityHub.totalSupply()).to.equal(0n);
+    expect(await liquidityHub.totalAssets()).to.equal(0n);
+    expect(await liquidityHub.releasedAssets()).to.equal(0n);
+    expect(await usdc.balanceOf(liquidityPool.target)).to.equal(0n);
+    expect(await usdc.balanceOf(liquidityHub.target)).to.equal(0n);
+  });
+
+  it("Should not allow others to do assets adjustment", async function () {
+    const {liquidityHub, user} = await loadFixture(deployAll);
+
+    await expect(liquidityHub.connect(user).adjustTotalAssets(0n, INCREASE))
+      .to.be.revertedWithCustomError(liquidityHub, "AccessControlUnauthorizedAccount(address,bytes32)");
   });
 });

@@ -9,6 +9,7 @@ import {
     SafeERC20,
     Math
 } from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {AccessControlUpgradeable} from '@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol';
 import {ERC7201Helper} from './utils/ERC7201Helper.sol';
 import {IManagedToken} from './interfaces/IManagedToken.sol';
@@ -50,6 +51,7 @@ contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
         uint256 totalShares;
         uint256 depositedAssets;
         uint256 burnedShares;
+        uint256 releasedAssets;
         uint256 lastAdjustmentId;
         mapping(uint256 adjustmentId => AdjustmentRecord) adjustmentRecords;
         mapping(address receiver => PendingDeposit) pendingDeposits;
@@ -70,7 +72,7 @@ contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
         _disableInitializers();
     }
 
-    function initialize(IERC20 asset_, address admin) external initializer() {
+    function initialize(IERC20 asset_, address admin, address adjuster) external initializer() {
         ERC4626Upgradeable.__ERC4626_init(asset_);
         require(
             IERC20Metadata(address(asset_)).decimals() <= IERC20Metadata(address(SHARES)).decimals(),
@@ -79,6 +81,7 @@ contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
         // Deliberately not initializing ERC20Upgradable because its
         // functionality is delegated to SHARES.
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(ASSETS_ADJUST_ROLE, adjuster);
     }
 
     function adjustTotalAssets(uint256 amount, bool isIncrease) external onlyRole(ASSETS_ADJUST_ROLE) {
@@ -94,6 +97,7 @@ contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
         $.totalShares = supplyShares + mintingShares - $.burnedShares;
         $.depositedAssets = 0;
         $.burnedShares = 0;
+        $.releasedAssets += releasingAssets;
         adjustmentRecord.totalAssets = $.totalAssets;
         adjustmentRecord.totalShares = $.totalShares;
         emit TotalAssetsAdjustment(assets, newAssets);
@@ -140,6 +144,10 @@ contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
         return _getStorage().totalAssets;
     }
 
+    function releasedAssets() external view returns (uint256) {
+        return _getStorage().releasedAssets;
+    }
+
     function settle(address receiver) external {
         _settleDeposit(receiver, receiver);
         _settleWithdraw(receiver, receiver, receiver);
@@ -151,6 +159,26 @@ contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
 
     function settleWithdraw(address receiver) external {
         _settleWithdraw(receiver, receiver, receiver);
+    }
+
+    function depositWithPermit(
+        uint256 assets,
+        address receiver,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        IERC20Permit(asset()).permit(
+            _msgSender(),
+            address(this),
+            assets,
+            deadline,
+            v,
+            r,
+            s
+        );
+        deposit(assets, receiver);
     }
 
     function _toShares(
@@ -287,6 +315,7 @@ contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
         uint256 assets = _toAssets(
             shares, adjustmentRecord.totalShares, adjustmentRecord.totalAssets, Math.Rounding.Floor
         );
+        $.releasedAssets -= assets;
         LIQUIDITY_POOL.withdraw(receiver, assets);
         emit Withdraw(caller, receiver, owner, assets, shares);
     }

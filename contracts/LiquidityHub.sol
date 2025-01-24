@@ -23,39 +23,14 @@ contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
     bytes32 public constant ASSETS_ADJUST_ROLE = "ASSETS_ADJUST_ROLE";
 
     event TotalAssetsAdjustment(uint256 oldAssets, uint256 newAssets);
-    event DepositRequest(address caller, address receiver, uint256 assets);
-    event WithdrawRequest(address caller, address receiver, address owner, uint256 shares);
 
     error ZeroAddress();
     error NotImplemented();
     error IncompatibleAssetsAndShares();
 
-    struct AdjustmentRecord {
-        uint256 totalAssets;
-        uint256 totalShares;
-    }
-
-    struct PendingDeposit {
-        uint256 assets;
-        uint256 adjustmentId;
-    }
-
-    struct PendingWithdraw {
-        uint256 shares;
-        uint256 adjustmentId;
-    }
-
     /// @custom:storage-location erc7201:sprinter.storage.LiquidityHub
     struct LiquidityHubStorage {
         uint256 totalAssets;
-        uint256 totalShares;
-        uint256 depositedAssets;
-        uint256 burnedShares;
-        uint256 releasedAssets;
-        uint256 lastAdjustmentId;
-        mapping(uint256 adjustmentId => AdjustmentRecord) adjustmentRecords;
-        mapping(address receiver => PendingDeposit) pendingDeposits;
-        mapping(address receiver => PendingWithdraw) pendingWithdrawals;
     }
 
     bytes32 private constant StorageLocation = 0xb877bfaae1674461dd1960c90f24075e3de3265a91f6906fe128ab8da6ba1700;
@@ -86,20 +61,9 @@ contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
 
     function adjustTotalAssets(uint256 amount, bool isIncrease) external onlyRole(ASSETS_ADJUST_ROLE) {
         LiquidityHubStorage storage $ = _getStorage();
-        uint256 adjustmentId = ++$.lastAdjustmentId;
-        AdjustmentRecord storage adjustmentRecord = $.adjustmentRecords[adjustmentId];
         uint256 assets = $.totalAssets;
         uint256 newAssets = isIncrease ? assets + amount : assets - amount;
-        uint256 supplyShares = $.totalShares;
-        uint256 mintingShares = _toShares($.depositedAssets, supplyShares, newAssets, Math.Rounding.Floor);
-        uint256 releasingAssets = _toAssets($.burnedShares, supplyShares, newAssets, Math.Rounding.Floor);
-        $.totalAssets = newAssets + $.depositedAssets - releasingAssets;
-        $.totalShares = supplyShares + mintingShares - $.burnedShares;
-        $.depositedAssets = 0;
-        $.burnedShares = 0;
-        $.releasedAssets += releasingAssets;
-        adjustmentRecord.totalAssets = $.totalAssets;
-        adjustmentRecord.totalShares = $.totalShares;
+        $.totalAssets = newAssets;
         emit TotalAssetsAdjustment(assets, newAssets);
     }
 
@@ -116,11 +80,11 @@ contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
     }
 
     function totalSupply() public view virtual override(IERC20, ERC20Upgradeable) returns (uint256) {
-        return _getStorage().totalShares;
+        return IERC20(address(SHARES)).totalSupply();
     }
 
     function balanceOf(address owner) public view virtual override(IERC20, ERC20Upgradeable) returns (uint256) {
-        return IERC20(address(SHARES)).balanceOf(owner) + _simulateSettleDeposit(owner);
+        return IERC20(address(SHARES)).balanceOf(owner);
     }
 
     function transfer(address, uint256) public pure override(IERC20, ERC20Upgradeable) returns (bool) {
@@ -142,23 +106,6 @@ contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
 
     function totalAssets() public view virtual override returns (uint256) {
         return _getStorage().totalAssets;
-    }
-
-    function releasedAssets() external view returns (uint256) {
-        return _getStorage().releasedAssets;
-    }
-
-    function settle(address receiver) external {
-        _settleDeposit(receiver, receiver);
-        _settleWithdraw(receiver, receiver, receiver);
-    }
-
-    function settleDeposit(address receiver) external {
-        _settleDeposit(receiver, receiver);
-    }
-
-    function settleWithdraw(address receiver) external {
-        _settleWithdraw(receiver, receiver, receiver);
     }
 
     function depositWithPermit(
@@ -233,47 +180,12 @@ contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
         SHARES.spendAllowance(owner, spender, value);
     }
 
-    function _deposit(address caller, address receiver, uint256 assets, uint256 /*shares*/) internal virtual override {
-        _settleWithdraw(caller, caller, caller);
-        _settleDeposit(caller, receiver);
+    function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal virtual override {
         LiquidityHubStorage storage $ = _getStorage();
         SafeERC20.safeTransferFrom(IERC20(asset()), caller, address(LIQUIDITY_POOL), assets);
-        PendingDeposit storage pendingDeposit = $.pendingDeposits[receiver];
-        pendingDeposit.assets += assets;
-        pendingDeposit.adjustmentId = $.lastAdjustmentId;
-        $.depositedAssets += assets;
-        LIQUIDITY_POOL.deposit();
-        emit DepositRequest(caller, receiver, assets);
-    }
-
-    function _simulateSettleDeposit(address receiver) internal view returns (uint256) {
-        LiquidityHubStorage storage $ = _getStorage();
-        PendingDeposit storage pendingDeposit = $.pendingDeposits[receiver];
-        uint256 assets = pendingDeposit.assets;
-        if (assets == 0) {
-            return 0;
-        }
-        uint256 settleAdjustmentId = pendingDeposit.adjustmentId + 1;
-        if (settleAdjustmentId > $.lastAdjustmentId) {
-            return 0;
-        }
-        AdjustmentRecord memory adjustmentRecord = $.adjustmentRecords[settleAdjustmentId];
-        uint256 shares = _toShares(
-            assets, adjustmentRecord.totalShares, adjustmentRecord.totalAssets, Math.Rounding.Floor
-        );
-        return shares;
-    }
-
-    function _settleDeposit(address caller, address receiver) internal {
-        uint256 shares = _simulateSettleDeposit(receiver);
-        if (shares == 0) {
-            return;
-        }
-        PendingDeposit storage pendingDeposit = _getStorage().pendingDeposits[receiver];
-        uint256 assets = pendingDeposit.assets;
-        pendingDeposit.assets = 0;
-        pendingDeposit.adjustmentId = 0;
         _mint(receiver, shares);
+        $.totalAssets += assets;
+        LIQUIDITY_POOL.deposit();
         emit Deposit(caller, receiver, assets, shares);
     }
 
@@ -281,41 +193,15 @@ contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
         address caller,
         address receiver,
         address owner,
-        uint256 /*assets*/,
+        uint256 assets,
         uint256 shares
     ) internal virtual override {
-        _settleDeposit(caller, owner);
-        _settleWithdraw(caller, receiver, owner);
         LiquidityHubStorage storage $ = _getStorage();
         if (caller != owner) {
             _spendAllowance(owner, caller, shares);
         }
-        PendingWithdraw storage pendingWithdraw = $.pendingWithdrawals[receiver];
-        pendingWithdraw.shares += shares;
-        pendingWithdraw.adjustmentId = $.lastAdjustmentId;
-        $.burnedShares += shares;
+        $.totalAssets -= assets;
         _burn(owner, shares);
-        emit WithdrawRequest(caller, receiver, owner, shares);
-    }
-
-    function _settleWithdraw(address caller, address receiver, address owner) internal {
-        LiquidityHubStorage storage $ = _getStorage();
-        PendingWithdraw storage pendingWithdraw = $.pendingWithdrawals[receiver];
-        uint256 shares = pendingWithdraw.shares;
-        if (shares == 0) {
-            return;
-        }
-        uint256 settleAdjustmentId = pendingWithdraw.adjustmentId + 1;
-        if (settleAdjustmentId > $.lastAdjustmentId) {
-            return;
-        }
-        pendingWithdraw.shares = 0;
-        pendingWithdraw.adjustmentId = 0;
-        AdjustmentRecord memory adjustmentRecord = $.adjustmentRecords[settleAdjustmentId];
-        uint256 assets = _toAssets(
-            shares, adjustmentRecord.totalShares, adjustmentRecord.totalAssets, Math.Rounding.Floor
-        );
-        $.releasedAssets -= assets;
         LIQUIDITY_POOL.withdraw(receiver, assets);
         emit Withdraw(caller, receiver, owner, assets, shares);
     }

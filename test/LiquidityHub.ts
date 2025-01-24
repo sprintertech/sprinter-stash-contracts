@@ -13,7 +13,7 @@ import {
 } from "../typechain-types";
 
 const INCREASE = true;
-// const DECREASE = false;
+const DECREASE = false;
 
 describe("LiquidityHub", function () {
   const deployAll = async () => {
@@ -463,4 +463,128 @@ describe("LiquidityHub", function () {
     await expect(liquidityHub.connect(user).adjustTotalAssets(0n, INCREASE))
       .to.be.revertedWithCustomError(liquidityHub, "AccessControlUnauthorizedAccount(address,bytes32)");
   });
+
+  it("Should process deposits after adjustment with increased assets", async function () {
+    const {
+      lpToken, liquidityHub, usdc, deployer, user, user2, USDC, LP,
+      liquidityPool, admin,
+    } = await loadFixture(deployAll);
+
+    await usdc.connect(deployer).transfer(user.address, 20n * USDC);
+    await usdc.connect(deployer).transfer(user2.address, 40n * USDC);
+    await usdc.connect(user).approve(liquidityHub.target, 20n * USDC);
+    await usdc.connect(user2).approve(liquidityHub.target, 40n * USDC);
+    await liquidityHub.connect(user).deposit(10n * USDC, user.address);
+    await liquidityHub.connect(user2).deposit(20n * USDC, user2.address);
+    await liquidityHub.connect(admin).adjustTotalAssets(0n, INCREASE);
+    expect(await lpToken.balanceOf(user.address)).to.equal(0n);
+    expect(await lpToken.balanceOf(user2.address)).to.equal(0n);
+    expect(await lpToken.totalSupply()).to.equal(0n);
+    expect(await liquidityHub.totalSupply()).to.equal(30n * LP);
+    expect(await liquidityHub.totalAssets()).to.equal(30n * USDC);
+    expect(await liquidityHub.releasedAssets()).to.equal(0n);
+    expect(await liquidityHub.balanceOf(user.address)).to.equal(10n * LP);
+    expect(await liquidityHub.balanceOf(user2.address)).to.equal(20n * LP);
+    expect(await usdc.balanceOf(user.address)).to.equal(10n * USDC);
+    expect(await usdc.balanceOf(user2.address)).to.equal(20n * USDC);
+    expect(await usdc.balanceOf(liquidityPool.target)).to.equal(30n * USDC);
+    expect(await usdc.balanceOf(liquidityHub.target)).to.equal(0n);
+
+    await liquidityHub.connect(user).deposit(10n * USDC, user.address);
+    await liquidityHub.connect(user2).deposit(20n * USDC, user2.address);
+    await liquidityHub.connect(admin).adjustTotalAssets(120n * USDC, INCREASE);
+    expect(await lpToken.balanceOf(user.address)).to.equal(10n * LP);
+    expect(await lpToken.balanceOf(user2.address)).to.equal(20n * LP);
+    expect(await lpToken.totalSupply()).to.equal(30n * LP);
+    expect(await liquidityHub.totalSupply()).to.equal(36n * LP);
+    expect(await liquidityHub.totalAssets()).to.equal(180n * USDC);
+    expect(await liquidityHub.releasedAssets()).to.equal(0n);
+    expect(await liquidityHub.balanceOf(user.address)).to.equal(12n * LP);
+    expect(await liquidityHub.balanceOf(user2.address)).to.equal(24n * LP);
+    expect(await usdc.balanceOf(user.address)).to.equal(0n);
+    expect(await usdc.balanceOf(user2.address)).to.equal(0n);
+    expect(await usdc.balanceOf(liquidityPool.target)).to.equal(60n * USDC);
+    expect(await usdc.balanceOf(liquidityHub.target)).to.equal(0n);
+
+    await liquidityHub.settle(user.address);
+    await liquidityHub.settle(user2.address);
+    expect(await lpToken.balanceOf(user.address)).to.equal(12n * LP);
+    expect(await lpToken.balanceOf(user2.address)).to.equal(24n * LP);
+    expect(await lpToken.totalSupply()).to.equal(36n * LP);
+    expect(await liquidityHub.totalSupply()).to.equal(36n * LP);
+    expect(await liquidityHub.totalAssets()).to.equal(180n * USDC);
+    expect(await liquidityHub.releasedAssets()).to.equal(0n);
+    expect(await liquidityHub.balanceOf(user.address)).to.equal(12n * LP);
+    expect(await liquidityHub.balanceOf(user2.address)).to.equal(24n * LP);
+    expect(await usdc.balanceOf(user.address)).to.equal(0n);
+    expect(await usdc.balanceOf(user2.address)).to.equal(0n);
+    expect(await usdc.balanceOf(liquidityPool.target)).to.equal(60n * USDC);
+    expect(await usdc.balanceOf(liquidityHub.target)).to.equal(0n);
+  });
+
+  it("Should process deposits after adjustment with decreased assets", async function () {
+    const {
+      lpToken, liquidityHub, usdc, deployer, user, user2, USDC, LP,
+      liquidityPool, admin,
+    } = await loadFixture(deployAll);
+
+    await usdc.connect(deployer).transfer(user.address, 20n * USDC);
+    await usdc.connect(deployer).transfer(user2.address, 40n * USDC);
+    await usdc.connect(user).approve(liquidityHub.target, 20n * USDC);
+    await usdc.connect(user2).approve(liquidityHub.target, 40n * USDC);
+    await liquidityHub.connect(user).deposit(10n * USDC, user.address);
+    await liquidityHub.connect(user2).deposit(20n * USDC, user2.address);
+    await liquidityHub.connect(admin).adjustTotalAssets(0n, INCREASE);
+    expect(await lpToken.balanceOf(user.address)).to.equal(0n);
+    expect(await lpToken.balanceOf(user2.address)).to.equal(0n);
+    expect(await lpToken.totalSupply()).to.equal(0n);
+    expect(await liquidityHub.totalSupply()).to.equal(30n * LP);
+    expect(await liquidityHub.totalAssets()).to.equal(30n * USDC);
+    expect(await liquidityHub.releasedAssets()).to.equal(0n);
+    expect(await liquidityHub.balanceOf(user.address)).to.equal(10n * LP);
+    expect(await liquidityHub.balanceOf(user2.address)).to.equal(20n * LP);
+    expect(await usdc.balanceOf(user.address)).to.equal(10n * USDC);
+    expect(await usdc.balanceOf(user2.address)).to.equal(20n * USDC);
+    expect(await usdc.balanceOf(liquidityPool.target)).to.equal(30n * USDC);
+    expect(await usdc.balanceOf(liquidityHub.target)).to.equal(0n);
+
+    await liquidityHub.connect(user).deposit(10n * USDC, user.address);
+    await liquidityHub.connect(user2).deposit(20n * USDC, user2.address);
+    await liquidityHub.connect(admin).adjustTotalAssets(20n * USDC, DECREASE);
+    expect(await lpToken.balanceOf(user.address)).to.equal(10n * LP);
+    expect(await lpToken.balanceOf(user2.address)).to.equal(20n * LP);
+    expect(await lpToken.totalSupply()).to.equal(30n * LP);
+    expect(await liquidityHub.totalSupply()).to.equal(120n * LP);
+    expect(await liquidityHub.totalAssets()).to.equal(40n * USDC);
+    expect(await liquidityHub.releasedAssets()).to.equal(0n);
+    expect(await liquidityHub.balanceOf(user.address)).to.equal(40n * LP);
+    expect(await liquidityHub.balanceOf(user2.address)).to.equal(80n * LP);
+    expect(await usdc.balanceOf(user.address)).to.equal(0n);
+    expect(await usdc.balanceOf(user2.address)).to.equal(0n);
+    expect(await usdc.balanceOf(liquidityPool.target)).to.equal(60n * USDC);
+    expect(await usdc.balanceOf(liquidityHub.target)).to.equal(0n);
+
+    await liquidityHub.settle(user.address);
+    await liquidityHub.settle(user2.address);
+    expect(await lpToken.balanceOf(user.address)).to.equal(40n * LP);
+    expect(await lpToken.balanceOf(user2.address)).to.equal(80n * LP);
+    expect(await lpToken.totalSupply()).to.equal(120n * LP);
+    expect(await liquidityHub.totalSupply()).to.equal(120n * LP);
+    expect(await liquidityHub.totalAssets()).to.equal(40n * USDC);
+    expect(await liquidityHub.releasedAssets()).to.equal(0n);
+    expect(await liquidityHub.balanceOf(user.address)).to.equal(40n * LP);
+    expect(await liquidityHub.balanceOf(user2.address)).to.equal(80n * LP);
+    expect(await usdc.balanceOf(user.address)).to.equal(0n);
+    expect(await usdc.balanceOf(user2.address)).to.equal(0n);
+    expect(await usdc.balanceOf(liquidityPool.target)).to.equal(60n * USDC);
+    expect(await usdc.balanceOf(liquidityHub.target)).to.equal(0n);
+  });
+
+  it.skip("Should process withdrawals after adjustment with increased assets", async function () {});
+
+  it.skip("Should process withdrawals after adjustment with decreased assets", async function () {});
+
+  it.skip("Should process deposits and withdrawals after adjustment with increased assets", async function () {});
+
+  it.skip("Should process deposits and withdrawals after adjustment with decreased assets", async function () {});
 });

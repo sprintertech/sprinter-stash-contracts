@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import hre from "hardhat";
-import {isAddress} from "ethers";
+import {isAddress, MaxUint256, getBigInt} from "ethers";
 import {getContractAt, getCreateAddress, deploy, ZERO_BYTES32} from "../test/helpers";
 import {assert, getVerifier} from "./helpers";
 import {
@@ -14,6 +14,8 @@ async function main() {
   const [deployer] = await hre.ethers.getSigners();
   const admin: string = isAddress(process.env.ADMIN) ? process.env.ADMIN : deployer.address;
   const adjuster: string = isAddress(process.env.ADJUSTER) ? process.env.ADJUSTER : deployer.address;
+  const maxLimit: bigint = MaxUint256 / 10n ** 12n;
+  const assetsLimit: bigint = getBigInt(process.env.ASSETS_LIMIT || maxLimit);
   let usdc: string;
   if (isAddress(process.env.USDC)) {
     usdc = process.env.USDC;
@@ -37,7 +39,9 @@ async function main() {
   const liquidityHubImpl = (
     await verifier.deploy("LiquidityHub", deployer, {nonce: startingNonce + 1}, lpToken.target, liquidityPool.target)
   ) as LiquidityHub;
-  const liquidityHubInit = (await liquidityHubImpl.initialize.populateTransaction(usdc, admin, adjuster)).data;
+  const liquidityHubInit = (await liquidityHubImpl.initialize.populateTransaction(
+    usdc, admin, adjuster, assetsLimit
+  )).data;
   const liquidityHubProxy = (await verifier.deploy(
     "TransparentUpgradeableProxy", deployer, {nonce: startingNonce + 2},
     liquidityHubImpl.target, admin, liquidityHubInit

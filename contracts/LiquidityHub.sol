@@ -23,14 +23,17 @@ contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
     bytes32 public constant ASSETS_ADJUST_ROLE = "ASSETS_ADJUST_ROLE";
 
     event TotalAssetsAdjustment(uint256 oldAssets, uint256 newAssets);
+    event AssetsLimitSet(uint256 oldLimit, uint256 newLimit);
 
     error ZeroAddress();
     error NotImplemented();
     error IncompatibleAssetsAndShares();
+    error AssetsLimitIsTooBig();
 
     /// @custom:storage-location erc7201:sprinter.storage.LiquidityHub
     struct LiquidityHubStorage {
         uint256 totalAssets;
+        uint256 assetsLimit;
     }
 
     bytes32 private constant StorageLocation = 0xb877bfaae1674461dd1960c90f24075e3de3265a91f6906fe128ab8da6ba1700;
@@ -47,7 +50,12 @@ contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
         _disableInitializers();
     }
 
-    function initialize(IERC20 asset_, address admin, address adjuster) external initializer() {
+    function initialize(
+        IERC20 asset_,
+        address admin,
+        address adjuster,
+        uint256 newAssetsLimit
+    ) external initializer() {
         ERC4626Upgradeable.__ERC4626_init(asset_);
         require(
             IERC20Metadata(address(asset_)).decimals() <= IERC20Metadata(address(SHARES)).decimals(),
@@ -57,6 +65,7 @@ contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
         // functionality is delegated to SHARES.
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(ASSETS_ADJUST_ROLE, adjuster);
+        _setAssetsLimit(newAssetsLimit);
     }
 
     function adjustTotalAssets(uint256 amount, bool isIncrease) external onlyRole(ASSETS_ADJUST_ROLE) {
@@ -65,6 +74,18 @@ contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
         uint256 newAssets = isIncrease ? assets + amount : assets - amount;
         $.totalAssets = newAssets;
         emit TotalAssetsAdjustment(assets, newAssets);
+    }
+
+    function setAssetsLimit(uint256 newAssetsLimit) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setAssetsLimit(newAssetsLimit);
+    }
+
+    function _setAssetsLimit(uint256 newAssetsLimit) internal {
+        require(newAssetsLimit <= type(uint256).max / 10 ** _decimalsOffset(), AssetsLimitIsTooBig());
+        LiquidityHubStorage storage $ = _getStorage();
+        uint256 oldLimit = $.assetsLimit;
+        $.assetsLimit = newAssetsLimit;
+        emit AssetsLimitSet(oldLimit, newAssetsLimit);
     }
 
     function name() public pure override(IERC20Metadata, ERC20Upgradeable) returns (string memory) {
@@ -106,6 +127,23 @@ contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
 
     function totalAssets() public view virtual override returns (uint256) {
         return _getStorage().totalAssets;
+    }
+
+    function assetsLimit() public view returns (uint256) {
+        return _getStorage().assetsLimit;
+    }
+
+    function maxDeposit(address) public view virtual override returns (uint256) {
+        uint256 total = totalAssets();
+        uint256 limit = assetsLimit();
+        if (total >= limit) {
+            return 0;
+        }
+        return limit - total;
+    }
+
+    function maxMint(address) public view virtual override returns (uint256) {
+        return _convertToShares(maxDeposit(address(0)), Math.Rounding.Floor);
     }
 
     function depositWithPermit(

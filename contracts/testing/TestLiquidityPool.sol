@@ -1,0 +1,24 @@
+// SPDX-License-Identifier: LGPL-3.0-only
+pragma solidity 0.8.28;
+
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ILiquidityPool} from "../interfaces/ILiquidityPool.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+
+contract TestLiquidityPool is ILiquidityPool, AccessControl {
+    IERC20 private immutable ASSET;
+
+    event Deposit();
+
+    constructor(IERC20 asset) {
+        ASSET = asset;
+        _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+    }
+
+    function deposit() external override {
+        emit Deposit();
+    }
+    function withdraw(address to, uint256 amount) external override onlyRole(DEFAULT_ADMIN_ROLE) {
+        SafeERC20.safeTransfer(ASSET, to, amount);
+    }
+}

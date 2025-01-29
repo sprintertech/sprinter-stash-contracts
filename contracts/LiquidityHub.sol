@@ -6,40 +6,56 @@ import {
     IERC20Metadata,
     ERC20Upgradeable,
     ERC4626Upgradeable,
+    SafeERC20,
     Math
 } from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {AccessControlUpgradeable} from '@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol';
 import {ERC7201Helper} from './utils/ERC7201Helper.sol';
 import {IManagedToken} from './interfaces/IManagedToken.sol';
+import {ILiquidityPool} from './interfaces/ILiquidityPool.sol';
 
 contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
     using Math for uint256;
 
     IManagedToken immutable public SHARES;
-    bytes32 public constant ASSETS_UPDATE_ROLE = "ASSETS_UPDATE_ROLE";
+    ILiquidityPool immutable public LIQUIDITY_POOL;
+    bytes32 public constant ASSETS_ADJUST_ROLE = "ASSETS_ADJUST_ROLE";
+
+    event TotalAssetsAdjustment(uint256 oldAssets, uint256 newAssets);
+    event AssetsLimitSet(uint256 oldLimit, uint256 newLimit);
 
     error ZeroAddress();
     error NotImplemented();
     error IncompatibleAssetsAndShares();
+    error AssetsLimitIsTooBig();
 
     /// @custom:storage-location erc7201:sprinter.storage.LiquidityHub
     struct LiquidityHubStorage {
         uint256 totalAssets;
+        uint256 assetsLimit;
     }
 
     bytes32 private constant StorageLocation = 0xb877bfaae1674461dd1960c90f24075e3de3265a91f6906fe128ab8da6ba1700;
 
-    constructor(address shares) {
+    constructor(address shares, address liquidityPool) {
         ERC7201Helper.validateStorageLocation(
             StorageLocation,
             'sprinter.storage.LiquidityHub'
         );
         if (shares == address(0)) revert ZeroAddress();
+        if (liquidityPool == address(0)) revert ZeroAddress();
         SHARES = IManagedToken(shares);
+        LIQUIDITY_POOL = ILiquidityPool(liquidityPool);
         _disableInitializers();
     }
 
-    function initialize(IERC20 asset_, address admin) external initializer() {
+    function initialize(
+        IERC20 asset_,
+        address admin,
+        address adjuster,
+        uint256 newAssetsLimit
+    ) external initializer() {
         ERC4626Upgradeable.__ERC4626_init(asset_);
         require(
             IERC20Metadata(address(asset_)).decimals() <= IERC20Metadata(address(SHARES)).decimals(),
@@ -48,6 +64,28 @@ contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
         // Deliberately not initializing ERC20Upgradable because its
         // functionality is delegated to SHARES.
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(ASSETS_ADJUST_ROLE, adjuster);
+        _setAssetsLimit(newAssetsLimit);
+    }
+
+    function adjustTotalAssets(uint256 amount, bool isIncrease) external onlyRole(ASSETS_ADJUST_ROLE) {
+        LiquidityHubStorage storage $ = _getStorage();
+        uint256 assets = $.totalAssets;
+        uint256 newAssets = isIncrease ? assets + amount : assets - amount;
+        $.totalAssets = newAssets;
+        emit TotalAssetsAdjustment(assets, newAssets);
+    }
+
+    function setAssetsLimit(uint256 newAssetsLimit) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setAssetsLimit(newAssetsLimit);
+    }
+
+    function _setAssetsLimit(uint256 newAssetsLimit) internal {
+        require(newAssetsLimit <= type(uint256).max / 10 ** _decimalsOffset(), AssetsLimitIsTooBig());
+        LiquidityHubStorage storage $ = _getStorage();
+        uint256 oldLimit = $.assetsLimit;
+        $.assetsLimit = newAssetsLimit;
+        emit AssetsLimitSet(oldLimit, newAssetsLimit);
     }
 
     function name() public pure override(IERC20Metadata, ERC20Upgradeable) returns (string memory) {
@@ -91,26 +129,79 @@ contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
         return _getStorage().totalAssets;
     }
 
-    function _convertToShares(uint256 assets, Math.Rounding rounding) internal view virtual override returns (uint256) {
-        (uint256 supplyShares, uint256 supplyAssets) = _getTotals();
+    function assetsLimit() public view returns (uint256) {
+        return _getStorage().assetsLimit;
+    }
+
+    function maxDeposit(address) public view virtual override returns (uint256) {
+        uint256 total = totalAssets();
+        uint256 limit = assetsLimit();
+        if (total >= limit) {
+            return 0;
+        }
+        return limit - total;
+    }
+
+    function maxMint(address) public view virtual override returns (uint256) {
+        return _convertToShares(maxDeposit(address(0)), Math.Rounding.Floor);
+    }
+
+    function depositWithPermit(
+        uint256 assets,
+        address receiver,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        IERC20Permit(asset()).permit(
+            _msgSender(),
+            address(this),
+            assets,
+            deadline,
+            v,
+            r,
+            s
+        );
+        deposit(assets, receiver);
+    }
+
+    function _toShares(
+        uint256 assets,
+        uint256 supplyShares,
+        uint256 supplyAssets,
+        Math.Rounding rounding
+    ) internal view returns (uint256) {
+        (supplyShares, supplyAssets) = _getTotals(supplyShares, supplyAssets);
         return assets.mulDiv(supplyShares, supplyAssets, rounding);
     }
 
-    function _convertToAssets(uint256 shares, Math.Rounding rounding) internal view virtual override returns (uint256) {
-        (uint256 supplyShares, uint256 supplyAssets) = _getTotals();
+    function _toAssets(
+        uint256 shares,
+        uint256 supplyShares,
+        uint256 supplyAssets,
+        Math.Rounding rounding
+    ) internal view returns (uint256) {
+        (supplyShares, supplyAssets) = _getTotals(supplyShares, supplyAssets);
         return shares.mulDiv(supplyAssets, supplyShares, rounding);
     }
 
-    function _getTotals() internal view returns (uint256 supply, uint256 assets) {
-        supply = totalSupply();
-        if (supply == 0) {
-            supply = 10 ** _decimalsOffset();
+    function _convertToShares(uint256 assets, Math.Rounding rounding) internal view virtual override returns (uint256) {
+        return _toShares(assets, totalSupply(), totalAssets(), rounding);
+    }
+
+    function _convertToAssets(uint256 shares, Math.Rounding rounding) internal view virtual override returns (uint256) {
+        return _toAssets(shares, totalSupply(), totalAssets(), rounding);
+    }
+
+    function _getTotals(uint256 supplyShares, uint256 supplyAssets) internal view returns (uint256, uint256) {
+        if (supplyShares == 0) {
+            supplyShares = 10 ** _decimalsOffset();
         }
-        assets = totalAssets();
-        if (assets == 0) {
-            assets = 1;
+        if (supplyAssets == 0) {
+            supplyAssets = 1;
         }
-        return (supply, assets);
+        return (supplyShares, supplyAssets);
     }
 
     function _update(address from, address to, uint256 value) internal virtual override {
@@ -128,8 +219,12 @@ contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
     }
 
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal virtual override {
-        super._deposit(caller, receiver, assets, shares);
-        _getStorage().totalAssets += assets;
+        LiquidityHubStorage storage $ = _getStorage();
+        SafeERC20.safeTransferFrom(IERC20(asset()), caller, address(LIQUIDITY_POOL), assets);
+        _mint(receiver, shares);
+        $.totalAssets += assets;
+        LIQUIDITY_POOL.deposit();
+        emit Deposit(caller, receiver, assets, shares);
     }
 
     function _withdraw(
@@ -139,8 +234,14 @@ contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
         uint256 assets,
         uint256 shares
     ) internal virtual override {
-        _getStorage().totalAssets -= assets;
-        super._withdraw(caller, receiver, owner, assets, shares);
+        LiquidityHubStorage storage $ = _getStorage();
+        if (caller != owner) {
+            _spendAllowance(owner, caller, shares);
+        }
+        $.totalAssets -= assets;
+        _burn(owner, shares);
+        LIQUIDITY_POOL.withdraw(receiver, assets);
+        emit Withdraw(caller, receiver, owner, assets, shares);
     }
 
     function _decimalsOffset() internal view virtual override returns (uint8) {

@@ -7,10 +7,17 @@ export function assert(condition: boolean, message: string): void {
   throw new Error(message);
 };
 
-function sleep(msec: number): Promise<boolean> {
+export function sleep(msec: number): Promise<boolean> {
   return new Promise((resolve) => {
     setTimeout(() => resolve(true), msec);
   });
+};
+
+export function isSet(input?: string): boolean {
+  if (input) {
+    return input.length > 0;
+  }
+  return false;
 };
 
 export function getVerifier() {

@@ -31,7 +31,7 @@ async function main() {
   }
 
   if (tiers.length == 0) {
-    throw new Error('Empty liquidity mining tiers configuration.');
+    throw new Error("Empty liquidity mining tiers configuration.");
   }
 
   let usdc: string;
@@ -86,7 +86,7 @@ async function main() {
   console.log(`LiquidityHubProxyAdmin: ${liquidityHubAdmin.target}`);
   console.log(`USDC: ${usdc}`);
   console.log(`SprinterLiquidityMining: ${liquidityMining.target}`);
-  console.log(`Tiers:`);
+  console.log("Tiers:");
   console.table(tiers);
 
   if (process.env.VERIFY === "true") {

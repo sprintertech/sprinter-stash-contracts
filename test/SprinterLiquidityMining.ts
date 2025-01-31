@@ -20,7 +20,7 @@ async function now() {
   return BigInt(await time.latest());
 }
 
-describe.only("SprinterLiquidityMining", function () {
+describe("SprinterLiquidityMining", function () {
   const deployAll = async () => {
     const [deployer, admin, user, user2, user3] = await hre.ethers.getSigners();
 
@@ -794,11 +794,268 @@ describe.only("SprinterLiquidityMining", function () {
       .to.be.revertedWithCustomError(liquidityMining, "DecreasingPeriod()");
   });
 
-  it.skip("Should not allow to restake with 0 or negative added score", async function () {});
-  it.skip("Should not allow to unstake too early", async function () {});
-  it.skip("Should not allow to unstake 0 amount", async function () {});
-  it.skip("Should not allow to deploy with invalid parameters", async function () {});
-  it.skip("Should allow to deposit and stake", async function () {});
-  it.skip("Should allow to deposit and stake with permit", async function () {});
-  it.skip("Should allow to unstake and withdraw", async function () {});
+  it("Should not allow to restake with 0 or negative added score", async function () {
+    const {
+      lpToken, liquidityHub, usdc, user, USDC, LP,
+      deployer, admin,
+    } = await loadFixture(deployAll);
+
+    const tiers = [
+      {period: 3n * MONTH, multiplier: 100n},
+      {period: 6n * MONTH, multiplier: 10n},
+    ];
+
+    const liquidityMining = (
+      await deploy("SprinterLiquidityMining", deployer, {}, admin.address, liquidityHub.target, tiers)
+    ) as SprinterLiquidityMining;
+
+    await usdc.connect(deployer).transfer(user.address, 11n * USDC);
+    await usdc.connect(user).approve(liquidityHub.target, 11n * USDC);
+    await liquidityHub.connect(user).deposit(11n * USDC, user.address);
+    await lpToken.connect(user).approve(liquidityMining.target, 11n * LP);
+    await liquidityMining.connect(user).stake(user.address, 10n * LP, 0n);
+
+    await expect(liquidityMining.connect(user).stake(user.address, 1n * LP, 1n))
+      .to.be.revertedWithCustomError(liquidityMining, "InvalidAddedScore()");
+    await expect(liquidityMining.connect(user).stake(user.address, 0n, 1n))
+      .to.be.revertedWithCustomError(liquidityMining, "InvalidAddedScore()");
+  });
+
+  it("Should not allow to unstake too early", async function () {
+    const {
+      lpToken, liquidityHub, usdc, user, USDC, LP,
+      liquidityMining, deployer, user2,
+    } = await loadFixture(deployAll);
+
+    await usdc.connect(deployer).transfer(user.address, 10n * USDC);
+    await usdc.connect(user).approve(liquidityHub.target, 10n * USDC);
+    await liquidityHub.connect(user).deposit(10n * USDC, user.address);
+    await lpToken.connect(user).approve(liquidityMining.target, 10n * LP);
+    await liquidityMining.connect(user).stake(user.address, 10n * LP, 0n);
+
+    await time.increase(3n * MONTH - 10n);
+
+    await expect(liquidityMining.connect(user).unstake(user.address))
+      .to.be.revertedWithCustomError(liquidityMining, "Locked()");
+    await expect(liquidityMining.connect(user).unstake(user2.address))
+      .to.be.revertedWithCustomError(liquidityMining, "Locked()");
+  });
+
+  it("Should not allow to unstake 0 amount", async function () {
+    const {
+      lpToken, liquidityHub, usdc, user, USDC, LP,
+      liquidityMining, deployer, user2,
+    } = await loadFixture(deployAll);
+
+    await usdc.connect(deployer).transfer(user.address, 10n * USDC);
+    await usdc.connect(user).approve(liquidityHub.target, 10n * USDC);
+    await liquidityHub.connect(user).deposit(10n * USDC, user.address);
+    await lpToken.connect(user).approve(liquidityMining.target, 10n * LP);
+    await liquidityMining.connect(user).stake(user.address, 10n * LP, 0n);
+
+    await time.increase(3n * MONTH + 1n);
+
+    await expect(liquidityMining.connect(user2).unstake(user2.address))
+      .to.be.revertedWithCustomError(liquidityMining, "ZeroAmount()");
+    await liquidityMining.connect(user).unstake(user.address);
+    await expect(liquidityMining.connect(user).unstake(user.address))
+      .to.be.revertedWithCustomError(liquidityMining, "ZeroAmount()");
+  });
+
+  it("Should not allow to deploy with invalid parameters", async function () {
+    const {
+      liquidityHub, deployer, admin, liquidityMining,
+    } = await loadFixture(deployAll);
+
+    const tiers = [
+      {period: 3n * MONTH, multiplier: 100n},
+      {period: 6n * MONTH, multiplier: 10n},
+    ];
+
+    await expect(deploy("SprinterLiquidityMining", deployer, {}, admin.address, ZERO_ADDRESS, tiers))
+      .to.be.reverted;
+    await expect(deploy("SprinterLiquidityMining", deployer, {}, admin.address, liquidityHub.target, []))
+      .to.be.revertedWithCustomError(liquidityMining, "EmptyInput()");
+    const tiersZeroPeriod = [
+      {period: 0n, multiplier: 100n},
+      {period: 6n * MONTH, multiplier: 10n},
+    ];
+    await expect(deploy("SprinterLiquidityMining", deployer, {}, admin.address, liquidityHub.target, tiersZeroPeriod))
+      .to.be.revertedWithCustomError(liquidityMining, "ZeroPeriod()");
+    const tiersZeroMultiplier = [
+      {period: 3n * MONTH, multiplier: 100n},
+      {period: 6n * MONTH, multiplier: 0n},
+    ];
+    await expect(
+      deploy("SprinterLiquidityMining", deployer, {}, admin.address, liquidityHub.target, tiersZeroMultiplier)
+    ).to.be.revertedWithCustomError(liquidityMining, "ZeroMultiplier()");
+    const tiersSamePeriod = [
+      {period: 3n * MONTH, multiplier: 100n},
+      {period: 3n * MONTH, multiplier: 10n},
+    ];
+    await expect(
+      deploy("SprinterLiquidityMining", deployer, {}, admin.address, liquidityHub.target, tiersSamePeriod)
+    ).to.be.revertedWithCustomError(liquidityMining, "DecreasingPeriod()");
+    const tiersDecreasingPeriod = [
+      {period: 3n * MONTH, multiplier: 100n},
+      {period: 3n * MONTH - 1n, multiplier: 10n},
+    ];
+    await expect(
+      deploy("SprinterLiquidityMining", deployer, {}, admin.address, liquidityHub.target, tiersDecreasingPeriod)
+    ).to.be.revertedWithCustomError(liquidityMining, "DecreasingPeriod()");
+  });
+
+  it("Should allow to deposit and stake", async function () {
+    const {
+      lpToken, usdc, user, user2, liquidityPool, USDC, LP,
+      liquidityMining, deployer,
+    } = await loadFixture(deployAll);
+
+    await usdc.connect(deployer).transfer(user.address, 10n * USDC);
+    await usdc.connect(user).approve(liquidityMining.target, 10n * USDC);
+    const tx = liquidityMining.connect(user).depositAndStake(user2.address, 10n * USDC, 0n);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(user.address, liquidityMining.target, 10n * USDC);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(liquidityMining.target, liquidityPool.target, 10n * USDC);
+    await expect(tx)
+      .to.emit(lpToken, "Transfer")
+      .withArgs(ZERO_ADDRESS, liquidityMining.target, 10n * LP);
+    await expect(tx)
+      .to.emit(liquidityMining, "Transfer")
+      .withArgs(ZERO_ADDRESS, user2.address, 10n * LP * 3n * MONTH);
+    const until = await now() + 3n * MONTH;
+    await expect(tx)
+      .to.emit(liquidityMining, "StakeLocked")
+      .withArgs(
+        user.address,
+        user2.address,
+        10n * LP,
+        10n * LP,
+        until,
+        10n * LP * 3n * MONTH,
+      );
+    expect(await lpToken.balanceOf(user.address)).to.equal(0n);
+    expect(await lpToken.balanceOf(user2.address)).to.equal(0n);
+    expect(await lpToken.balanceOf(liquidityMining.target)).to.equal(10n * LP);
+    expect(await liquidityMining.totalSupply()).to.equal(10n * LP * 3n * MONTH);
+    expect(await liquidityMining.balanceOf(user.address)).to.equal(0n);
+    expect(await liquidityMining.balanceOf(user2.address)).to.equal(10n * LP * 3n * MONTH);
+    expect(await usdc.balanceOf(liquidityPool.target)).to.equal(10n * USDC);
+    expect(await liquidityMining.stakes(user.address)).to.eql([10n * LP, until, 100n]);
+    expect(await liquidityMining.stakes(user2.address)).to.eql([0n, 0n, 0n]);
+  });
+
+  it("Should allow to deposit and stake with permit", async function () {
+    const {
+      lpToken, usdc, user, user2, liquidityPool, USDC, LP,
+      liquidityMining, deployer,
+    } = await loadFixture(deployAll);
+
+    await usdc.connect(deployer).transfer(user.address, 10n * USDC);
+
+    const domain = {
+      name: "Circle USD",
+      version: "1",
+      chainId: hre.network.config.chainId,
+      verifyingContract: await resolveAddress(usdc),
+    };
+
+    const types = {
+      Permit: [
+        {name: "owner", type: "address"},
+        {name: "spender", type: "address"},
+        {name: "value", type: "uint256"},
+        {name: "nonce", type: "uint256"},
+        {name: "deadline", type: "uint256"},
+      ],
+    };
+
+    const permitSig = Signature.from(await user.signTypedData(domain, types, {
+      owner: user.address,
+      spender: liquidityMining.target,
+      value: 10n * USDC,
+      nonce: 0n,
+      deadline: 2000000000n,
+    }));
+
+    const tx = liquidityMining.connect(user).depositAndStakeWithPermit(
+      user2.address,
+      10n * USDC,
+      0n,
+      2000000000n,
+      permitSig.v,
+      permitSig.r,
+      permitSig.s,
+    );
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(user.address, liquidityMining.target, 10n * USDC);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(liquidityMining.target, liquidityPool.target, 10n * USDC);
+    await expect(tx)
+      .to.emit(lpToken, "Transfer")
+      .withArgs(ZERO_ADDRESS, liquidityMining.target, 10n * LP);
+    await expect(tx)
+      .to.emit(liquidityMining, "Transfer")
+      .withArgs(ZERO_ADDRESS, user2.address, 10n * LP * 3n * MONTH);
+    const until = await now() + 3n * MONTH;
+    await expect(tx)
+      .to.emit(liquidityMining, "StakeLocked")
+      .withArgs(
+        user.address,
+        user2.address,
+        10n * LP,
+        10n * LP,
+        until,
+        10n * LP * 3n * MONTH,
+      );
+    expect(await lpToken.balanceOf(user.address)).to.equal(0n);
+    expect(await lpToken.balanceOf(user2.address)).to.equal(0n);
+    expect(await lpToken.balanceOf(liquidityMining.target)).to.equal(10n * LP);
+    expect(await liquidityMining.totalSupply()).to.equal(10n * LP * 3n * MONTH);
+    expect(await liquidityMining.balanceOf(user.address)).to.equal(0n);
+    expect(await liquidityMining.balanceOf(user2.address)).to.equal(10n * LP * 3n * MONTH);
+    expect(await usdc.balanceOf(liquidityPool.target)).to.equal(10n * USDC);
+    expect(await liquidityMining.stakes(user.address)).to.eql([10n * LP, until, 100n]);
+    expect(await liquidityMining.stakes(user2.address)).to.eql([0n, 0n, 0n]);
+  });
+
+  it("Should allow to unstake and withdraw", async function () {
+    const {
+      lpToken, liquidityHub, usdc, user, user2, liquidityPool, USDC, LP,
+      liquidityMining, deployer,
+    } = await loadFixture(deployAll);
+
+    await usdc.connect(deployer).transfer(user.address, 10n * USDC);
+    await usdc.connect(user).approve(liquidityHub.target, 10n * USDC);
+    await liquidityHub.connect(user).deposit(10n * USDC, user.address);
+    await lpToken.connect(user).approve(liquidityMining.target, 10n * LP);
+    await liquidityMining.connect(user).stake(user2.address, 10n * LP, 0n);
+
+    await time.increase(3n * MONTH);
+
+    const tx = liquidityMining.connect(user).unstakeAndWithdraw(user2.address);
+    await expect(tx)
+      .to.emit(lpToken, "Transfer")
+      .withArgs(liquidityMining.target, ZERO_ADDRESS, 10n * LP);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(liquidityPool.target, user2.address, 10n * USDC);
+    await expect(tx)
+      .to.emit(liquidityMining, "StakeUnlocked")
+      .withArgs(user.address, liquidityMining.target, 10n * LP);
+    expect(await lpToken.balanceOf(user.address)).to.equal(0n);
+    expect(await lpToken.balanceOf(user2.address)).to.equal(0n);
+    expect(await lpToken.balanceOf(liquidityMining.target)).to.equal(0n);
+    expect(await liquidityMining.totalSupply()).to.equal(10n * LP * 3n * MONTH);
+    expect(await liquidityMining.balanceOf(user.address)).to.equal(0n);
+    expect(await liquidityMining.balanceOf(user2.address)).to.equal(10n * LP * 3n * MONTH);
+    expect(await usdc.balanceOf(liquidityPool.target)).to.equal(0n);
+    expect(await usdc.balanceOf(user.address)).to.equal(0n);
+    expect(await usdc.balanceOf(user2.address)).to.equal(10n * USDC);
+  });
 });

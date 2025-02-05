@@ -4,11 +4,13 @@ dotenv.config();
 import hre from "hardhat";
 import {isAddress, MaxUint256, getBigInt} from "ethers";
 import {getContractAt, getCreateAddress, deploy, ZERO_BYTES32} from "../test/helpers";
-import {assert, getVerifier} from "./helpers";
+import {assert, getVerifier, isSet} from "./helpers";
 import {
   TestUSDC, SprinterUSDCLPShare, LiquidityHub, TransparentUpgradeableProxy, ProxyAdmin,
-  TestLiquidityPool,
+  TestLiquidityPool, SprinterLiquidityMining,
 } from "../typechain-types";
+
+const DAY = 60n * 60n * 24n;
 
 async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -16,6 +18,22 @@ async function main() {
   const adjuster: string = isAddress(process.env.ADJUSTER) ? process.env.ADJUSTER : deployer.address;
   const maxLimit: bigint = MaxUint256 / 10n ** 12n;
   const assetsLimit: bigint = getBigInt(process.env.ASSETS_LIMIT || maxLimit);
+
+  const tiers = [];
+
+  for (let i = 1;; i++) {
+    if (!isSet(process.env[`TIER_${i}_DAYS`])) {
+      break;
+    }
+    const period = BigInt(process.env[`TIER_${i}_DAYS`] || "0") * DAY;
+    const multiplier = BigInt(process.env[`TIER_${i}_MULTIPLIER`] || "0");
+    tiers.push({period, multiplier});
+  }
+
+  if (tiers.length == 0) {
+    throw new Error("Empty liquidity mining tiers configuration.");
+  }
+
   let usdc: string;
   if (isAddress(process.env.USDC)) {
     usdc = process.env.USDC;
@@ -52,6 +70,10 @@ async function main() {
 
   assert(liquidityHubAddress == liquidityHubProxy.target, "LiquidityHub address mismatch");
 
+  const liquidityMining = (
+    await deploy("SprinterLiquidityMining", deployer, {}, admin, liquidityHub.target, tiers)
+  ) as SprinterLiquidityMining;
+
   const DEFAULT_ADMIN_ROLE = ZERO_BYTES32;
 
   console.log("TEST: Using default admin role for Hub on Pool");
@@ -63,6 +85,9 @@ async function main() {
   console.log(`LiquidityHub: ${liquidityHub.target}`);
   console.log(`LiquidityHubProxyAdmin: ${liquidityHubAdmin.target}`);
   console.log(`USDC: ${usdc}`);
+  console.log(`SprinterLiquidityMining: ${liquidityMining.target}`);
+  console.log("Tiers:");
+  console.table(tiers);
 
   if (process.env.VERIFY === "true") {
     await verifier.verify();

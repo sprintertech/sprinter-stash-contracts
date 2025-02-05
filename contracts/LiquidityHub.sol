@@ -14,8 +14,9 @@ import {AccessControlUpgradeable} from '@openzeppelin/contracts-upgradeable/acce
 import {ERC7201Helper} from './utils/ERC7201Helper.sol';
 import {IManagedToken} from './interfaces/IManagedToken.sol';
 import {ILiquidityPool} from './interfaces/ILiquidityPool.sol';
+import {ILiquidityHub} from './interfaces/ILiquidityHub.sol';
 
-contract LiquidityHub is ERC4626Upgradeable, AccessControlUpgradeable {
+contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgradeable {
     using Math for uint256;
 
     IManagedToken immutable public SHARES;

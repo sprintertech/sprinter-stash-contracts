@@ -27,3 +27,10 @@ export function toBytes32(str: string) {
   if (str.length > 32) throw new Error("String too long");
   return zeroPadBytes(toUtf8Bytes(str), 32);
 }
+
+export function divCeil(a: bigint, b: bigint): bigint {
+  if (a % b == 0n) {
+    return a / b;
+  }
+  return a / b + 1n;
+}

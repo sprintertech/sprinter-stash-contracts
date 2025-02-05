@@ -20,6 +20,7 @@ contract LiquidityMining is ERC20, Ownable {
 
     struct Stake {
         uint256 amount;
+        uint32 period;
         uint32 until;
         uint32 multiplier;
     }
@@ -127,15 +128,16 @@ contract LiquidityMining is ERC20, Ownable {
             require(tier.period >= remainingTime, DecreasingPeriod());
             pendingScore = Math.ceilDiv(
                 currentStake.amount * remainingTime * uint256(currentStake.multiplier),
-                MULTIPLIER_PRECISION
+                MULTIPLIER_PRECISION * currentStake.period
             );
         }
         currentStake.amount += amount;
+        currentStake.period = tier.period;
         currentStake.until = timeNow() + tier.period;
         currentStake.multiplier = tier.multiplier;
         stakes[from] = currentStake;
         uint256 newPendingScore =
-            currentStake.amount * uint256(tier.period) * uint256(tier.multiplier) /
+            currentStake.amount * uint256(tier.multiplier) /
             uint256(MULTIPLIER_PRECISION);
         require(newPendingScore > pendingScore, InvalidAddedScore());
         uint256 addedScore = newPendingScore - pendingScore;

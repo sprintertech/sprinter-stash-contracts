@@ -579,7 +579,9 @@ describe("SprinterLiquidityMining", function () {
     expect(await lpToken.balanceOf(user.address)).to.equal(0n);
     expect(await lpToken.balanceOf(liquidityMining.target)).to.equal(10n * LP);
     expect(await liquidityMining.totalSupply()).to.equal(10n * LP * (3n * MONTH + extraSeconds) / (3n * MONTH));
-    expect(await liquidityMining.balanceOf(user.address)).to.equal(10n * LP * (3n * MONTH + extraSeconds) / (3n * MONTH));
+    expect(await liquidityMining.balanceOf(user.address)).to.equal(
+      10n * LP * (3n * MONTH + extraSeconds) / (3n * MONTH)
+    );
     expect(await liquidityMining.balanceOf(user2.address)).to.equal(0n);
     expect(await usdc.balanceOf(liquidityPool.target)).to.equal(10n * USDC);
     expect(await liquidityMining.stakes(user.address)).to.eql([10n * LP, 3n * MONTH, until, 100n]);
@@ -771,7 +773,9 @@ describe("SprinterLiquidityMining", function () {
     expect(await lpToken.balanceOf(user.address)).to.equal(10n * LP);
     expect(await lpToken.balanceOf(liquidityMining.target)).to.equal(0n);
     expect(await liquidityMining.totalSupply()).to.equal(10n * LP * (3n * MONTH + extraSeconds) / (3n * MONTH));
-    expect(await liquidityMining.balanceOf(user.address)).to.equal(10n * LP * (3n * MONTH + extraSeconds) / (3n * MONTH));
+    expect(await liquidityMining.balanceOf(user.address)).to.equal(
+      10n * LP * (3n * MONTH + extraSeconds) / (3n * MONTH)
+    );
     expect(await usdc.balanceOf(liquidityPool.target)).to.equal(10n * USDC);
     expect(await liquidityMining.stakes(user.address)).to.eql([0n, 0n, 0n, 0n]);
   });

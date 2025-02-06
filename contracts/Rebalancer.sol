@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import {AccessControlUpgradeable} from '@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol';
 import {ERC7201Helper} from './utils/ERC7201Helper.sol';
 import {ILiquidityPool} from './interfaces/ILiquidityPool.sol';
@@ -9,11 +10,13 @@ import {IRebalancer} from './interfaces/IRebalancer.sol';
 import {ICCTPTokenMessenger, ICCTPMessageTransmitter} from './interfaces/ICCTP.sol';
 
 contract Rebalancer is IRebalancer, AccessControlUpgradeable {
+    using BitMaps for BitMaps.BitMap;
+
     ILiquidityPool immutable public LIQUIDITY_POOL;
     IERC20 immutable public COLLATERAL;
     ICCTPTokenMessenger immutable public CCTP_TOKEN_MESSENGER;
     ICCTPMessageTransmitter immutable public CCTP_MESSAGE_TRANSMITTER;
-    bytes32 public constant REBALANCER_ROLE = "REBALANCER_ROLE";
+    bytes32 constant public REBALANCER_ROLE = "REBALANCER_ROLE";
 
     event InitiateRebalance(uint256 amount, Domain destinationDomain, Provider provider);
     event ProcessRebalance(Provider provider);
@@ -24,11 +27,12 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable {
     error RouteDenied();
     error ProcessFailed();
     error UnsupportedDomain();
+    error UnsupportedProvider();
     error InvalidLength();
 
     /// @custom:storage-location erc7201:sprinter.storage.Rebalancer
     struct RebalancerStorage {
-        mapping(Domain => mapping(Provider => bool)) allowedRoutes;
+        BitMaps.BitMap allowedRoutes;
     }
 
     bytes32 private constant StorageLocation = 0x81fbb040176d3bdbf3707b380997ee0038798f9e3ad0bae77fff3621ef225c00;
@@ -78,13 +82,17 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable {
         for (uint256 i = 0; i < domains.length; ++i) {
             Domain domain = domains[i];
             Provider provider = providers[i];
-            $.allowedRoutes[domain][provider] = isAllowed;
+            $.allowedRoutes.setTo(_toIndex(domain, provider), isAllowed);
             emit SetRoute(domain, provider, isAllowed);
         }
     }
 
+    function _toIndex(Domain domain, Provider provider) internal pure returns (uint256) {
+        return (uint256(domain) << 8) + uint256(provider);
+    }
+
     function isRouteAllowed(Domain domain, Provider provider) public view returns (bool) {
-        return _getStorage().allowedRoutes[domain][provider];
+        return _getStorage().allowedRoutes.get(_toIndex(domain, provider));
     }
 
     function initiateRebalance(
@@ -99,7 +107,12 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable {
         LIQUIDITY_POOL.withdraw(address(this), amount);
         if (provider == Provider.CCTP) {
             _initiateRebalanceCCTP(amount, destinationDomain);
+        } else {
+            // Unreachable atm, but could become so when more providers are added to enum.
+            revert UnsupportedProvider();
         }
+
+        emit InitiateRebalance(amount, destinationDomain, provider);
     }
 
     function processRebalance(
@@ -108,8 +121,13 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable {
     ) external override {
         if (provider == Provider.CCTP) {
             _processRebalanceCCTP(extraData);
+        } else {
+            // Unreachable atm, but could become so when more providers are added to enum.
+            revert UnsupportedProvider();
         }
         LIQUIDITY_POOL.deposit();
+
+        emit ProcessRebalance(provider);
     }
 
     function _initiateRebalanceCCTP(
@@ -134,7 +152,7 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable {
         require(success, ProcessFailed());
     }
 
-    function domainCCTP(Domain destinationDomain) public pure returns (uint32) {
+    function domainCCTP(Domain destinationDomain) public pure virtual returns (uint32) {
         if (false) {
             // Intentional unreachable block for better code style.
             return type(uint32).max;
@@ -142,7 +160,7 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable {
             return 0;
         } else if (destinationDomain == Domain.AVALANCHE) {
             return 1;
-        } else if (destinationDomain == Domain.OP_CCHAIN) {
+        } else if (destinationDomain == Domain.OP_MAINNET) {
             return 2;
         } else if (destinationDomain == Domain.ARBITRUM_ONE) {
             return 3;

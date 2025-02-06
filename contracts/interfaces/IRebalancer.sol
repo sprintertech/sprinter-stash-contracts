@@ -2,13 +2,20 @@
 pragma solidity 0.8.28;
 
 interface IRebalancer {
+    // Note, only extend enums at the end to maintain backward compatibility.
     enum Domain {
         ETHEREUM,
         AVALANCHE,
-        OP_CCHAIN,
+        OP_MAINNET,
         ARBITRUM_ONE,
         BASE,
-        POLYGON_MAINNET
+        POLYGON_MAINNET,
+        ETHEREUM_SEPOLIA,
+        AVALANCHE_FUJI,
+        OP_SEPOLIA,
+        ARBITRUM_SEPOLIA,
+        BASE_SEPOLIA,
+        POLYGON_AMOY
     }
 
     enum Provider {

@@ -60,8 +60,8 @@ contract SprinterLiquidityMining is LiquidityMining {
         depositAndStake(scoreTo, amount, tierId);
     }
 
-    function unstakeAndWithdraw(address to) external {
-        uint256 shares = _unstake(_msgSender(), address(this));
+    function unstakeAndWithdraw(uint256 id, address to) external {
+        uint256 shares = _unstake(_msgSender(), id, address(this));
         IERC4626(address(LIQUIDITY_HUB)).redeem(shares, to, address(this));
     }
 

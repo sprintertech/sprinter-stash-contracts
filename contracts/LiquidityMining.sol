@@ -27,7 +27,7 @@ contract LiquidityMining is ERC20, Ownable {
 
     bool public miningAllowed;
     Tier[] public tiers;
-    mapping(address user => Stake) public stakes;
+    mapping(address user => Stake[]) public stakes;
 
     event DisableMining();
     event StakeLocked(
@@ -79,10 +79,12 @@ contract LiquidityMining is ERC20, Ownable {
         }
     }
 
+    function getStakes(address user) public view returns(Stake[] memory) {
+        return stakes[user];
+    }
+
     function stake(address scoreTo, uint256 amount, uint256 tierId) public {
-        if (amount > 0) {
-            STAKING_TOKEN.safeTransferFrom(_msgSender(), address(this), amount);
-        }
+        STAKING_TOKEN.safeTransferFrom(_msgSender(), address(this), amount);
         _stake(_msgSender(), scoreTo, amount, tierId);
     }
 
@@ -107,8 +109,8 @@ contract LiquidityMining is ERC20, Ownable {
         stake(scoreTo, amount, tierId);
     }
 
-    function unstake(address to) external {
-        uint256 amount = _unstake(_msgSender(), to);
+    function unstake(uint256 id, address to) external {
+        uint256 amount = _unstake(_msgSender(), id, to);
         STAKING_TOKEN.safeTransfer(to, amount);
     }
 
@@ -119,38 +121,28 @@ contract LiquidityMining is ERC20, Ownable {
     }
 
     function _stake(address from, address scoreTo, uint256 amount, uint256 tierId) internal {
+        require(amount > 0, ZeroAmount());
         require(miningAllowed, MiningDisabled());
-        Stake memory currentStake = stakes[from];
+        Stake memory currentStake;
         Tier memory tier = tiers[tierId];
-        uint256 pendingScore = 0;
-        if (notReached(currentStake.until)) {
-            uint256 remainingTime = till(currentStake.until);
-            require(tier.period >= remainingTime, DecreasingPeriod());
-            pendingScore = Math.ceilDiv(
-                currentStake.amount * remainingTime * uint256(currentStake.multiplier),
-                MULTIPLIER_PRECISION * currentStake.period
-            );
-        }
-        currentStake.amount += amount;
+        currentStake.amount = amount;
         currentStake.period = tier.period;
         currentStake.until = timeNow() + tier.period;
         currentStake.multiplier = tier.multiplier;
-        stakes[from] = currentStake;
-        uint256 newPendingScore =
+        stakes[from].push(currentStake);
+        uint256 addedScore =
             currentStake.amount * uint256(tier.multiplier) /
             uint256(MULTIPLIER_PRECISION);
-        require(newPendingScore > pendingScore, InvalidAddedScore());
-        uint256 addedScore = newPendingScore - pendingScore;
         _mint(scoreTo, addedScore);
 
-        emit StakeLocked(from, scoreTo, amount, currentStake.amount, currentStake.until, addedScore);
+        emit StakeLocked(from, scoreTo, amount, amount, currentStake.until, addedScore);
     }
 
-    function _unstake(address from, address to) internal returns (uint256) {
-        Stake memory currentStake = stakes[from];
+    function _unstake(address from, uint256 id, address to) internal returns (uint256) {
+        Stake memory currentStake = stakes[from][id];
         require(currentStake.amount > 0, ZeroAmount());
         require(reached(currentStake.until), Locked());
-        delete stakes[from];
+        delete stakes[from][id];
 
         emit StakeUnlocked(_msgSender(), to, currentStake.amount);
 
@@ -163,16 +155,5 @@ contract LiquidityMining is ERC20, Ownable {
 
     function reached(uint32 timestamp) internal view returns (bool) {
         return timeNow() >= timestamp;
-    }
-
-    function notReached(uint32 timestamp) internal view returns (bool) {
-        return !reached(timestamp);
-    }
-
-    function till(uint32 timestamp) internal view returns (uint32) {
-        if (reached(timestamp)) {
-            return 0;
-        }
-        return timestamp - timeNow();
     }
 }

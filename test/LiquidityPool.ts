@@ -6,7 +6,7 @@ import hre from "hardhat";
 import {
   getCreateAddress, getContractAt, deploy, signBorrow
 } from "./helpers";
-import {encodeBytes32String} from "ethers";
+import {encodeBytes32String, MaxUint256} from "ethers";
 import {
   MockTarget, LiquidityPool, TransparentUpgradeableProxy, ProxyAdmin
 } from "../typechain-types";
@@ -431,7 +431,10 @@ describe("LiquidityPool", function () {
       expect(await usdc.balanceOf(user.address)).to.be.eq(amount);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThan(0);
 
-      expect(await liquidityPool.connect(admin).withdrawAll(user.address))
+      // Using type(uint256).max as amount to withdraw all available amount
+      expect(await liquidityPool.connect(admin).withdraw(
+        user.address, MaxUint256
+      ))
         .to.emit(liquidityPool, "WidthrawnFromAave");
       expect(await usdc.balanceOf(user.address)).to.be.greaterThan(amount);
       expect(await aToken.balanceOf(liquidityPool.target)).to.eq(0);
@@ -783,41 +786,6 @@ describe("LiquidityPool", function () {
 
       await expect(liquidityPool.connect(user).withdraw(user.address, amount * 2n))
         .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
-    });
-
-    it("Should NOT withdraw all collateral if there is some debt", async function () {
-      const {
-        liquidityPool, usdc, usdcOwner, USDC_DEC, user, admin, uni, mpc_signer, UNI_DEC, user2
-      } = await loadFixture(deployAll);
-      const amount = 1000n * USDC_DEC; // $1000
-      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
-      expect(await liquidityPool.deposit())
-        .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
-
-      const amountToBorrow = 3n * UNI_DEC;
-
-      const signature = await signBorrow(
-        mpc_signer,
-        liquidityPool.target as string,
-        uni.target as string,
-        amountToBorrow.toString(),
-        user2.address,
-        "0x",
-        31337
-      );
-
-      expect(await liquidityPool.connect(user).borrow(
-        uni.target,
-        amountToBorrow,
-        user2,
-        "0x",
-        0n,
-        2000000000n,
-        signature))
-      .to.emit(liquidityPool, "Borrowed");
-
-      await expect(liquidityPool.connect(admin).withdrawAll(user.address))
-        .to.be.revertedWithCustomError(liquidityPool, "TokenHasDebt");
     });
 
     it("Should NOT withdraw profit for collateral", async function () {

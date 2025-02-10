@@ -175,7 +175,7 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
         // get USDC from AAVE
         IPool pool = IPool(AAVE_POOL_PROVIDER.getPool());
         uint256 withdrawn = pool.withdraw(address(COLLATERAL), amount, to);
-        assert(withdrawn == amount);
+        // assert(withdrawn == amount);
         // health factor after withdraw
         UserAccountData memory userAccountData;
         (
@@ -187,29 +187,10 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
             userAccountData.healthFactor
         ) = pool.getUserAccountData(address(this));
         if (userAccountData.healthFactor <  _getStorage().minHealthFactor) revert HealthFactorTooLow();
-        emit WithdrawnFromAave(amount);
-    }
-
-    function withdrawAll(address to) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        // get USDC from AAVE
-        IPool pool = IPool(AAVE_POOL_PROVIDER.getPool());
-        // Check that there is no debt
-        UserAccountData memory userAccountData;
-        (
-            userAccountData.totalCollateralBase,
-            userAccountData.totalDebtBase,
-            userAccountData.availableBorrowsBase,
-            userAccountData.currentLiquidationThreshold,
-            userAccountData.ltv,
-            userAccountData.healthFactor
-        ) = pool.getUserAccountData(address(this));
-        if (userAccountData.totalDebtBase != 0) revert TokenHasDebt();
-
-        uint256 withdrawn = pool.withdraw(address(COLLATERAL), type(uint256).max, to);
         emit WithdrawnFromAave(withdrawn);
     }
 
-   function withdrawProfit(address token, address to, uint256 amount) public onlyRole(WITHDRAW_PROFIT_ROLE) {
+    function withdrawProfit(address token, address to, uint256 amount) public onlyRole(WITHDRAW_PROFIT_ROLE) {
         // check that not collateral
         if (token == address(COLLATERAL)) revert CannotWithdrawProfitCollateral();
         // check that no debt

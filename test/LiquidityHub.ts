@@ -56,7 +56,7 @@ describe("LiquidityHub", function () {
   };
 
   it("Should have default values", async function () {
-    const {lpToken, liquidityHub, usdc, user, user2, liquidityPool, USDC, LP} = await loadFixture(deployAll);
+    const {lpToken, liquidityHub, usdc, user, user2, liquidityPool, USDC, LP, admin} = await loadFixture(deployAll);
 
     expect(await liquidityHub.SHARES()).to.equal(lpToken.target);
     expect(await liquidityHub.LIQUIDITY_POOL()).to.equal(liquidityPool.target);
@@ -69,6 +69,9 @@ describe("LiquidityHub", function () {
     expect(await liquidityHub.maxDeposit(ZERO_ADDRESS)).to.equal(getBigInt(MaxUint256) * USDC / LP);
     expect(await liquidityHub.maxMint(ZERO_ADDRESS)).to.equal(getBigInt(MaxUint256) * USDC / LP * LP / USDC);
 
+    await expect(liquidityHub.connect(admin).initialize(
+      usdc.target, admin.address, admin.address, getBigInt(MaxUint256) * USDC / LP)
+    ).to.be.reverted;
     await expect(liquidityHub.name())
       .to.be.revertedWithCustomError(liquidityHub, "NotImplemented()");
     await expect(liquidityHub.symbol())

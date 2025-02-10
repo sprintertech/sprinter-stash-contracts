@@ -3,6 +3,7 @@
   "rules": {
     "max-line-length": ["off", 120],
     "func-visibility": ["warn", {"ignoreConstructors": true}],
-    "func-name-mixedcase": ["off"]
+    "func-name-mixedcase": ["off"],
+    "one-contract-per-file": ["off"]
   }
 }

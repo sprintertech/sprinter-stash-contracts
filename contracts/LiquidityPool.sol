@@ -280,13 +280,6 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
         uint256 currentLtv;
         uint256 totalBorrowPrice = totalBorrowed * prices[0] * _HUNDRED_PERCENT;
         uint256 collateralPrice = totalCollateral * prices[1];
-        // if (collateralDecimals > borrowDecimals) {
-        //     currentLtv = totalBorrowPrice.mulDiv(10 ** (collateralDecimals - borrowDecimals), collateralPrice);
-        // } else if (borrowDecimals > collateralDecimals) {
-        //     currentLtv = totalBorrowPrice / (collateralPrice * 10 ** (borrowDecimals - collateralDecimals));
-        // } else {
-        //     currentLtv = totalBorrowPrice / collateralPrice;
-        // }
 
         if (collateralUnit > borrowUnit) {
             currentLtv = totalBorrowPrice.mulDiv(collateralUnit / borrowUnit, collateralPrice);

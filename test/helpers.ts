@@ -1,5 +1,5 @@
 import hre from "hardhat";
-import {AddressLike, resolveAddress, Signer, BaseContract, zeroPadBytes, toUtf8Bytes, Addressable, TypedDataDomain } from "ethers";
+import {AddressLike, resolveAddress, Signer, BaseContract, zeroPadBytes, toUtf8Bytes, TypedDataDomain} from "ethers";
 
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 export const ZERO_BYTES32 = "0x0000000000000000000000000000000000000000000000000000000000000000";

@@ -61,7 +61,10 @@ describe("LiquidityPool", function () {
     const healthFactor = 5n * 10n ** 18n;
     // Initialize token LTV as 5%
     const defaultLtv = 500n; // 5%
-    const liquidityPoolInit = (await liquidityPoolImpl.initialize.populateTransaction(admin.address, healthFactor, defaultLtv, mpc_signer.address)).data;
+    const liquidityPoolInit = 
+      (await liquidityPoolImpl.initialize.populateTransaction(
+        admin.address, healthFactor, defaultLtv, mpc_signer.address
+      )).data;
     const liquidityPoolProxy = (await deploy(
       "TransparentUpgradeableProxy", deployer, {nonce: startingNonce + 1},
       liquidityPoolImpl.target, admin, liquidityPoolInit
@@ -87,7 +90,9 @@ describe("LiquidityPool", function () {
 
   describe("Initialization", function () {
     it("Should initialize the contract with correct values", async function () {
-      const {liquidityPool, usdc, AAVE_POOL_PROVIDER, healthFactor, defaultLtv, mpc_signer} = await loadFixture(deployAll);
+      const {
+        liquidityPool, usdc, AAVE_POOL_PROVIDER, healthFactor, defaultLtv, mpc_signer
+      } = await loadFixture(deployAll);
       expect(await liquidityPool.COLLATERAL())
         .to.be.eq(usdc.target);
       expect(await liquidityPool.AAVE_POOL_PROVIDER())
@@ -112,7 +117,9 @@ describe("LiquidityPool", function () {
     });
   
     it("Should borrow a token", async function () {
-      const {liquidityPool, usdc, USDC_DEC, rpl, RPL_DEC, user, user2, mpc_signer, usdcOwner} = await loadFixture(deployAll);
+      const {
+        liquidityPool, usdc, USDC_DEC, rpl, RPL_DEC, user, user2, mpc_signer, usdcOwner
+      } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
       expect(await liquidityPool.deposit())
@@ -142,7 +149,9 @@ describe("LiquidityPool", function () {
     });
    
     it("Should calculate token ltv if decimals of token and collateral are different", async function () {
-      const {liquidityPool, usdc, uni, mpc_signer, user, user2, usdcOwner, USDC_DEC, UNI_DEC} = await loadFixture(deployAll);
+      const {
+        liquidityPool, usdc, uni, mpc_signer, user, user2, usdcOwner, USDC_DEC, UNI_DEC
+      } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
       expect(await liquidityPool.deposit())
@@ -173,7 +182,9 @@ describe("LiquidityPool", function () {
     });
   
     it("Should make a contract call to the recipient", async function () {
-      const {liquidityPool, mockTarget, usdc, USDC_DEC, rpl, RPL_DEC, user, mpc_signer, usdcOwner} = await loadFixture(deployAll);
+      const {
+        liquidityPool, mockTarget, usdc, USDC_DEC, rpl, RPL_DEC, user, mpc_signer, usdcOwner
+      } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
       expect(await liquidityPool.deposit())
@@ -208,7 +219,9 @@ describe("LiquidityPool", function () {
     });
   
     it("Should repay a debt", async function () {
-      const {liquidityPool, usdc, uni, mpc_signer, user, user2, usdcOwner, uniOwner, USDC_DEC, UNI_DEC} = await loadFixture(deployAll);
+      const {
+        liquidityPool, usdc, uni, mpc_signer, user, user2, usdcOwner, uniOwner, USDC_DEC, UNI_DEC
+      } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
       expect(await liquidityPool.deposit())
@@ -255,7 +268,10 @@ describe("LiquidityPool", function () {
     });
 
     it("Should borrow and repay different tokens", async function () {
-      const {liquidityPool, usdc, USDC_DEC, rpl, RPL_DEC, uni, user, user2, mpc_signer, usdcOwner, uniOwner, rplOwner, rplDebtToken, uniDebtToken} = await loadFixture(deployAll);
+      const {
+        liquidityPool, usdc, USDC_DEC, rpl, RPL_DEC, uni, user, user2, mpc_signer, usdcOwner, uniOwner,
+        rplOwner, rplDebtToken, uniDebtToken
+      } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
       expect(await liquidityPool.deposit())
@@ -335,7 +351,10 @@ describe("LiquidityPool", function () {
     });
 
     it("Should repay if some tokens don't have debt", async function () {
-      const {liquidityPool, usdc, USDC_DEC, rpl, RPL_DEC, uni, user, user2, mpc_signer, usdcOwner, uniOwner, rplOwner, rplDebtToken, uniDebtToken} = await loadFixture(deployAll);
+      const {
+        liquidityPool, usdc, USDC_DEC, rpl, RPL_DEC, uni, user, user2, mpc_signer, usdcOwner, uniOwner,
+        rplOwner, rplDebtToken, uniDebtToken
+      } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
       expect(await liquidityPool.deposit())
@@ -446,7 +465,9 @@ describe("LiquidityPool", function () {
     });
   
     it("Should NOT borrow if token ltv is exceeded", async function () {
-      const {liquidityPool, usdc, uni, mpc_signer, user, user2, usdcOwner, USDC_DEC, UNI_DEC} = await loadFixture(deployAll);
+      const {
+        liquidityPool, usdc, uni, mpc_signer, user, user2, usdcOwner, USDC_DEC, UNI_DEC
+      } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
       expect(await liquidityPool.deposit())
@@ -474,7 +495,9 @@ describe("LiquidityPool", function () {
     });
   
     it("Should NOT borrow if health factor is too low", async function () {
-      const {liquidityPool, admin, usdc, uni, mpc_signer, user, user2, usdcOwner, USDC_DEC, UNI_DEC} = await loadFixture(deployAll);
+      const {
+        liquidityPool, admin, usdc, uni, mpc_signer, user, user2, usdcOwner, USDC_DEC, UNI_DEC
+      } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
       expect(await liquidityPool.deposit())
@@ -505,7 +528,9 @@ describe("LiquidityPool", function () {
     });
 
     it("Should NOT borrow if target call fails", async function () {
-      const {liquidityPool, mockTarget, usdc, USDC_DEC, rpl, RPL_DEC, user, mpc_signer, usdcOwner} = await loadFixture(deployAll);
+      const {
+        liquidityPool, mockTarget, usdc, USDC_DEC, rpl, RPL_DEC, user, mpc_signer, usdcOwner
+      } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
       expect(await liquidityPool.deposit())
@@ -537,7 +562,9 @@ describe("LiquidityPool", function () {
     });
 
     it("Should NOT repay if all tokens don't have debt or balance", async function () {
-      const {liquidityPool, usdc, USDC_DEC, rpl, RPL_DEC, uni, user, mockTarget, mpc_signer, usdcOwner, uniOwner} = await loadFixture(deployAll);
+      const {
+        liquidityPool, usdc, USDC_DEC, rpl, RPL_DEC, uni, user, mockTarget, mpc_signer, usdcOwner, uniOwner
+      } = await loadFixture(deployAll);
   
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
@@ -610,7 +637,9 @@ describe("LiquidityPool", function () {
     });
 
     it("Should NOT withdraw collateral if health factor is too low", async function () {
-      const {liquidityPool, usdc, usdcOwner, USDC_DEC, user, admin, uni, mpc_signer, UNI_DEC, user2} = await loadFixture(deployAll);
+      const {
+        liquidityPool, usdc, usdcOwner, USDC_DEC, user, admin, uni, mpc_signer, UNI_DEC, user2
+      } = await loadFixture(deployAll);
       const amount = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
       expect(await liquidityPool.deposit())
@@ -653,7 +682,9 @@ describe("LiquidityPool", function () {
     });
 
     it("Should NOT withdraw all collateral if there is some debt", async function () {
-      const {liquidityPool, usdc, usdcOwner, USDC_DEC, aToken, user, admin, uni, mpc_signer, UNI_DEC, user2} = await loadFixture(deployAll);
+      const {
+        liquidityPool, usdc, usdcOwner, USDC_DEC, user, admin, uni, mpc_signer, UNI_DEC, user2
+      } = await loadFixture(deployAll);
       const amount = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
       expect(await liquidityPool.deposit())
@@ -684,14 +715,16 @@ describe("LiquidityPool", function () {
     });
 
     it("Should NOT withdraw profit for collateral", async function () {
-      const {liquidityPool, usdc, uniOwner, admin, user} = await loadFixture(deployAll);
+      const {liquidityPool, usdc, admin, user} = await loadFixture(deployAll);
       const amount = 1000n;
       await expect(liquidityPool.connect(admin).withdrawProfit(usdc.target, user.address, amount))
         .to.be.revertedWithCustomError(liquidityPool, "CannotWithdrawProfitCollateral");
     });
 
     it("Should NOT withdraw profit if the token has debt", async function () {
-      const {liquidityPool, usdc, usdcOwner, USDC_DEC, aToken, user, admin, uni, uniOwner,  mpc_signer, UNI_DEC, user2} = await loadFixture(deployAll);
+      const {
+        liquidityPool, usdc, usdcOwner, USDC_DEC, user, admin, uni, uniOwner,  mpc_signer, UNI_DEC, user2
+      } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
       expect(await liquidityPool.deposit())
@@ -724,7 +757,7 @@ describe("LiquidityPool", function () {
     });
 
     it("Should NOT withdraw profit by unauthorized user", async function () {
-      const {liquidityPool, uni, uniOwner, admin, user} = await loadFixture(deployAll);
+      const {liquidityPool, uni, user} = await loadFixture(deployAll);
       const amount = 1000n;
       await expect(liquidityPool.connect(user).withdrawProfit(uni.target, user.address, amount))
         .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");

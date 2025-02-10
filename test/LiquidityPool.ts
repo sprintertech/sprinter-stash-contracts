@@ -21,7 +21,7 @@ describe("LiquidityPool", function () {
     const aavePool = await hre.ethers.getContractAt("IPool", aavePoolAddress);
 
     const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
-    const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS!;
+    const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;
     if (!USDC_OWNER_ADDRESS) throw new Error("Env variables not configured (USDC_OWNER_ADDRESS missing)");
     const usdc = await hre.ethers.getContractAt("ERC20", USDC_ADDRESS);
     const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ADDRESS);

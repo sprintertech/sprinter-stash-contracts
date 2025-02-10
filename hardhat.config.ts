@@ -24,7 +24,7 @@ const config: HardhatUserConfig = {
       chainId: networkConfig.BASE_SEPOLIA.chainId,
       url: "https://sepolia.base.org",
       accounts:
-        isSet(process.env.BASE_SEPOLIA_PRIVATE_KEY) ? [process.env.BASE_SEPOLIA_PRIVATE_KEY || ""] : [],
+        isSet(process.env.DEPLOYER_PRIVATE_KEY) ? [process.env.DEPLOYER_PRIVATE_KEY || ""] : [],
     },
   },
   sourcify: {

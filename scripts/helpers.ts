@@ -1,24 +1,27 @@
 import hre from "hardhat";
-import {Signer} from "ethers";
-import {deploy} from "../test/helpers";
+import {Signer, BaseContract, AddressLike, resolveAddress, ContractTransaction} from "ethers";
+import {deploy, getContractAt, getCreateAddress} from "../test/helpers";
+import {
+  TransparentUpgradeableProxy, ProxyAdmin,
+} from "../typechain-types";
 
 export function assert(condition: boolean, message: string): void {
   if (condition) return;
   throw new Error(message);
-};
+}
 
 export function sleep(msec: number): Promise<boolean> {
   return new Promise((resolve) => {
     setTimeout(() => resolve(true), msec);
   });
-};
+}
 
 export function isSet(input?: string): boolean {
   if (input) {
     return input.length > 0;
   }
   return false;
-};
+}
 
 export function getVerifier() {
   interface VerificationInput {
@@ -28,8 +31,13 @@ export function getVerifier() {
 
   const contracts: VerificationInput[] = [];
   return {
-    deploy: async (contractName: string, signer: Signer, txParams: object, ...params: any[]) => {
-      const contract = await deploy(contractName, signer, txParams, ...params);
+    deploy: async (
+      contractName: string,
+      deployer: Signer,
+      txParams: object = {},
+      ...params: any[]
+    ): Promise<BaseContract> => {
+      const contract = await deploy(contractName, deployer, txParams, ...params);
       contracts.push({
         address: await contract.getAddress(),
         constructorArguments: params,
@@ -44,7 +52,39 @@ export function getVerifier() {
       }
     },
   };
-};
+}
+
+interface Initializable extends BaseContract {
+  initialize: {
+    populateTransaction: (...params: any[]) => Promise<ContractTransaction>
+  }
+}
+
+export async function deployProxy<ContractType extends Initializable>(
+  deployFunc: (contractName: string, deployer: Signer, txParams: object, ...params: any[]) => Promise<BaseContract>,
+  contractName: string,
+  deployer: Signer,
+  upgradeAdmin: AddressLike,
+  contructorArgs: any[],
+  initArgs: any[]
+): Promise<{target: ContractType; targetAdmin: ProxyAdmin;}> {
+  const targetImpl = (
+    await deployFunc(contractName, deployer, {}, ...contructorArgs)
+  ) as ContractType;
+  const targetInit = (await targetImpl.initialize.populateTransaction(...initArgs)).data;
+  const targetProxy = (await deployFunc(
+    "TransparentUpgradeableProxy", deployer, {},
+    targetImpl.target, await resolveAddress(upgradeAdmin), targetInit
+  )) as TransparentUpgradeableProxy;
+  const target = (await getContractAt(contractName, targetProxy, deployer)) as ContractType;
+  const targetProxyAdminAddress = await getCreateAddress(targetProxy, 1);
+  const targetAdmin = (await getContractAt("ProxyAdmin", targetProxyAdminAddress)) as ProxyAdmin;
+  return {target, targetAdmin};
+}
+
+export async function getProxyCreateAddress(deployer: Signer, startingNonce: number) {
+  return await getCreateAddress(deployer, startingNonce + 1);
+}
 
 export const ProviderSolidity = {
   CCTP: 0n,

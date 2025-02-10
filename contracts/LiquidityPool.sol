@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {ERC20} from '@openzeppelin/contracts/token/ERC20/ERC20.sol';
+import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import {AccessControlUpgradeable} from '@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol';
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
@@ -17,21 +18,31 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
     using SafeERC20 for ERC20;
     using ECDSA for bytes32;
     using Math for uint256;
+    using BitMaps for BitMaps.BitMap;
 
-    uint256 private constant _HUNDRED_PERCENT = 10000;
-    bytes32 private constant _BORROW_TYPEHASH =
-        keccak256("Borrow(address borrowToken,uint256 amount,address target,bytes targetCallData)");
+    uint256 private constant HUNDRED_PERCENT = 10000;
+    bytes32 private constant BORROW_TYPEHASH = keccak256(
+        "Borrow("
+            "address borrowToken,"
+            "uint256 amount,"
+            "address target,"
+            "bytes targetCallData,"
+            "uint256 nonce,"
+            "uint256 deadline"
+        ")"
+    );
 
     ERC20 immutable public COLLATERAL;
     IPoolAddressesProvider immutable public AAVE_POOL_PROVIDER;
 
     /// @custom:storage-location erc7201:sprinter.storage.LiquidityPool
     struct LiquidityPoolStorage {
-        // token  address to ltv
-        mapping(address => uint256) _borrowTokenLTV;
-        address _MPCAddress;
-        uint256 _minHealthFactor;
-        uint256 _defaultLTV;
+        // token address to ltv
+        mapping(address => uint256) borrowTokenLTV;
+        BitMaps.BitMap usedNonces;
+        address MPCAddress;
+        uint256 minHealthFactor;
+        uint256 defaultLTV;
     }
 
     struct UserAccountData {
@@ -59,6 +70,8 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
     error TokenNotSupported(address borrowToken);
     error CannotWithdrawProfitCollateral();
     error TokenHasDebt();
+    error ExpiredSignature();
+    error NonceAlreadyUsed();
 
     event SuppliedToAave(uint256 amount);
     event SolverStatusSet(address solver, bool status);
@@ -82,13 +95,13 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
         _disableInitializers();
     }
 
-    function initialize(address admin, uint256 minHealthFactor, uint256 defaultLTV, address MPCAddress) external initializer() {
+    function initialize(address admin, uint256 minHealthFactor, uint256 defaultLTV_, address MPCAddress) external initializer() {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         __EIP712_init("LiquidityPool", "1.0.0");
         LiquidityPoolStorage storage $ = _getStorage();
-        $._minHealthFactor = minHealthFactor;
-        $._defaultLTV = defaultLTV;
-        $._MPCAddress = MPCAddress;
+        $.minHealthFactor = minHealthFactor;
+        $.defaultLTV = defaultLTV_;
+        $.MPCAddress = MPCAddress;
     }
 
     function deposit() public {
@@ -107,10 +120,12 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
         uint256 amount,
         address target,
         bytes calldata targetCallData,
+        uint256 nonce,
+        uint256 deadline,
         bytes calldata signature) 
     public {
         // - Validate MPC signature
-        _validateMPCSignature(borrowToken, amount, target, targetCallData, signature);
+        _validateMPCSignature(borrowToken, amount, target, targetCallData, nonce, deadline, signature);
         
         // - Borrow the requested source token from the lending protocol against available USDC liquidity.
         IPool pool = IPool(AAVE_POOL_PROVIDER.getPool());
@@ -132,7 +147,7 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
             userAccountData.ltv,
             userAccountData.healthFactor
         ) = pool.getUserAccountData(address(this));
-        if (userAccountData.healthFactor <  _getStorage()._minHealthFactor) revert HealthFactorTooLow();
+        if (userAccountData.healthFactor < _getStorage().minHealthFactor) revert HealthFactorTooLow();
 
         // check ltv for token
         _checkTokenLTV(pool, borrowToken);
@@ -171,7 +186,7 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
             userAccountData.ltv,
             userAccountData.healthFactor
         ) = pool.getUserAccountData(address(this));
-        if (userAccountData.healthFactor <  _getStorage()._minHealthFactor) revert HealthFactorTooLow();
+        if (userAccountData.healthFactor <  _getStorage().minHealthFactor) revert HealthFactorTooLow();
         emit WithdrawnFromAave(amount);
     }
 
@@ -210,18 +225,18 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
     }
 
     function setBorrowTokenLTV(address token, uint256 ltv) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        _getStorage()._borrowTokenLTV[token] = ltv;
+        _getStorage().borrowTokenLTV[token] = ltv;
         emit BorrowTokenLTVSet(token, ltv);
     }
 
-    function setDefaultLTV(uint256 defaultLTV) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        _getStorage()._defaultLTV = defaultLTV;
-        emit DefaultLTVSet(defaultLTV);
+    function setDefaultLTV(uint256 defaultLTV_) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _getStorage().defaultLTV = defaultLTV_;
+        emit DefaultLTVSet(defaultLTV_);
     }
 
-    function setHealthFactor(uint256 healthFactor) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        _getStorage()._minHealthFactor = healthFactor;
-        emit HealthFactorSet(healthFactor);
+    function setHealthFactor(uint256 minHealthFactor) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _getStorage().minHealthFactor = minHealthFactor;
+        emit HealthFactorSet(minHealthFactor);
     }
 
     // Internal functions
@@ -237,23 +252,31 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
         uint256 amount,
         address target,
         bytes calldata targetCallData,
+        uint256 nonce,
+        uint256 deadline,
         bytes calldata signature
-    ) private view {
+    ) private {
         bytes32 digest = _hashTypedDataV4(keccak256(abi.encode(
-            _BORROW_TYPEHASH,
+            BORROW_TYPEHASH,
             borrowToken,
             amount,
             target,
-            keccak256(targetCallData)
+            keccak256(targetCallData),
+            nonce,
+            deadline
         )));
         address signer = digest.recover(signature);
-        if (signer != _getStorage()._MPCAddress) revert InvalidSignature();
+        LiquidityPoolStorage storage $ = _getStorage();
+        if (signer != $.MPCAddress) revert InvalidSignature();
+        if ($.usedNonces.get(nonce)) revert NonceAlreadyUsed();
+        $.usedNonces.set(nonce);
+        if (passed(deadline)) revert ExpiredSignature();
     }
 
     function _checkTokenLTV(IPool pool, address borrowToken) private view {
         LiquidityPoolStorage storage $ = _getStorage();
-        uint256 ltv = $._borrowTokenLTV[borrowToken];
-        if (ltv == 0) ltv = $._defaultLTV;
+        uint256 ltv = $.borrowTokenLTV[borrowToken];
+        if (ltv == 0) ltv = $.defaultLTV;
 
         DataTypes.ReserveData memory collateralData = pool.getReserveData(address(COLLATERAL));
         uint256 totalCollateral = ERC20(collateralData.aTokenAddress).balanceOf(address(this));
@@ -278,7 +301,7 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
         uint256 borrowUnit = 10 ** borrowDecimals;
 
         uint256 currentLtv;
-        uint256 totalBorrowPrice = totalBorrowed * prices[0] * _HUNDRED_PERCENT;
+        uint256 totalBorrowPrice = totalBorrowed * prices[0] * HUNDRED_PERCENT;
         uint256 collateralPrice = totalCollateral * prices[1];
 
         if (collateralUnit > borrowUnit) {
@@ -315,18 +338,26 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
     // View functions
 
     function defaultLTV() public view returns (uint256) {
-        return _getStorage()._defaultLTV;
+        return _getStorage().defaultLTV;
     }
 
     function healthFactor() public view returns (uint256) {
-        return _getStorage()._minHealthFactor;
+        return _getStorage().minHealthFactor;
     }
 
     function mpcAddress() public view returns (address) {
-        return _getStorage()._MPCAddress;
+        return _getStorage().MPCAddress;
     }
 
     function borrowTokenLTV(address token) public view returns (uint256) {
-        return _getStorage()._borrowTokenLTV[token];
+        return _getStorage().borrowTokenLTV[token];
+    }
+
+    function timeNow() internal view returns (uint32) {
+        return uint32(block.timestamp);
+    }
+
+    function passed(uint256 timestamp) internal view returns (bool) {
+        return timeNow() > timestamp;
     }
 }

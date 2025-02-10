@@ -42,7 +42,9 @@ export async function signBorrow(
   amount: string,
   target: string,
   targetCallData: string,
-  chainId: number = 1
+  chainId: number = 1,
+  nonce: bigint = 0n,
+  deadline: bigint = 2000000000n
 ) {
   const name = "LiquidityPool";
   const version = "1.0.0";
@@ -60,6 +62,8 @@ export async function signBorrow(
       {name: "amount", type: "uint256"},
       {name: "target", type: "address"},
       {name: "targetCallData", type: "bytes"},
+      {name: "nonce", type: "uint256"},
+      {name: "deadline", type: "uint256"},
     ],
   };
 
@@ -67,8 +71,10 @@ export async function signBorrow(
     borrowToken: borrowToken.toLowerCase(),
     amount,
     target: target.toLowerCase(),
-    targetCallData
+    targetCallData,
+    nonce,
+    deadline,
   };
 
   return signer.signTypedData(domain, types, value);
-};
+}

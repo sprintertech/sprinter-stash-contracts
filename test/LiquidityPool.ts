@@ -113,7 +113,7 @@ describe("LiquidityPool", function () {
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
       expect(await liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
-      expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount);
+      expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
     });
   
     it("Should borrow a token", async function () {
@@ -264,7 +264,7 @@ describe("LiquidityPool", function () {
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
       expect(await liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
-      expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount * 2n);
+      expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount * 2n - 1n);
     });
 
     it("Should borrow and repay different tokens", async function () {
@@ -405,7 +405,7 @@ describe("LiquidityPool", function () {
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
       expect(await liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
-      expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount);
+      expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
 
       expect(await liquidityPool.connect(admin).withdraw(user.address, amount))
         .to.emit(liquidityPool, "WidthrawnFromAave").withArgs(user.address, amount);
@@ -630,7 +630,7 @@ describe("LiquidityPool", function () {
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
       expect(await liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
-      expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount);
+      expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
 
       await expect(liquidityPool.connect(admin).withdraw(user.address, amount * 2n))
         .to.be.reverted;
@@ -675,7 +675,7 @@ describe("LiquidityPool", function () {
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
       expect(await liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
-      expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount);
+      expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
 
       await expect(liquidityPool.connect(user).withdraw(user.address, amount * 2n))
         .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");

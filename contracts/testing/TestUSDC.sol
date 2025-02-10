@@ -12,4 +12,12 @@ contract TestUSDC is ERC20, ERC20Permit {
     function decimals() public pure override returns (uint8) {
         return 6;
     }
+
+    function burn(uint256 amount) public {
+        _burn(msg.sender, amount);
+    }
+
+    function mint(address to, uint256 amount) public {
+        _mint(to, amount);
+    }
 }

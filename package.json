@@ -7,7 +7,7 @@
     "compile": "hardhat compile",
     "deploy": "hardhat run ./scripts/deploy.ts",
     "deploy-local": "hardhat run ./scripts/deploy.ts --network localhost",
-    "deploy-basetest": "hardhat run ./scripts/deploy.ts --network basetest",
+    "deploy-basesepolia": "hardhat run ./scripts/deploy.ts --network BASE_SEPOLIA",
     "node": "hardhat node",
     "hardhat": "hardhat",
     "lint": "npm run lint:solidity && npm run lint:ts",

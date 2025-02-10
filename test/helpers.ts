@@ -14,7 +14,7 @@ export async function getContractAt(contractName: string, address: AddressLike, 
   return hre.ethers.getContractAt(contractName, await resolveAddress(address), signer);
 }
 
-export async function deploy(contractName: string, signer: Signer, txParams: object, ...params: any[]):
+export async function deploy(contractName: string, signer: Signer, txParams: object = {}, ...params: any[]):
   Promise<BaseContract>
 {
   const factory = await hre.ethers.getContractFactory(contractName, signer);

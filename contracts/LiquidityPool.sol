@@ -186,7 +186,7 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
             userAccountData.ltv,
             userAccountData.healthFactor
         ) = pool.getUserAccountData(address(this));
-        if (userAccountData.healthFactor <  _getStorage().minHealthFactor) revert HealthFactorTooLow();
+        if (userAccountData.healthFactor < _getStorage().minHealthFactor) revert HealthFactorTooLow();
         emit WithdrawnFromAave(withdrawn);
     }
 

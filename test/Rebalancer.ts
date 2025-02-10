@@ -25,6 +25,7 @@ describe("Rebalancer", function () {
 
     const DEFAULT_ADMIN_ROLE = ZERO_BYTES32;
     const REBALANCER_ROLE = toBytes32("REBALANCER_ROLE");
+    const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
 
     const usdc = (await deploy("TestUSDC", deployer, {})) as TestUSDC;
     const liquidityPool = (await deploy("TestLiquidityPool", deployer, {}, usdc.target)) as TestLiquidityPool;
@@ -51,7 +52,7 @@ describe("Rebalancer", function () {
     const rebalancerProxyAdminAddress = await getCreateAddress(rebalancerProxy, 1);
     const rebalancerAdmin = (await getContractAt("ProxyAdmin", rebalancerProxyAdminAddress, admin)) as ProxyAdmin;
 
-    await liquidityPool.grantRole(DEFAULT_ADMIN_ROLE, rebalancer.target);
+    await liquidityPool.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer.target);
 
     return {
       deployer, admin, rebalanceUser, user, usdc,

@@ -10,6 +10,8 @@ function isSet(param?: string) {
   return param && param.length > 0;
 }
 
+const accounts: string[] = isSet(process.env.DEPLOYER_PRIVATE_KEY) ? [process.env.DEPLOYER_PRIVATE_KEY || ""] : [];
+
 const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.28",
@@ -26,9 +28,13 @@ const config: HardhatUserConfig = {
     },
     [Network.BASE_SEPOLIA]: {
       chainId: networkConfig.BASE_SEPOLIA.chainId,
-      url: "https://sepolia.base.org",
-      accounts:
-        isSet(process.env.DEPLOYER_PRIVATE_KEY) ? [process.env.DEPLOYER_PRIVATE_KEY || ""] : [],
+      url: process.env.BASE_SEPOLIA_RPC || "https://sepolia.base.org",
+      accounts,
+    },
+    [Network.ETHEREUM_SEPOLIA]: {
+      chainId: networkConfig.ETHEREUM_SEPOLIA.chainId,
+      url: process.env.ETHEREUM_SEPOLIA_RPC || "",
+      accounts,
     },
     hardhat: {
       forking: {
@@ -37,7 +43,13 @@ const config: HardhatUserConfig = {
     },
   },
   sourcify: {
-    enabled: true,
+    enabled: false,
+  },
+  etherscan: {
+    apiKey: {
+      baseSepolia: process.env.ETHERSCAN_BASE_SEPOLIA || "",
+      sepolia: process.env.ETHERSCAN_ETHEREUM_SEPOLIA || "",
+    },
   },
 };
 

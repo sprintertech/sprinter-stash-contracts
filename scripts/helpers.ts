@@ -27,6 +27,7 @@ export function getVerifier() {
   interface VerificationInput {
     address: string;
     constructorArguments: any[];
+    contract?: string;
   }
 
   const contracts: VerificationInput[] = [];
@@ -35,12 +36,21 @@ export function getVerifier() {
       contractName: string,
       deployer: Signer,
       txParams: object = {},
-      ...params: any[]
+      params: any[] = [],
+      contractVerificationName?: string,
     ): Promise<BaseContract> => {
       const contract = await deploy(contractName, deployer, txParams, ...params);
       contracts.push({
         address: await contract.getAddress(),
-        constructorArguments: params,
+        constructorArguments: await Promise.all(params.map(async (el) => {
+          // Resolving all Addressable into string addresses.
+          try {
+            return await resolveAddress(el);
+          } catch {
+            return el;
+          }
+        })),
+        contract: contractVerificationName,
       });
       return contract;
     },
@@ -48,7 +58,13 @@ export function getVerifier() {
       console.log("Waiting half a minute to start verification");
       await sleep(30000);
       for (const contract of contracts) {
-        await hre.run("verify:verify", contract);
+        try {
+          await hre.run("verify:verify", contract);
+        } catch(error) {
+          console.error(error);
+          console.log(`Failed to verify: ${contract.address}`);
+          console.log(JSON.stringify(contract.constructorArguments));
+        }
       }
     },
   };
@@ -69,12 +85,12 @@ export async function deployProxy<ContractType extends Initializable>(
   initArgs: any[]
 ): Promise<{target: ContractType; targetAdmin: ProxyAdmin;}> {
   const targetImpl = (
-    await deployFunc(contractName, deployer, {}, ...contructorArgs)
+    await deployFunc(contractName, deployer, {}, contructorArgs)
   ) as ContractType;
   const targetInit = (await targetImpl.initialize.populateTransaction(...initArgs)).data;
   const targetProxy = (await deployFunc(
     "TransparentUpgradeableProxy", deployer, {},
-    targetImpl.target, await resolveAddress(upgradeAdmin), targetInit
+    [targetImpl.target, await resolveAddress(upgradeAdmin), targetInit]
   )) as TransparentUpgradeableProxy;
   const target = (await getContractAt(contractName, targetProxy, deployer)) as ContractType;
   const targetProxyAdminAddress = await getCreateAddress(targetProxy, 1);

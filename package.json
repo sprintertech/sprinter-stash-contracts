@@ -8,6 +8,7 @@
     "deploy": "hardhat run ./scripts/deploy.ts",
     "deploy-local": "hardhat run ./scripts/deploy.ts --network localhost",
     "deploy-basesepolia": "hardhat run ./scripts/deploy.ts --network BASE_SEPOLIA",
+    "deploy-ethereumsepolia": "hardhat run ./scripts/deploy.ts --network ETHEREUM_SEPOLIA",
     "node": "hardhat node",
     "hardhat": "hardhat",
     "lint": "npm run lint:solidity && npm run lint:ts",
@@ -42,6 +43,7 @@
     "typescript-eslint": "^8.19.1"
   },
   "dependencies": {
+    "@bgd-labs/aave-address-book": "^4.10.0",
     "@openzeppelin/contracts": "^5.1.0",
     "@openzeppelin/contracts-upgradeable": "^5.1.0"
   }

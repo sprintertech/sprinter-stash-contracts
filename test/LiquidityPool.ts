@@ -32,6 +32,7 @@ describe("LiquidityPool", function () {
 
     const collateralData = await aavePool.getReserveData(USDC_ADDRESS);
     const aToken = await hre.ethers.getContractAt("ERC20", collateralData[8]);
+    const usdcDebtToken = await hre.ethers.getContractAt("ERC20", collateralData[10]);
 
     const RPL_ADDRESS = "0xD33526068D116cE69F19A9ee46F0bd304F21A51f";
     const RPL_OWNER_ADDRESS = process.env.RPL_OWNER_ADDRESS!;
@@ -89,7 +90,7 @@ describe("LiquidityPool", function () {
 
     return {deployer, admin, user, user2, mpc_signer, usdc, usdcOwner, rpl, rplOwner, uni, uniOwner,
       liquidityPool, liquidityPoolProxy, liquidityPoolAdmin, mockTarget, USDC_DEC, RPL_DEC, UNI_DEC, AAVE_POOL_PROVIDER,
-      healthFactor, defaultLtv, aavePool, aToken, rplDebtToken, uniDebtToken};
+      healthFactor, defaultLtv, aavePool, aToken, rplDebtToken, uniDebtToken, usdcDebtToken};
   };
 
   describe("Initialization", function () {
@@ -226,6 +227,41 @@ describe("LiquidityPool", function () {
       .and.to.emit(mockTarget, "DataReceived").withArgs("0x");  
       expect(await rpl.balanceOf(liquidityPool.target)).to.eq(0);
       expect(await rpl.balanceOf(mockTarget.target)).to.eq(amountToBorrow);
+    });
+
+    it("Should borrow collateral", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, aToken, user, user2, mpc_signer, usdcOwner
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
+      expect(await liquidityPool.deposit())
+        .to.emit(liquidityPool, "SuppliedToAave");
+
+      const amountToBorrow = 2n * USDC_DEC;
+
+      const signature = await signBorrow(
+        mpc_signer,
+        liquidityPool.target as string,
+        usdc.target as string,
+        amountToBorrow.toString(),
+        user2.address,
+        "0x",
+        31337
+      );
+
+      expect(await liquidityPool.connect(user).borrow(
+        usdc.target,
+        amountToBorrow,
+        user2,
+        "0x",
+        0n,
+        2000000000n,
+        signature))
+      .to.emit(liquidityPool, "Borrowed")
+      .withArgs(usdc.target, amountToBorrow, user.address, user2.address);  
+      expect(await usdc.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
+      expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amountCollateral - 1n);
     });
 
     it("Should repay a debt", async function () {
@@ -416,6 +452,54 @@ describe("LiquidityPool", function () {
       expect(uniDebtAfter).to.eq(0);
       const rplDebtAfter = await rplDebtToken.balanceOf(liquidityPool.target);
       expect(rplDebtAfter).to.eq(0);
+    });
+
+    it("Should repay collateral", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, user, user2, mpc_signer, usdcOwner, uniOwner,
+        usdcDebtToken, uniDebtToken
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC; // $1000
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
+      expect(await liquidityPool.deposit())
+        .to.emit(liquidityPool, "SuppliedToAave");
+
+      const amountToBorrow = 2n * USDC_DEC;
+
+      const signature1 = await signBorrow(
+        mpc_signer,
+        liquidityPool.target as string,
+        usdc.target as string,
+        amountToBorrow.toString(),
+        user2.address,
+        "0x",
+        31337
+      );
+
+      expect(await liquidityPool.connect(user).borrow(
+        usdc.target,
+        amountToBorrow,
+        user2,
+        "0x",
+        0n,
+        2000000000n,
+        signature1))
+      .to.emit(liquidityPool, "Borrowed")
+      .withArgs(usdc.target, amountToBorrow, user.address, user2.address);  
+      expect(await usdc.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
+
+      // advance time by one hour
+      await time.increase(3600);
+
+      const usdcDebtBefore = await usdcDebtToken.balanceOf(liquidityPool.target);
+      expect(usdcDebtBefore).to.be.greaterThan(amountToBorrow);
+
+      await usdc.connect(uniOwner).transfer(liquidityPool.target, amountToBorrow);
+
+      expect(await liquidityPool.connect(user).repay([usdc.target]))
+        .to.emit(liquidityPool, "Repaid");  
+      const usdcDebtAfter = await uniDebtToken.balanceOf(liquidityPool.target);
+      expect(usdcDebtAfter).to.eq(0);
     });
 
     it("Should withdraw collateral from aave", async function () {
@@ -708,16 +792,6 @@ describe("LiquidityPool", function () {
       // No balance for rpl, no dept for uni
       await expect(liquidityPool.connect(user).repay([uni.target, rpl.target]))
         .to.be.revertedWithCustomError(liquidityPool, "NothingToRepay");
-    });
-
-    it("Should NOT repay collateral", async function () {
-      const {liquidityPool, usdc, user, usdcOwner} = await loadFixture(deployAll);
-      await usdc.connect(usdcOwner).transfer(liquidityPool.target, "300000");
-
-      // No balance for rpl, no dept for uni
-      await expect(liquidityPool.connect(user).repay([usdc.target]))
-        .to.be.revertedWithCustomError(liquidityPool, "CannotRepayCollateral");
-
     });
 
     it("Should NOT repay unsupported tokens", async function () {

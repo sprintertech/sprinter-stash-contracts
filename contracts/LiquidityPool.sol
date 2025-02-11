@@ -65,7 +65,6 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
     error NoCollateral();
     error HealthFactorTooLow();
     error TargetCallFailed();
-    error CannotRepayCollateral();
     error NothingToRepay();
     error TokenNotSupported(address borrowToken);
     error CannotWithdrawProfitCollateral();
@@ -297,7 +296,6 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
 
     function _repay(address borrowToken, IPool pool, bool successInput) internal returns(bool success) {
         success = successInput;
-        if (borrowToken == address(COLLATERAL)) revert CannotRepayCollateral();
         DataTypes.ReserveData memory borrowTokenData = pool.getReserveData(borrowToken);
         if (borrowTokenData.variableDebtTokenAddress == address(0)) revert TokenNotSupported(borrowToken);
         uint256 totalBorrowed = ERC20(borrowTokenData.variableDebtTokenAddress).balanceOf(address(this));

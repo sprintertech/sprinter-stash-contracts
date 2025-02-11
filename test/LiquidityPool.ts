@@ -533,6 +533,56 @@ describe("LiquidityPool", function () {
       expect(await uni.balanceOf(user.address)).to.eq(amount);
     });
 
+    it("Should repay before deposit", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, user, user2, mpc_signer, usdcOwner, uniOwner,
+        usdcDebtToken, uniDebtToken
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC; // $1000
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
+      expect(await liquidityPool.deposit())
+        .to.emit(liquidityPool, "SuppliedToAave");
+
+      const amountToBorrow = 2n * USDC_DEC;
+
+      const signature1 = await signBorrow(
+        mpc_signer,
+        liquidityPool.target as string,
+        usdc.target as string,
+        amountToBorrow.toString(),
+        user2.address,
+        "0x",
+        31337
+      );
+
+      expect(await liquidityPool.connect(user).borrow(
+        usdc.target,
+        amountToBorrow,
+        user2,
+        "0x",
+        0n,
+        2000000000n,
+        signature1))
+      .to.emit(liquidityPool, "Borrowed")
+      .withArgs(usdc.target, amountToBorrow, user.address, user2.address);  
+      expect(await usdc.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
+
+      // advance time by one hour
+      await time.increase(3600);
+
+      const usdcDebtBefore = await usdcDebtToken.balanceOf(liquidityPool.target);
+      expect(usdcDebtBefore).to.be.greaterThan(amountToBorrow);
+
+      await usdc.connect(uniOwner).transfer(liquidityPool.target, amountToBorrow);
+
+      expect(await liquidityPool.connect(user).deposit())
+        .to.emit(liquidityPool, "Repaid")
+        .and.to.emit(liquidityPool, "SuppliedToAave");  
+      const usdcDebtAfter = await uniDebtToken.balanceOf(liquidityPool.target);
+      expect(usdcDebtAfter).to.eq(0);
+      expect(await usdc.balanceOf(liquidityPool.target)).to.eq(0);
+    });
+
     it.skip("Should deposit, borrow and repay multiple times", async function () {
       // increase time
     });

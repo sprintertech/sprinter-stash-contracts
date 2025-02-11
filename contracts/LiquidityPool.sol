@@ -106,9 +106,12 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
     function deposit() public {
         // called after receiving deposit in USDC
         // transfer all USDC balance to AAVE
-        IPool pool = IPool(AAVE_POOL_PROVIDER.getPool());
         uint256 amount = COLLATERAL.balanceOf(address(this));
         if (amount == 0) revert NoCollateral();
+        IPool pool = IPool(AAVE_POOL_PROVIDER.getPool());
+        (, uint256 repaidAmount) = _repay(address(COLLATERAL), pool, true);
+        amount -= repaidAmount;
+        if (amount == 0) return;
         COLLATERAL.forceApprove(address(pool), amount);
         pool.supply(address(COLLATERAL), amount, address(this), 0);
         emit SuppliedToAave(amount);
@@ -163,7 +166,7 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
         bool success;
         IPool pool = IPool(AAVE_POOL_PROVIDER.getPool());
         for (uint256 i = 0; i < borrowTokens.length; i++) {
-            success = _repay(borrowTokens[i], pool, success);
+            (success,) = _repay(borrowTokens[i], pool, success);
         }
         if (!success) revert NothingToRepay();
     }
@@ -294,17 +297,20 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
         if (currentLtv > ltv) revert TokenLtvExceeded();
     }
 
-    function _repay(address borrowToken, IPool pool, bool successInput) internal returns(bool success) {
+    function _repay(address borrowToken, IPool pool, bool successInput)
+        internal
+        returns(bool success, uint256 repaidAmount) 
+    {
         success = successInput;
         DataTypes.ReserveData memory borrowTokenData = pool.getReserveData(borrowToken);
         if (borrowTokenData.variableDebtTokenAddress == address(0)) revert TokenNotSupported(borrowToken);
         uint256 totalBorrowed = ERC20(borrowTokenData.variableDebtTokenAddress).balanceOf(address(this));
-        if (totalBorrowed == 0) return success;
+        if (totalBorrowed == 0) return (success, 0);
         uint256 borrowTokenBalance = ERC20(borrowToken).balanceOf(address(this));
-        if (borrowTokenBalance == 0) return success;
+        if (borrowTokenBalance == 0) return (success, 0);
         uint256 amountToRepay = borrowTokenBalance < totalBorrowed ? borrowTokenBalance : type(uint256).max;
         ERC20(borrowToken).forceApprove(address(pool), amountToRepay);
-        uint256 repaidAmount = pool.repay(
+        repaidAmount = pool.repay(
             borrowToken,
             amountToRepay,
             2,

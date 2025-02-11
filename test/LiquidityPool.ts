@@ -65,7 +65,7 @@ describe("LiquidityPool", function () {
     // Initialize health factor as 5
     const healthFactor = 5n * 10n ** 18n;
     // Initialize token LTV as 5%
-    const defaultLtv = 500n; // 5%
+    const defaultLtv = 5n * 10n ** 18n / 100n;
     const liquidityPoolInit = 
       (await liquidityPoolImpl.initialize.populateTransaction(
         admin.address, healthFactor, defaultLtv, mpc_signer.address

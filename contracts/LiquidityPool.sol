@@ -20,7 +20,7 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
     using Math for uint256;
     using BitMaps for BitMaps.BitMap;
 
-    uint256 private constant HUNDRED_PERCENT = 10000;
+    uint256 private constant MULTIPLIER = 1e18;
     bytes32 private constant BORROW_TYPEHASH = keccak256(
         "Borrow("
             "address borrowToken,"
@@ -283,15 +283,10 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
         uint256 collateralUnit = 10 ** collateralDecimals;
         uint256 borrowUnit = 10 ** borrowDecimals;
 
-        uint256 currentLtv;
-        uint256 totalBorrowPrice = totalBorrowed * prices[0] * HUNDRED_PERCENT;
+        uint256 totalBorrowPrice = totalBorrowed * prices[0];
         uint256 collateralPrice = totalCollateral * prices[1];
 
-        if (collateralUnit > borrowUnit) {
-            currentLtv = totalBorrowPrice.mulDiv(collateralUnit / borrowUnit, collateralPrice);
-        } else {
-            currentLtv = totalBorrowPrice / (collateralPrice * (borrowUnit / collateralUnit));
-        }
+        uint256 currentLtv = totalBorrowPrice * MULTIPLIER * collateralUnit / (collateralPrice * borrowUnit);
         if (currentLtv > ltv) revert TokenLtvExceeded();
     }
 

@@ -2,6 +2,9 @@ import {HardhatUserConfig, task} from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import {networkConfig, Network} from "./network.config";
 import {TypedDataDomain} from "ethers";
+import {
+  LiquidityPool,
+} from "./typechain-types";
 
 import dotenv from "dotenv";
 
@@ -22,6 +25,20 @@ task("grant-role", "Grant some role on some AccessControl")
 
   await target.grantRole(hre.ethers.encodeBytes32String(role), actor);
   console.log(`Role ${role} granted to ${actor} on ${contract}.`);
+});
+
+task("set-default-ltv", "Update Liquidity Pool config")
+.addOptionalParam("pool", "Liquidity Pool address")
+.addOptionalParam("ltv", "New default LTV value")
+.setAction(async ({pool, ltv}: {pool?: string, ltv?: string}, hre) => {
+  const [admin] = await hre.ethers.getSigners();
+
+  const targetAddress = pool || "0xB44aEaB4843094Dd086c26dD6ce284c417436Deb";
+  const target = (await hre.ethers.getContractAt("LiquidityPool", targetAddress, admin)) as LiquidityPool;
+
+  const newLtv = ltv || "2000";
+  await target.setDefaultLTV(newLtv);
+  console.log(`Default LTV set to ${newLtv} on ${pool}.`);
 });
 
 task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")

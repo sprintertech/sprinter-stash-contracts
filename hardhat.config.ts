@@ -33,7 +33,7 @@ task("set-default-ltv", "Update Liquidity Pool config")
 .setAction(async ({pool, ltv}: {pool?: string, ltv?: string}, hre) => {
   const [admin] = await hre.ethers.getSigners();
 
-  const targetAddress = pool || "0xB44aEaB4843094Dd086c26dD6ce284c417436Deb";
+  const targetAddress = pool || process.env.LIQUIDITY_POOL || "0xB44aEaB4843094Dd086c26dD6ce284c417436Deb";
   const target = (await hre.ethers.getContractAt("LiquidityPool", targetAddress, admin)) as LiquidityPool;
 
   const newLtv = ltv || "200000000000000000";

@@ -166,9 +166,7 @@ async function main() {
   console.log("Routes:");
   console.table(config.Routes || {});
 
-  if (process.env.VERIFY === "true") {
-    await verifier.verify();
-  }
+  await verifier.verify(process.env.VERIFY === "true");
 }
 
 main();

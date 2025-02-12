@@ -131,8 +131,8 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
         );
 
         // - Check health factor for user after borrow (can be read from aave, getUserAccountData)
-        (,,,,,uint256 healthFactor) = pool.getUserAccountData(address(this));
-        if (healthFactor < _getStorage().minHealthFactor) revert HealthFactorTooLow();
+        (,,,,,uint256 currentHealthFactor) = pool.getUserAccountData(address(this));
+        if (currentHealthFactor < _getStorage().minHealthFactor) revert HealthFactorTooLow();
 
         // check ltv for token
         _checkTokenLTV(pool, borrowToken);
@@ -162,8 +162,8 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
         uint256 withdrawn = pool.withdraw(address(COLLATERAL), amount, to);
         // assert(withdrawn == amount);
         // health factor after withdraw
-        (,,,,,uint256 healthFactor) = pool.getUserAccountData(address(this));
-        if (healthFactor < _getStorage().minHealthFactor) revert HealthFactorTooLow();
+        (,,,,,uint256 currentHealthFactor) = pool.getUserAccountData(address(this));
+        if (currentHealthFactor < _getStorage().minHealthFactor) revert HealthFactorTooLow();
         emit WithdrawnFromAave(to, withdrawn);
     }
 

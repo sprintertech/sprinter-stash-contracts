@@ -36,7 +36,7 @@ task("set-default-ltv", "Update Liquidity Pool config")
   const targetAddress = pool || "0xB44aEaB4843094Dd086c26dD6ce284c417436Deb";
   const target = (await hre.ethers.getContractAt("LiquidityPool", targetAddress, admin)) as LiquidityPool;
 
-  const newLtv = ltv || "2000";
+  const newLtv = ltv || "200000000000000000";
   await target.setDefaultLTV(newLtv);
   console.log(`Default LTV set to ${newLtv} on ${pool}.`);
 });
@@ -88,7 +88,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
   const borrowToken = args.token || config.USDC;
   const amount = args.amount || "1000000";
   const target = args.target || borrowToken;
-  const data = args.data || (await token.transferFrom.populateTransaction(pool, signer.address, amount)).data;
+  const data = args.data || (await token.transfer.populateTransaction(signer.address, amount)).data;
   const nonce = args.nonce || `${Date.now()}`;
   const deadline = args.deadline || "2000000000";
   const value = {

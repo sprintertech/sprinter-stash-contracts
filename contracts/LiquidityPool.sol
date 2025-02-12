@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity 0.8.28;
 
-import {ERC20} from '@openzeppelin/contracts/token/ERC20/ERC20.sol';
+import {IERC20} from '@openzeppelin/contracts/token/ERC20/ERC20.sol';
+import {IERC20Metadata} from '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import {AccessControlUpgradeable} from '@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol';
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
@@ -15,7 +16,7 @@ import {IPool, DataTypes} from './interfaces/IPool.sol';
 import {IAaveOracle} from './interfaces/IAaveOracle.sol';
 
 contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
-    using SafeERC20 for ERC20;
+    using SafeERC20 for IERC20;
     using ECDSA for bytes32;
     using Math for uint256;
     using BitMaps for BitMaps.BitMap;
@@ -32,26 +33,17 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
         ")"
     );
 
-    ERC20 immutable public COLLATERAL;
+    IERC20 immutable public COLLATERAL;
     IPoolAddressesProvider immutable public AAVE_POOL_PROVIDER;
 
     /// @custom:storage-location erc7201:sprinter.storage.LiquidityPool
     struct LiquidityPoolStorage {
         // token address to ltv
-        mapping(address => uint256) borrowTokenLTV;
+        mapping(address token => uint256 ltv) borrowTokenLTV;
         BitMaps.BitMap usedNonces;
         address MPCAddress;
         uint256 minHealthFactor;
         uint256 defaultLTV;
-    }
-
-    struct UserAccountData {
-        uint256 totalCollateralBase;
-        uint256 totalDebtBase;
-        uint256 availableBorrowsBase;
-        uint256 currentLiquidationThreshold;
-        uint256 ltv;
-        uint256 healthFactor;
     }
 
     bytes32 private constant StorageLocation = 0x457f6fd6dd83195f8bfff9ee98f2df1d90fadb996523baa2b453217997285e00;
@@ -73,13 +65,12 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
     error NonceAlreadyUsed();
 
     event SuppliedToAave(uint256 amount);
-    event SolverStatusSet(address solver, bool status);
-    event BorrowTokenLTVSet(address token, uint256 ltv);
-    event HealthFactorSet(uint256 healthFactor);
-    event DefaultLTVSet(uint256 defaultLTV);
-    event Borrowed(address borrowToken, uint256 amount, address caller, address target);
+    event BorrowTokenLTVSet(address token, uint256 oldLTV, uint256 newLTV);
+    event HealthFactorSet(uint256 oldHealthFactor, uint256 newHealthFactor);
+    event DefaultLTVSet(uint256 oldDefaultLTV, uint256 newDefaultLTV);
+    event Borrowed(address borrowToken, uint256 amount, address caller, address target, bytes targetCallData);
     event Repaid(address borrowToken, uint256 repaidAmount);
-    event WithdrawnFromAave(uint256 amount);
+    event WithdrawnFromAave(address to, uint256 amount);
     event ProfitWithdrawn(address token, address to, uint256 amount);
 
     constructor(address liquidityToken, address aavePoolProvider) {
@@ -88,7 +79,7 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
             'sprinter.storage.LiquidityPool'
         );
         if (liquidityToken == address(0)) revert ZeroAddress();
-        COLLATERAL = ERC20(liquidityToken);
+        COLLATERAL = IERC20(liquidityToken);
         if (aavePoolProvider == address(0)) revert ZeroAddress();
         AAVE_POOL_PROVIDER = IPoolAddressesProvider(aavePoolProvider);
         _disableInitializers();
@@ -140,25 +131,17 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
         );
 
         // - Check health factor for user after borrow (can be read from aave, getUserAccountData)
-        UserAccountData memory userAccountData;
-        (
-            userAccountData.totalCollateralBase,
-            userAccountData.totalDebtBase,
-            userAccountData.availableBorrowsBase,
-            userAccountData.currentLiquidationThreshold,
-            userAccountData.ltv,
-            userAccountData.healthFactor
-        ) = pool.getUserAccountData(address(this));
-        if (userAccountData.healthFactor < _getStorage().minHealthFactor) revert HealthFactorTooLow();
+        (,,,,,uint256 healthFactor) = pool.getUserAccountData(address(this));
+        if (healthFactor < _getStorage().minHealthFactor) revert HealthFactorTooLow();
 
         // check ltv for token
         _checkTokenLTV(pool, borrowToken);
         // - Approve the borrowed funds for transfer to the recipient specified in the MPC signature.
-        ERC20(borrowToken).forceApprove(target, amount);
+        IERC20(borrowToken).forceApprove(target, amount);
         // - Invoke the recipient's address with calldata provided in the MPC signature to complete the operation securely.
         (bool success,) = target.call(targetCallData);
         if (!success) revert TargetCallFailed();
-        emit Borrowed(borrowToken, amount, msg.sender, target);
+        emit Borrowed(borrowToken, amount, msg.sender, target, targetCallData);
     }
 
     function repay(address[] calldata borrowTokens) public {
@@ -179,17 +162,9 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
         uint256 withdrawn = pool.withdraw(address(COLLATERAL), amount, to);
         // assert(withdrawn == amount);
         // health factor after withdraw
-        UserAccountData memory userAccountData;
-        (
-            userAccountData.totalCollateralBase,
-            userAccountData.totalDebtBase,
-            userAccountData.availableBorrowsBase,
-            userAccountData.currentLiquidationThreshold,
-            userAccountData.ltv,
-            userAccountData.healthFactor
-        ) = pool.getUserAccountData(address(this));
-        if (userAccountData.healthFactor < _getStorage().minHealthFactor) revert HealthFactorTooLow();
-        emit WithdrawnFromAave(withdrawn);
+        (,,,,,uint256 healthFactor) = pool.getUserAccountData(address(this));
+        if (healthFactor < _getStorage().minHealthFactor) revert HealthFactorTooLow();
+        emit WithdrawnFromAave(to, withdrawn);
     }
 
     function withdrawProfit(address token, address to, uint256 amount) public onlyRole(WITHDRAW_PROFIT_ROLE) {
@@ -199,27 +174,33 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
         IPool pool = IPool(AAVE_POOL_PROVIDER.getPool());
         DataTypes.ReserveData memory tokenData = pool.getReserveData(token);
         if (tokenData.variableDebtTokenAddress != address(0)) {
-            uint256 totalBorrowed = ERC20(tokenData.variableDebtTokenAddress).balanceOf(address(this));
+            uint256 totalBorrowed = IERC20(tokenData.variableDebtTokenAddress).balanceOf(address(this));
             if (totalBorrowed != 0) revert TokenHasDebt();
         }
         // withdraw from this contract
-        ERC20(token).safeTransfer(to, amount);
+        IERC20(token).safeTransfer(to, amount);
         emit ProfitWithdrawn(token, to, amount);
     }
 
     function setBorrowTokenLTV(address token, uint256 ltv) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        _getStorage().borrowTokenLTV[token] = ltv;
-        emit BorrowTokenLTVSet(token, ltv);
+        LiquidityPoolStorage storage $ = _getStorage();
+        uint256 oldLTV = $.borrowTokenLTV[token];
+        $.borrowTokenLTV[token] = ltv;
+        emit BorrowTokenLTVSet(token, oldLTV, ltv);
     }
 
     function setDefaultLTV(uint256 defaultLTV_) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        _getStorage().defaultLTV = defaultLTV_;
-        emit DefaultLTVSet(defaultLTV_);
+        LiquidityPoolStorage storage $ = _getStorage();
+        uint256 oldDefaultLTV = $.defaultLTV;
+        $.defaultLTV = defaultLTV_;
+        emit DefaultLTVSet(oldDefaultLTV, defaultLTV_);
     }
 
     function setHealthFactor(uint256 minHealthFactor) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        _getStorage().minHealthFactor = minHealthFactor;
-        emit HealthFactorSet(minHealthFactor);
+        LiquidityPoolStorage storage $ = _getStorage();
+        uint256 oldHealthFactor = $.minHealthFactor;
+        $.minHealthFactor = minHealthFactor;
+        emit HealthFactorSet(oldHealthFactor, minHealthFactor);
     }
 
     // Internal functions
@@ -262,12 +243,12 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
         if (ltv == 0) ltv = $.defaultLTV;
 
         DataTypes.ReserveData memory collateralData = pool.getReserveData(address(COLLATERAL));
-        uint256 totalCollateral = ERC20(collateralData.aTokenAddress).balanceOf(address(this));
+        uint256 totalCollateral = IERC20(collateralData.aTokenAddress).balanceOf(address(this));
         if (totalCollateral == 0) revert NoCollateral();
 
         DataTypes.ReserveData memory borrowTokenData = pool.getReserveData(borrowToken);
         if (borrowTokenData.variableDebtTokenAddress == address(0)) revert TokenNotSupported(borrowToken);
-        uint256 totalBorrowed = ERC20(borrowTokenData.variableDebtTokenAddress).balanceOf(address(this));
+        uint256 totalBorrowed = IERC20(borrowTokenData.variableDebtTokenAddress).balanceOf(address(this));
 
         IAaveOracle oracle = IAaveOracle(AAVE_POOL_PROVIDER.getPriceOracle());
         address[] memory assets = new address[](2);
@@ -277,8 +258,8 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
         uint256[] memory prices = oracle.getAssetsPrices(assets);
 
 
-        uint256 collateralDecimals = COLLATERAL.decimals();
-        uint256 borrowDecimals = ERC20(borrowToken).decimals();
+        uint256 collateralDecimals = IERC20Metadata(address(COLLATERAL)).decimals();
+        uint256 borrowDecimals = IERC20Metadata(borrowToken).decimals();
 
         uint256 collateralUnit = 10 ** collateralDecimals;
         uint256 borrowUnit = 10 ** borrowDecimals;
@@ -297,12 +278,12 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
         success = successInput;
         DataTypes.ReserveData memory borrowTokenData = pool.getReserveData(borrowToken);
         if (borrowTokenData.variableDebtTokenAddress == address(0)) revert TokenNotSupported(borrowToken);
-        uint256 totalBorrowed = ERC20(borrowTokenData.variableDebtTokenAddress).balanceOf(address(this));
+        uint256 totalBorrowed = IERC20(borrowTokenData.variableDebtTokenAddress).balanceOf(address(this));
         if (totalBorrowed == 0) return (success, 0);
-        uint256 borrowTokenBalance = ERC20(borrowToken).balanceOf(address(this));
+        uint256 borrowTokenBalance = IERC20(borrowToken).balanceOf(address(this));
         if (borrowTokenBalance == 0) return (success, 0);
         uint256 amountToRepay = borrowTokenBalance < totalBorrowed ? borrowTokenBalance : type(uint256).max;
-        ERC20(borrowToken).forceApprove(address(pool), amountToRepay);
+        IERC20(borrowToken).forceApprove(address(pool), amountToRepay);
         repaidAmount = pool.repay(
             borrowToken,
             amountToRepay,

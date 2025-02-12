@@ -139,7 +139,7 @@ const config: HardhatUserConfig = {
     },
     hardhat: {
       forking: {
-        url: `${process.env.FORK_PROVIDER}`,
+        url: process.env.FORK_PROVIDER || "https://eth-mainnet.public.blastapi.io",
       },
     },
   },

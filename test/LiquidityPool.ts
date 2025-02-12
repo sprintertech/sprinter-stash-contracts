@@ -62,8 +62,8 @@ describe("LiquidityPool", function () {
         usdc.target, AAVE_POOL_PROVIDER
       )
     ) as LiquidityPool;
-    // Initialize health factor as 5
-    const healthFactor = 5n * 10n ** 18n;
+    // Initialize health factor as 5 (500%)
+    const healthFactor = 500n * 10n ** 18n / 100n;
     // Initialize token LTV as 5%
     const defaultLtv = 5n * 10n ** 18n / 100n;
     const liquidityPoolInit = 
@@ -116,7 +116,7 @@ describe("LiquidityPool", function () {
       const {liquidityPool, usdc, usdcOwner, USDC_DEC, aToken} = await loadFixture(deployAll);
       const amount = 1000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
-      expect(await liquidityPool.deposit())
+      await expect(liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
     });
@@ -127,7 +127,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      expect(await liquidityPool.deposit())
+      await expect(liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 2n * RPL_DEC;
@@ -142,7 +142,7 @@ describe("LiquidityPool", function () {
         31337
       );
 
-      expect(await liquidityPool.connect(user).borrow(
+      await expect(liquidityPool.connect(user).borrow(
         rpl.target,
         amountToBorrow,
         user2,
@@ -151,7 +151,7 @@ describe("LiquidityPool", function () {
         2000000000n,
         signature))
       .to.emit(liquidityPool, "Borrowed")
-      .withArgs(rpl.target, amountToBorrow, user.address, user2.address);  
+      .withArgs(rpl.target, amountToBorrow, user.address, user2.address, "0x");  
       expect(await rpl.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
     });
    
@@ -161,7 +161,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      expect(await liquidityPool.deposit())
+      await expect(liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 3n * UNI_DEC;
@@ -176,7 +176,7 @@ describe("LiquidityPool", function () {
         31337
       );
 
-      expect(await liquidityPool.connect(user).borrow(
+      await expect(liquidityPool.connect(user).borrow(
         uni.target,
         amountToBorrow,
         user2,
@@ -185,7 +185,7 @@ describe("LiquidityPool", function () {
         2000000000n,
         signature))
       .to.emit(liquidityPool, "Borrowed")
-      .withArgs(uni.target, amountToBorrow, user.address, user2.address);
+      .withArgs(uni.target, amountToBorrow, user.address, user2.address, "0x");
       expect(await uni.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
       expect(await uni.allowance(liquidityPool.target, user2.address)).to.eq(amountToBorrow);
     });
@@ -196,7 +196,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      expect(await liquidityPool.deposit())
+      await expect(liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 3n * RPL_DEC;
@@ -215,7 +215,7 @@ describe("LiquidityPool", function () {
         31337
       );
 
-      expect(await liquidityPool.connect(user).borrow(
+      await expect(liquidityPool.connect(user).borrow(
         rpl.target,
         amountToBorrow,
         mockTarget.target,
@@ -224,7 +224,8 @@ describe("LiquidityPool", function () {
         2000000000n,
         signature))
       .to.emit(liquidityPool, "Borrowed")
-      .and.to.emit(mockTarget, "DataReceived").withArgs("0x");  
+      .withArgs(rpl.target, amountToBorrow, user.address, mockTarget.target, callData.data)
+      .and.to.emit(mockTarget, "DataReceived").withArgs(additionalData);  
       expect(await rpl.balanceOf(liquidityPool.target)).to.eq(0);
       expect(await rpl.balanceOf(mockTarget.target)).to.eq(amountToBorrow);
     });
@@ -235,7 +236,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      expect(await liquidityPool.deposit())
+      await expect(liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 2n * USDC_DEC;
@@ -250,7 +251,7 @@ describe("LiquidityPool", function () {
         31337
       );
 
-      expect(await liquidityPool.connect(user).borrow(
+      await expect(liquidityPool.connect(user).borrow(
         usdc.target,
         amountToBorrow,
         user2,
@@ -259,7 +260,7 @@ describe("LiquidityPool", function () {
         2000000000n,
         signature))
       .to.emit(liquidityPool, "Borrowed")
-      .withArgs(usdc.target, amountToBorrow, user.address, user2.address);  
+      .withArgs(usdc.target, amountToBorrow, user.address, user2.address, "0x");  
       expect(await usdc.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amountCollateral - 1n);
     });
@@ -270,7 +271,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      expect(await liquidityPool.deposit())
+      await expect(liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 3n * UNI_DEC;
@@ -285,7 +286,7 @@ describe("LiquidityPool", function () {
         31337
       );
 
-      expect(await liquidityPool.borrow(
+      await expect(liquidityPool.borrow(
         uni.target,
         amountToBorrow,
         user2,
@@ -298,7 +299,7 @@ describe("LiquidityPool", function () {
 
       await uni.connect(uniOwner).transfer(liquidityPool.target, amountToBorrow);
 
-      expect(await liquidityPool.connect(user).repay([uni.target]))
+      await expect(liquidityPool.connect(user).repay([uni.target]))
         .to.emit(liquidityPool, "Repaid");  
       expect(await uni.balanceOf(liquidityPool.target)).to.be.lessThan(amountToBorrow);
     });
@@ -307,10 +308,10 @@ describe("LiquidityPool", function () {
       const {liquidityPool, usdc, usdcOwner, USDC_DEC, aToken} = await loadFixture(deployAll);
       const amount = 1000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
-      expect(await liquidityPool.deposit())
+      await expect(liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
-      expect(await liquidityPool.deposit())
+      await expect(liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount * 2n - 1n);
     });
@@ -322,7 +323,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      expect(await liquidityPool.deposit())
+      await expect(liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 1n * RPL_DEC;
@@ -337,7 +338,7 @@ describe("LiquidityPool", function () {
         31337
       );
 
-      expect(await liquidityPool.connect(user).borrow(
+      await expect(liquidityPool.connect(user).borrow(
         rpl.target,
         amountToBorrow,
         user2,
@@ -346,7 +347,7 @@ describe("LiquidityPool", function () {
         2000000000n,
         signature1))
       .to.emit(liquidityPool, "Borrowed")
-      .withArgs(rpl.target, amountToBorrow, user.address, user2.address);  
+      .withArgs(rpl.target, amountToBorrow, user.address, user2.address, "0x");  
       expect(await rpl.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
 
       const signature2 = await signBorrow(
@@ -360,7 +361,7 @@ describe("LiquidityPool", function () {
         1n
       );
 
-      expect(await liquidityPool.connect(user).borrow(
+      await expect(liquidityPool.connect(user).borrow(
         uni.target,
         amountToBorrow,
         user2,
@@ -369,7 +370,7 @@ describe("LiquidityPool", function () {
         2000000000n,
         signature2))
       .to.emit(liquidityPool, "Borrowed")
-      .withArgs(uni.target, amountToBorrow, user.address, user2.address);  
+      .withArgs(uni.target, amountToBorrow, user.address, user2.address, "0x");  
       expect(await uni.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
 
       // advance time by one hour
@@ -380,24 +381,24 @@ describe("LiquidityPool", function () {
       expect(uniDebtBefore).to.be.greaterThan(amountToBorrow);
       expect(rplDebtBefore).to.be.greaterThan(amountToBorrow);
 
-      expect(await liquidityPool.connect(user).repay([uni.target]))
+      await expect(liquidityPool.connect(user).repay([uni.target]))
         .to.emit(liquidityPool, "Repaid");  
       const uniDebtAfter1 = await uniDebtToken.balanceOf(liquidityPool.target);
       expect(uniDebtAfter1).to.be.lessThan(uniDebtBefore);
 
       await uni.connect(uniOwner).transfer(liquidityPool.target, amountToBorrow);
-      expect(await liquidityPool.connect(user).repay([uni.target]))
+      await expect(liquidityPool.connect(user).repay([uni.target]))
       .to.emit(liquidityPool, "Repaid");  
       const uniDebtAfter2 = await uniDebtToken.balanceOf(liquidityPool.target);
       expect(uniDebtAfter2).to.eq(0);
 
-      expect(await liquidityPool.connect(user).repay([rpl.target]))
+      await expect(liquidityPool.connect(user).repay([rpl.target]))
         .to.emit(liquidityPool, "Repaid");  
       const rplDebtAfter1 = await rplDebtToken.balanceOf(liquidityPool.target);
       expect(rplDebtAfter1).to.be.lessThan(rplDebtBefore);
 
       await rpl.connect(rplOwner).transfer(liquidityPool.target, amountToBorrow);
-      expect(await liquidityPool.connect(user).repay([rpl.target]))
+      await expect(liquidityPool.connect(user).repay([rpl.target]))
         .to.emit(liquidityPool, "Repaid");  
       const rplDebtAfter2 = await rplDebtToken.balanceOf(liquidityPool.target);
       expect(rplDebtAfter2).to.eq(0);
@@ -410,7 +411,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      expect(await liquidityPool.deposit())
+      await expect(liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 2n * RPL_DEC;
@@ -425,7 +426,7 @@ describe("LiquidityPool", function () {
         31337
       );
 
-      expect(await liquidityPool.connect(user).borrow(
+      await expect(liquidityPool.connect(user).borrow(
         rpl.target,
         amountToBorrow,
         user2,
@@ -434,7 +435,7 @@ describe("LiquidityPool", function () {
         2000000000n,
         signature1))
       .to.emit(liquidityPool, "Borrowed")
-      .withArgs(rpl.target, amountToBorrow, user.address, user2.address);  
+      .withArgs(rpl.target, amountToBorrow, user.address, user2.address, "0x");  
       expect(await rpl.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
 
       // advance time by one hour
@@ -446,7 +447,7 @@ describe("LiquidityPool", function () {
       await uni.connect(uniOwner).transfer(liquidityPool.target, amountToBorrow);
       await rpl.connect(rplOwner).transfer(liquidityPool.target, amountToBorrow);
 
-      expect(await liquidityPool.connect(user).repay([uni.target, rpl.target]))
+      await expect(liquidityPool.connect(user).repay([uni.target, rpl.target]))
         .to.emit(liquidityPool, "Repaid");  
       const uniDebtAfter = await uniDebtToken.balanceOf(liquidityPool.target);
       expect(uniDebtAfter).to.eq(0);
@@ -461,7 +462,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      expect(await liquidityPool.deposit())
+      await expect(liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 2n * USDC_DEC;
@@ -476,7 +477,7 @@ describe("LiquidityPool", function () {
         31337
       );
 
-      expect(await liquidityPool.connect(user).borrow(
+      await expect(liquidityPool.connect(user).borrow(
         usdc.target,
         amountToBorrow,
         user2,
@@ -485,7 +486,7 @@ describe("LiquidityPool", function () {
         2000000000n,
         signature1))
       .to.emit(liquidityPool, "Borrowed")
-      .withArgs(usdc.target, amountToBorrow, user.address, user2.address);  
+      .withArgs(usdc.target, amountToBorrow, user.address, user2.address, "0x");  
       expect(await usdc.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
 
       // advance time by one hour
@@ -496,7 +497,7 @@ describe("LiquidityPool", function () {
 
       await usdc.connect(uniOwner).transfer(liquidityPool.target, amountToBorrow);
 
-      expect(await liquidityPool.connect(user).repay([usdc.target]))
+      await expect(liquidityPool.connect(user).repay([usdc.target]))
         .to.emit(liquidityPool, "Repaid");  
       const usdcDebtAfter = await uniDebtToken.balanceOf(liquidityPool.target);
       expect(usdcDebtAfter).to.eq(0);
@@ -506,20 +507,20 @@ describe("LiquidityPool", function () {
       const {liquidityPool, usdc, usdcOwner, USDC_DEC, aToken, user, admin} = await loadFixture(deployAll);
       const amount = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
-      expect(await liquidityPool.deposit())
+      await expect(liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
 
-      expect(await liquidityPool.connect(admin).withdraw(user.address, amount))
-        .to.emit(liquidityPool, "WidthrawnFromAave").withArgs(user.address, amount);
+      await expect(liquidityPool.connect(admin).withdraw(user.address, amount))
+        .to.emit(liquidityPool, "WithdrawnFromAave").withArgs(user.address, amount);
       expect(await usdc.balanceOf(user.address)).to.be.eq(amount);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThan(0);
 
       // Using type(uint256).max as amount to withdraw all available amount
-      expect(await liquidityPool.connect(admin).withdraw(
+      await expect(liquidityPool.connect(admin).withdraw(
         user.address, MaxUint256
       ))
-        .to.emit(liquidityPool, "WidthrawnFromAave");
+        .to.emit(liquidityPool, "WithdrawnFromAave");
       expect(await usdc.balanceOf(user.address)).to.be.greaterThan(amount);
       expect(await aToken.balanceOf(liquidityPool.target)).to.eq(0);
     });
@@ -528,7 +529,7 @@ describe("LiquidityPool", function () {
       const {liquidityPool, uni, UNI_DEC, uniOwner, admin, user} = await loadFixture(deployAll);
       const amount = 2n * UNI_DEC;
       await uni.connect(uniOwner).transfer(liquidityPool.target, amount);
-      expect(await liquidityPool.connect(admin).withdrawProfit(uni.target, user.address, amount))
+      await expect(liquidityPool.connect(admin).withdrawProfit(uni.target, user.address, amount))
         .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(uni.target, user.address, amount);
       expect(await uni.balanceOf(user.address)).to.eq(amount);
     });
@@ -540,7 +541,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      expect(await liquidityPool.deposit())
+      await expect(liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 2n * USDC_DEC;
@@ -555,7 +556,7 @@ describe("LiquidityPool", function () {
         31337
       );
 
-      expect(await liquidityPool.connect(user).borrow(
+      await expect(liquidityPool.connect(user).borrow(
         usdc.target,
         amountToBorrow,
         user2,
@@ -564,7 +565,7 @@ describe("LiquidityPool", function () {
         2000000000n,
         signature1))
       .to.emit(liquidityPool, "Borrowed")
-      .withArgs(usdc.target, amountToBorrow, user.address, user2.address);  
+      .withArgs(usdc.target, amountToBorrow, user.address, user2.address, "0x");  
       expect(await usdc.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
 
       // advance time by one hour
@@ -575,7 +576,7 @@ describe("LiquidityPool", function () {
 
       await usdc.connect(uniOwner).transfer(liquidityPool.target, amountToBorrow);
 
-      expect(await liquidityPool.connect(user).deposit())
+      await expect(liquidityPool.connect(user).deposit())
         .to.emit(liquidityPool, "Repaid")
         .and.to.emit(liquidityPool, "SuppliedToAave");  
       const usdcDebtAfter = await uniDebtToken.balanceOf(liquidityPool.target);
@@ -597,7 +598,7 @@ describe("LiquidityPool", function () {
       const {liquidityPool, usdc, USDC_DEC, rpl, RPL_DEC, user, user2, usdcOwner} = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      expect(await liquidityPool.deposit())
+      await expect(liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 2n * RPL_DEC;
@@ -628,7 +629,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      expect(await liquidityPool.deposit())
+      await expect(liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 2n * RPL_DEC;
@@ -667,7 +668,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      expect(await liquidityPool.deposit())
+      await expect(liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 2n * RPL_DEC;
@@ -701,7 +702,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      expect(await liquidityPool.deposit())
+      await expect(liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 10n * UNI_DEC;
@@ -733,10 +734,10 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      expect(await liquidityPool.deposit())
+      await expect(liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave");
 
-      expect(await liquidityPool.connect(admin).setHealthFactor(40n * 10n ** 18n))
+      await expect(liquidityPool.connect(admin).setHealthFactor(4000n * 10n ** 18n / 100n))
         .to.emit(liquidityPool, "HealthFactorSet");
 
       const amountToBorrow = 3n * UNI_DEC;
@@ -768,7 +769,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      expect(await liquidityPool.deposit())
+      await expect(liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 2n * RPL_DEC;
@@ -805,7 +806,7 @@ describe("LiquidityPool", function () {
 
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      expect(await liquidityPool.deposit())
+      await expect(liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 2n * RPL_DEC;
@@ -824,7 +825,7 @@ describe("LiquidityPool", function () {
         31337
       );
 
-      expect(await liquidityPool.connect(user).borrow(
+      await expect(liquidityPool.connect(user).borrow(
         rpl.target,
         amountToBorrow,
         mockTarget.target,
@@ -833,7 +834,7 @@ describe("LiquidityPool", function () {
         2000000000n,
         signature))
       .to.emit(liquidityPool, "Borrowed")
-      .and.to.emit(mockTarget, "DataReceived").withArgs("0x");  
+      .and.to.emit(mockTarget, "DataReceived").withArgs(additionalData);  
       expect(await rpl.balanceOf(liquidityPool.target)).to.eq(0);
       expect(await rpl.balanceOf(mockTarget.target)).to.eq(amountToBorrow);
 
@@ -857,7 +858,7 @@ describe("LiquidityPool", function () {
       const {liquidityPool, usdc, USDC_DEC, usdcOwner, aToken, user, admin} = await loadFixture(deployAll);
       const amount = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
-      expect(await liquidityPool.deposit())
+      await expect(liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
 
@@ -871,7 +872,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amount = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
-      expect(await liquidityPool.deposit())
+      await expect(liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
 
       const amountToBorrow = 3n * UNI_DEC;
@@ -886,7 +887,7 @@ describe("LiquidityPool", function () {
         31337
       );
 
-      expect(await liquidityPool.connect(user).borrow(
+      await expect(liquidityPool.connect(user).borrow(
         uni.target,
         amountToBorrow,
         user2,
@@ -904,7 +905,7 @@ describe("LiquidityPool", function () {
       const {liquidityPool, usdc, usdcOwner, USDC_DEC, aToken, user} = await loadFixture(deployAll);
       const amount = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
-      expect(await liquidityPool.deposit())
+      await expect(liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
 
@@ -925,7 +926,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      expect(await liquidityPool.deposit())
+      await expect(liquidityPool.deposit())
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amountCollateral);
 
       const amountToBorrow = 3n * UNI_DEC;
@@ -940,7 +941,7 @@ describe("LiquidityPool", function () {
         31337
       );
 
-      expect(await liquidityPool.connect(user).borrow(
+      await expect(liquidityPool.connect(user).borrow(
         uni.target,
         amountToBorrow,
         user2,
@@ -965,37 +966,55 @@ describe("LiquidityPool", function () {
   });
 
   describe("Admin functions", function () {
-    it("Should set default token LTV", async function () {
-      const {liquidityPool, admin, user} = await loadFixture(deployAll);
+    it("Should allow admin to set default token LTV", async function () {
+      const {liquidityPool, admin} = await loadFixture(deployAll);
+      const oldDefaultLTV = await liquidityPool.defaultLTV();
       const defaultLtv = 1000;
-      await expect(liquidityPool.connect(user).setDefaultLTV(defaultLtv))
-        .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
-      expect(await liquidityPool.connect(admin).setDefaultLTV(defaultLtv))
-        .to.emit(liquidityPool, "DefaultLtvSet");
+      await expect(liquidityPool.connect(admin).setDefaultLTV(defaultLtv))
+        .to.emit(liquidityPool, "DefaultLTVSet").withArgs(oldDefaultLTV, defaultLtv);
       expect(await liquidityPool.defaultLTV())
         .to.eq(defaultLtv);
     });
 
-    it("Should set token LTV for each token", async function () {
-      const {liquidityPool, admin, user, uni} = await loadFixture(deployAll);
-      const ltv = 1000;
-      await expect(liquidityPool.connect(user).setBorrowTokenLTV(uni.target, ltv))
+    it("Should NOT allow others to set default token LTV", async function () {
+      const {liquidityPool, user} = await loadFixture(deployAll);
+      const defaultLtv = 1000;
+      await expect(liquidityPool.connect(user).setDefaultLTV(defaultLtv))
         .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
-      expect(await liquidityPool.connect(admin).setBorrowTokenLTV(uni.target, ltv))
-        .to.emit(liquidityPool, "DefaultLtvSet");
+    });
+
+    it("Should allow admin to set token LTV for each token", async function () {
+      const {liquidityPool, admin, uni} = await loadFixture(deployAll);
+      const oldLTV = await liquidityPool.borrowTokenLTV(uni.target);
+      const ltv = 1000;
+      await expect(liquidityPool.connect(admin).setBorrowTokenLTV(uni.target, ltv))
+        .to.emit(liquidityPool, "BorrowTokenLTVSet").withArgs(uni.target, oldLTV, ltv);
       expect(await liquidityPool.borrowTokenLTV(uni.target))
         .to.eq(ltv);
     });
 
-    it("Should set minimal health factor", async function () {
-      const {liquidityPool, admin, user} = await loadFixture(deployAll);
-      const healthFactor = 5n * 10n ** 18n;
-      await expect(liquidityPool.connect(user).setHealthFactor(healthFactor))
+    it("Should NOT allow others to set token LTV for each token", async function () {
+      const {liquidityPool, user, uni} = await loadFixture(deployAll);
+      const ltv = 1000;
+      await expect(liquidityPool.connect(user).setBorrowTokenLTV(uni.target, ltv))
         .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
-      expect(await liquidityPool.connect(admin).setHealthFactor(healthFactor))
-        .to.emit(liquidityPool, "HealthFactorSet");
+    });
+
+    it("Should allow admin to set minimal health factor", async function () {
+      const {liquidityPool, admin} = await loadFixture(deployAll);
+      const oldHealthFactor = await liquidityPool.healthFactor();
+      const healthFactor = 300n * 10n ** 18n / 100n;
+      await expect(liquidityPool.connect(admin).setHealthFactor(healthFactor))
+        .to.emit(liquidityPool, "HealthFactorSet").withArgs(oldHealthFactor, healthFactor);
       expect(await liquidityPool.healthFactor())
         .to.eq(healthFactor);
+    });
+
+    it("Should NOT allow others to set minimal health factor", async function () {
+      const {liquidityPool, user} = await loadFixture(deployAll);
+      const healthFactor = 500n * 10n ** 18n / 100n;
+      await expect(liquidityPool.connect(user).setHealthFactor(healthFactor))
+        .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
     });
   });
 });

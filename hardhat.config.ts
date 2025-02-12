@@ -88,7 +88,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
   const borrowToken = args.token || config.USDC;
   const amount = args.amount || "1000000";
   const target = args.target || borrowToken;
-  const data = args.data || (await token.transferFrom.populateTransaction(pool, signer.address, amount)).data;
+  const data = args.data || (await token.transfer.populateTransaction(signer.address, amount)).data;
   const nonce = args.nonce || `${Date.now()}`;
   const deadline = args.deadline || "2000000000";
   const value = {

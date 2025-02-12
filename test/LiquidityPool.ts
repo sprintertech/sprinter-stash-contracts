@@ -1023,7 +1023,7 @@ describe("LiquidityPool", function () {
 
     it("Should NOT withdraw profit for all balance if balance is 0 after repay", async function () {
       const {
-        liquidityPool, usdc, uni, mpc_signer, user, user2, admin, usdcOwner, uniOwner, USDC_DEC, UNI_DEC
+        liquidityPool, usdc, uni, mpc_signer, user, user2, admin, usdcOwner, USDC_DEC, UNI_DEC
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);

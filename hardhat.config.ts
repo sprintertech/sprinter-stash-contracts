@@ -36,7 +36,7 @@ task("set-default-ltv", "Update Liquidity Pool config")
   const targetAddress = pool || "0xB44aEaB4843094Dd086c26dD6ce284c417436Deb";
   const target = (await hre.ethers.getContractAt("LiquidityPool", targetAddress, admin)) as LiquidityPool;
 
-  const newLtv = ltv || "2000";
+  const newLtv = ltv || "200000000000000000";
   await target.setDefaultLTV(newLtv);
   console.log(`Default LTV set to ${newLtv} on ${pool}.`);
 });

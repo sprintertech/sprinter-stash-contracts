@@ -60,9 +60,9 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
     error NothingToRepay();
     error TokenNotSupported(address borrowToken);
     error CannotWithdrawProfitCollateral();
-    error TokenHasDebt();
     error ExpiredSignature();
     error NonceAlreadyUsed();
+    error NotEnoughBalance();
 
     event SuppliedToAave(uint256 amount);
     event BorrowTokenLTVSet(address token, uint256 oldLTV, uint256 newLTV);
@@ -170,16 +170,34 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
     function withdrawProfit(address token, address to, uint256 amount) public onlyRole(WITHDRAW_PROFIT_ROLE) {
         // check that not collateral
         if (token == address(COLLATERAL)) revert CannotWithdrawProfitCollateral();
-        // check that no debt
+        uint256 available = IERC20(token).balanceOf(address(this));
+        if ((amount < type(uint256).max) && (available < amount)) revert NotEnoughBalance();
+        // try to repay debt
         IPool pool = IPool(AAVE_POOL_PROVIDER.getPool());
         DataTypes.ReserveData memory tokenData = pool.getReserveData(token);
         if (tokenData.variableDebtTokenAddress != address(0)) {
             uint256 totalBorrowed = IERC20(tokenData.variableDebtTokenAddress).balanceOf(address(this));
-            if (totalBorrowed != 0) revert TokenHasDebt();
+            if (totalBorrowed != 0) {
+                if (totalBorrowed >= available) revert NotEnoughBalance();
+                IERC20(token).forceApprove(address(pool), available);
+                uint256 repaidAmount = pool.repay(
+                    token,
+                    available,
+                    2,
+                    address(this)
+                );
+                emit Repaid(token, repaidAmount);
+                available -= repaidAmount;
+            }
         }
+        uint256 amountToWithdraw = amount;
+        if (amount == type(uint256).max) {
+            if (available == 0) revert NotEnoughBalance();
+            amountToWithdraw = available;
+        } else if (available < amount) revert NotEnoughBalance();
         // withdraw from this contract
-        IERC20(token).safeTransfer(to, amount);
-        emit ProfitWithdrawn(token, to, amount);
+        IERC20(token).safeTransfer(to, amountToWithdraw);
+        emit ProfitWithdrawn(token, to, amountToWithdraw);
     }
 
     function setBorrowTokenLTV(address token, uint256 ltv) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -282,11 +300,10 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
         if (totalBorrowed == 0) return (success, 0);
         uint256 borrowTokenBalance = IERC20(borrowToken).balanceOf(address(this));
         if (borrowTokenBalance == 0) return (success, 0);
-        uint256 amountToRepay = borrowTokenBalance < totalBorrowed ? borrowTokenBalance : type(uint256).max;
-        IERC20(borrowToken).forceApprove(address(pool), amountToRepay);
+        IERC20(borrowToken).forceApprove(address(pool), borrowTokenBalance);
         repaidAmount = pool.repay(
             borrowToken,
-            amountToRepay,
+            borrowTokenBalance,
             2,
             address(this)
         );

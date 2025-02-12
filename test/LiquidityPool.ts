@@ -534,6 +534,58 @@ describe("LiquidityPool", function () {
       expect(await uni.balanceOf(user.address)).to.eq(amount);
     });
 
+    it("Should repay before withdrawing profit", async function () {
+      const {
+        liquidityPool, usdc, uni, mpc_signer, user, user2, admin, usdcOwner, uniOwner, USDC_DEC, UNI_DEC
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC; // $1000
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
+      await expect(liquidityPool.deposit())
+        .to.emit(liquidityPool, "SuppliedToAave");
+
+      const amountToBorrow = 3n * UNI_DEC;
+
+      const signature = await signBorrow(
+        mpc_signer,
+        liquidityPool.target as string,
+        uni.target as string,
+        amountToBorrow.toString(),
+        user2.address,
+        "0x",
+        31337
+      );
+
+      await expect(liquidityPool.borrow(
+        uni.target,
+        amountToBorrow,
+        user2,
+        "0x",
+        0n,
+        2000000000n,
+        signature))
+      .to.emit(liquidityPool, "Borrowed");  
+      expect(await uni.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
+
+      await uni.connect(uniOwner).transfer(liquidityPool.target, amountToBorrow);
+
+      const amountToWithdraw = 2n * UNI_DEC;
+
+      await expect(liquidityPool.connect(admin).withdrawProfit(uni.target, user.address, amountToWithdraw))
+        .to.emit(liquidityPool, "Repaid")
+        .and.to.emit(liquidityPool, "ProfitWithdrawn").withArgs(uni.target, user.address, amountToWithdraw);
+      expect(await uni.balanceOf(user.address)).to.eq(amountToWithdraw);
+      expect(await uni.balanceOf(liquidityPool.target)).to.be.greaterThan(0);
+    });
+
+    it("Should withdraw all available balance as profit ", async function () {
+      const {liquidityPool, uni, UNI_DEC, uniOwner, admin, user} = await loadFixture(deployAll);
+      const amount = 2n * UNI_DEC;
+      await uni.connect(uniOwner).transfer(liquidityPool.target, amount);
+      await expect(liquidityPool.connect(admin).withdrawProfit(uni.target, user.address, MaxUint256))
+        .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(uni.target, user.address, amount);
+      expect(await uni.balanceOf(user.address)).to.eq(amount);
+    });
+
     it("Should repay before deposit", async function () {
       const {
         liquidityPool, usdc, USDC_DEC, user, user2, mpc_signer, usdcOwner, uniOwner,
@@ -920,14 +972,22 @@ describe("LiquidityPool", function () {
         .to.be.revertedWithCustomError(liquidityPool, "CannotWithdrawProfitCollateral");
     });
 
-    it("Should NOT withdraw profit if the token has debt", async function () {
+    it("Should NOT withdraw profit if not enough balance without repay", async function () {
+      const {liquidityPool, uni, UNI_DEC, uniOwner, admin, user} = await loadFixture(deployAll);
+      const amount = 2n * UNI_DEC;
+      await uni.connect(uniOwner).transfer(liquidityPool.target, amount - 1n);
+      await expect(liquidityPool.connect(admin).withdrawProfit(uni.target, user.address, amount))
+        .to.be.revertedWithCustomError(liquidityPool, "NotEnoughBalance");
+    });
+
+    it("Should NOT withdraw profit if not enough balance after repay", async function () {
       const {
-        liquidityPool, usdc, usdcOwner, USDC_DEC, user, admin, uni, uniOwner,  mpc_signer, UNI_DEC, user2
+        liquidityPool, usdc, uni, mpc_signer, user, user2, admin, usdcOwner, uniOwner, USDC_DEC, UNI_DEC
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
       await expect(liquidityPool.deposit())
-        .to.emit(liquidityPool, "SuppliedToAave").withArgs(amountCollateral);
+        .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 3n * UNI_DEC;
 
@@ -941,7 +1001,7 @@ describe("LiquidityPool", function () {
         31337
       );
 
-      await expect(liquidityPool.connect(user).borrow(
+      await expect(liquidityPool.borrow(
         uni.target,
         amountToBorrow,
         user2,
@@ -949,12 +1009,53 @@ describe("LiquidityPool", function () {
         0n,
         2000000000n,
         signature))
-      .to.emit(liquidityPool, "Borrowed");
+      .to.emit(liquidityPool, "Borrowed");  
+      expect(await uni.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
 
-      const amountProfit = 100000n;
-      await uni.connect(uniOwner).transfer(liquidityPool.target, amountProfit);
-      await expect(liquidityPool.connect(admin).withdrawProfit(uni.target, user.address, amountProfit))
-        .to.be.revertedWithCustomError(liquidityPool, "TokenHasDebt")
+      const amountToWithdraw = 2n * UNI_DEC;
+
+      // Repaying will require more tokens than were borrowed so there will be not enough to withdraw
+      await uni.connect(uniOwner).transfer(liquidityPool.target, amountToWithdraw);
+
+      await expect(liquidityPool.connect(admin).withdrawProfit(uni.target, user.address, amountToWithdraw))
+        .to.be.revertedWithCustomError(liquidityPool, "NotEnoughBalance");
+    });
+
+    it("Should NOT withdraw profit for all balance if balance is 0 after repay", async function () {
+      const {
+        liquidityPool, usdc, uni, mpc_signer, user, user2, admin, usdcOwner, uniOwner, USDC_DEC, UNI_DEC
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC; // $1000
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
+      await expect(liquidityPool.deposit())
+        .to.emit(liquidityPool, "SuppliedToAave");
+
+      const amountToBorrow = 3n * UNI_DEC;
+
+      const signature = await signBorrow(
+        mpc_signer,
+        liquidityPool.target as string,
+        uni.target as string,
+        amountToBorrow.toString(),
+        user2.address,
+        "0x",
+        31337
+      );
+
+      await expect(liquidityPool.borrow(
+        uni.target,
+        amountToBorrow,
+        user2,
+        "0x",
+        0n,
+        2000000000n,
+        signature))
+      .to.emit(liquidityPool, "Borrowed");  
+      expect(await uni.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
+
+      // Repaying will require more tokens than were borrowed so there will be not enough to withdraw
+      await expect(liquidityPool.connect(admin).withdrawProfit(uni.target, user.address, MaxUint256))
+        .to.be.revertedWithCustomError(liquidityPool, "NotEnoughBalance");
     });
 
     it("Should NOT withdraw profit by unauthorized user", async function () {

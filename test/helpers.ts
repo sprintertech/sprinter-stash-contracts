@@ -1,5 +1,5 @@
 import hre from "hardhat";
-import {AddressLike, resolveAddress, Signer, BaseContract, zeroPadBytes, toUtf8Bytes} from "ethers";
+import {AddressLike, resolveAddress, Signer, BaseContract, zeroPadBytes, toUtf8Bytes, TypedDataDomain} from "ethers";
 
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 export const ZERO_BYTES32 = "0x0000000000000000000000000000000000000000000000000000000000000000";
@@ -14,7 +14,7 @@ export async function getContractAt(contractName: string, address: AddressLike, 
   return hre.ethers.getContractAt(contractName, await resolveAddress(address), signer);
 }
 
-export async function deploy(contractName: string, signer: Signer, txParams: object, ...params: any[]):
+export async function deploy(contractName: string, signer: Signer, txParams: object = {}, ...params: any[]):
   Promise<BaseContract>
 {
   const factory = await hre.ethers.getContractFactory(contractName, signer);
@@ -33,4 +33,48 @@ export function divCeil(a: bigint, b: bigint): bigint {
     return a / b;
   }
   return a / b + 1n;
+}
+
+export async function signBorrow(
+  signer: Signer,
+  verifyingContract: string,
+  borrowToken: string,
+  amount: string,
+  target: string,
+  targetCallData: string,
+  chainId: number = 1,
+  nonce: bigint = 0n,
+  deadline: bigint = 2000000000n
+) {
+  const name = "LiquidityPool";
+  const version = "1.0.0";
+
+  const domain: TypedDataDomain = {
+    name,
+    version,
+    chainId,
+    verifyingContract
+  };
+
+  const types = {
+    Borrow: [
+      {name: "borrowToken", type: "address"},
+      {name: "amount", type: "uint256"},
+      {name: "target", type: "address"},
+      {name: "targetCallData", type: "bytes"},
+      {name: "nonce", type: "uint256"},
+      {name: "deadline", type: "uint256"},
+    ],
+  };
+
+  const value = {
+    borrowToken: borrowToken.toLowerCase(),
+    amount,
+    target: target.toLowerCase(),
+    targetCallData,
+    nonce,
+    deadline,
+  };
+
+  return signer.signTypedData(domain, types, value);
 }

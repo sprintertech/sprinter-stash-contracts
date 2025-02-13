@@ -8,10 +8,15 @@
     "deploy": "hardhat run ./scripts/deploy.ts",
     "deploy-local": "hardhat run ./scripts/deploy.ts --network localhost",
     "deploy-basesepolia": "hardhat run ./scripts/deploy.ts --network BASE_SEPOLIA",
+    "deploy-ethereumsepolia": "hardhat run ./scripts/deploy.ts --network ETHEREUM_SEPOLIA",
+    "deploy-arbitrumsepolia": "hardhat run ./scripts/deploy.ts --network ARBITRUM_SEPOLIA",
+    "upgrade-liquiditypool": "hardhat run ./scripts/upgradeLiquidityPool.ts",
+    "upgrade-liquiditypool-basesepolia": "hardhat run ./scripts/upgradeLiquidityPool.ts --network BASE_SEPOLIA",
+    "upgrade-liquiditypool-ethereumsepolia": "hardhat run ./scripts/upgradeLiquidityPool.ts --network ETHEREUM_SEPOLIA",
     "node": "hardhat node",
     "hardhat": "hardhat",
     "lint": "npm run lint:solidity && npm run lint:ts",
-    "lint:solidity": "solhint contracts/**/*.sol",
+    "lint:solidity": "solhint 'contracts/**/*.sol'",
     "lint:ts": "eslint",
     "test": "hardhat test --typecheck",
     "test:deploy": "ts-node --files ./scripts/deploy.ts"
@@ -42,6 +47,7 @@
     "typescript-eslint": "^8.19.1"
   },
   "dependencies": {
+    "@bgd-labs/aave-address-book": "^4.10.0",
     "@openzeppelin/contracts": "^5.1.0",
     "@openzeppelin/contracts-upgradeable": "^5.1.0"
   }

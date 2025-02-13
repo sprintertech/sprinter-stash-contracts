@@ -6,7 +6,7 @@ import hre from "hardhat";
 import {Signature, resolveAddress, MaxUint256, getBigInt} from "ethers";
 import {
   getCreateAddress, getContractAt, deploy,
-  ZERO_ADDRESS, ZERO_BYTES32,
+  ZERO_ADDRESS, toBytes32,
 } from "./helpers";
 import {
   TestUSDC, SprinterUSDCLPShare, LiquidityHub, TransparentUpgradeableProxy, ProxyAdmin,
@@ -20,7 +20,7 @@ describe("LiquidityHub", function () {
   const deployAll = async () => {
     const [deployer, admin, user, user2, user3] = await hre.ethers.getSigners();
 
-    const DEFAULT_ADMIN_ROLE = ZERO_BYTES32;
+    const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
 
     const usdc = (await deploy("TestUSDC", deployer, {})) as TestUSDC;
     const liquidityPool = (await deploy("TestLiquidityPool", deployer, {}, usdc.target)) as TestLiquidityPool;
@@ -49,7 +49,7 @@ describe("LiquidityHub", function () {
     const liquidityHubProxyAdminAddress = await getCreateAddress(liquidityHubProxy, 1);
     const liquidityHubAdmin = (await getContractAt("ProxyAdmin", liquidityHubProxyAdminAddress, admin)) as ProxyAdmin;
 
-    await liquidityPool.grantRole(DEFAULT_ADMIN_ROLE, liquidityHub.target);
+    await liquidityPool.grantRole(LIQUIDITY_ADMIN_ROLE, liquidityHub.target);
 
     return {deployer, admin, user, user2, user3, usdc, lpToken,
       liquidityHub, liquidityHubProxy, liquidityHubAdmin, USDC, LP, liquidityPool};

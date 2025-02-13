@@ -10,11 +10,11 @@ import {
     Math
 } from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
-import {AccessControlUpgradeable} from '@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol';
-import {ERC7201Helper} from './utils/ERC7201Helper.sol';
-import {IManagedToken} from './interfaces/IManagedToken.sol';
-import {ILiquidityPool} from './interfaces/ILiquidityPool.sol';
-import {ILiquidityHub} from './interfaces/ILiquidityHub.sol';
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
+import {IManagedToken} from "./interfaces/IManagedToken.sol";
+import {ILiquidityPool} from "./interfaces/ILiquidityPool.sol";
+import {ILiquidityHub} from "./interfaces/ILiquidityHub.sol";
 
 contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgradeable {
     using Math for uint256;
@@ -37,12 +37,12 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         uint256 assetsLimit;
     }
 
-    bytes32 private constant StorageLocation = 0xb877bfaae1674461dd1960c90f24075e3de3265a91f6906fe128ab8da6ba1700;
+    bytes32 private constant STORAGE_LOCATION = 0xb877bfaae1674461dd1960c90f24075e3de3265a91f6906fe128ab8da6ba1700;
 
     constructor(address shares, address liquidityPool) {
         ERC7201Helper.validateStorageLocation(
-            StorageLocation,
-            'sprinter.storage.LiquidityHub'
+            STORAGE_LOCATION,
+            "sprinter.storage.LiquidityHub"
         );
         if (shares == address(0)) revert ZeroAddress();
         if (liquidityPool == address(0)) revert ZeroAddress();
@@ -251,7 +251,7 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
 
     function _getStorage() private pure returns (LiquidityHubStorage storage $) {
         assembly {
-            $.slot := StorageLocation
+            $.slot := STORAGE_LOCATION
         }
     }
 }

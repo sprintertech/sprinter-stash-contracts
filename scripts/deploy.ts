@@ -1,36 +1,53 @@
 import dotenv from "dotenv"; 
 dotenv.config();
-
 import hre from "hardhat";
 import {isAddress, MaxUint256, getBigInt} from "ethers";
-import {getContractAt, getCreateAddress, deploy, ZERO_BYTES32} from "../test/helpers";
-import {assert, getVerifier, isSet, ProviderSolidity, DomainSolidity} from "./helpers";
+import {toBytes32} from "../test/helpers";
 import {
-  TestUSDC, SprinterUSDCLPShare, LiquidityHub, TransparentUpgradeableProxy, ProxyAdmin,
-  TestLiquidityPool, SprinterLiquidityMining, TestCCTPTokenMessenger, TestCCTPMessageTransmitter,
-  Rebalancer,
+  getVerifier, deployProxy, getProxyCreateAddress,
+} from "./helpers";
+import {
+  assert, isSet, ProviderSolidity, DomainSolidity,
+} from "./common";
+import {
+  TestUSDC, SprinterUSDCLPShare, LiquidityHub,
+  SprinterLiquidityMining, TestCCTPTokenMessenger, TestCCTPMessageTransmitter,
+  Rebalancer, LiquidityPool,
 } from "../typechain-types";
 import {networkConfig, Network, Provider, NetworkConfig} from "../network.config";
 
-const DAY = 60n * 60n * 24n;
-
 async function main() {
+  // Rework granting admin roles on deployments so that deployer does not have to be admin.
   const [deployer] = await hre.ethers.getSigners();
   const admin: string = isAddress(process.env.ADMIN) ? process.env.ADMIN : deployer.address;
-  const rebalanceCaller: string = isAddress(process.env.REBALANCE_CALLER) ?
-    process.env.REBALANCE_CALLER : deployer.address;
   const adjuster: string = isAddress(process.env.ADJUSTER) ? process.env.ADJUSTER : deployer.address;
   const maxLimit: bigint = MaxUint256 / 10n ** 12n;
   const assetsLimit: bigint = getBigInt(process.env.ASSETS_LIMIT || maxLimit);
+
+  const rebalanceCaller: string = isAddress(process.env.REBALANCE_CALLER) ?
+    process.env.REBALANCE_CALLER : deployer.address;
+
+  const mpcAddress: string = isAddress(process.env.MPC_ADDRESS) ?
+    process.env.MPC_ADDRESS : deployer.address;
+  const withdrawProfit: string = isAddress(process.env.WITHDRAW_PROFIT) ?
+    process.env.WITHDRAW_PROFIT : deployer.address;
+  const minHealthFactor: bigint = getBigInt(process.env.MIN_HEALTH_FACTOR || 500n) * 10n ** 18n / 100n;
+  const defaultLTV: bigint = getBigInt(process.env.DEFAULT_LTV || 20n) * 10n ** 18n / 100n;
+
+  const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
+  const WITHDRAW_PROFIT_ROLE = toBytes32("WITHDRAW_PROFIT_ROLE");
+
+  const verifier = getVerifier();
 
   let config: NetworkConfig;
   if (Object.values(Network).includes(hre.network.name as Network)) {
     config = networkConfig[hre.network.name as Network];
   } else {
-    const testUSDC = (await deploy("TestUSDC", deployer, {})) as TestUSDC;
-    const cctpTokenMessenger = (await deploy("TestCCTPTokenMessenger", deployer, {})) as TestCCTPTokenMessenger;
+    console.log("TEST: Using TEST USDC and CCTP");
+    const testUSDC = (await verifier.deploy("TestUSDC", deployer)) as TestUSDC;
+    const cctpTokenMessenger = (await verifier.deploy("TestCCTPTokenMessenger", deployer)) as TestCCTPTokenMessenger;
     const cctpMessageTransmitter = (
-      await deploy("TestCCTPMessageTransmitter", deployer, {})
+      await verifier.deploy("TestCCTPMessageTransmitter", deployer)
     ) as TestCCTPMessageTransmitter;
 
     config = {
@@ -48,45 +65,55 @@ async function main() {
     };
   }
 
-  console.log("TEST: Using TEST Liquidity Pool");
-  const liquidityPool = (await deploy("TestLiquidityPool", deployer, {}, config.USDC)) as TestLiquidityPool;
+  let liquidityPool: LiquidityPool;
+  if (config.Aave) {
+    const {target, targetAdmin: liquidityPoolAdmin} = await deployProxy<LiquidityPool>(
+      verifier.deploy,
+      "LiquidityPool",
+      deployer,
+      admin,
+      [config.USDC, config.Aave],
+      [
+        admin,
+        minHealthFactor,
+        defaultLTV,
+        mpcAddress,
+      ],
+    );
+    liquidityPool = target;
+    console.log(`LiquidityPoolProxyAdmin: ${liquidityPoolAdmin.target}`);
+  } else {
+    console.log("TEST: Using TEST Liquidity Pool");
+    liquidityPool = (await verifier.deploy("TestLiquidityPool", deployer, {}, [config.USDC])) as LiquidityPool;
+  }
 
   const rebalancerVersion = config.IsTest ? "TestRebalancer" : "Rebalancer";
 
-  const rebalancerImpl = (
-    await deploy(rebalancerVersion, deployer, {},
-      liquidityPool.target, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter
-    )
-  ) as Rebalancer;
-  const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(
+  const {target: rebalancer, targetAdmin: rebalancerAdmin} = await deployProxy<Rebalancer>(
+    verifier.deploy,
+    rebalancerVersion,
+    deployer,
     admin,
-    rebalanceCaller,
-    config.Routes ? config.Routes.Domains.map(el => DomainSolidity[el]) : [],
-    config.Routes ? config.Routes.Providers.map(el => ProviderSolidity[el]) : []
-  )).data;
-  const rebalancerProxy = (await deploy(
-    "TransparentUpgradeableProxy", deployer, {},
-    rebalancerImpl.target, admin, rebalancerInit
-  )) as TransparentUpgradeableProxy;
-  const rebalancer = (await getContractAt("Rebalancer", rebalancerProxy.target, deployer)) as Rebalancer;
-  const rebalancerProxyAdminAddress = await getCreateAddress(rebalancerProxy, 1);
-  const rebalancerAdmin = (await getContractAt("ProxyAdmin", rebalancerProxyAdminAddress, deployer)) as ProxyAdmin;
+    [liquidityPool, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter],
+    [
+      admin,
+      rebalanceCaller,
+      config.Routes ? config.Routes.Domains.map(el => DomainSolidity[el]) : [],
+      config.Routes ? config.Routes.Providers.map(el => ProviderSolidity[el]) : [],
+    ],
+  );
 
-  const DEFAULT_ADMIN_ROLE = ZERO_BYTES32;
-
-  console.log("TEST: Using default admin role for Rebalancer on Pool");
-  await liquidityPool.grantRole(DEFAULT_ADMIN_ROLE, rebalancer.target);
-
-  const verifier = getVerifier();
+  await liquidityPool.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
+  await liquidityPool.grantRole(WITHDRAW_PROFIT_ROLE, withdrawProfit);
 
   if (config.IsHub) {
     const tiers = [];
 
     for (let i = 1;; i++) {
-      if (!isSet(process.env[`TIER_${i}_DAYS`])) {
+      if (!isSet(process.env[`TIER_${i}_SECONDS`])) {
         break;
       }
-      const period = BigInt(process.env[`TIER_${i}_DAYS`] || "0") * DAY;
+      const period = BigInt(process.env[`TIER_${i}_SECONDS`] || "0");
       const multiplier = BigInt(process.env[`TIER_${i}_MULTIPLIER`] || "0");
       tiers.push({period, multiplier});
     }
@@ -97,40 +124,40 @@ async function main() {
 
     const startingNonce = await deployer.getNonce();
 
-    const liquidityHubAddress = await getCreateAddress(deployer, startingNonce + 2);
-    const lpToken = (
-      await verifier.deploy("SprinterUSDCLPShare", deployer, {nonce: startingNonce + 0}, liquidityHubAddress)
-    ) as SprinterUSDCLPShare;
+    const liquidityHubAddress = await getProxyCreateAddress(deployer, startingNonce + 1);
+    const lpToken = (await verifier.deploy(
+      "SprinterUSDCLPShare",
+      deployer,
+      {},
+      [liquidityHubAddress],
+      "contracts/SprinterUSDCLPShare.sol:SprinterUSDCLPShare"
+    )) as SprinterUSDCLPShare;
 
-    const liquidityHubImpl = (
-      await verifier.deploy("LiquidityHub", deployer, {nonce: startingNonce + 1}, lpToken.target, liquidityPool.target)
-    ) as LiquidityHub;
-    const liquidityHubInit = (await liquidityHubImpl.initialize.populateTransaction(
-      config.USDC, admin, adjuster, assetsLimit
-    )).data;
-    const liquidityHubProxy = (await verifier.deploy(
-      "TransparentUpgradeableProxy", deployer, {nonce: startingNonce + 2},
-      liquidityHubImpl.target, admin, liquidityHubInit
-    )) as TransparentUpgradeableProxy;
-    const liquidityHub = (await getContractAt("LiquidityHub", liquidityHubAddress, deployer)) as LiquidityHub;
-    const liquidityHubProxyAdminAddress = await getCreateAddress(liquidityHubProxy, 1);
-    const liquidityHubAdmin = (await getContractAt("ProxyAdmin", liquidityHubProxyAdminAddress)) as ProxyAdmin;
+    const {target: liquidityHub, targetAdmin: liquidityHubAdmin} = await deployProxy<LiquidityHub>(
+      verifier.deploy,
+      "LiquidityHub",
+      deployer,
+      admin,
+      [lpToken, liquidityPool],
+      [config.USDC, admin, adjuster, assetsLimit],
+    );
 
-    assert(liquidityHubAddress == liquidityHubProxy.target, "LiquidityHub address mismatch");
+    assert(liquidityHubAddress == liquidityHub.target, "LiquidityHub address mismatch");
     const liquidityMining = (
-      await deploy("SprinterLiquidityMining", deployer, {}, admin, liquidityHub.target, tiers)
+      await verifier.deploy("SprinterLiquidityMining", deployer, {}, [admin, liquidityHub, tiers])
     ) as SprinterLiquidityMining;
 
-    console.log("TEST: Using default admin role for Hub on Pool");
-    await liquidityPool.grantRole(DEFAULT_ADMIN_ROLE, liquidityHub.target);
+    await liquidityPool.grantRole(LIQUIDITY_ADMIN_ROLE, liquidityHub);
 
-    console.log();
     console.log(`SprinterUSDCLPShare: ${lpToken.target}`);
     console.log(`LiquidityHub: ${liquidityHub.target}`);
     console.log(`LiquidityHubProxyAdmin: ${liquidityHubAdmin.target}`);
     console.log(`SprinterLiquidityMining: ${liquidityMining.target}`);
     console.log("Tiers:");
-    console.table(tiers);
+    console.table(tiers.map(el => {
+      const multiplier = `${el.multiplier / 100n}.${el.multiplier % 100n}x`;
+      return {seconds: Number(el.period), multiplier};
+    }));
   }
 
   console.log(`Admin: ${admin}`);
@@ -138,14 +165,10 @@ async function main() {
   console.log(`USDC: ${config.USDC}`);
   console.log(`Rebalancer: ${rebalancer.target}`);
   console.log(`RebalancerProxyAdmin: ${rebalancerAdmin.target}`);
-  if (config.Routes) {
-    console.log("Routes:");
-    console.table(config.Routes);
-  }
+  console.log("Routes:");
+  console.table(config.Routes || {});
 
-  if (process.env.VERIFY === "true") {
-    await verifier.verify();
-  }
+  await verifier.verify(process.env.VERIFY === "true");
 }
 
 main();

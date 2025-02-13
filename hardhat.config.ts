@@ -1,7 +1,7 @@
 import {HardhatUserConfig, task} from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import {networkConfig, Network} from "./network.config";
-import {TypedDataDomain} from "ethers";
+import {TypedDataDomain, resolveAddress} from "ethers";
 import {
   LiquidityPool,
 } from "./typechain-types";
@@ -33,12 +33,41 @@ task("set-default-ltv", "Update Liquidity Pool config")
 .setAction(async ({pool, ltv}: {pool?: string, ltv?: string}, hre) => {
   const [admin] = await hre.ethers.getSigners();
 
-  const targetAddress = pool || process.env.LIQUIDITY_POOL || "0xB44aEaB4843094Dd086c26dD6ce284c417436Deb";
+  const targetAddress = await resolveAddress(pool || process.env.LIQUIDITY_POOL || "");
   const target = (await hre.ethers.getContractAt("LiquidityPool", targetAddress, admin)) as LiquidityPool;
 
   const newLtv = ltv || "200000000000000000";
   await target.setDefaultLTV(newLtv);
-  console.log(`Default LTV set to ${newLtv} on ${pool}.`);
+  console.log(`Default LTV set to ${newLtv} on ${targetAddress}.`);
+});
+
+task("set-token-ltv", "Update Liquidity Pool config")
+.addParam("token", "Token to update LTV for")
+.addOptionalParam("pool", "Liquidity Pool address")
+.addOptionalParam("ltv", "New LTV value")
+.setAction(async ({token, pool, ltv}: {token: string, pool?: string, ltv?: string}, hre) => {
+  const [admin] = await hre.ethers.getSigners();
+
+  const targetAddress = await resolveAddress(pool || process.env.LIQUIDITY_POOL || "");
+  const target = (await hre.ethers.getContractAt("LiquidityPool", targetAddress, admin)) as LiquidityPool;
+
+  const newLtv = ltv || "200000000000000000";
+  await target.setBorrowTokenLTV(token, newLtv);
+  console.log(`Token ${token} LTV set to ${newLtv} on ${targetAddress}.`);
+});
+
+task("set-min-health-factor", "Update Liquidity Pool config")
+.addOptionalParam("pool", "Liquidity Pool address")
+.addOptionalParam("healthfactor", "New min health factor value")
+.setAction(async ({pool, healthfactor}: {pool?: string, healthfactor?: string}, hre) => {
+  const [admin] = await hre.ethers.getSigners();
+
+  const targetAddress = await resolveAddress(pool || process.env.LIQUIDITY_POOL || "");
+  const target = (await hre.ethers.getContractAt("LiquidityPool", targetAddress, admin)) as LiquidityPool;
+
+  const newHealthFactor = healthfactor || "5000000000000000000";
+  await target.setHealthFactor(newHealthFactor);
+  console.log(`Min health factor set to ${newHealthFactor} on ${targetAddress}.`);
 });
 
 task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
@@ -65,7 +94,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
   const name = "LiquidityPool";
   const version = "1.0.0";
 
-  const pool = args.pool || "0xB44aEaB4843094Dd086c26dD6ce284c417436Deb";
+  const pool = args.pool || process.env.LIQUIDITY_POOL;
   const domain: TypedDataDomain = {
     name,
     version,

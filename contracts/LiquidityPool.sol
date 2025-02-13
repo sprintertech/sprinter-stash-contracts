@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity 0.8.28;
 
-import {IERC20} from '@openzeppelin/contracts/token/ERC20/ERC20.sol';
-import {IERC20Metadata} from '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
-import {AccessControlUpgradeable} from '@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol';
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
-import {UUPSUpgradeable} from '@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol';
-import {SafeERC20} from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import {Math} from '@openzeppelin/contracts/utils/math/Math.sol';
-import {ERC7201Helper} from './utils/ERC7201Helper.sol';
-import {IPoolAddressesProvider} from './interfaces/IPoolAddressesProvider.sol';
-import {IPool, DataTypes} from './interfaces/IPool.sol';
-import {IAaveOracle} from './interfaces/IAaveOracle.sol';
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
+import {IAavePoolAddressesProvider} from "./interfaces/IAavePoolAddressesProvider.sol";
+import {IAavePool, AaveDataTypes, NO_REFERRAL, INTEREST_RATE_MODE_VARIABLE} from "./interfaces/IAavePool.sol";
+import {IAaveOracle} from "./interfaces/IAaveOracle.sol";
+import {ILiquidityPool} from "./interfaces/ILiquidityPool.sol";
 
-contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
+contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgradeable {
     using SafeERC20 for IERC20;
     using ECDSA for bytes32;
     using Math for uint256;
@@ -34,19 +34,18 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
     );
 
     IERC20 immutable public COLLATERAL;
-    IPoolAddressesProvider immutable public AAVE_POOL_PROVIDER;
+    IAavePoolAddressesProvider immutable public AAVE_POOL_PROVIDER;
 
     /// @custom:storage-location erc7201:sprinter.storage.LiquidityPool
     struct LiquidityPoolStorage {
-        // token address to ltv
         mapping(address token => uint256 ltv) borrowTokenLTV;
         BitMaps.BitMap usedNonces;
-        address MPCAddress;
+        address mpcAddress;
         uint256 minHealthFactor;
         uint256 defaultLTV;
     }
 
-    bytes32 private constant StorageLocation = 0x457f6fd6dd83195f8bfff9ee98f2df1d90fadb996523baa2b453217997285e00;
+    bytes32 private constant STORAGE_LOCATION = 0x457f6fd6dd83195f8bfff9ee98f2df1d90fadb996523baa2b453217997285e00;
     
     bytes32 public constant LIQUIDITY_ADMIN_ROLE = "LIQUIDITY_ADMIN_ROLE";
     bytes32 public constant WITHDRAW_PROFIT_ROLE = "WITHDRAW_PROFIT_ROLE";
@@ -75,36 +74,41 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
 
     constructor(address liquidityToken, address aavePoolProvider) {
         ERC7201Helper.validateStorageLocation(
-            StorageLocation,
-            'sprinter.storage.LiquidityPool'
+            STORAGE_LOCATION,
+            "sprinter.storage.LiquidityPool"
         );
-        if (liquidityToken == address(0)) revert ZeroAddress();
+        require(liquidityToken != address(0), ZeroAddress());
         COLLATERAL = IERC20(liquidityToken);
-        if (aavePoolProvider == address(0)) revert ZeroAddress();
-        AAVE_POOL_PROVIDER = IPoolAddressesProvider(aavePoolProvider);
+        require(aavePoolProvider != address(0), ZeroAddress());
+        AAVE_POOL_PROVIDER = IAavePoolAddressesProvider(aavePoolProvider);
         _disableInitializers();
     }
 
-    function initialize(address admin, uint256 minHealthFactor, uint256 defaultLTV_, address MPCAddress) external initializer() {
+    function initialize(
+        address admin,
+        uint256 minHealthFactor,
+        uint256 defaultLTV_,
+        address mpcAddress_
+    ) external initializer() {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         __EIP712_init("LiquidityPool", "1.0.0");
         LiquidityPoolStorage storage $ = _getStorage();
         $.minHealthFactor = minHealthFactor;
         $.defaultLTV = defaultLTV_;
-        $.MPCAddress = MPCAddress;
+        $.mpcAddress = mpcAddress_;
     }
 
-    function deposit() public {
+    function deposit() external override {
         // called after receiving deposit in USDC
         // transfer all USDC balance to AAVE
         uint256 amount = COLLATERAL.balanceOf(address(this));
-        if (amount == 0) revert NoCollateral();
-        IPool pool = IPool(AAVE_POOL_PROVIDER.getPool());
+        require(amount > 0, NoCollateral());
+        IAavePool pool = IAavePool(AAVE_POOL_PROVIDER.getPool());
         (, uint256 repaidAmount) = _repay(address(COLLATERAL), pool, true);
         amount -= repaidAmount;
         if (amount == 0) return;
         COLLATERAL.forceApprove(address(pool), amount);
-        pool.supply(address(COLLATERAL), amount, address(this), 0);
+        pool.supply(address(COLLATERAL), amount, address(this), NO_REFERRAL);
         emit SuppliedToAave(amount);
     }
 
@@ -115,106 +119,95 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
         bytes calldata targetCallData,
         uint256 nonce,
         uint256 deadline,
-        bytes calldata signature) 
-    public {
+        bytes calldata signature
+    ) external {
         // - Validate MPC signature
         _validateMPCSignature(borrowToken, amount, target, targetCallData, nonce, deadline, signature);
         
         // - Borrow the requested source token from the lending protocol against available USDC liquidity.
-        IPool pool = IPool(AAVE_POOL_PROVIDER.getPool());
+        IAavePool pool = IAavePool(AAVE_POOL_PROVIDER.getPool());
         pool.borrow(
             borrowToken,
             amount,
-            2,
-            0,
+            INTEREST_RATE_MODE_VARIABLE,
+            NO_REFERRAL,
             address(this)
         );
 
         // - Check health factor for user after borrow (can be read from aave, getUserAccountData)
         (,,,,,uint256 currentHealthFactor) = pool.getUserAccountData(address(this));
-        if (currentHealthFactor < _getStorage().minHealthFactor) revert HealthFactorTooLow();
+        require(currentHealthFactor >= _getStorage().minHealthFactor, HealthFactorTooLow());
 
         // check ltv for token
         _checkTokenLTV(pool, borrowToken);
         // - Approve the borrowed funds for transfer to the recipient specified in the MPC signature.
         IERC20(borrowToken).forceApprove(target, amount);
-        // - Invoke the recipient's address with calldata provided in the MPC signature to complete the operation securely.
+        // - Invoke the recipient's address with calldata provided in the MPC signature to complete
+        // the operation securely.
         (bool success,) = target.call(targetCallData);
-        if (!success) revert TargetCallFailed();
+        require(success, TargetCallFailed());
         emit Borrowed(borrowToken, amount, msg.sender, target, targetCallData);
     }
 
-    function repay(address[] calldata borrowTokens) public {
+    function repay(address[] calldata borrowTokens) external {
         // Repay token to aave
         bool success;
-        IPool pool = IPool(AAVE_POOL_PROVIDER.getPool());
+        IAavePool pool = IAavePool(AAVE_POOL_PROVIDER.getPool());
         for (uint256 i = 0; i < borrowTokens.length; i++) {
             (success,) = _repay(borrowTokens[i], pool, success);
         }
-        if (!success) revert NothingToRepay();
+        require(success, NothingToRepay());
     }
 
     // Admin functions
 
-    function withdraw(address to, uint256 amount) public onlyRole(LIQUIDITY_ADMIN_ROLE) {
+    function withdraw(address to, uint256 amount) external override onlyRole(LIQUIDITY_ADMIN_ROLE) returns (uint256) {
         // get USDC from AAVE
-        IPool pool = IPool(AAVE_POOL_PROVIDER.getPool());
+        IAavePool pool = IAavePool(AAVE_POOL_PROVIDER.getPool());
         uint256 withdrawn = pool.withdraw(address(COLLATERAL), amount, to);
-        // assert(withdrawn == amount);
         // health factor after withdraw
         (,,,,,uint256 currentHealthFactor) = pool.getUserAccountData(address(this));
-        if (currentHealthFactor < _getStorage().minHealthFactor) revert HealthFactorTooLow();
+        require(currentHealthFactor >= _getStorage().minHealthFactor, HealthFactorTooLow());
         emit WithdrawnFromAave(to, withdrawn);
+        return withdrawn;
     }
 
-    function withdrawProfit(address token, address to, uint256 amount) public onlyRole(WITHDRAW_PROFIT_ROLE) {
+    function withdrawProfit(
+        address token,
+        address to,
+        uint256 amount
+    ) external onlyRole(WITHDRAW_PROFIT_ROLE) returns (uint256) {
         // check that not collateral
-        if (token == address(COLLATERAL)) revert CannotWithdrawProfitCollateral();
+        require(token != address(COLLATERAL), CannotWithdrawProfitCollateral());
+        IAavePool pool = IAavePool(AAVE_POOL_PROVIDER.getPool());
+        _repay(token, pool, true);
         uint256 available = IERC20(token).balanceOf(address(this));
-        if ((amount < type(uint256).max) && (available < amount)) revert NotEnoughBalance();
-        // try to repay debt
-        IPool pool = IPool(AAVE_POOL_PROVIDER.getPool());
-        DataTypes.ReserveData memory tokenData = pool.getReserveData(token);
-        if (tokenData.variableDebtTokenAddress != address(0)) {
-            uint256 totalBorrowed = IERC20(tokenData.variableDebtTokenAddress).balanceOf(address(this));
-            if (totalBorrowed != 0) {
-                if (totalBorrowed >= available) revert NotEnoughBalance();
-                IERC20(token).forceApprove(address(pool), available);
-                uint256 repaidAmount = pool.repay(
-                    token,
-                    available,
-                    2,
-                    address(this)
-                );
-                emit Repaid(token, repaidAmount);
-                available -= repaidAmount;
-            }
-        }
+        require(available > 0 && (amount <= available || amount == type(uint256).max), NotEnoughBalance());
         uint256 amountToWithdraw = amount;
         if (amount == type(uint256).max) {
-            if (available == 0) revert NotEnoughBalance();
             amountToWithdraw = available;
-        } else if (available < amount) revert NotEnoughBalance();
+        }
         // withdraw from this contract
         IERC20(token).safeTransfer(to, amountToWithdraw);
         emit ProfitWithdrawn(token, to, amountToWithdraw);
+        return amountToWithdraw;
     }
 
-    function setBorrowTokenLTV(address token, uint256 ltv) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setBorrowTokenLTV(address token, uint256 ltv) external onlyRole(DEFAULT_ADMIN_ROLE) {
         LiquidityPoolStorage storage $ = _getStorage();
         uint256 oldLTV = $.borrowTokenLTV[token];
         $.borrowTokenLTV[token] = ltv;
         emit BorrowTokenLTVSet(token, oldLTV, ltv);
     }
 
-    function setDefaultLTV(uint256 defaultLTV_) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setDefaultLTV(uint256 defaultLTV_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         LiquidityPoolStorage storage $ = _getStorage();
         uint256 oldDefaultLTV = $.defaultLTV;
         $.defaultLTV = defaultLTV_;
         emit DefaultLTVSet(oldDefaultLTV, defaultLTV_);
     }
 
-    function setHealthFactor(uint256 minHealthFactor) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setHealthFactor(uint256 minHealthFactor) external onlyRole(DEFAULT_ADMIN_ROLE) {
         LiquidityPoolStorage storage $ = _getStorage();
         uint256 oldHealthFactor = $.minHealthFactor;
         $.minHealthFactor = minHealthFactor;
@@ -225,7 +218,7 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
 
     function _getStorage() private pure returns (LiquidityPoolStorage storage $) {
         assembly {
-            $.slot := StorageLocation
+            $.slot := STORAGE_LOCATION
         }
     }
 
@@ -249,23 +242,23 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
         )));
         address signer = digest.recover(signature);
         LiquidityPoolStorage storage $ = _getStorage();
-        if (signer != $.MPCAddress) revert InvalidSignature();
-        if ($.usedNonces.get(nonce)) revert NonceAlreadyUsed();
+        require(signer == $.mpcAddress, InvalidSignature());
+        require($.usedNonces.get(nonce) == false, NonceAlreadyUsed());
         $.usedNonces.set(nonce);
-        if (passed(deadline)) revert ExpiredSignature();
+        require(notPassed(deadline), ExpiredSignature());
     }
 
-    function _checkTokenLTV(IPool pool, address borrowToken) private view {
+    function _checkTokenLTV(IAavePool pool, address borrowToken) private view {
         LiquidityPoolStorage storage $ = _getStorage();
         uint256 ltv = $.borrowTokenLTV[borrowToken];
         if (ltv == 0) ltv = $.defaultLTV;
 
-        DataTypes.ReserveData memory collateralData = pool.getReserveData(address(COLLATERAL));
+        AaveDataTypes.ReserveData memory collateralData = pool.getReserveData(address(COLLATERAL));
         uint256 totalCollateral = IERC20(collateralData.aTokenAddress).balanceOf(address(this));
-        if (totalCollateral == 0) revert NoCollateral();
+        require(totalCollateral > 0, NoCollateral());
 
-        DataTypes.ReserveData memory borrowTokenData = pool.getReserveData(borrowToken);
-        if (borrowTokenData.variableDebtTokenAddress == address(0)) revert TokenNotSupported(borrowToken);
+        AaveDataTypes.ReserveData memory borrowTokenData = pool.getReserveData(borrowToken);
+        require(borrowTokenData.variableDebtTokenAddress != address(0), TokenNotSupported(borrowToken));
         uint256 totalBorrowed = IERC20(borrowTokenData.variableDebtTokenAddress).balanceOf(address(this));
 
         IAaveOracle oracle = IAaveOracle(AAVE_POOL_PROVIDER.getPriceOracle());
@@ -274,7 +267,6 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
         assets[1] = address(COLLATERAL);
 
         uint256[] memory prices = oracle.getAssetsPrices(assets);
-
 
         uint256 collateralDecimals = IERC20Metadata(address(COLLATERAL)).decimals();
         uint256 borrowDecimals = IERC20Metadata(borrowToken).decimals();
@@ -286,16 +278,16 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
         uint256 collateralPrice = totalCollateral * prices[1];
 
         uint256 currentLtv = totalBorrowPrice * MULTIPLIER * collateralUnit / (collateralPrice * borrowUnit);
-        if (currentLtv > ltv) revert TokenLtvExceeded();
+        require(currentLtv <= ltv, TokenLtvExceeded());
     }
 
-    function _repay(address borrowToken, IPool pool, bool successInput)
+    function _repay(address borrowToken, IAavePool pool, bool successInput)
         internal
         returns(bool success, uint256 repaidAmount) 
     {
         success = successInput;
-        DataTypes.ReserveData memory borrowTokenData = pool.getReserveData(borrowToken);
-        if (borrowTokenData.variableDebtTokenAddress == address(0)) revert TokenNotSupported(borrowToken);
+        AaveDataTypes.ReserveData memory borrowTokenData = pool.getReserveData(borrowToken);
+        require(borrowTokenData.variableDebtTokenAddress != address(0), TokenNotSupported(borrowToken));
         uint256 totalBorrowed = IERC20(borrowTokenData.variableDebtTokenAddress).balanceOf(address(this));
         if (totalBorrowed == 0) return (success, 0);
         uint256 borrowTokenBalance = IERC20(borrowToken).balanceOf(address(this));
@@ -322,7 +314,7 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
     }
 
     function mpcAddress() public view returns (address) {
-        return _getStorage().MPCAddress;
+        return _getStorage().mpcAddress;
     }
 
     function borrowTokenLTV(address token) public view returns (uint256) {
@@ -335,5 +327,9 @@ contract LiquidityPool is AccessControlUpgradeable, EIP712Upgradeable {
 
     function passed(uint256 timestamp) internal view returns (bool) {
         return timeNow() > timestamp;
+    }
+
+    function notPassed(uint256 timestamp) internal view returns (bool) {
+        return !passed(timestamp);
     }
 }

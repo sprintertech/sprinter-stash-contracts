@@ -20,9 +20,9 @@ describe("LiquidityPool", function () {
     const [deployer, admin, user, user2, mpc_signer] = await hre.ethers.getSigners();
 
     const AAVE_POOL_PROVIDER = "0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e";
-    const aavePoolAddressesProvider = await hre.ethers.getContractAt("IPoolAddressesProvider", AAVE_POOL_PROVIDER);
+    const aavePoolAddressesProvider = await hre.ethers.getContractAt("IAavePoolAddressesProvider", AAVE_POOL_PROVIDER);
     const aavePoolAddress = await aavePoolAddressesProvider.getPool();
-    const aavePool = await hre.ethers.getContractAt("IPool", aavePoolAddress);
+    const aavePool = await hre.ethers.getContractAt("IAavePool", aavePoolAddress);
 
     const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
     const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;

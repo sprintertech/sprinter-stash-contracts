@@ -8,7 +8,7 @@ pragma solidity ^0.8.10;
  * @dev Acts as factory of proxies and admin of those, so with right to change its implementations
  * @dev Owned by the Aave Governance
  */
-interface IPoolAddressesProvider {
+interface IAavePoolAddressesProvider {
   function getPool() external view returns (address);
   function getPriceOracle() external view returns (address);
 }

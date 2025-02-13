@@ -15,7 +15,7 @@
     "node": "hardhat node",
     "hardhat": "hardhat",
     "lint": "npm run lint:solidity && npm run lint:ts",
-    "lint:solidity": "solhint contracts/**/*.sol",
+    "lint:solidity": "solhint 'contracts/**/*.sol'",
     "lint:ts": "eslint",
     "test": "hardhat test --typecheck",
     "test:deploy": "ts-node --files ./scripts/deploy.ts"

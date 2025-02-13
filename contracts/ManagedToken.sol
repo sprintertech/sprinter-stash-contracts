@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import {IManagedToken} from './interfaces/IManagedToken.sol';
+import {IManagedToken} from "./interfaces/IManagedToken.sol";
 
 contract ManagedToken is IManagedToken, ERC20Permit {
     address immutable public MANAGER;

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.0;
 
-library DataTypes {
+library AaveDataTypes {
     struct ReserveConfigurationMap {
     //bit 0-15: LTV
     //bit 16-31: Liq. threshold
@@ -61,12 +61,15 @@ library DataTypes {
   }
 }
 
+uint16 constant NO_REFERRAL = 0;
+uint256 constant INTEREST_RATE_MODE_VARIABLE = 2;
+
 /**
  * @title IPool
  * @author Aave
  * @notice Defines the basic interface for an Aave Pool.
  */
-interface IPool {
+interface IAavePool {
 
   /**
    * @notice Supplies an `amount` of underlying asset into the reserve, receiving in return overlying aTokens.
@@ -191,5 +194,5 @@ interface IPool {
    * @param asset The address of the underlying asset of the reserve
    * @return The state and configuration data of the reserve
    */
-  function getReserveData(address asset) external view returns (DataTypes.ReserveData memory);
+  function getReserveData(address asset) external view returns (AaveDataTypes.ReserveData memory);
 }

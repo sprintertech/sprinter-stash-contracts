@@ -3,11 +3,11 @@ pragma solidity 0.8.28;
 
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
-import {AccessControlUpgradeable} from '@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol';
-import {ERC7201Helper} from './utils/ERC7201Helper.sol';
-import {ILiquidityPool} from './interfaces/ILiquidityPool.sol';
-import {IRebalancer} from './interfaces/IRebalancer.sol';
-import {ICCTPTokenMessenger, ICCTPMessageTransmitter} from './interfaces/ICCTP.sol';
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
+import {ILiquidityPool} from "./interfaces/ILiquidityPool.sol";
+import {IRebalancer} from "./interfaces/IRebalancer.sol";
+import {ICCTPTokenMessenger, ICCTPMessageTransmitter} from "./interfaces/ICCTP.sol";
 
 contract Rebalancer is IRebalancer, AccessControlUpgradeable {
     using BitMaps for BitMaps.BitMap;
@@ -35,7 +35,7 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable {
         BitMaps.BitMap allowedRoutes;
     }
 
-    bytes32 private constant StorageLocation = 0x81fbb040176d3bdbf3707b380997ee0038798f9e3ad0bae77fff3621ef225c00;
+    bytes32 private constant STORAGE_LOCATION = 0x81fbb040176d3bdbf3707b380997ee0038798f9e3ad0bae77fff3621ef225c00;
 
     constructor(
         address liquidityPool,
@@ -43,8 +43,8 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable {
         address cctpMessageTransmitter
     ) {
         ERC7201Helper.validateStorageLocation(
-            StorageLocation,
-            'sprinter.storage.Rebalancer'
+            STORAGE_LOCATION,
+            "sprinter.storage.Rebalancer"
         );
         if (liquidityPool == address(0)) revert ZeroAddress();
         if (cctpTokenMessenger == address(0)) revert ZeroAddress();
@@ -179,7 +179,7 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable {
 
     function _getStorage() private pure returns (RebalancerStorage storage $) {
         assembly {
-            $.slot := StorageLocation
+            $.slot := STORAGE_LOCATION
         }
     }
 }

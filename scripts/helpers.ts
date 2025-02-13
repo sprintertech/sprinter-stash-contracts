@@ -153,7 +153,7 @@ export async function upgradeProxy<ContractType extends Initializable>(
     await hre.ethers.provider.call(tx);
     console.log("Success.");
     console.log(`To finalize upgrade send the following transaction from ProxyAdmin owner: ${adminOwner}`);
-    console.log(`To: ${targetProxyAdminAddress}`);
+    console.log(`To: ${tx.to}`);
     console.log("Value: 0");
     console.log(`Data: ${tx.data}`);
     return {txRequired: true};

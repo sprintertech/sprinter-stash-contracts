@@ -1,9 +1,11 @@
 {
   "extends": "solhint:recommended",
   "rules": {
-    "max-line-length": ["off", 120],
+    "max-line-length": ["warn", 120],
     "func-visibility": ["warn", {"ignoreConstructors": true}],
     "func-name-mixedcase": ["off"],
-    "one-contract-per-file": ["off"]
+    "one-contract-per-file": ["off"],
+    "no-inline-assembly": ["off"],
+    "avoid-low-level-calls": ["off"]
   }
 }

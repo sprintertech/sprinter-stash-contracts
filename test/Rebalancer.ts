@@ -10,7 +10,7 @@ import {
 } from "./helpers";
 import {
   ProviderSolidity as Provider, DomainSolidity as Domain,
-} from "../scripts/helpers";
+} from "../scripts/common";
 import {
   TestUSDC, TransparentUpgradeableProxy, ProxyAdmin,
   TestLiquidityPool, Rebalancer, TestCCTPTokenMessenger, TestCCTPMessageTransmitter,

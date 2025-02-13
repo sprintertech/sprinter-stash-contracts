@@ -128,10 +128,10 @@ export const networkConfig: NetworksConfig = {
     IsTest: true,
     IsHub: false,
     Routes: {
-      Domains: [Network.BASE_SEPOLIA],
-      Providers: [Provider.CCTP],
+      Domains: [Network.BASE_SEPOLIA, Network.ARBITRUM_SEPOLIA],
+      Providers: [Provider.CCTP, Provider.CCTP],
     },
-    Aave: AAVEPools.AaveV3Sepolia.POOL_ADDRESSES_PROVIDER,
+    // Aave: AAVEPools.AaveV3Sepolia.POOL_ADDRESSES_PROVIDER, // Uses not official USDC.
   },
   AVALANCHE_FUJI: {
     chainId: 43113,
@@ -164,6 +164,10 @@ export const networkConfig: NetworksConfig = {
     USDC: "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
     IsTest: true,
     IsHub: false,
+    Routes: {
+      Domains: [Network.BASE_SEPOLIA, Network.ETHEREUM_SEPOLIA],
+      Providers: [Provider.CCTP, Provider.CCTP],
+    },
     Aave: AAVEPools.AaveV3ArbitrumSepolia.POOL_ADDRESSES_PROVIDER,
   },
   BASE_SEPOLIA: {
@@ -176,8 +180,8 @@ export const networkConfig: NetworksConfig = {
     IsTest: true,
     IsHub: true,
     Routes: {
-      Domains: [Network.ETHEREUM_SEPOLIA],
-      Providers: [Provider.CCTP],
+      Domains: [Network.ETHEREUM_SEPOLIA, Network.ARBITRUM_SEPOLIA],
+      Providers: [Provider.CCTP, Provider.CCTP],
     },
     Aave: AAVEPools.AaveV3BaseSepolia.POOL_ADDRESSES_PROVIDER,
   },

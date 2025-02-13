@@ -1,18 +1,17 @@
 import {HardhatUserConfig, task} from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
-import {networkConfig, Network} from "./network.config";
+import {networkConfig, Network, Provider} from "./network.config";
 import {TypedDataDomain, resolveAddress} from "ethers";
 import {
-  LiquidityPool,
+  LiquidityPool, Rebalancer,
 } from "./typechain-types";
+import {
+  assert, isSet, ProviderSolidity, DomainSolidity,
+} from "./scripts/common";
 
 import dotenv from "dotenv";
 
 dotenv.config();
-
-function isSet(param?: string) {
-  return param && param.length > 0;
-}
 
 task("grant-role", "Grant some role on some AccessControl")
 .addParam("contract", "AccessControl-like contract address")
@@ -68,6 +67,36 @@ task("set-min-health-factor", "Update Liquidity Pool config")
   const newHealthFactor = healthfactor || "5000000000000000000";
   await target.setHealthFactor(newHealthFactor);
   console.log(`Min health factor set to ${newHealthFactor} on ${targetAddress}.`);
+});
+
+task("set-routes", "Update Rebalancer config")
+.addOptionalParam("rebalancer", "Rebalancer address")
+.addOptionalParam("domains", "Comma separated list of domain names")
+.addOptionalParam("providers", "Comma separated list of provider names")
+.addOptionalParam("allowed", "Allowed or denied")
+.setAction(async (args: {rebalancer?: string, providers?: string, domains?: string, allowed?: string}, hre) => {
+  const config = networkConfig[hre.network.name as Network];
+
+  const [admin] = await hre.ethers.getSigners();
+
+  const targetAddress = await resolveAddress(args.rebalancer || process.env.REBALANCER || "");
+  const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, admin)) as Rebalancer;
+
+  const domains = args.domains && args.domains.split(",") || config.Routes?.Domains || [];
+  const domainsSolidity = domains.map(el => {
+    assert(Object.values(Network).includes(el as Network), `Invalid domain ${el}`);
+    return DomainSolidity[el as Network];
+  });
+  const providers = args.providers && args.providers.split(",") || config.Routes?.Providers || [];
+  const providersSolidity = providers.map(el => {
+    assert(Object.values(Provider).includes(el as Provider), `Invalid provider ${el}`);
+    return ProviderSolidity[el as Provider];
+  });
+  assert(!args.allowed || args.allowed === "false" || args.allowed === "true", "Unexpected allowed value");
+  const allowed = args.allowed ? args.allowed === "true" : true;
+  await target.setRoute(domainsSolidity, providersSolidity, allowed);
+  console.log(`Following routes are ${allowed ? "" : "dis"}allowed on ${targetAddress}.`);
+  console.table({domains, providers});
 });
 
 task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
@@ -166,6 +195,11 @@ const config: HardhatUserConfig = {
       url: process.env.ETHEREUM_SEPOLIA_RPC || "",
       accounts,
     },
+    [Network.ARBITRUM_SEPOLIA]: {
+      chainId: networkConfig.ARBITRUM_SEPOLIA.chainId,
+      url: process.env.ARBITRUM_SEPOLIA_RPC || "https://sepolia-rollup.arbitrum.io/rpc",
+      accounts,
+    },
     hardhat: {
       forking: {
         url: process.env.FORK_PROVIDER || "https://eth-mainnet.public.blastapi.io",
@@ -179,6 +213,7 @@ const config: HardhatUserConfig = {
     apiKey: {
       baseSepolia: process.env.ETHERSCAN_BASE_SEPOLIA || "",
       sepolia: process.env.ETHERSCAN_ETHEREUM_SEPOLIA || "",
+      arbitrumSepolia: process.env.ETHERSCAN_ARBITRUM_SEPOLIA || "",
     },
   },
 };

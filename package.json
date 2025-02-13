@@ -9,6 +9,7 @@
     "deploy-local": "hardhat run ./scripts/deploy.ts --network localhost",
     "deploy-basesepolia": "hardhat run ./scripts/deploy.ts --network BASE_SEPOLIA",
     "deploy-ethereumsepolia": "hardhat run ./scripts/deploy.ts --network ETHEREUM_SEPOLIA",
+    "deploy-arbitrumsepolia": "hardhat run ./scripts/deploy.ts --network ARBITRUM_SEPOLIA",
     "upgrade-liquiditypool": "hardhat run ./scripts/upgradeLiquidityPool.ts",
     "upgrade-liquiditypool-basesepolia": "hardhat run ./scripts/upgradeLiquidityPool.ts --network BASE_SEPOLIA",
     "upgrade-liquiditypool-ethereumsepolia": "hardhat run ./scripts/upgradeLiquidityPool.ts --network ETHEREUM_SEPOLIA",

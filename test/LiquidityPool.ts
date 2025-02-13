@@ -53,7 +53,8 @@ describe("LiquidityPool", function () {
     // PRIME token used as not supported by aave
     const NON_SUPPORTED_TOKEN_ADDRESS = "0xb23d80f5FefcDDaa212212F028021B41DEd428CF";
     const NON_SUPPORTED_TOKEN_OWNER_ADDRESS = process.env.PRIME_OWNER_ADDRESS!;
-    if (!NON_SUPPORTED_TOKEN_OWNER_ADDRESS) throw new Error("Env variables not configured (PRIME_OWNER_ADDRESS missing)");
+    if (!NON_SUPPORTED_TOKEN_OWNER_ADDRESS) 
+      throw new Error("Env variables not configured (PRIME_OWNER_ADDRESS missing)");
     const nonSupportedToken = await hre.ethers.getContractAt("ERC20", NON_SUPPORTED_TOKEN_ADDRESS);
     const nonSupportedTokenOwner = await hre.ethers.getImpersonatedSigner(NON_SUPPORTED_TOKEN_OWNER_ADDRESS);
 
@@ -595,7 +596,9 @@ describe("LiquidityPool", function () {
     });
 
     it("Should withdraw non-supported token", async function () {
-      const {liquidityPool, nonSupportedToken, nonSupportedTokenOwner, admin, user, UNI_DEC} = await loadFixture(deployAll);
+      const {
+        liquidityPool, nonSupportedToken, nonSupportedTokenOwner, admin, user, UNI_DEC
+      } = await loadFixture(deployAll);
       const amount = 2n * UNI_DEC;
       await nonSupportedToken.connect(nonSupportedTokenOwner).transfer(liquidityPool.target, amount);
       await expect(liquidityPool.connect(admin).withdrawProfit(nonSupportedToken.target, user.address, amount))

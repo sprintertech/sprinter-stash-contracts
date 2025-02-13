@@ -50,6 +50,13 @@ describe("LiquidityPool", function () {
     const uniData = await aavePool.getReserveData(UNI_ADDRESS);
     const uniDebtToken = await hre.ethers.getContractAt("ERC20", uniData[10]);
 
+    // PRIME token used as not supported by aave
+    const NON_SUPPORTED_TOKEN_ADDRESS = "0xb23d80f5FefcDDaa212212F028021B41DEd428CF";
+    const NON_SUPPORTED_TOKEN_OWNER_ADDRESS = process.env.PRIME_OWNER_ADDRESS!;
+    if (!NON_SUPPORTED_TOKEN_OWNER_ADDRESS) throw new Error("Env variables not configured (PRIME_OWNER_ADDRESS missing)");
+    const nonSupportedToken = await hre.ethers.getContractAt("ERC20", NON_SUPPORTED_TOKEN_ADDRESS);
+    const nonSupportedTokenOwner = await hre.ethers.getImpersonatedSigner(NON_SUPPORTED_TOKEN_OWNER_ADDRESS);
+
     const USDC_DEC = 10n ** (await usdc.decimals());
     const RPL_DEC = 10n ** (await rpl.decimals());
     const UNI_DEC = 10n ** (await uni.decimals());
@@ -90,7 +97,8 @@ describe("LiquidityPool", function () {
 
     return {deployer, admin, user, user2, mpc_signer, usdc, usdcOwner, rpl, rplOwner, uni, uniOwner,
       liquidityPool, liquidityPoolProxy, liquidityPoolAdmin, mockTarget, USDC_DEC, RPL_DEC, UNI_DEC, AAVE_POOL_PROVIDER,
-      healthFactor, defaultLtv, aavePool, aToken, rplDebtToken, uniDebtToken, usdcDebtToken};
+      healthFactor, defaultLtv, aavePool, aToken, rplDebtToken, uniDebtToken, usdcDebtToken,
+      nonSupportedToken, nonSupportedTokenOwner};
   };
 
   describe("Initialization", function () {
@@ -586,6 +594,15 @@ describe("LiquidityPool", function () {
       expect(await uni.balanceOf(user.address)).to.eq(amount);
     });
 
+    it("Should withdraw non-supported token", async function () {
+      const {liquidityPool, nonSupportedToken, nonSupportedTokenOwner, admin, user, UNI_DEC} = await loadFixture(deployAll);
+      const amount = 2n * UNI_DEC;
+      await nonSupportedToken.connect(nonSupportedTokenOwner).transfer(liquidityPool.target, amount);
+      await expect(liquidityPool.connect(admin).withdrawProfit(nonSupportedToken.target, user.address, amount))
+        .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(nonSupportedToken.target, user.address, amount);
+      expect(await nonSupportedToken.balanceOf(user.address)).to.eq(amount);
+    });
+
     it("Should repay before deposit", async function () {
       const {
         liquidityPool, usdc, USDC_DEC, user, user2, mpc_signer, usdcOwner, uniOwner,
@@ -903,7 +920,7 @@ describe("LiquidityPool", function () {
 
       // No balance for rpl, no dept for uni
       await expect(liquidityPool.connect(user).repay([unsupportedToken.target]))
-        .to.be.revertedWithCustomError(liquidityPool, "TokenNotSupported");
+      .to.be.revertedWithCustomError(liquidityPool, "NothingToRepay");
     });
 
     it("Should NOT withdraw collateral if not enough on aave", async function () {

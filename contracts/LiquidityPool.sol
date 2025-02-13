@@ -57,7 +57,6 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
     error HealthFactorTooLow();
     error TargetCallFailed();
     error NothingToRepay();
-    error TokenNotSupported(address borrowToken);
     error CannotWithdrawProfitCollateral();
     error ExpiredSignature();
     error NonceAlreadyUsed();
@@ -258,7 +257,6 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
         require(totalCollateral > 0, NoCollateral());
 
         AaveDataTypes.ReserveData memory borrowTokenData = pool.getReserveData(borrowToken);
-        require(borrowTokenData.variableDebtTokenAddress != address(0), TokenNotSupported(borrowToken));
         uint256 totalBorrowed = IERC20(borrowTokenData.variableDebtTokenAddress).balanceOf(address(this));
 
         IAaveOracle oracle = IAaveOracle(AAVE_POOL_PROVIDER.getPriceOracle());
@@ -287,7 +285,7 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
     {
         success = successInput;
         AaveDataTypes.ReserveData memory borrowTokenData = pool.getReserveData(borrowToken);
-        require(borrowTokenData.variableDebtTokenAddress != address(0), TokenNotSupported(borrowToken));
+        if (borrowTokenData.variableDebtTokenAddress == address(0)) return (success, 0);
         uint256 totalBorrowed = IERC20(borrowTokenData.variableDebtTokenAddress).balanceOf(address(this));
         if (totalBorrowed == 0) return (success, 0);
         uint256 borrowTokenBalance = IERC20(borrowToken).balanceOf(address(this));

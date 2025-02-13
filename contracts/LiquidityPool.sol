@@ -14,6 +14,7 @@ import {IAavePoolAddressesProvider} from "./interfaces/IAavePoolAddressesProvide
 import {IAavePool, AaveDataTypes, NO_REFERRAL, INTEREST_RATE_MODE_VARIABLE} from "./interfaces/IAavePool.sol";
 import {IAaveOracle} from "./interfaces/IAaveOracle.sol";
 import {ILiquidityPool} from "./interfaces/ILiquidityPool.sol";
+import {IAavePoolDataProvider} from "./interfaces/IAavePoolDataProvider.sol";
 
 contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgradeable {
     using SafeERC20 for IERC20;
@@ -61,6 +62,7 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
     error ExpiredSignature();
     error NonceAlreadyUsed();
     error NotEnoughBalance();
+    error CollateralNotSupported();
 
     event SuppliedToAave(uint256 amount);
     event BorrowTokenLTVSet(address token, uint256 oldLTV, uint256 newLTV);
@@ -80,6 +82,9 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
         COLLATERAL = IERC20(liquidityToken);
         require(aavePoolProvider != address(0), ZeroAddress());
         AAVE_POOL_PROVIDER = IAavePoolAddressesProvider(aavePoolProvider);
+        IAavePoolDataProvider poolDataProvider = IAavePoolDataProvider(AAVE_POOL_PROVIDER.getPoolDataProvider());
+        (,,,,,bool usageAsCollateralEnabled,,,,) = poolDataProvider.getReserveConfigurationData(address(COLLATERAL));
+        require(usageAsCollateralEnabled, CollateralNotSupported());
         _disableInitializers();
     }
 

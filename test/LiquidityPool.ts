@@ -118,6 +118,16 @@ describe("LiquidityPool", function () {
       expect(await liquidityPool.mpcAddress())
         .to.be.eq(mpc_signer);
     });
+
+    it("Should NOT deploy the contract if token cannot be used as collateral", async function () {
+      const {
+        deployer, AAVE_POOL_PROVIDER, rpl, liquidityPool
+      } = await loadFixture(deployAll);
+      const startingNonce = await deployer.getNonce();
+      await expect(deploy("LiquidityPool", deployer, {nonce: startingNonce},
+        rpl.target, AAVE_POOL_PROVIDER
+      )).to.be.revertedWithCustomError(liquidityPool, "CollateralNotSupported");
+    });
   });
 
   describe("Borrow, supply, repay, withdraw", function () {

@@ -4,7 +4,7 @@ import hre from "hardhat";
 import {isAddress, MaxUint256, getBigInt} from "ethers";
 import {toBytes32} from "../test/helpers";
 import {
-  getVerifier, deployProxy, getProxyCreateAddress,
+  getVerifier, deployProxyX,
 } from "./helpers";
 import {
   assert, isSet, ProviderSolidity, DomainSolidity,
@@ -37,7 +37,9 @@ async function main() {
   const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
   const WITHDRAW_PROFIT_ROLE = toBytes32("WITHDRAW_PROFIT_ROLE");
 
-  const verifier = getVerifier();
+  assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
+  const verifier = getVerifier(process.env.DEPLOY_ID);
+  console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
 
   let config: NetworkConfig;
   if (Object.values(Network).includes(hre.network.name as Network)) {
@@ -67,8 +69,8 @@ async function main() {
 
   let liquidityPool: LiquidityPool;
   if (config.Aave) {
-    const {target, targetAdmin: liquidityPoolAdmin} = await deployProxy<LiquidityPool>(
-      verifier.deploy,
+    const {target, targetAdmin: liquidityPoolAdmin} = await deployProxyX<LiquidityPool>(
+      verifier.deployX,
       "LiquidityPool",
       deployer,
       admin,
@@ -84,13 +86,19 @@ async function main() {
     console.log(`LiquidityPoolProxyAdmin: ${liquidityPoolAdmin.target}`);
   } else {
     console.log("TEST: Using TEST Liquidity Pool");
-    liquidityPool = (await verifier.deploy("TestLiquidityPool", deployer, {}, [config.USDC])) as LiquidityPool;
+    liquidityPool = (await verifier.deployX(
+      "TestLiquidityPool",
+      deployer,
+      {},
+      [config.USDC, admin],
+      "LiquidityPool")
+    ) as LiquidityPool;
   }
 
   const rebalancerVersion = config.IsTest ? "TestRebalancer" : "Rebalancer";
 
-  const {target: rebalancer, targetAdmin: rebalancerAdmin} = await deployProxy<Rebalancer>(
-    verifier.deploy,
+  const {target: rebalancer, targetAdmin: rebalancerAdmin} = await deployProxyX<Rebalancer>(
+    verifier.deployX,
     rebalancerVersion,
     deployer,
     admin,
@@ -101,6 +109,7 @@ async function main() {
       config.Routes ? config.Routes.Domains.map(el => DomainSolidity[el]) : [],
       config.Routes ? config.Routes.Providers.map(el => ProviderSolidity[el]) : [],
     ],
+    "Rebalancer",
   );
 
   await liquidityPool.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
@@ -124,17 +133,18 @@ async function main() {
 
     const startingNonce = await deployer.getNonce();
 
-    const liquidityHubAddress = await getProxyCreateAddress(deployer, startingNonce + 1);
-    const lpToken = (await verifier.deploy(
+    const liquidityHubAddress = await verifier.getDeployProxyXAddress("LiquidityHub", deployer);
+    const lpToken = (await verifier.deployX(
       "SprinterUSDCLPShare",
       deployer,
       {},
       [liquidityHubAddress],
+      "SprinterUSDCLPShare",
       "contracts/SprinterUSDCLPShare.sol:SprinterUSDCLPShare"
     )) as SprinterUSDCLPShare;
 
-    const {target: liquidityHub, targetAdmin: liquidityHubAdmin} = await deployProxy<LiquidityHub>(
-      verifier.deploy,
+    const {target: liquidityHub, targetAdmin: liquidityHubAdmin} = await deployProxyX<LiquidityHub>(
+      verifier.deployX,
       "LiquidityHub",
       deployer,
       admin,
@@ -144,7 +154,7 @@ async function main() {
 
     assert(liquidityHubAddress == liquidityHub.target, "LiquidityHub address mismatch");
     const liquidityMining = (
-      await verifier.deploy("SprinterLiquidityMining", deployer, {}, [admin, liquidityHub, tiers])
+      await verifier.deployX("SprinterLiquidityMining", deployer, {}, [admin, liquidityHub, tiers])
     ) as SprinterLiquidityMining;
 
     await liquidityPool.grantRole(LIQUIDITY_ADMIN_ROLE, liquidityHub);

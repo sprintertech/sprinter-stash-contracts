@@ -4,7 +4,7 @@ import {
 import {expect} from "chai";
 import hre from "hardhat";
 import {
-  getCreateAddress, getContractAt, deploy, signBorrow
+  getCreateAddress, getDeployXAddress, getContractAt, deploy, deployX, signBorrow
 } from "./helpers";
 import {encodeBytes32String, MaxUint256} from "ethers";
 import {
@@ -62,11 +62,9 @@ describe("LiquidityPool", function () {
     const RPL_DEC = 10n ** (await rpl.decimals());
     const UNI_DEC = 10n ** (await uni.decimals());
 
-    const startingNonce = await deployer.getNonce();
-
-    const liquidityPoolAddress = await getCreateAddress(deployer, startingNonce + 1);
+    const liquidityPoolAddress = await getDeployXAddress(deployer, "TransparentUpgradeableProxyLiquidityPool");
     const liquidityPoolImpl = (
-      await deploy("LiquidityPool", deployer, {nonce: startingNonce},
+      await deployX("LiquidityPool", deployer, "LiquidityPool", {},
         usdc.target, AAVE_POOL_PROVIDER
       )
     ) as LiquidityPool;
@@ -78,8 +76,8 @@ describe("LiquidityPool", function () {
       (await liquidityPoolImpl.initialize.populateTransaction(
         admin.address, healthFactor, defaultLtv, mpc_signer.address
       )).data;
-    const liquidityPoolProxy = (await deploy(
-      "TransparentUpgradeableProxy", deployer, {nonce: startingNonce + 1},
+    const liquidityPoolProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyLiquidityPool", {},
       liquidityPoolImpl.target, admin, liquidityPoolInit
     )) as TransparentUpgradeableProxy;
     const liquidityPool = (await getContractAt("LiquidityPool", liquidityPoolAddress, deployer)) as LiquidityPool;
@@ -87,7 +85,7 @@ describe("LiquidityPool", function () {
     const liquidityPoolAdmin = (await getContractAt("ProxyAdmin", liquidityPoolProxyAdminAddress, admin)) as ProxyAdmin;
 
     const mockTarget = (
-      await deploy("MockTarget", deployer, {nonce: startingNonce + 2})
+      await deployX("MockTarget", deployer)
     ) as MockTarget;
 
     const LIQUIDITY_ADMIN_ROLE = encodeBytes32String("LIQUIDITY_ADMIN_ROLE");
@@ -123,8 +121,7 @@ describe("LiquidityPool", function () {
       const {
         deployer, AAVE_POOL_PROVIDER, rpl, liquidityPool
       } = await loadFixture(deployAll);
-      const startingNonce = await deployer.getNonce();
-      await expect(deploy("LiquidityPool", deployer, {nonce: startingNonce},
+      await expect(deploy("LiquidityPool", deployer, {},
         rpl.target, AAVE_POOL_PROVIDER
       )).to.be.revertedWithCustomError(liquidityPool, "CollateralNotSupported");
     });

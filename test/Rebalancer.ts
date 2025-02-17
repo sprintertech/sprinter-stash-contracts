@@ -5,7 +5,7 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {AbiCoder} from "ethers";
 import {
-  getCreateAddress, getContractAt, deploy,
+  getCreateAddress, getContractAt, deploy, deployX,
   ZERO_ADDRESS, ZERO_BYTES32, toBytes32
 } from "./helpers";
 import {
@@ -28,7 +28,9 @@ describe("Rebalancer", function () {
     const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
 
     const usdc = (await deploy("TestUSDC", deployer, {})) as TestUSDC;
-    const liquidityPool = (await deploy("TestLiquidityPool", deployer, {}, usdc.target)) as TestLiquidityPool;
+    const liquidityPool = (
+      await deploy("TestLiquidityPool", deployer, {}, usdc.target, deployer)
+    ) as TestLiquidityPool;
     const cctpTokenMessenger = (await deploy("TestCCTPTokenMessenger", deployer, {})) as TestCCTPTokenMessenger;
     const cctpMessageTransmitter = (
       await deploy("TestCCTPMessageTransmitter", deployer, {})
@@ -37,15 +39,15 @@ describe("Rebalancer", function () {
     const USDC = 10n ** (await usdc.decimals());
 
     const rebalancerImpl = (
-      await deploy("Rebalancer", deployer, {},
+      await deployX("Rebalancer", deployer, "Rebalancer", {},
         liquidityPool.target, cctpTokenMessenger.target, cctpMessageTransmitter.target
       )
     ) as Rebalancer;
     const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(
       admin.address, rebalanceUser.address, [Domain.ETHEREUM, Domain.ARBITRUM_ONE], [Provider.CCTP, Provider.CCTP]
     )).data;
-    const rebalancerProxy = (await deploy(
-      "TransparentUpgradeableProxy", deployer, {},
+    const rebalancerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRebalancer", {},
       rebalancerImpl.target, admin, rebalancerInit
     )) as TransparentUpgradeableProxy;
     const rebalancer = (await getContractAt("Rebalancer", rebalancerProxy.target, deployer)) as Rebalancer;

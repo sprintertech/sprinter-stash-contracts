@@ -11,10 +11,10 @@ contract TestLiquidityPool is ILiquidityPool, AccessControl {
 
     event Deposit();
 
-    constructor(IERC20 collateral) {
+    constructor(IERC20 collateral, address admin) {
         COLLATERAL = collateral;
-        _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        _grantRole(LIQUIDITY_ADMIN_ROLE, _msgSender());
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(LIQUIDITY_ADMIN_ROLE, admin);
     }
 
     function deposit() external override {

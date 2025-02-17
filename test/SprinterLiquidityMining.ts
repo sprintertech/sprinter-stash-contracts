@@ -5,7 +5,7 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {Signature, resolveAddress, MaxUint256, getBigInt} from "ethers";
 import {
-  getCreateAddress, getContractAt, deploy,
+  getCreateAddress, getDeployXAddress, getContractAt, deploy, deployX,
   ZERO_ADDRESS, toBytes32,
 } from "./helpers";
 import {
@@ -27,26 +27,26 @@ describe("SprinterLiquidityMining", function () {
     const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
 
     const usdc = (await deploy("TestUSDC", deployer, {})) as TestUSDC;
-    const liquidityPool = (await deploy("TestLiquidityPool", deployer, {}, usdc.target)) as TestLiquidityPool;
+    const liquidityPool = (
+      await deploy("TestLiquidityPool", deployer, {}, usdc.target, deployer)
+    ) as TestLiquidityPool;
 
     const USDC = 10n ** (await usdc.decimals());
 
-    const startingNonce = await deployer.getNonce();
-
-    const liquidityHubAddress = await getCreateAddress(deployer, startingNonce + 2);
+    const liquidityHubAddress = await getDeployXAddress(deployer, "TransparentUpgradeableProxyLiquidityHub2");
     const lpToken = (
-      await deploy("SprinterUSDCLPShare", deployer, {nonce: startingNonce + 0}, liquidityHubAddress)
+      await deployX("SprinterUSDCLPShare", deployer, "SprinterUSDCLPShare2", {}, liquidityHubAddress)
     ) as SprinterUSDCLPShare;
     const LP = 10n ** (await lpToken.decimals());
 
     const liquidityHubImpl = (
-      await deploy("LiquidityHub", deployer, {nonce: startingNonce + 1}, lpToken.target, liquidityPool.target)
+      await deployX("LiquidityHub", deployer, "LiquidityHub2", {}, lpToken.target, liquidityPool.target)
     ) as LiquidityHub;
     const liquidityHubInit = (await liquidityHubImpl.initialize.populateTransaction(
       usdc.target, admin.address, admin.address, getBigInt(MaxUint256) * USDC / LP)
     ).data;
-    const liquidityHubProxy = (await deploy(
-      "TransparentUpgradeableProxy", deployer, {nonce: startingNonce + 2},
+    const liquidityHubProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyLiquidityHub2", {},
       liquidityHubImpl.target, admin, liquidityHubInit
     )) as TransparentUpgradeableProxy;
     const liquidityHub = (await getContractAt("LiquidityHub", liquidityHubAddress, deployer)) as LiquidityHub;
@@ -59,9 +59,15 @@ describe("SprinterLiquidityMining", function () {
       {period: 12n * MONTH, multiplier: 200n},
     ];
 
-    const liquidityMining = (
-      await deploy("SprinterLiquidityMining", deployer, {}, admin.address, liquidityHub.target, tiers)
-    ) as SprinterLiquidityMining;
+    const liquidityMining = (await deployX(
+      "SprinterLiquidityMining",
+      deployer,
+      "SprinterLiquidityMining",
+      {},
+      admin.address,
+      liquidityHub.target,
+      tiers
+    )) as SprinterLiquidityMining;
 
     await liquidityPool.grantRole(LIQUIDITY_ADMIN_ROLE, liquidityHub.target);
 

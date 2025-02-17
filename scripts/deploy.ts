@@ -131,8 +131,6 @@ async function main() {
       throw new Error("Empty liquidity mining tiers configuration.");
     }
 
-    const startingNonce = await deployer.getNonce();
-
     const liquidityHubAddress = await verifier.getDeployProxyXAddress("LiquidityHub", deployer);
     const lpToken = (await verifier.deployX(
       "SprinterUSDCLPShare",

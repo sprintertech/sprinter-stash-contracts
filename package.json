@@ -19,7 +19,8 @@
     "lint:solidity": "solhint 'contracts/**/*.sol'",
     "lint:ts": "eslint",
     "test": "hardhat test --typecheck",
-    "test:deploy": "ts-node --files ./scripts/deploy.ts"
+    "test:deploy": "ts-node --files ./scripts/deploy.ts",
+    "test:upgrade": "ts-node --files ./scripts/upgradeLiquidityPool.ts"
   },
   "repository": {
     "type": "git",

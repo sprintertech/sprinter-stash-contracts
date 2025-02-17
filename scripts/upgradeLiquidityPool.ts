@@ -1,8 +1,8 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {resolveAddress} from "ethers";
 import {getVerifier, upgradeProxyX} from "./helpers";
+import {isSet, assert} from "./common";
 import {LiquidityPool} from "../typechain-types";
 import {networkConfig, Network} from "../network.config";
 
@@ -18,7 +18,7 @@ async function main() {
   const liquidityPoolAddress = await getVerifier(process.env.DEPLOY_ID)
     .getDeployProxyXAddress("LiquidityPool", deployer);
   const config = networkConfig[hre.network.name as Network];
-  await upgradeProxy<LiquidityPool>(
+  await upgradeProxyX<LiquidityPool>(
     verifier.deploy,
     liquidityPoolAddress,
     "LiquidityPool",

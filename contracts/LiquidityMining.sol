@@ -48,11 +48,11 @@ contract LiquidityMining is ERC20, Ownable {
     error ZeroPeriod();
     error ZeroMultiplier();
     error DecreasingPeriod();
-    error InvalidAddedScore();
     error AlreadyDisabled();
     error MiningDisabled();
     error ZeroAmount();
     error Locked();
+    error InvalidTierId();
 
     constructor(
         string memory name_,
@@ -120,6 +120,7 @@ contract LiquidityMining is ERC20, Ownable {
     }
 
     function _stake(address from, address scoreTo, uint256 amount, uint256 tierId) internal {
+        require(tierId < tiers.length, InvalidTierId());
         require(amount > 0, ZeroAmount());
         require(miningAllowed, MiningDisabled());
         Stake memory currentStake;

@@ -548,6 +548,21 @@ describe("SprinterLiquidityMining", function () {
       .to.be.revertedWithCustomError(liquidityMining, "ZeroAmount()");
   });
 
+  it("Should not allow to stake with invalid tier", async function () {
+    const {
+      lpToken, liquidityHub, usdc, user, USDC, LP,
+      liquidityMining, deployer,
+    } = await loadFixture(deployAll);
+
+    await usdc.connect(deployer).transfer(user.address, 10n * USDC);
+    await usdc.connect(user).approve(liquidityHub.target, 10n * USDC);
+    await liquidityHub.connect(user).deposit(10n * USDC, user.address);
+    await lpToken.connect(user).approve(liquidityMining.target, 10n * LP);
+
+    await expect(liquidityMining.connect(user).stake(user.address, 10n * USDC, 3n))
+      .to.be.revertedWithCustomError(liquidityMining, "InvalidTierId()");
+  });
+
   it("Should not allow to restake by staking 0 amount", async function () {
     const {
       lpToken, liquidityHub, usdc, user, USDC, LP,

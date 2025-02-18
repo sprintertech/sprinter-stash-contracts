@@ -16,7 +16,7 @@ import {
 } from "../typechain-types";
 import {networkConfig, Network, Provider, NetworkConfig} from "../network.config";
 
-async function main() {
+export async function main() {
   // Rework granting admin roles on deployments so that deployer does not have to be admin.
   const [deployer] = await hre.ethers.getSigners();
   const admin: string = isAddress(process.env.ADMIN) ? process.env.ADMIN : deployer.address;
@@ -179,4 +179,6 @@ async function main() {
   await verifier.verify(process.env.VERIFY === "true");
 }
 
-main();
+if (process.env.SCRIPT_ENV !== "CI") {
+  main();
+}

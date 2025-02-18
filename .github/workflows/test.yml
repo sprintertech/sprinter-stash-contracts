@@ -24,5 +24,5 @@ jobs:
         run: npm run compile
       - name: Hardhat Tests
         run: npm run test
-      - name: Deploy Tests
-        run: npm run test:deploy
+      - name: Script Tests
+        run: npm run test:scripts

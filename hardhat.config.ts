@@ -1,4 +1,4 @@
-import {HardhatUserConfig, task} from "hardhat/config";
+import {HardhatUserConfig, task, types} from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import {networkConfig, Network, Provider} from "./network.config";
 import {TypedDataDomain, resolveAddress} from "ethers";
@@ -28,53 +28,50 @@ task("grant-role", "Grant some role on some AccessControl")
 
 task("set-default-ltv", "Update Liquidity Pool config")
 .addOptionalParam("pool", "Liquidity Pool address")
-.addOptionalParam("ltv", "New default LTV value")
-.setAction(async ({pool, ltv}: {pool?: string, ltv?: string}, hre) => {
+.addOptionalParam("ltv", "New default LTV value", 20n * 10n**16n, types.bigint)
+.setAction(async ({pool, ltv}: {pool?: string, ltv: bigint}, hre) => {
   const [admin] = await hre.ethers.getSigners();
 
   const targetAddress = await resolveAddress(pool || process.env.LIQUIDITY_POOL || "");
   const target = (await hre.ethers.getContractAt("LiquidityPool", targetAddress, admin)) as LiquidityPool;
 
-  const newLtv = ltv || "200000000000000000";
-  await target.setDefaultLTV(newLtv);
-  console.log(`Default LTV set to ${newLtv} on ${targetAddress}.`);
+  await target.setDefaultLTV(ltv);
+  console.log(`Default LTV set to ${ltv} on ${targetAddress}.`);
 });
 
 task("set-token-ltv", "Update Liquidity Pool config")
 .addParam("token", "Token to update LTV for")
 .addOptionalParam("pool", "Liquidity Pool address")
-.addOptionalParam("ltv", "New LTV value")
-.setAction(async ({token, pool, ltv}: {token: string, pool?: string, ltv?: string}, hre) => {
+.addOptionalParam("ltv", "New LTV value", 20n * 10n**16n, types.bigint)
+.setAction(async ({token, pool, ltv}: {token: string, pool?: string, ltv: bigint}, hre) => {
   const [admin] = await hre.ethers.getSigners();
 
   const targetAddress = await resolveAddress(pool || process.env.LIQUIDITY_POOL || "");
   const target = (await hre.ethers.getContractAt("LiquidityPool", targetAddress, admin)) as LiquidityPool;
 
-  const newLtv = ltv || "200000000000000000";
-  await target.setBorrowTokenLTV(token, newLtv);
-  console.log(`Token ${token} LTV set to ${newLtv} on ${targetAddress}.`);
+  await target.setBorrowTokenLTV(token, ltv);
+  console.log(`Token ${token} LTV set to ${ltv} on ${targetAddress}.`);
 });
 
 task("set-min-health-factor", "Update Liquidity Pool config")
 .addOptionalParam("pool", "Liquidity Pool address")
-.addOptionalParam("healthfactor", "New min health factor value")
-.setAction(async ({pool, healthfactor}: {pool?: string, healthfactor?: string}, hre) => {
+.addOptionalParam("healthfactor", "New min health factor value", 500n * 10n**16n, types.bigint)
+.setAction(async ({pool, healthfactor}: {pool?: string, healthfactor: bigint}, hre) => {
   const [admin] = await hre.ethers.getSigners();
 
   const targetAddress = await resolveAddress(pool || process.env.LIQUIDITY_POOL || "");
   const target = (await hre.ethers.getContractAt("LiquidityPool", targetAddress, admin)) as LiquidityPool;
 
-  const newHealthFactor = healthfactor || "5000000000000000000";
-  await target.setHealthFactor(newHealthFactor);
-  console.log(`Min health factor set to ${newHealthFactor} on ${targetAddress}.`);
+  await target.setHealthFactor(healthfactor);
+  console.log(`Min health factor set to ${healthfactor} on ${targetAddress}.`);
 });
 
 task("set-routes", "Update Rebalancer config")
 .addOptionalParam("rebalancer", "Rebalancer address")
 .addOptionalParam("domains", "Comma separated list of domain names")
 .addOptionalParam("providers", "Comma separated list of provider names")
-.addOptionalParam("allowed", "Allowed or denied")
-.setAction(async (args: {rebalancer?: string, providers?: string, domains?: string, allowed?: string}, hre) => {
+.addOptionalParam("allowed", "Allowed or denied", true, types.boolean)
+.setAction(async (args: {rebalancer?: string, providers?: string, domains?: string, allowed: boolean}, hre) => {
   const config = networkConfig[hre.network.name as Network];
 
   const [admin] = await hre.ethers.getSigners();
@@ -92,28 +89,27 @@ task("set-routes", "Update Rebalancer config")
     assert(Object.values(Provider).includes(el as Provider), `Invalid provider ${el}`);
     return ProviderSolidity[el as Provider];
   });
-  assert(!args.allowed || args.allowed === "false" || args.allowed === "true", "Unexpected allowed value");
-  const allowed = args.allowed ? args.allowed === "true" : true;
-  await target.setRoute(domainsSolidity, providersSolidity, allowed);
-  console.log(`Following routes are ${allowed ? "" : "dis"}allowed on ${targetAddress}.`);
+  await target.setRoute(domainsSolidity, providersSolidity, args.allowed);
+  console.log(`Following routes are ${args.allowed ? "" : "dis"}allowed on ${targetAddress}.`);
   console.table({domains, providers});
 });
 
 task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
 .addOptionalParam("token", "Token to borrow")
-.addOptionalParam("amount", "Amount to borrow in base units")
+.addOptionalParam("amount", "Amount to borrow in base units", 1000000n, types.bigint)
 .addOptionalParam("target", "Target address to approve and call")
 .addOptionalParam("data", "Data to call target with")
-.addOptionalParam("nonce", "Reuse protection nonce")
-.addOptionalParam("deadline", "Expiry protection timestamp")
+// By default produces a new nonce every 10 seconds.
+.addOptionalParam("nonce", "Reuse protection nonce", BigInt(Date.now()) / 1000n / 10n, types.bigint)
+.addOptionalParam("deadline", "Expiry protection timestamp", 2000000000n, types.bigint)
 .addOptionalParam("pool", "Liquidity Pool address")
 .setAction(async (args: {
   token?: string,
-  amount?: string,
+  amount: bigint,
   target?: string,
   data?: string,
-  nonce?: string,
-  deadline?: string,
+  nonce: bigint,
+  deadline: bigint,
   pool?: string,
 }, hre) => {
   const config = networkConfig[hre.network.name as Network];
@@ -144,11 +140,11 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
 
   const token = await hre.ethers.getContractAt("IERC20", hre.ethers.ZeroAddress, signer);
   const borrowToken = args.token || config.USDC;
-  const amount = args.amount || "1000000";
+  const amount = args.amount;
   const target = args.target || borrowToken;
   const data = args.data || (await token.transfer.populateTransaction(signer.address, amount)).data;
-  const nonce = args.nonce || `${Date.now()}`;
-  const deadline = args.deadline || "2000000000";
+  const nonce = args.nonce;
+  const deadline = args.deadline;
   const value = {
     borrowToken,
     amount,

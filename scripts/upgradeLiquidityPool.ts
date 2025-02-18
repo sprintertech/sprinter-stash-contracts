@@ -4,9 +4,9 @@ import hre from "hardhat";
 import {getVerifier, upgradeProxyX} from "./helpers";
 import {isSet, assert} from "./common";
 import {LiquidityPool} from "../typechain-types";
-import {networkConfig, Network} from "../network.config";
+import {networkConfig, Network, NetworkConfig} from "../network.config";
 
-async function main() {
+export async function main() {
   const [deployer] = await hre.ethers.getSigners();
 
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
@@ -17,9 +17,17 @@ async function main() {
 
   const liquidityPoolAddress = await getVerifier(process.env.DEPLOY_ID)
     .getDeployProxyXAddress("LiquidityPool", deployer);
-  const config = networkConfig[hre.network.name as Network];
+
+  let config: NetworkConfig;
+  if (Object.values(Network).includes(hre.network.name as Network)) {
+    config = networkConfig[hre.network.name as Network];
+  } else {
+    console.log(`Nothing to upgrade on ${hre.network.name} network`);
+    return;
+  }
+
   await upgradeProxyX<LiquidityPool>(
-    verifier.deploy,
+    verifier.deployX,
     liquidityPoolAddress,
     "LiquidityPool",
     deployer,
@@ -29,4 +37,6 @@ async function main() {
   await verifier.verify(process.env.VERIFY === "true");
 }
 
-main();
+if (process.env.SCRIPT_ENV !== "CI") {
+  main();
+}

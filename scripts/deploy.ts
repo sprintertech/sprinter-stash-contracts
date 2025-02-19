@@ -91,7 +91,7 @@ export async function main() {
       deployer,
       {},
       [config.USDC, admin],
-      "LiquidityPool")
+      "TransparentUpgradeableProxyLiquidityPool")
     ) as LiquidityPool;
   }
 
@@ -131,7 +131,7 @@ export async function main() {
       throw new Error("Empty liquidity mining tiers configuration.");
     }
 
-    const liquidityHubAddress = await verifier.getDeployProxyXAddress("LiquidityHub", deployer);
+    const liquidityHubAddress = await verifier.predictDeployProxyXAddress("LiquidityHub", deployer);
     const lpToken = (await verifier.deployX(
       "SprinterUSDCLPShare",
       deployer,

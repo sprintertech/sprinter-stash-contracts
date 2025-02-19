@@ -5,7 +5,7 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {Signature, resolveAddress, MaxUint256, getBigInt} from "ethers";
 import {
-  getCreateAddress, getDeployXAddress, getContractAt, deploy, deployX,
+  getCreateAddress, getDeployXAddressBase, getContractAt, deploy, deployX,
   ZERO_ADDRESS, toBytes32,
 } from "./helpers";
 import {
@@ -29,7 +29,7 @@ describe("LiquidityHub", function () {
 
     const USDC = 10n ** (await usdc.decimals());
 
-    const liquidityHubAddress = await getDeployXAddress(deployer, "TransparentUpgradeableProxyLiquidityHub");
+    const liquidityHubAddress = await getDeployXAddressBase(deployer, "TransparentUpgradeableProxyLiquidityHub", false);
     const lpToken = (
       await deployX("SprinterUSDCLPShare", deployer, "SprinterUSDCLPShare", {}, liquidityHubAddress)
     ) as SprinterUSDCLPShare;

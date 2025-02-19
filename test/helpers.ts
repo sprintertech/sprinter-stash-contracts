@@ -1,14 +1,12 @@
 import hre from "hardhat";
 import {
-  AddressLike, resolveAddress, Signer, BaseContract, zeroPadBytes, toUtf8Bytes, TypedDataDomain,
-  keccak256, concat, dataSlice, AbiCoder, EventLog,
+  AddressLike, resolveAddress, Signer, BaseContract, toUtf8Bytes, TypedDataDomain,
+  keccak256, concat, dataSlice, AbiCoder, EventLog, encodeBytes32String, isAddressable,
 } from "ethers";
-import {
-  assert,
-} from "../scripts/common";
-import {
-  ICreateX,
-} from "../typechain-types";
+import {assert, DEFAULT_PROXY_TYPE} from "../scripts/common";
+import {ICreateX} from "../typechain-types";
+import dotenv from "dotenv";
+dotenv.config();
 
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 export const ZERO_BYTES32 = "0x0000000000000000000000000000000000000000000000000000000000000000";
@@ -26,7 +24,20 @@ export async function getCreateX(deployer?: Signer): Promise<ICreateX> {
   return createX;
 };
 
-export async function getDeployXAddress(deployer: AddressLike, id: string): Promise<string> {
+export async function assertCode(contract: AddressLike): Promise<string> {
+  const result = await resolveAddress(contract);
+  assert(
+    await hre.ethers.provider.getCode(result) !== "0x",
+    `${contract} does not have any code.`
+  );
+  return result;
+}
+
+export async function getDeployXAddressBase(
+  deployer: AddressLike,
+  id: string,
+  codeCheck: boolean = true,
+): Promise<string> {
   const salt = concat([
     await resolveAddress(deployer),
     "0x00",
@@ -37,7 +48,47 @@ export async function getDeployXAddress(deployer: AddressLike, id: string): Prom
     [await resolveAddress(deployer), salt],
   ));
   const createX = await getCreateX();
-  return await createX["computeCreate3Address(bytes32)"](guardedSalt);
+  const result = await createX["computeCreate3Address(bytes32)"](guardedSalt);
+  if (codeCheck) {
+    await assertCode(result);
+  }
+  return result;
+}
+
+export async function getDeployXAddress(id: string, codeCheck: boolean = true): Promise<string> {
+  return await getDeployXAddressBase(
+    process.env.DEPLOYER_ADDRESS!,
+    process.env.DEPLOY_ID! + id,
+    codeCheck,
+  );
+}
+
+export async function getDeployProxyXAddress(
+  id: string,
+  codeCheck: boolean = true,
+  proxyType: string = DEFAULT_PROXY_TYPE,
+): Promise<string> {
+  return await getDeployXAddress(proxyType + id, codeCheck);
+}
+
+async function tryResolve(address: string, codeCheck: boolean = true): Promise<string | null> {
+  if (isAddressable(address)) {
+    if (codeCheck) {
+      return await assertCode(address);
+    }
+    return await resolveAddress(address);
+  }
+  return null;
+}
+
+export async function resolveAddressX(addressOrId: string, codeCheck: boolean = true): Promise<string> {
+  const result = await tryResolve(addressOrId, codeCheck);
+  return result || await getDeployXAddress(addressOrId, codeCheck);
+}
+
+export async function resolveProxyXAddress(addressOrId: string, codeCheck: boolean = true): Promise<string> {
+  const result = await tryResolve(addressOrId, codeCheck);
+  return result || await getDeployProxyXAddress(addressOrId, codeCheck);
 }
 
 export async function getContractAt(
@@ -82,8 +133,7 @@ export async function deployX(
 }
 
 export function toBytes32(str: string) {
-  if (str.length > 32) throw new Error("String too long");
-  return zeroPadBytes(toUtf8Bytes(str), 32);
+  return encodeBytes32String(str);
 }
 
 export function divCeil(a: bigint, b: bigint): bigint {

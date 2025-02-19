@@ -34,3 +34,5 @@ export const DomainSolidity = {
   BASE_SEPOLIA: 10n,
   POLYGON_AMOY: 11n,
 };
+
+export const DEFAULT_PROXY_TYPE = "TransparentUpgradeableProxy";

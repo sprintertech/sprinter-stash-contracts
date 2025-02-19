@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {getVerifier, upgradeProxyX} from "./helpers";
+import {getDeployProxyXAddress} from "../test/helpers";
 import {isSet, assert} from "./common";
 import {LiquidityPool} from "../typechain-types";
 import {networkConfig, Network, NetworkConfig} from "../network.config";
@@ -15,9 +16,6 @@ export async function main() {
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
   console.log(`Upgrade ID: ${process.env.UPGRADE_ID}`);
 
-  const liquidityPoolAddress = await getVerifier(process.env.DEPLOY_ID)
-    .getDeployProxyXAddress("LiquidityPool", deployer);
-
   let config: NetworkConfig;
   if (Object.values(Network).includes(hre.network.name as Network)) {
     config = networkConfig[hre.network.name as Network];
@@ -25,6 +23,8 @@ export async function main() {
     console.log(`Nothing to upgrade on ${hre.network.name} network`);
     return;
   }
+
+  const liquidityPoolAddress = await getDeployProxyXAddress("LiquidityPool");
 
   await upgradeProxyX<LiquidityPool>(
     verifier.deployX,

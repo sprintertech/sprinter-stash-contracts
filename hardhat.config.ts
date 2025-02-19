@@ -1,7 +1,7 @@
 import {HardhatUserConfig, task, types} from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import {networkConfig, Network, Provider} from "./network.config";
-import {TypedDataDomain, resolveAddress} from "ethers";
+import {TypedDataDomain} from "ethers";
 import {
   LiquidityPool, Rebalancer,
 } from "./typechain-types";
@@ -10,8 +10,12 @@ import {
 } from "./scripts/common";
 
 import dotenv from "dotenv";
-
 dotenv.config();
+
+// Got to use lazy loading because HRE is only becomes available inside the tasks.
+async function loadTestHelpers() {
+  return await import("./test/helpers");
+}
 
 task("grant-role", "Grant some role on some AccessControl")
 .addParam("contract", "AccessControl-like contract address")
@@ -27,12 +31,13 @@ task("grant-role", "Grant some role on some AccessControl")
 });
 
 task("set-default-ltv", "Update Liquidity Pool config")
-.addOptionalParam("pool", "Liquidity Pool address")
+.addOptionalParam("pool", "Liquidity Pool proxy address or id", "LiquidityPool", types.string)
 .addOptionalParam("ltv", "New default LTV value", 20n * 10n**16n, types.bigint)
-.setAction(async ({pool, ltv}: {pool?: string, ltv: bigint}, hre) => {
+.setAction(async ({pool, ltv}: {pool: string, ltv: bigint}, hre) => {
+  const {resolveProxyXAddress} = await loadTestHelpers();
   const [admin] = await hre.ethers.getSigners();
 
-  const targetAddress = await resolveAddress(pool || process.env.LIQUIDITY_POOL || "");
+  const targetAddress = await resolveProxyXAddress(pool);
   const target = (await hre.ethers.getContractAt("LiquidityPool", targetAddress, admin)) as LiquidityPool;
 
   await target.setDefaultLTV(ltv);
@@ -41,12 +46,13 @@ task("set-default-ltv", "Update Liquidity Pool config")
 
 task("set-token-ltv", "Update Liquidity Pool config")
 .addParam("token", "Token to update LTV for")
-.addOptionalParam("pool", "Liquidity Pool address")
+.addOptionalParam("pool", "Liquidity Pool proxy address or id", "LiquidityPool", types.string)
 .addOptionalParam("ltv", "New LTV value", 20n * 10n**16n, types.bigint)
-.setAction(async ({token, pool, ltv}: {token: string, pool?: string, ltv: bigint}, hre) => {
+.setAction(async ({token, pool, ltv}: {token: string, pool: string, ltv: bigint}, hre) => {
+  const {resolveProxyXAddress} = await loadTestHelpers();
   const [admin] = await hre.ethers.getSigners();
 
-  const targetAddress = await resolveAddress(pool || process.env.LIQUIDITY_POOL || "");
+  const targetAddress = await resolveProxyXAddress(pool);
   const target = (await hre.ethers.getContractAt("LiquidityPool", targetAddress, admin)) as LiquidityPool;
 
   await target.setBorrowTokenLTV(token, ltv);
@@ -54,12 +60,13 @@ task("set-token-ltv", "Update Liquidity Pool config")
 });
 
 task("set-min-health-factor", "Update Liquidity Pool config")
-.addOptionalParam("pool", "Liquidity Pool address")
+.addOptionalParam("pool", "Liquidity Pool proxy address or id", "LiquidityPool", types.string)
 .addOptionalParam("healthfactor", "New min health factor value", 500n * 10n**16n, types.bigint)
-.setAction(async ({pool, healthfactor}: {pool?: string, healthfactor: bigint}, hre) => {
+.setAction(async ({pool, healthfactor}: {pool: string, healthfactor: bigint}, hre) => {
+  const {resolveProxyXAddress} = await loadTestHelpers();
   const [admin] = await hre.ethers.getSigners();
 
-  const targetAddress = await resolveAddress(pool || process.env.LIQUIDITY_POOL || "");
+  const targetAddress = await resolveProxyXAddress(pool);
   const target = (await hre.ethers.getContractAt("LiquidityPool", targetAddress, admin)) as LiquidityPool;
 
   await target.setHealthFactor(healthfactor);
@@ -67,16 +74,17 @@ task("set-min-health-factor", "Update Liquidity Pool config")
 });
 
 task("set-routes", "Update Rebalancer config")
-.addOptionalParam("rebalancer", "Rebalancer address")
+.addOptionalParam("rebalancer", "Rebalancer address or id", "Rebalancer", types.string)
 .addOptionalParam("domains", "Comma separated list of domain names")
 .addOptionalParam("providers", "Comma separated list of provider names")
 .addOptionalParam("allowed", "Allowed or denied", true, types.boolean)
-.setAction(async (args: {rebalancer?: string, providers?: string, domains?: string, allowed: boolean}, hre) => {
+.setAction(async (args: {rebalancer: string, providers?: string, domains?: string, allowed: boolean}, hre) => {
+  const {resolveProxyXAddress} = await loadTestHelpers();
   const config = networkConfig[hre.network.name as Network];
 
   const [admin] = await hre.ethers.getSigners();
 
-  const targetAddress = await resolveAddress(args.rebalancer || process.env.REBALANCER || "");
+  const targetAddress = await resolveProxyXAddress(args.rebalancer);
   const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, admin)) as Rebalancer;
 
   const domains = args.domains && args.domains.split(",") || config.Routes?.Domains || [];
@@ -102,7 +110,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
 // By default produces a new nonce every 10 seconds.
 .addOptionalParam("nonce", "Reuse protection nonce", BigInt(Date.now()) / 1000n / 10n, types.bigint)
 .addOptionalParam("deadline", "Expiry protection timestamp", 2000000000n, types.bigint)
-.addOptionalParam("pool", "Liquidity Pool address")
+.addOptionalParam("pool", "Liquidity Pool proxy address or id", "LiquidityPool", types.string)
 .setAction(async (args: {
   token?: string,
   amount: bigint,
@@ -110,8 +118,9 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
   data?: string,
   nonce: bigint,
   deadline: bigint,
-  pool?: string,
+  pool: string,
 }, hre) => {
+  const {resolveProxyXAddress} = await loadTestHelpers();
   const config = networkConfig[hre.network.name as Network];
 
   const [signer] = await hre.ethers.getSigners();
@@ -119,7 +128,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
   const name = "LiquidityPool";
   const version = "1.0.0";
 
-  const pool = args.pool || process.env.LIQUIDITY_POOL;
+  const pool = await resolveProxyXAddress(args.pool);
   const domain: TypedDataDomain = {
     name,
     version,
@@ -165,7 +174,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
   console.log(`signature: ${sig}`);
 });
 
-const accounts: string[] = isSet(process.env.DEPLOYER_PRIVATE_KEY) ? [process.env.DEPLOYER_PRIVATE_KEY || ""] : [];
+const accounts: string[] = isSet(process.env.PRIVATE_KEY) ? [process.env.PRIVATE_KEY || ""] : [];
 
 const config: HardhatUserConfig = {
   solidity: {

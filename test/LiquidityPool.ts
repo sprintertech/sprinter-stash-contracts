@@ -4,7 +4,7 @@ import {
 import {expect} from "chai";
 import hre from "hardhat";
 import {
-  getCreateAddress, getDeployXAddress, getContractAt, deploy, deployX, signBorrow
+  getCreateAddress, getDeployXAddressBase, getContractAt, deploy, deployX, signBorrow
 } from "./helpers";
 import {encodeBytes32String, MaxUint256} from "ethers";
 import {
@@ -62,7 +62,11 @@ describe("LiquidityPool", function () {
     const RPL_DEC = 10n ** (await rpl.decimals());
     const UNI_DEC = 10n ** (await uni.decimals());
 
-    const liquidityPoolAddress = await getDeployXAddress(deployer, "TransparentUpgradeableProxyLiquidityPool");
+    const liquidityPoolAddress = await getDeployXAddressBase(
+      deployer,
+      "TransparentUpgradeableProxyLiquidityPool",
+      false
+    );
     const liquidityPoolImpl = (
       await deployX("LiquidityPool", deployer, "LiquidityPool", {},
         usdc.target, AAVE_POOL_PROVIDER

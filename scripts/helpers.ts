@@ -1,10 +1,10 @@
 import hre from "hardhat";
 import {Signer, BaseContract, AddressLike, resolveAddress, ContractTransaction} from "ethers";
-import {deploy, deployX, getContractAt, getCreateAddress, getDeployXAddress} from "../test/helpers";
+import {deploy, deployX, getContractAt, getCreateAddress, getDeployXAddressBase} from "../test/helpers";
 import {
   TransparentUpgradeableProxy, ProxyAdmin,
 } from "../typechain-types";
-import {sleep} from "./common";
+import {sleep, DEFAULT_PROXY_TYPE} from "./common";
 
 export async function resolveAddresses(input: any[]): Promise<any[]> {
   return await Promise.all(input.map(async (el) => {
@@ -66,18 +66,18 @@ export function getVerifier(deployXPrefix: string = "") {
       });
       return contract;
     },
-    getDeployXAddress: async (
+    predictDeployXAddress: async (
       idOrContractName: string,
       deployer: Signer,
     ): Promise<string> => {
-      return await getDeployXAddress(deployer, deployXPrefix + idOrContractName);
+      return await getDeployXAddressBase(deployer, deployXPrefix + idOrContractName, false);
     },
-    getDeployProxyXAddress: async (
+    predictDeployProxyXAddress: async (
       idOrContractName: string,
       deployer: Signer,
-      proxyType: string = "TransparentUpgradeableProxy",
+      proxyType: string = DEFAULT_PROXY_TYPE,
     ): Promise<string> => {
-      return await getDeployXAddress(deployer, deployXPrefix + proxyType + idOrContractName);
+      return await getDeployXAddressBase(deployer, deployXPrefix + proxyType + idOrContractName, false);
     },
     verify: async (performVerification: boolean) => {
       if (hre.network.name === "hardhat") {
@@ -142,9 +142,9 @@ export async function deployProxyX<ContractType extends Initializable>(
   ) as ContractType;
   const targetInit = (await targetImpl.initialize.populateTransaction(...initArgs)).data;
   const targetProxy = (await deployFunc(
-    "TransparentUpgradeableProxy", deployer, {},
+    DEFAULT_PROXY_TYPE, deployer, {},
     [targetImpl.target, await resolveAddress(upgradeAdmin), targetInit],
-    "TransparentUpgradeableProxy" + id,
+    DEFAULT_PROXY_TYPE + id,
   )) as TransparentUpgradeableProxy;
   const target = (await getContractAt(contractName, targetProxy, deployer)) as ContractType;
   const targetProxyAdminAddress = await getCreateAddress(targetProxy, 1);

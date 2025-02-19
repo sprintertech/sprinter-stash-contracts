@@ -33,7 +33,6 @@ contract LiquidityMining is ERC20, Ownable {
         address from,
         address to,
         uint256 amount,
-        uint256 totalAmount,
         uint32 until,
         uint256 addedScore
     );
@@ -135,7 +134,7 @@ contract LiquidityMining is ERC20, Ownable {
             uint256(MULTIPLIER_PRECISION);
         _mint(scoreTo, addedScore);
 
-        emit StakeLocked(from, scoreTo, amount, amount, currentStake.until, addedScore);
+        emit StakeLocked(from, scoreTo, amount, currentStake.until, addedScore);
     }
 
     function _unstake(address from, uint256 id, address to) internal returns (uint256) {
@@ -147,6 +146,10 @@ contract LiquidityMining is ERC20, Ownable {
         emit StakeUnlocked(_msgSender(), to, currentStake.amount);
 
         return currentStake.amount;
+    }
+
+    function burn(uint256 value) public virtual {
+        _burn(_msgSender(), value);
     }
 
     function timeNow() internal view returns (uint32) {

@@ -94,7 +94,7 @@ describe("LiquidityHub", function () {
 
   it("Should not allow to deploy or init with invalid values", async function () {
     const {
-      lpToken, liquidityHub, usdc, user, user2, liquidityPool, USDC, LP, admin, deployer
+      lpToken, liquidityHub, usdc, liquidityPool, USDC, LP, admin, deployer
     } = await loadFixture(deployAll);
 
     await expect(deploy("LiquidityHub", deployer, {}, ZERO_ADDRESS, liquidityPool.target))

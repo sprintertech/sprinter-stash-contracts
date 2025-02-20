@@ -4,6 +4,10 @@ pragma solidity 0.8.28;
 import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {IManagedToken} from "./interfaces/IManagedToken.sol";
 
+/// @title An ERC20 token with enabled Permit and mint/burn/spendAllowance functions exposed to
+/// an immutable manager which is expected to be a contract too. This is meant to keep the token
+/// logic simple enough so that it does not need to be upgradeable.
+/// @author Oleksii Matiiasevych <oleksii@chainsafe.io>
 contract ManagedToken is IManagedToken, ERC20Permit {
     address immutable public MANAGER;
 

@@ -1,7 +1,7 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {isAddress, MaxUint256, getBigInt, resolveAddress} from "ethers";
+import {MaxUint256, getBigInt, resolveAddress} from "ethers";
 import {toBytes32} from "../test/helpers";
 import {
   getVerifier, deployProxyX,

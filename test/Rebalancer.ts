@@ -8,7 +8,7 @@ import {
   getCreateAddress, getContractAt, deploy, deployX, toBytes32,
 } from "./helpers";
 import {
-  ProviderSolidity as Provider, DomainSolidity as Domain, ZERO_ADDRESS, ZERO_BYTES32,
+  ProviderSolidity as Provider, DomainSolidity as Domain, ZERO_ADDRESS,
   DEFAULT_ADMIN_ROLE,
 } from "../scripts/common";
 import {

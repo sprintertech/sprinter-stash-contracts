@@ -1,13 +1,13 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {isAddress, MaxUint256, getBigInt} from "ethers";
+import {isAddress, MaxUint256, getBigInt, resolveAddress} from "ethers";
 import {toBytes32} from "../test/helpers";
 import {
   getVerifier, deployProxyX,
 } from "./helpers";
 import {
-  assert, isSet, ProviderSolidity, DomainSolidity,
+  assert, isSet, ProviderSolidity, DomainSolidity, DEFAULT_ADMIN_ROLE,
 } from "./common";
 import {
   TestUSDC, SprinterUSDCLPShare, LiquidityHub,
@@ -17,20 +17,16 @@ import {
 import {networkConfig, Network, Provider, NetworkConfig} from "../network.config";
 
 export async function main() {
-  // Rework granting admin roles on deployments so that deployer does not have to be admin.
   const [deployer] = await hre.ethers.getSigners();
-  const admin: string = isAddress(process.env.ADMIN) ? process.env.ADMIN : deployer.address;
-  const adjuster: string = isAddress(process.env.ADJUSTER) ? process.env.ADJUSTER : deployer.address;
+  const admin: string = await resolveAddress(process.env.ADMIN || deployer);
+  const adjuster: string = await resolveAddress(process.env.ADJUSTER || deployer);
   const maxLimit: bigint = MaxUint256 / 10n ** 12n;
   const assetsLimit: bigint = getBigInt(process.env.ASSETS_LIMIT || maxLimit);
 
-  const rebalanceCaller: string = isAddress(process.env.REBALANCE_CALLER) ?
-    process.env.REBALANCE_CALLER : deployer.address;
+  const rebalanceCaller: string = await resolveAddress(process.env.REBALANCE_CALLER || deployer);
 
-  const mpcAddress: string = isAddress(process.env.MPC_ADDRESS) ?
-    process.env.MPC_ADDRESS : deployer.address;
-  const withdrawProfit: string = isAddress(process.env.WITHDRAW_PROFIT) ?
-    process.env.WITHDRAW_PROFIT : deployer.address;
+  const mpcAddress: string = await resolveAddress(process.env.MPC_ADDRESS || deployer);
+  const withdrawProfit: string = await resolveAddress(process.env.WITHDRAW_PROFIT || deployer);
   const minHealthFactor: bigint = getBigInt(process.env.MIN_HEALTH_FACTOR || 500n) * 10n ** 18n / 100n;
   const defaultLTV: bigint = getBigInt(process.env.DEFAULT_LTV || 20n) * 10n ** 18n / 100n;
 
@@ -76,7 +72,7 @@ export async function main() {
       admin,
       [config.USDC, config.Aave],
       [
-        admin,
+        deployer,
         minHealthFactor,
         defaultLTV,
         mpcAddress,
@@ -90,7 +86,7 @@ export async function main() {
       "TestLiquidityPool",
       deployer,
       {},
-      [config.USDC, admin],
+      [config.USDC, deployer],
       "TransparentUpgradeableProxyLiquidityPool")
     ) as LiquidityPool;
   }
@@ -166,6 +162,11 @@ export async function main() {
       const multiplier = `${el.multiplier / 100n}.${el.multiplier % 100n}x`;
       return {seconds: Number(el.period), multiplier};
     }));
+  }
+
+  if (deployer.address !== admin) {
+    await liquidityPool.grantRole(DEFAULT_ADMIN_ROLE, admin);
+    await liquidityPool.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
   }
 
   console.log(`Admin: ${admin}`);

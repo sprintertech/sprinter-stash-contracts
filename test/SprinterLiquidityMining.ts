@@ -5,9 +5,9 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {Signature, resolveAddress, MaxUint256, getBigInt} from "ethers";
 import {
-  getCreateAddress, getDeployXAddressBase, getContractAt, deploy, deployX,
-  ZERO_ADDRESS, toBytes32,
+  getCreateAddress, getDeployXAddressBase, getContractAt, deploy, deployX, toBytes32,
 } from "./helpers";
+import {ZERO_ADDRESS} from "../scripts/common";
 import {
   TestUSDC, SprinterUSDCLPShare, LiquidityHub, TransparentUpgradeableProxy, ProxyAdmin,
   TestLiquidityPool, SprinterLiquidityMining,

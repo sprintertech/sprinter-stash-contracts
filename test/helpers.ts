@@ -8,9 +8,6 @@ import {ICreateX} from "../typechain-types";
 import dotenv from "dotenv";
 dotenv.config();
 
-export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-export const ZERO_BYTES32 = "0x0000000000000000000000000000000000000000000000000000000000000000";
-
 export async function getCreateAddress(from: AddressLike, nonce: number): Promise<string> {
   return hre.ethers.getCreateAddress({from: await resolveAddress(from), nonce});
 }

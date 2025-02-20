@@ -5,11 +5,11 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {AbiCoder} from "ethers";
 import {
-  getCreateAddress, getContractAt, deploy, deployX,
-  ZERO_ADDRESS, ZERO_BYTES32, toBytes32
+  getCreateAddress, getContractAt, deploy, deployX, toBytes32,
 } from "./helpers";
 import {
-  ProviderSolidity as Provider, DomainSolidity as Domain,
+  ProviderSolidity as Provider, DomainSolidity as Domain, ZERO_ADDRESS, ZERO_BYTES32,
+  DEFAULT_ADMIN_ROLE,
 } from "../scripts/common";
 import {
   TestUSDC, TransparentUpgradeableProxy, ProxyAdmin,
@@ -23,7 +23,6 @@ describe("Rebalancer", function () {
   const deployAll = async () => {
     const [deployer, admin, rebalanceUser, user] = await hre.ethers.getSigners();
 
-    const DEFAULT_ADMIN_ROLE = ZERO_BYTES32;
     const REBALANCER_ROLE = toBytes32("REBALANCER_ROLE");
     const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
 

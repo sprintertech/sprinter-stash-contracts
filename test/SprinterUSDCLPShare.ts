@@ -3,8 +3,7 @@ import {
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {expect} from "chai";
 import hre from "hardhat";
-
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+import {ZERO_ADDRESS} from "../scripts/common";
 
 describe("SprinterUSDCLPShare", function () {
   const deployLPToken = async () => {

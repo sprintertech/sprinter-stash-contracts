@@ -54,7 +54,7 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
     error ZeroAddress();
     error InvalidSignature();
     error TokenLtvExceeded();
-    error NothingToDeposit();
+    error NotEnoughToDeposit();
     error NoCollateral();
     error HealthFactorTooLow();
     error TargetCallFailed();
@@ -102,15 +102,12 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
         $.mpcAddress = mpcAddress_;
     }
 
-    function deposit() external override {
+    function deposit(uint256 amount) external override {
         // called after receiving deposit in USDC
         // transfer all USDC balance to AAVE
-        uint256 amount = ASSETS.balanceOf(address(this));
-        require(amount > 0, NothingToDeposit());
+        uint256 balance = ASSETS.balanceOf(address(this));
+        require(balance >= amount, NotEnoughToDeposit());
         IAavePool pool = IAavePool(AAVE_POOL_PROVIDER.getPool());
-        (, uint256 repaidAmount) = _repay(address(ASSETS), pool, true);
-        amount -= repaidAmount;
-        if (amount == 0) return;
         ASSETS.forceApprove(address(pool), amount);
         pool.supply(address(ASSETS), amount, address(this), NO_REFERRAL);
         emit SuppliedToAave(amount);

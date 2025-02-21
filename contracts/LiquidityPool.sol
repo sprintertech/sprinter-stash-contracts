@@ -104,7 +104,6 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
 
     function deposit(uint256 amount) external override {
         // called after receiving deposit in USDC
-        // transfer all USDC balance to AAVE
         uint256 balance = ASSETS.balanceOf(address(this));
         require(balance >= amount, NotEnoughToDeposit());
         IAavePool pool = IAavePool(AAVE_POOL_PROVIDER.getPool());

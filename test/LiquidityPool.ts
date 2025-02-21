@@ -135,7 +135,7 @@ describe("LiquidityPool", function () {
       const {liquidityPool, usdc, usdcOwner, USDC_DEC, aToken} = await loadFixture(deployAll);
       const amount = 1000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
-      await expect(liquidityPool.deposit())
+      await expect(liquidityPool.deposit(amount))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
     });
@@ -146,7 +146,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      await expect(liquidityPool.deposit())
+      await expect(liquidityPool.deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 2n * RPL_DEC;
@@ -178,7 +178,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      await expect(liquidityPool.deposit())
+      await expect(liquidityPool.deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 3n * UNI_DEC;
@@ -211,7 +211,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      await expect(liquidityPool.deposit())
+      await expect(liquidityPool.deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 3n * RPL_DEC;
@@ -249,7 +249,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      await expect(liquidityPool.deposit())
+      await expect(liquidityPool.deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 2n * USDC_DEC;
@@ -282,7 +282,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      await expect(liquidityPool.deposit())
+      await expect(liquidityPool.deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 3n * UNI_DEC;
@@ -318,10 +318,10 @@ describe("LiquidityPool", function () {
       const {liquidityPool, usdc, usdcOwner, USDC_DEC, aToken} = await loadFixture(deployAll);
       const amount = 1000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
-      await expect(liquidityPool.deposit())
+      await expect(liquidityPool.deposit(amount))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
-      await expect(liquidityPool.deposit())
+      await expect(liquidityPool.deposit(amount))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount * 2n - 1n);
     });
@@ -333,7 +333,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      await expect(liquidityPool.deposit())
+      await expect(liquidityPool.deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 1n * RPL_DEC;
@@ -416,7 +416,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      await expect(liquidityPool.deposit())
+      await expect(liquidityPool.deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 2n * RPL_DEC;
@@ -465,7 +465,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      await expect(liquidityPool.deposit())
+      await expect(liquidityPool.deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 2n * USDC_DEC;
@@ -508,7 +508,7 @@ describe("LiquidityPool", function () {
       const {liquidityPool, usdc, usdcOwner, USDC_DEC, aToken, user, admin} = await loadFixture(deployAll);
       const amount = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
-      await expect(liquidityPool.deposit())
+      await expect(liquidityPool.deposit(amount))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
 
@@ -541,7 +541,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      await expect(liquidityPool.deposit())
+      await expect(liquidityPool.deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 3n * UNI_DEC;
@@ -597,69 +597,17 @@ describe("LiquidityPool", function () {
       expect(await nonSupportedToken.balanceOf(user.address)).to.eq(amount);
     });
 
-    it("Should repay before deposit", async function () {
-      const {
-        liquidityPool, usdc, USDC_DEC, user, user2, mpc_signer, usdcOwner, uniOwner,
-        usdcDebtToken, uniDebtToken
-      } = await loadFixture(deployAll);
-      const amountCollateral = 1000n * USDC_DEC; // $1000
-      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      await expect(liquidityPool.deposit())
-        .to.emit(liquidityPool, "SuppliedToAave");
-
-      const amountToBorrow = 2n * USDC_DEC;
-
-      const signature1 = await signBorrow(
-        mpc_signer,
-        liquidityPool.target as string,
-        usdc.target as string,
-        amountToBorrow.toString(),
-        user2.address,
-        "0x",
-        31337
-      );
-
-      await liquidityPool.connect(user).borrow(
-        usdc.target,
-        amountToBorrow,
-        user2,
-        "0x",
-        0n,
-        2000000000n,
-        signature1);  
-      expect(await usdc.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
-
-      // advance time by one hour
-      await time.increase(3600);
-
-      const usdcDebtBefore = await usdcDebtToken.balanceOf(liquidityPool.target);
-      expect(usdcDebtBefore).to.be.greaterThan(amountToBorrow);
-
-      await usdc.connect(uniOwner).transfer(liquidityPool.target, amountToBorrow);
-
-      await expect(liquidityPool.connect(user).deposit())
-        .to.emit(liquidityPool, "Repaid")
-        .and.to.emit(liquidityPool, "SuppliedToAave");  
-      const usdcDebtAfter = await uniDebtToken.balanceOf(liquidityPool.target);
-      expect(usdcDebtAfter).to.eq(0);
-      expect(await usdc.balanceOf(liquidityPool.target)).to.eq(0);
-    });
-
-    it.skip("Should deposit, borrow and repay multiple times", async function () {
-      // increase time
-    });
-
     it("Should NOT deposit if no collateral on contract", async function () {
       const {liquidityPool} = await loadFixture(deployAll);
-      await expect(liquidityPool.deposit())
-        .to.be.revertedWithCustomError(liquidityPool, "NothingToDeposit");
+      await expect(liquidityPool.deposit(10))
+        .to.be.revertedWithCustomError(liquidityPool, "NotEnoughToDeposit");
     });
 
     it("Should NOT borrow if MPC signature is wrong", async function () {
       const {liquidityPool, usdc, USDC_DEC, rpl, RPL_DEC, user, user2, usdcOwner} = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      await expect(liquidityPool.deposit())
+      await expect(liquidityPool.deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 2n * RPL_DEC;
@@ -690,7 +638,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      await expect(liquidityPool.deposit())
+      await expect(liquidityPool.deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 2n * RPL_DEC;
@@ -729,7 +677,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      await expect(liquidityPool.deposit())
+      await expect(liquidityPool.deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 2n * RPL_DEC;
@@ -763,7 +711,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      await expect(liquidityPool.deposit())
+      await expect(liquidityPool.deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 10n * UNI_DEC;
@@ -795,7 +743,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      await expect(liquidityPool.deposit())
+      await expect(liquidityPool.deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
       await expect(liquidityPool.connect(admin).setHealthFactor(4000n * 10n ** 18n / 100n))
@@ -830,7 +778,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      await expect(liquidityPool.deposit())
+      await expect(liquidityPool.deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 2n * RPL_DEC;
@@ -867,7 +815,7 @@ describe("LiquidityPool", function () {
 
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      await expect(liquidityPool.deposit())
+      await expect(liquidityPool.deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 2n * RPL_DEC;
@@ -918,7 +866,7 @@ describe("LiquidityPool", function () {
       const {liquidityPool, usdc, USDC_DEC, usdcOwner, aToken, user, admin} = await loadFixture(deployAll);
       const amount = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
-      await expect(liquidityPool.deposit())
+      await expect(liquidityPool.deposit(amount))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
 
@@ -932,7 +880,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amount = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
-      await expect(liquidityPool.deposit())
+      await expect(liquidityPool.deposit(amount))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
 
       const amountToBorrow = 3n * UNI_DEC;
@@ -964,7 +912,7 @@ describe("LiquidityPool", function () {
       const {liquidityPool, usdc, usdcOwner, USDC_DEC, aToken, user} = await loadFixture(deployAll);
       const amount = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
-      await expect(liquidityPool.deposit())
+      await expect(liquidityPool.deposit(amount))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
 
@@ -993,7 +941,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      await expect(liquidityPool.deposit())
+      await expect(liquidityPool.deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 3n * UNI_DEC;
@@ -1033,7 +981,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      await expect(liquidityPool.deposit())
+      await expect(liquidityPool.deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 3n * UNI_DEC;

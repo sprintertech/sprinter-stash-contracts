@@ -34,7 +34,7 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
         ")"
     );
 
-    IERC20 immutable public COLLATERAL;
+    IERC20 immutable public ASSETS;
     IAavePoolAddressesProvider immutable public AAVE_POOL_PROVIDER;
 
     /// @custom:storage-location erc7201:sprinter.storage.LiquidityPool
@@ -54,11 +54,12 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
     error ZeroAddress();
     error InvalidSignature();
     error TokenLtvExceeded();
+    error NothingToDeposit();
     error NoCollateral();
     error HealthFactorTooLow();
     error TargetCallFailed();
     error NothingToRepay();
-    error CannotWithdrawProfitCollateral();
+    error CannotWithdrawProfitAssets();
     error ExpiredSignature();
     error NonceAlreadyUsed();
     error NotEnoughBalance();
@@ -68,7 +69,6 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
     event BorrowTokenLTVSet(address token, uint256 oldLTV, uint256 newLTV);
     event HealthFactorSet(uint256 oldHealthFactor, uint256 newHealthFactor);
     event DefaultLTVSet(uint256 oldDefaultLTV, uint256 newDefaultLTV);
-    event Borrowed(address borrowToken, uint256 amount, address caller, address target, bytes targetCallData);
     event Repaid(address borrowToken, uint256 repaidAmount);
     event WithdrawnFromAave(address to, uint256 amount);
     event ProfitWithdrawn(address token, address to, uint256 amount);
@@ -79,11 +79,11 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
             "sprinter.storage.LiquidityPool"
         );
         require(liquidityToken != address(0), ZeroAddress());
-        COLLATERAL = IERC20(liquidityToken);
+        ASSETS = IERC20(liquidityToken);
         require(aavePoolProvider != address(0), ZeroAddress());
         AAVE_POOL_PROVIDER = IAavePoolAddressesProvider(aavePoolProvider);
         IAavePoolDataProvider poolDataProvider = IAavePoolDataProvider(AAVE_POOL_PROVIDER.getPoolDataProvider());
-        (,,,,,bool usageAsCollateralEnabled,,,,) = poolDataProvider.getReserveConfigurationData(address(COLLATERAL));
+        (,,,,,bool usageAsCollateralEnabled,,,,) = poolDataProvider.getReserveConfigurationData(address(ASSETS));
         require(usageAsCollateralEnabled, CollateralNotSupported());
         _disableInitializers();
     }
@@ -105,14 +105,14 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
     function deposit() external override {
         // called after receiving deposit in USDC
         // transfer all USDC balance to AAVE
-        uint256 amount = COLLATERAL.balanceOf(address(this));
-        require(amount > 0, NoCollateral());
+        uint256 amount = ASSETS.balanceOf(address(this));
+        require(amount > 0, NothingToDeposit());
         IAavePool pool = IAavePool(AAVE_POOL_PROVIDER.getPool());
-        (, uint256 repaidAmount) = _repay(address(COLLATERAL), pool, true);
+        (, uint256 repaidAmount) = _repay(address(ASSETS), pool, true);
         amount -= repaidAmount;
         if (amount == 0) return;
-        COLLATERAL.forceApprove(address(pool), amount);
-        pool.supply(address(COLLATERAL), amount, address(this), NO_REFERRAL);
+        ASSETS.forceApprove(address(pool), amount);
+        pool.supply(address(ASSETS), amount, address(this), NO_REFERRAL);
         emit SuppliedToAave(amount);
     }
 
@@ -150,7 +150,6 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
         // the operation securely.
         (bool success,) = target.call(targetCallData);
         require(success, TargetCallFailed());
-        emit Borrowed(borrowToken, amount, msg.sender, target, targetCallData);
     }
 
     function repay(address[] calldata borrowTokens) external {
@@ -168,7 +167,7 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
     function withdraw(address to, uint256 amount) external override onlyRole(LIQUIDITY_ADMIN_ROLE) returns (uint256) {
         // get USDC from AAVE
         IAavePool pool = IAavePool(AAVE_POOL_PROVIDER.getPool());
-        uint256 withdrawn = pool.withdraw(address(COLLATERAL), amount, to);
+        uint256 withdrawn = pool.withdraw(address(ASSETS), amount, to);
         // health factor after withdraw
         (,,,,,uint256 currentHealthFactor) = pool.getUserAccountData(address(this));
         require(currentHealthFactor >= _getStorage().minHealthFactor, HealthFactorTooLow());
@@ -181,8 +180,8 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
         address to,
         uint256 amount
     ) external onlyRole(WITHDRAW_PROFIT_ROLE) returns (uint256) {
-        // check that not collateral
-        require(token != address(COLLATERAL), CannotWithdrawProfitCollateral());
+        // check that not assets
+        require(token != address(ASSETS), CannotWithdrawProfitAssets());
         IAavePool pool = IAavePool(AAVE_POOL_PROVIDER.getPool());
         _repay(token, pool, true);
         uint256 available = IERC20(token).balanceOf(address(this));
@@ -257,7 +256,7 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
         uint256 ltv = $.borrowTokenLTV[borrowToken];
         if (ltv == 0) ltv = $.defaultLTV;
 
-        AaveDataTypes.ReserveData memory collateralData = pool.getReserveData(address(COLLATERAL));
+        AaveDataTypes.ReserveData memory collateralData = pool.getReserveData(address(ASSETS));
         uint256 totalCollateral = IERC20(collateralData.aTokenAddress).balanceOf(address(this));
         require(totalCollateral > 0, NoCollateral());
 
@@ -267,11 +266,11 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
         IAaveOracle oracle = IAaveOracle(AAVE_POOL_PROVIDER.getPriceOracle());
         address[] memory assets = new address[](2);
         assets[0] = borrowToken;
-        assets[1] = address(COLLATERAL);
+        assets[1] = address(ASSETS);
 
         uint256[] memory prices = oracle.getAssetsPrices(assets);
 
-        uint256 collateralDecimals = IERC20Metadata(address(COLLATERAL)).decimals();
+        uint256 collateralDecimals = IERC20Metadata(address(ASSETS)).decimals();
         uint256 borrowDecimals = IERC20Metadata(borrowToken).decimals();
 
         uint256 collateralUnit = 10 ** collateralDecimals;

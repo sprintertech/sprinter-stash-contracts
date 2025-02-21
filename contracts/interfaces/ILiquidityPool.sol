@@ -8,5 +8,5 @@ interface ILiquidityPool {
 
     function withdraw(address to, uint256 amount) external returns (uint256 withdrawn);
 
-    function COLLATERAL() external returns (IERC20);
+    function ASSETS() external returns (IERC20);
 }

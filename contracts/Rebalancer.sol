@@ -13,7 +13,7 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable {
     using BitMaps for BitMaps.BitMap;
 
     ILiquidityPool immutable public LIQUIDITY_POOL;
-    IERC20 immutable public COLLATERAL;
+    IERC20 immutable public ASSETS;
     ICCTPTokenMessenger immutable public CCTP_TOKEN_MESSENGER;
     ICCTPMessageTransmitter immutable public CCTP_MESSAGE_TRANSMITTER;
     bytes32 constant public REBALANCER_ROLE = "REBALANCER_ROLE";
@@ -50,7 +50,7 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable {
         if (cctpTokenMessenger == address(0)) revert ZeroAddress();
         if (cctpMessageTransmitter == address(0)) revert ZeroAddress();
         LIQUIDITY_POOL = ILiquidityPool(liquidityPool);
-        COLLATERAL = ILiquidityPool(liquidityPool).COLLATERAL();
+        ASSETS = ILiquidityPool(liquidityPool).ASSETS();
         CCTP_TOKEN_MESSENGER = ICCTPTokenMessenger(cctpTokenMessenger);
         CCTP_MESSAGE_TRANSMITTER = ICCTPMessageTransmitter(cctpMessageTransmitter);
 
@@ -134,12 +134,12 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable {
         uint256 amount,
         Domain destinationDomain
     ) internal {
-        SafeERC20.forceApprove(COLLATERAL, address(CCTP_TOKEN_MESSENGER), amount);
+        SafeERC20.forceApprove(ASSETS, address(CCTP_TOKEN_MESSENGER), amount);
         CCTP_TOKEN_MESSENGER.depositForBurnWithCaller(
             amount,
             domainCCTP(destinationDomain),
             _addressToBytes32(address(LIQUIDITY_POOL)),
-            address(COLLATERAL),
+            address(ASSETS),
             _addressToBytes32(address(this))
         );
     }

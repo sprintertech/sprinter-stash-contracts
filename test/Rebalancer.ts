@@ -67,7 +67,7 @@ describe("Rebalancer", function () {
     } = await loadFixture(deployAll);
 
     expect(await rebalancer.LIQUIDITY_POOL()).to.equal(liquidityPool.target);
-    expect(await rebalancer.COLLATERAL()).to.equal(usdc.target);
+    expect(await rebalancer.ASSETS()).to.equal(usdc.target);
     expect(await rebalancer.CCTP_TOKEN_MESSENGER()).to.equal(cctpTokenMessenger.target);
     expect(await rebalancer.CCTP_MESSAGE_TRANSMITTER()).to.equal(cctpMessageTransmitter.target);
     expect(await rebalancer.REBALANCER_ROLE()).to.equal(REBALANCER_ROLE);

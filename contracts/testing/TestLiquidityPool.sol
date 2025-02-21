@@ -6,13 +6,13 @@ import {ILiquidityPool} from "../interfaces/ILiquidityPool.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 contract TestLiquidityPool is ILiquidityPool, AccessControl {
-    IERC20 public immutable COLLATERAL;
+    IERC20 public immutable ASSETS;
     bytes32 public constant LIQUIDITY_ADMIN_ROLE = "LIQUIDITY_ADMIN_ROLE";
 
     event Deposit();
 
-    constructor(IERC20 collateral) {
-        COLLATERAL = collateral;
+    constructor(IERC20 assets) {
+        ASSETS = assets;
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _grantRole(LIQUIDITY_ADMIN_ROLE, _msgSender());
     }
@@ -22,7 +22,7 @@ contract TestLiquidityPool is ILiquidityPool, AccessControl {
     }
 
     function withdraw(address to, uint256 amount) external override onlyRole(LIQUIDITY_ADMIN_ROLE) returns (uint256) {
-        SafeERC20.safeTransfer(COLLATERAL, to, amount);
+        SafeERC20.safeTransfer(ASSETS, to, amount);
         return amount;
     }
 }

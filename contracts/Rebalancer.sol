@@ -119,13 +119,16 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable {
         Provider provider,
         bytes calldata extraData
     ) external override {
+        uint256 balanceBefore = ASSETS.balanceOf(address(LIQUIDITY_POOL));
         if (provider == Provider.CCTP) {
             _processRebalanceCCTP(extraData);
         } else {
             // Unreachable atm, but could become so when more providers are added to enum.
             revert UnsupportedProvider();
         }
-        LIQUIDITY_POOL.deposit();
+        uint256 balanceAfter = ASSETS.balanceOf(address(LIQUIDITY_POOL));
+        require(balanceAfter > balanceBefore, ProcessFailed());
+        LIQUIDITY_POOL.deposit(balanceAfter - balanceBefore);
 
         emit ProcessRebalance(provider);
     }

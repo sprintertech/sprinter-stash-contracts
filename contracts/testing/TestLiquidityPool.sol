@@ -17,7 +17,7 @@ contract TestLiquidityPool is ILiquidityPool, AccessControl {
         _grantRole(LIQUIDITY_ADMIN_ROLE, _msgSender());
     }
 
-    function deposit() external override {
+    function deposit(uint256) external override {
         emit Deposit();
     }
 

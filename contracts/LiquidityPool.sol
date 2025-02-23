@@ -59,10 +59,8 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
     error HealthFactorTooLow();
     error TargetCallFailed();
     error NothingToRepay();
-    error CannotWithdrawProfitAssets();
     error ExpiredSignature();
     error NonceAlreadyUsed();
-    error NotEnoughBalance();
     error CollateralNotSupported();
 
     event SuppliedToAave(uint256 amount);
@@ -106,6 +104,15 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
         // called after receiving deposit in USDC
         uint256 balance = ASSETS.balanceOf(address(this));
         require(balance >= amount, NotEnoughToDeposit());
+        IAavePool pool = IAavePool(AAVE_POOL_PROVIDER.getPool());
+        ASSETS.forceApprove(address(pool), amount);
+        pool.supply(address(ASSETS), amount, address(this), NO_REFERRAL);
+        emit SuppliedToAave(amount);
+    }
+
+    function depositWithPull(uint256 amount) external {
+        // pulls USDC from the sender
+        ASSETS.safeTransferFrom(msg.sender, address(this), amount);
         IAavePool pool = IAavePool(AAVE_POOL_PROVIDER.getPool());
         ASSETS.forceApprove(address(pool), amount);
         pool.supply(address(ASSETS), amount, address(this), NO_REFERRAL);
@@ -172,24 +179,14 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
     }
 
     function withdrawProfit(
-        address token,
-        address to,
-        uint256 amount
-    ) external onlyRole(WITHDRAW_PROFIT_ROLE) returns (uint256) {
-        // check that not assets
-        require(token != address(ASSETS), CannotWithdrawProfitAssets());
+        address[] calldata tokens,
+        address to
+    ) external onlyRole(WITHDRAW_PROFIT_ROLE) {
         IAavePool pool = IAavePool(AAVE_POOL_PROVIDER.getPool());
-        _repay(token, pool, true);
-        uint256 available = IERC20(token).balanceOf(address(this));
-        require(available > 0 && (amount <= available || amount == type(uint256).max), NotEnoughBalance());
-        uint256 amountToWithdraw = amount;
-        if (amount == type(uint256).max) {
-            amountToWithdraw = available;
+        AaveDataTypes.ReserveData memory collateralData = pool.getReserveData(address(ASSETS));
+        for (uint256 i = 0; i < tokens.length; i++) {
+            _withdrawProfit(tokens[i], to, collateralData.aTokenAddress, pool);
         }
-        // withdraw from this contract
-        IERC20(token).safeTransfer(to, amountToWithdraw);
-        emit ProfitWithdrawn(token, to, amountToWithdraw);
-        return amountToWithdraw;
     }
 
     function setBorrowTokenLTV(address token, uint256 ltv) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -299,6 +296,27 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
         );
         emit Repaid(borrowToken, repaidAmount);
         success = true;
+    }
+
+    function _withdrawProfit(
+        address token,
+        address to,
+        address aToken,
+        IAavePool pool
+    ) internal {
+        // Check that not aToken
+        if (token == aToken) return;
+        uint256 amountToWithdraw = IERC20(token).balanceOf(address(this));
+        if (amountToWithdraw == 0) return;
+        // Check that the token doesn't have debt
+        AaveDataTypes.ReserveData memory tokenData = pool.getReserveData(token);
+        if (tokenData.variableDebtTokenAddress != address(0)) {
+            uint256 debt = IERC20(tokenData.variableDebtTokenAddress).balanceOf(address(this));
+            if (debt > 0) return;
+        }
+        // Withdraw from this contract
+        IERC20(token).safeTransfer(to, amountToWithdraw);
+        emit ProfitWithdrawn(token, to, amountToWithdraw);
     }
 
     // View functions

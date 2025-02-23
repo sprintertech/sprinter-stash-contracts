@@ -44,6 +44,7 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
         address mpcAddress;
         uint256 minHealthFactor;
         uint256 defaultLTV;
+        bool borrowPaused;
     }
 
     bytes32 private constant STORAGE_LOCATION = 0x457f6fd6dd83195f8bfff9ee98f2df1d90fadb996523baa2b453217997285e00;
@@ -62,6 +63,8 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
     error ExpiredSignature();
     error NonceAlreadyUsed();
     error CollateralNotSupported();
+    error BorrowingIsPaused();
+    error BorrowingIsNotPaused();
 
     event SuppliedToAave(uint256 amount);
     event BorrowTokenLTVSet(address token, uint256 oldLTV, uint256 newLTV);
@@ -70,6 +73,8 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
     event Repaid(address borrowToken, uint256 repaidAmount);
     event WithdrawnFromAave(address to, uint256 amount);
     event ProfitWithdrawn(address token, address to, uint256 amount);
+    event BorrowPaused();
+    event BorrowUnpaused();
 
     constructor(address liquidityToken, address aavePoolProvider) {
         ERC7201Helper.validateStorageLocation(
@@ -128,6 +133,8 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
         uint256 deadline,
         bytes calldata signature
     ) external {
+        LiquidityPoolStorage storage $ = _getStorage();
+        require(!$.borrowPaused, BorrowingIsPaused());
         // - Validate MPC signature
         _validateMPCSignature(borrowToken, amount, target, targetCallData, nonce, deadline, signature);
         
@@ -143,7 +150,7 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
 
         // - Check health factor for user after borrow (can be read from aave, getUserAccountData)
         (,,,,,uint256 currentHealthFactor) = pool.getUserAccountData(address(this));
-        require(currentHealthFactor >= _getStorage().minHealthFactor, HealthFactorTooLow());
+        require(currentHealthFactor >= $.minHealthFactor, HealthFactorTooLow());
 
         // check ltv for token
         _checkTokenLTV(pool, borrowToken);
@@ -168,6 +175,7 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
     // Admin functions
 
     function withdraw(address to, uint256 amount) external override onlyRole(LIQUIDITY_ADMIN_ROLE) returns (uint256) {
+        require(_getStorage().borrowPaused, BorrowingIsNotPaused());
         // get USDC from AAVE
         IAavePool pool = IAavePool(AAVE_POOL_PROVIDER.getPool());
         uint256 withdrawn = pool.withdraw(address(ASSETS), amount, to);
@@ -182,6 +190,7 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
         address[] calldata tokens,
         address to
     ) external onlyRole(WITHDRAW_PROFIT_ROLE) {
+        require(_getStorage().borrowPaused, BorrowingIsNotPaused());
         IAavePool pool = IAavePool(AAVE_POOL_PROVIDER.getPool());
         AaveDataTypes.ReserveData memory collateralData = pool.getReserveData(address(ASSETS));
         for (uint256 i = 0; i < tokens.length; i++) {
@@ -208,6 +217,18 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
         uint256 oldHealthFactor = $.minHealthFactor;
         $.minHealthFactor = minHealthFactor;
         emit HealthFactorSet(oldHealthFactor, minHealthFactor);
+    }
+
+    function pauseBorrow() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        LiquidityPoolStorage storage $ = _getStorage();
+        $.borrowPaused = true;
+        emit BorrowPaused();
+    }
+
+    function unpauseBorrow() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        LiquidityPoolStorage storage $ = _getStorage();
+        $.borrowPaused = false;
+        emit BorrowUnpaused();
     }
 
     // Internal functions
@@ -347,5 +368,9 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
 
     function notPassed(uint256 timestamp) internal view returns (bool) {
         return !passed(timestamp);
+    }
+
+    function borrowPauseStatus() public view returns (bool) {
+        return _getStorage().borrowPaused;
     }
 }

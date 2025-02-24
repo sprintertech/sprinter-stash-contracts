@@ -4,11 +4,11 @@ import {
 import {expect} from "chai";
 import hre from "hardhat";
 import {
-  getCreateAddress, getContractAt, deploy, signBorrow
+  deploy, signBorrow
 } from "./helpers";
 import {encodeBytes32String, MaxUint256} from "ethers";
 import {
-  MockTarget, LiquidityPool, TransparentUpgradeableProxy, ProxyAdmin
+  MockTarget, LiquidityPool
 } from "../typechain-types";
 
 async function now() {
@@ -66,7 +66,6 @@ describe("LiquidityPool", function () {
 
     const startingNonce = await deployer.getNonce();
 
-    const liquidityPoolAddress = await getCreateAddress(deployer, startingNonce);
     // Initialize health factor as 5 (500%)
     const healthFactor = 500n * 10n ** 18n / 100n;
     // Initialize token LTV as 5%
@@ -1098,7 +1097,7 @@ describe("LiquidityPool", function () {
     });
 
     it("Should allow WITHDRAW_PROFIT_ROLE to pause and unpause borrowing", async function () {
-      const {liquidityPool, admin, withdrawProfit} = await loadFixture(deployAll);
+      const {liquidityPool, withdrawProfit} = await loadFixture(deployAll);
       expect(await liquidityPool._borrowPaused())
         .to.eq(false);
       await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())

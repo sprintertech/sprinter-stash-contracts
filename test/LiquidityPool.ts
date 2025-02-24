@@ -17,7 +17,9 @@ async function now() {
 
 describe("LiquidityPool", function () {
   const deployAll = async () => {
-    const [deployer, admin, user, user2, mpc_signer] = await hre.ethers.getSigners();
+    const [
+      deployer, admin, user, user2, mpc_signer, liquidityAdmin, withdrawProfit, pauser
+    ] = await hre.ethers.getSigners();
 
     const AAVE_POOL_PROVIDER = "0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e";
     const aavePoolAddressesProvider = await hre.ethers.getContractAt("IAavePoolAddressesProvider", AAVE_POOL_PROVIDER);
@@ -91,15 +93,18 @@ describe("LiquidityPool", function () {
     ) as MockTarget;
 
     const LIQUIDITY_ADMIN_ROLE = encodeBytes32String("LIQUIDITY_ADMIN_ROLE");
-    await liquidityPool.connect(admin).grantRole(LIQUIDITY_ADMIN_ROLE, admin.address);
+    await liquidityPool.connect(admin).grantRole(LIQUIDITY_ADMIN_ROLE, liquidityAdmin.address);
 
     const WITHDRAW_PROFIT_ROLE = encodeBytes32String("WITHDRAW_PROFIT_ROLE");
-    await liquidityPool.connect(admin).grantRole(WITHDRAW_PROFIT_ROLE, admin.address);
+    await liquidityPool.connect(admin).grantRole(WITHDRAW_PROFIT_ROLE, withdrawProfit.address);
+
+    const PAUSER_ROLE = encodeBytes32String("PAUSER_ROLE");
+    await liquidityPool.connect(admin).grantRole(PAUSER_ROLE, pauser.address);
 
     return {deployer, admin, user, user2, mpc_signer, usdc, usdcOwner, rpl, rplOwner, uni, uniOwner,
       liquidityPool, liquidityPoolProxy, liquidityPoolAdmin, mockTarget, USDC_DEC, RPL_DEC, UNI_DEC, AAVE_POOL_PROVIDER,
       healthFactor, defaultLtv, aavePool, aToken, rplDebtToken, uniDebtToken, usdcDebtToken,
-      nonSupportedToken, nonSupportedTokenOwner};
+      nonSupportedToken, nonSupportedTokenOwner, liquidityAdmin, withdrawProfit, pauser};
   };
 
   describe("Initialization", function () {
@@ -514,22 +519,20 @@ describe("LiquidityPool", function () {
     });
 
     it("Should withdraw collateral from aave", async function () {
-      const {liquidityPool, usdc, usdcOwner, USDC_DEC, aToken, user, admin} = await loadFixture(deployAll);
+      const {liquidityPool, usdc, usdcOwner, USDC_DEC, aToken, user, liquidityAdmin} = await loadFixture(deployAll);
       const amount = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
       await expect(liquidityPool.deposit(amount))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
 
-      await expect(liquidityPool.connect(admin).pauseBorrow())
-        .to.emit(liquidityPool, "BorrowPaused");
-      await expect(liquidityPool.connect(admin).withdraw(user.address, amount))
+      await expect(liquidityPool.connect(liquidityAdmin).withdraw(user.address, amount))
         .to.emit(liquidityPool, "WithdrawnFromAave").withArgs(user.address, amount);
       expect(await usdc.balanceOf(user.address)).to.be.eq(amount);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThan(0);
 
       // Using type(uint256).max as amount to withdraw all available amount
-      await expect(liquidityPool.connect(admin).withdraw(
+      await expect(liquidityPool.connect(liquidityAdmin).withdraw(
         user.address, MaxUint256
       ))
         .to.emit(liquidityPool, "WithdrawnFromAave");
@@ -538,14 +541,16 @@ describe("LiquidityPool", function () {
     });
 
     it("Should withdraw profit for multiple tokens from the pool", async function () {
-      const {liquidityPool, uni, rpl, UNI_DEC, uniOwner, rplOwner, admin, user} = await loadFixture(deployAll);
+      const {
+        liquidityPool, uni, rpl, UNI_DEC, uniOwner, rplOwner, withdrawProfit, user
+      } = await loadFixture(deployAll);
       const amountUni = 1n * UNI_DEC;
       const amountRpl = 1n * UNI_DEC;
       await uni.connect(uniOwner).transfer(liquidityPool.target, amountUni);
       await rpl.connect(rplOwner).transfer(liquidityPool.target, amountRpl);
-      await expect(liquidityPool.connect(admin).pauseBorrow())
+      await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())
         .to.emit(liquidityPool, "BorrowPaused");
-      await expect(liquidityPool.connect(admin).withdrawProfit([uni.target, rpl.target], user.address))
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([uni.target, rpl.target], user.address))
         .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(uni.target, user.address, amountUni)
         .and.to.emit(liquidityPool, "ProfitWithdrawn").withArgs(rpl.target, user.address, amountRpl);
       expect(await uni.balanceOf(user.address)).to.eq(amountUni);
@@ -553,44 +558,62 @@ describe("LiquidityPool", function () {
     });
 
     it("Should withdraw collateral as profit from the pool", async function () {
-      const {liquidityPool, usdc, USDC_DEC, usdcOwner, admin, user} = await loadFixture(deployAll);
+      const {liquidityPool, usdc, USDC_DEC, usdcOwner, withdrawProfit, user} = await loadFixture(deployAll);
       const amount = 2n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
-      await expect(liquidityPool.connect(admin).pauseBorrow())
+      await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())
         .to.emit(liquidityPool, "BorrowPaused");
-      await expect(liquidityPool.connect(admin).withdrawProfit([usdc.target], user.address))
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc.target], user.address))
         .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(usdc.target, user.address, amount);
       expect(await usdc.balanceOf(user.address)).to.eq(amount);
     });
 
     it("Should withdraw all available balance as profit ", async function () {
-      const {liquidityPool, uni, UNI_DEC, uniOwner, admin, user} = await loadFixture(deployAll);
+      const {liquidityPool, uni, UNI_DEC, uniOwner, withdrawProfit, user} = await loadFixture(deployAll);
       const amount = 2n * UNI_DEC;
       await uni.connect(uniOwner).transfer(liquidityPool.target, amount);
-      await expect(liquidityPool.connect(admin).pauseBorrow())
+      await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())
         .to.emit(liquidityPool, "BorrowPaused");
-      await expect(liquidityPool.connect(admin).withdrawProfit([uni.target], user.address))
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([uni.target], user.address))
         .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(uni.target, user.address, amount);
       expect(await uni.balanceOf(user.address)).to.eq(amount);
     });
 
     it("Should withdraw non-supported token", async function () {
       const {
-        liquidityPool, nonSupportedToken, nonSupportedTokenOwner, admin, user, UNI_DEC
+        liquidityPool, nonSupportedToken, nonSupportedTokenOwner, withdrawProfit, user, UNI_DEC
       } = await loadFixture(deployAll);
       const amount = 2n * UNI_DEC;
       await nonSupportedToken.connect(nonSupportedTokenOwner).transfer(liquidityPool.target, amount);
-      await expect(liquidityPool.connect(admin).pauseBorrow())
+      await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())
         .to.emit(liquidityPool, "BorrowPaused");
-      await expect(liquidityPool.connect(admin).withdrawProfit([nonSupportedToken.target], user.address))
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([nonSupportedToken.target], user.address))
         .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(nonSupportedToken.target, user.address, amount);
       expect(await nonSupportedToken.balanceOf(user.address)).to.eq(amount);
+    });
+
+    it("Should NOT deposit if the contract is paused", async function () {
+      const {liquidityPool, pauser} = await loadFixture(deployAll);
+      await expect(liquidityPool.connect(pauser).pause())
+        .to.emit(liquidityPool, "Paused");
+      await expect(liquidityPool.connect(pauser).deposit(10))
+        .to.be.revertedWithCustomError(liquidityPool, "EnforcedPause");
     });
 
     it("Should NOT deposit if no collateral on contract", async function () {
       const {liquidityPool} = await loadFixture(deployAll);
       await expect(liquidityPool.deposit(10))
         .to.be.revertedWithCustomError(liquidityPool, "NotEnoughToDeposit");
+    });
+
+    it("Should NOT deposit with pulling funds if the contract is paused", async function () {
+      const {liquidityPool, usdc, usdcOwner, USDC_DEC, pauser} = await loadFixture(deployAll);
+      const amount = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).approve(liquidityPool.target, amount);
+      await expect(liquidityPool.connect(pauser).pause())
+        .to.emit(liquidityPool, "Paused");
+      await expect(liquidityPool.connect(usdcOwner).depositWithPull(amount))
+        .to.be.revertedWithCustomError(liquidityPool, "EnforcedPause");
     });
 
     it("Should NOT borrow if MPC signature is wrong", async function () {
@@ -799,38 +822,39 @@ describe("LiquidityPool", function () {
     });
 
     it("Should NOT borrow if borrowing is paused", async function () {
-      const {
-        liquidityPool, usdc, USDC_DEC, rpl, RPL_DEC, user, user2, usdcOwner, mpc_signer, admin
-      } = await loadFixture(deployAll);
-      const amountCollateral = 1000n * USDC_DEC; // $1000
-      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
-      await expect(liquidityPool.deposit(amountCollateral))
-        .to.emit(liquidityPool, "SuppliedToAave");
-
+      const {liquidityPool, rpl, user, user2, withdrawProfit} = await loadFixture(deployAll);
+      
       // Pause borrowing
-      await expect(liquidityPool.connect(admin).pauseBorrow())
+      await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())
         .to.emit(liquidityPool, "BorrowPaused");
-
-      const amountToBorrow = 2n * RPL_DEC;
-      const signature = await signBorrow(
-        mpc_signer,
-        liquidityPool.target as string,
-        rpl.target as string,
-        amountToBorrow.toString(),
-        user2.address,
-        "0x",
-        31337
-      );
 
       await expect(liquidityPool.connect(user).borrow(
         rpl.target,
-        amountToBorrow,
+        1,
         user2,
         "0x",
         0n,
         2000000000n,
-        signature))
+        "0x"))
       .to.be.revertedWithCustomError(liquidityPool, "BorrowingIsPaused");
+    });
+
+    it("Should NOT borrow if the contract is paused", async function () {
+      const {liquidityPool, rpl, user, user2, pauser} = await loadFixture(deployAll);
+      
+      // Pause the contract
+      await expect(liquidityPool.connect(pauser).pause())
+        .to.emit(liquidityPool, "Paused");
+
+      await expect(liquidityPool.connect(user).borrow(
+        rpl.target,
+        1,
+        user2,
+        "0x",
+        0n,
+        2000000000n,
+        "0x"))
+      .to.be.revertedWithCustomError(liquidityPool, "EnforcedPause");
     });
 
     it("Should NOT repay if all tokens don't have debt or balance", async function () {
@@ -884,32 +908,33 @@ describe("LiquidityPool", function () {
 
       // No balance for rpl, no dept for uni
       await expect(liquidityPool.connect(user).repay([unsupportedToken.target]))
-      .to.be.revertedWithCustomError(liquidityPool, "NothingToRepay");
+        .to.be.revertedWithCustomError(liquidityPool, "NothingToRepay");
     });
 
-    it("Should NOT withdraw collateral if borrowing is not paused", async function () {
-      const {liquidityPool, user, admin} = await loadFixture(deployAll);
-      await expect(liquidityPool.connect(admin).withdraw(user.address, 1000n))
-        .to.be.revertedWithCustomError(liquidityPool, "BorrowingIsNotPaused");
+    it("Should NOT repay when the contract is paused", async function () {
+      const {liquidityPool, user, uni, pauser} = await loadFixture(deployAll);
+      await expect(liquidityPool.connect(pauser).pause())
+        .to.emit(liquidityPool, "Paused");
+
+      await expect(liquidityPool.connect(user).repay([uni.target]))
+        .to.be.revertedWithCustomError(liquidityPool, "EnforcedPause");
     });
 
     it("Should NOT withdraw collateral if not enough on aave", async function () {
-      const {liquidityPool, usdc, USDC_DEC, usdcOwner, aToken, user, admin} = await loadFixture(deployAll);
+      const {liquidityPool, usdc, USDC_DEC, usdcOwner, aToken, user, liquidityAdmin} = await loadFixture(deployAll);
       const amount = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
       await expect(liquidityPool.deposit(amount))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
 
-      await expect(liquidityPool.connect(admin).pauseBorrow())
-        .to.emit(liquidityPool, "BorrowPaused");
-      await expect(liquidityPool.connect(admin).withdraw(user.address, amount * 2n))
+      await expect(liquidityPool.connect(liquidityAdmin).withdraw(user.address, amount * 2n))
         .to.be.reverted;
     });
 
     it("Should NOT withdraw collateral if health factor is too low", async function () {
       const {
-        liquidityPool, usdc, usdcOwner, USDC_DEC, user, admin, uni, mpc_signer, UNI_DEC, user2
+        liquidityPool, usdc, usdcOwner, USDC_DEC, user, liquidityAdmin, uni, mpc_signer, UNI_DEC, user2
       } = await loadFixture(deployAll);
       const amount = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
@@ -937,55 +962,59 @@ describe("LiquidityPool", function () {
         2000000000n,
         signature);
 
-      await expect(liquidityPool.connect(admin).pauseBorrow())
-        .to.emit(liquidityPool, "BorrowPaused");
-      await expect(liquidityPool.connect(admin).withdraw(user.address, 900000000n))
+      await expect(liquidityPool.connect(liquidityAdmin).withdraw(user.address, 900000000n))
         .to.be.revertedWithCustomError(liquidityPool, "HealthFactorTooLow");
     });
 
-    it("Should NOT withdraw collateral by unauthorized user", async function () {
-      const {liquidityPool, usdc, usdcOwner, USDC_DEC, aToken, user} = await loadFixture(deployAll);
-      const amount = 1000n * USDC_DEC; // $1000
-      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
-      await expect(liquidityPool.deposit(amount))
-        .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
-      expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
-
-      await expect(liquidityPool.connect(user).withdraw(user.address, amount * 2n))
-        .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
+    it("Should NOT withdraw collateral if the contract is paused", async function () {
+      const {liquidityPool, user, liquidityAdmin, pauser} = await loadFixture(deployAll);
+      await expect(liquidityPool.connect(pauser).pause())
+        .to.emit(liquidityPool, "Paused");
+      
+      await expect(liquidityPool.connect(liquidityAdmin).withdraw(user.address, 10))
+        .to.be.revertedWithCustomError(liquidityPool, "EnforcedPause");
     });
 
     it("Should NOT withdraw profit if borrowing is not paused", async function () {
-      const {liquidityPool, uni, admin, user} = await loadFixture(deployAll);
-      await expect(liquidityPool.connect(admin).withdrawProfit([uni.target], user.address))
+      const {liquidityPool, uni, withdrawProfit, user} = await loadFixture(deployAll);
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([uni.target], user.address))
         .to.be.revertedWithCustomError(liquidityPool, "BorrowingIsNotPaused");
     });
 
+    it("Should NOT withdraw profit if the contract is paused", async function () {
+      const {liquidityPool, user, uni, withdrawProfit, pauser} = await loadFixture(deployAll);
+      await expect(liquidityPool.connect(pauser).pause())
+        .to.emit(liquidityPool, "Paused");
+      
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([uni.target], user.address))
+        .to.be.revertedWithCustomError(liquidityPool, "EnforcedPause");
+    });
+
     it("Should NOT revert during withdrawing profit if not enough balance", async function () {
-      const {liquidityPool, uni, admin, user} = await loadFixture(deployAll);
-      await expect(liquidityPool.connect(admin).pauseBorrow())
+      const {liquidityPool, uni, withdrawProfit, user} = await loadFixture(deployAll);
+      await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())
         .to.emit(liquidityPool, "BorrowPaused");
-      await liquidityPool.connect(admin).withdrawProfit([uni.target], user.address);
+      await liquidityPool.connect(withdrawProfit).withdrawProfit([uni.target], user.address);
       expect(await uni.balanceOf(user.address)).to.eq(0);
     });
 
     it("Should NOT withdraw profit as aToken", async function () {
-      const {liquidityPool, usdc, usdcOwner, USDC_DEC, admin, user, aToken} = await loadFixture(deployAll);
+      const {liquidityPool, usdc, usdcOwner, USDC_DEC, withdrawProfit, user, aToken} = await loadFixture(deployAll);
       const amount = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
       await expect(liquidityPool.deposit(amount))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
-      await expect(liquidityPool.connect(admin).pauseBorrow())
+      await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())
         .to.emit(liquidityPool, "BorrowPaused");
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
-      await expect(liquidityPool.connect(admin).withdrawProfit([aToken.target], user.address))
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([aToken.target], user.address))
         .to.not.emit(liquidityPool, "ProfitWithdrawn");
       expect(await aToken.balanceOf(user.address)).to.eq(0);
     });
 
     it("Should NOT withdraw profit if the token has debt", async function () {
       const {
-        liquidityPool, usdc, usdcOwner, USDC_DEC, rpl, RPL_DEC, mpc_signer, admin, user, user2, aToken, rplDebtToken
+        liquidityPool, usdc, usdcOwner, USDC_DEC, rpl, RPL_DEC, mpc_signer, withdrawProfit, user, user2, rplDebtToken
       } = await loadFixture(deployAll);
       const amount = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
@@ -1013,9 +1042,9 @@ describe("LiquidityPool", function () {
         signature1);  
       expect(await rpl.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
       expect(await rplDebtToken.balanceOf(liquidityPool.target)).to.be.greaterThan(0);
-      await expect(liquidityPool.connect(admin).pauseBorrow())
+      await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())
         .to.emit(liquidityPool, "BorrowPaused");
-      await expect(liquidityPool.connect(admin).withdrawProfit([rpl.target], user.address))
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([rpl.target], user.address))
         .to.not.emit(liquidityPool, "ProfitWithdrawn");
       expect(await rpl.balanceOf(user.address)).to.eq(0);
     });
@@ -1027,7 +1056,7 @@ describe("LiquidityPool", function () {
     });
   });
 
-  describe("Admin functions", function () {
+  describe("Roles and admin functions", function () {
     it("Should allow admin to set default token LTV", async function () {
       const {liquidityPool, admin} = await loadFixture(deployAll);
       const oldDefaultLTV = await liquidityPool.defaultLTV();
@@ -1079,23 +1108,96 @@ describe("LiquidityPool", function () {
         .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
     });
 
-    it("Should allow admin to pause and unpause borrowing", async function () {
-      const {liquidityPool, admin} = await loadFixture(deployAll);
+    it("Should allow WITHDRAW_PROFIT_ROLE to pause and unpause borrowing", async function () {
+      const {liquidityPool, admin, withdrawProfit} = await loadFixture(deployAll);
       expect(await liquidityPool.borrowPauseStatus())
         .to.eq(false);
-      await expect(liquidityPool.connect(admin).pauseBorrow())
+      await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())
         .to.emit(liquidityPool, "BorrowPaused");
       expect(await liquidityPool.borrowPauseStatus())
         .to.eq(true);
-      await expect(liquidityPool.connect(admin).unpauseBorrow())
+      await expect(liquidityPool.connect(withdrawProfit).unpauseBorrow())
         .to.emit(liquidityPool, "BorrowUnpaused");
       expect(await liquidityPool.borrowPauseStatus())
         .to.eq(false);
     });
 
     it("Should NOT allow others to pause and unpause borrowing", async function () {
-      const {liquidityPool, user} = await loadFixture(deployAll);
-      await expect(liquidityPool.connect(user).pauseBorrow())
+      const {liquidityPool, admin} = await loadFixture(deployAll);
+      await expect(liquidityPool.connect(admin).pauseBorrow())
+        .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
+    });
+
+    it("Should allow WITHDRAW_PROFIT_ROLE to withdraw profit", async function () {
+      const {
+        liquidityPool, uni, UNI_DEC, uniOwner, withdrawProfit, user
+      } = await loadFixture(deployAll);
+      const amountUni = 1n * UNI_DEC;
+      await uni.connect(uniOwner).transfer(liquidityPool.target, amountUni);
+      await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())
+        .to.emit(liquidityPool, "BorrowPaused");
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([uni.target], user.address))
+        .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(uni.target, user.address, amountUni);
+      expect(await uni.balanceOf(user.address)).to.eq(amountUni);
+    });
+
+    it("Should NOT allow others to withdraw profit", async function () {
+      const {liquidityPool, uni, user} = await loadFixture(deployAll);
+      await expect(liquidityPool.connect(user).withdrawProfit([uni.target], user.address))
+        .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
+    });
+
+    it("Should allow LIQUIDITY_ADMIN_ROLE to withdraw collateral", async function () {
+      const {liquidityPool, usdc, usdcOwner, USDC_DEC, aToken, user, liquidityAdmin} = await loadFixture(deployAll);
+      const amount = 1000n * USDC_DEC; // $1000
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
+      await expect(liquidityPool.deposit(amount))
+        .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
+      expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
+
+      await expect(liquidityPool.connect(liquidityAdmin).withdraw(user.address, amount))
+        .to.emit(liquidityPool, "WithdrawnFromAave").withArgs(user.address, amount);
+      expect(await usdc.balanceOf(user.address)).to.be.eq(amount);
+      expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThan(0);
+
+      // Using type(uint256).max as amount to withdraw all available amount
+      await expect(liquidityPool.connect(liquidityAdmin).withdraw(
+        user.address, MaxUint256
+      ))
+        .to.emit(liquidityPool, "WithdrawnFromAave");
+      expect(await usdc.balanceOf(user.address)).to.be.greaterThan(amount);
+      expect(await aToken.balanceOf(liquidityPool.target)).to.eq(0);
+    });
+
+    it("Should NOT allow others to withdraw collateral", async function () {
+      const {liquidityPool, usdc, usdcOwner, USDC_DEC, aToken, user} = await loadFixture(deployAll);
+      const amount = 1000n * USDC_DEC; // $1000
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
+      await expect(liquidityPool.deposit(amount))
+        .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
+      expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
+
+      await expect(liquidityPool.connect(user).withdraw(user.address, amount * 2n))
+        .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
+    });
+
+    it("Should allow PAUSER_ROLE to pause and unpause the contract", async function () {
+      const {liquidityPool, pauser} = await loadFixture(deployAll);
+      expect(await liquidityPool.paused())
+        .to.eq(false);
+      await expect(liquidityPool.connect(pauser).pause())
+        .to.emit(liquidityPool, "Paused");
+      expect(await liquidityPool.paused())
+        .to.eq(true);
+      await expect(liquidityPool.connect(pauser).unpause())
+        .to.emit(liquidityPool, "Unpaused");
+      expect(await liquidityPool.paused())
+        .to.eq(false);
+    });
+
+    it("Should NOT allow others to pause and unpause the contract", async function () {
+      const {liquidityPool, admin} = await loadFixture(deployAll);
+      await expect(liquidityPool.connect(admin).pause())
         .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
     });
   });

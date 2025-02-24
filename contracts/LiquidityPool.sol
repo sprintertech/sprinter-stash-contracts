@@ -5,6 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -16,7 +17,7 @@ import {IAaveOracle} from "./interfaces/IAaveOracle.sol";
 import {ILiquidityPool} from "./interfaces/ILiquidityPool.sol";
 import {IAavePoolDataProvider} from "./interfaces/IAavePoolDataProvider.sol";
 
-contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgradeable {
+contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgradeable, PausableUpgradeable {
     using SafeERC20 for IERC20;
     using ECDSA for bytes32;
     using Math for uint256;
@@ -51,6 +52,7 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
     
     bytes32 public constant LIQUIDITY_ADMIN_ROLE = "LIQUIDITY_ADMIN_ROLE";
     bytes32 public constant WITHDRAW_PROFIT_ROLE = "WITHDRAW_PROFIT_ROLE";
+    bytes32 public constant PAUSER_ROLE = "PAUSER_ROLE";
 
     error ZeroAddress();
     error InvalidSignature();
@@ -105,7 +107,7 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
         $.mpcAddress = mpcAddress_;
     }
 
-    function deposit(uint256 amount) external override {
+    function deposit(uint256 amount) external override whenNotPaused() {
         // called after receiving deposit in USDC
         uint256 balance = ASSETS.balanceOf(address(this));
         require(balance >= amount, NotEnoughToDeposit());
@@ -115,7 +117,7 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
         emit SuppliedToAave(amount);
     }
 
-    function depositWithPull(uint256 amount) external {
+    function depositWithPull(uint256 amount) external whenNotPaused() {
         // pulls USDC from the sender
         ASSETS.safeTransferFrom(msg.sender, address(this), amount);
         IAavePool pool = IAavePool(AAVE_POOL_PROVIDER.getPool());
@@ -132,7 +134,7 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
         uint256 nonce,
         uint256 deadline,
         bytes calldata signature
-    ) external {
+    ) external whenNotPaused() {
         LiquidityPoolStorage storage $ = _getStorage();
         require(!$.borrowPaused, BorrowingIsPaused());
         // - Validate MPC signature
@@ -162,7 +164,7 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
         require(success, TargetCallFailed());
     }
 
-    function repay(address[] calldata borrowTokens) external {
+    function repay(address[] calldata borrowTokens) external whenNotPaused() {
         // Repay token to aave
         bool success;
         IAavePool pool = IAavePool(AAVE_POOL_PROVIDER.getPool());
@@ -174,8 +176,13 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
 
     // Admin functions
 
-    function withdraw(address to, uint256 amount) external override onlyRole(LIQUIDITY_ADMIN_ROLE) returns (uint256) {
-        require(_getStorage().borrowPaused, BorrowingIsNotPaused());
+    function withdraw(address to, uint256 amount)
+        external
+        override
+        onlyRole(LIQUIDITY_ADMIN_ROLE)
+        whenNotPaused()
+        returns (uint256) 
+    {
         // get USDC from AAVE
         IAavePool pool = IAavePool(AAVE_POOL_PROVIDER.getPool());
         uint256 withdrawn = pool.withdraw(address(ASSETS), amount, to);
@@ -189,7 +196,7 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
     function withdrawProfit(
         address[] calldata tokens,
         address to
-    ) external onlyRole(WITHDRAW_PROFIT_ROLE) {
+    ) external onlyRole(WITHDRAW_PROFIT_ROLE) whenNotPaused() {
         require(_getStorage().borrowPaused, BorrowingIsNotPaused());
         IAavePool pool = IAavePool(AAVE_POOL_PROVIDER.getPool());
         AaveDataTypes.ReserveData memory collateralData = pool.getReserveData(address(ASSETS));
@@ -219,16 +226,24 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
         emit HealthFactorSet(oldHealthFactor, minHealthFactor);
     }
 
-    function pauseBorrow() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function pauseBorrow() external onlyRole(WITHDRAW_PROFIT_ROLE) {
         LiquidityPoolStorage storage $ = _getStorage();
         $.borrowPaused = true;
         emit BorrowPaused();
     }
 
-    function unpauseBorrow() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function unpauseBorrow() external onlyRole(WITHDRAW_PROFIT_ROLE) {
         LiquidityPoolStorage storage $ = _getStorage();
         $.borrowPaused = false;
         emit BorrowUnpaused();
+    }
+
+    function pause() external onlyRole(PAUSER_ROLE) whenNotPaused() {
+        _pause();
+    }
+
+    function unpause() external onlyRole(PAUSER_ROLE) whenPaused() {
+        _unpause();
     }
 
     // Internal functions

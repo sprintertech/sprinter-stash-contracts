@@ -4,20 +4,19 @@ pragma solidity 0.8.28;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
-import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
+import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 import {IAavePoolAddressesProvider} from "./interfaces/IAavePoolAddressesProvider.sol";
 import {IAavePool, AaveDataTypes, NO_REFERRAL, INTEREST_RATE_MODE_VARIABLE} from "./interfaces/IAavePool.sol";
 import {IAaveOracle} from "./interfaces/IAaveOracle.sol";
 import {ILiquidityPool} from "./interfaces/ILiquidityPool.sol";
 import {IAavePoolDataProvider} from "./interfaces/IAavePoolDataProvider.sol";
 
-contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgradeable, PausableUpgradeable {
+contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
     using SafeERC20 for IERC20;
     using ECDSA for bytes32;
     using Math for uint256;
@@ -38,17 +37,13 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
     IERC20 immutable public ASSETS;
     IAavePoolAddressesProvider immutable public AAVE_POOL_PROVIDER;
 
-    /// @custom:storage-location erc7201:sprinter.storage.LiquidityPool
-    struct LiquidityPoolStorage {
-        mapping(address token => uint256 ltv) borrowTokenLTV;
-        BitMaps.BitMap usedNonces;
-        address mpcAddress;
-        uint256 minHealthFactor;
-        uint256 defaultLTV;
-        bool borrowPaused;
-    }
+    address public _mpcAddress;
+    uint256 public _minHealthFactor;
+    uint256 public _defaultLTV;
+    bool public _borrowPaused;
 
-    bytes32 private constant STORAGE_LOCATION = 0x457f6fd6dd83195f8bfff9ee98f2df1d90fadb996523baa2b453217997285e00;
+    mapping(address token => uint256 ltv) public _borrowTokenLTV;
+    BitMaps.BitMap private _usedNonces;
     
     bytes32 public constant LIQUIDITY_ADMIN_ROLE = "LIQUIDITY_ADMIN_ROLE";
     bytes32 public constant WITHDRAW_PROFIT_ROLE = "WITHDRAW_PROFIT_ROLE";
@@ -78,11 +73,14 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
     event BorrowPaused();
     event BorrowUnpaused();
 
-    constructor(address liquidityToken, address aavePoolProvider) {
-        ERC7201Helper.validateStorageLocation(
-            STORAGE_LOCATION,
-            "sprinter.storage.LiquidityPool"
-        );
+    constructor(
+        address liquidityToken,
+        address aavePoolProvider,
+        address admin,
+        address mpcAddress,
+        uint256 minHealthFactor,
+        uint256 defaultLTV
+    ) EIP712("LiquidityPool", "1.0.0") {
         require(liquidityToken != address(0), ZeroAddress());
         ASSETS = IERC20(liquidityToken);
         require(aavePoolProvider != address(0), ZeroAddress());
@@ -90,21 +88,11 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
         IAavePoolDataProvider poolDataProvider = IAavePoolDataProvider(AAVE_POOL_PROVIDER.getPoolDataProvider());
         (,,,,,bool usageAsCollateralEnabled,,,,) = poolDataProvider.getReserveConfigurationData(address(ASSETS));
         require(usageAsCollateralEnabled, CollateralNotSupported());
-        _disableInitializers();
-    }
-
-    function initialize(
-        address admin,
-        uint256 minHealthFactor,
-        uint256 defaultLTV_,
-        address mpcAddress_
-    ) external initializer() {
+        require(address(admin) != address(0), ZeroAddress());
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        __EIP712_init("LiquidityPool", "1.0.0");
-        LiquidityPoolStorage storage $ = _getStorage();
-        $.minHealthFactor = minHealthFactor;
-        $.defaultLTV = defaultLTV_;
-        $.mpcAddress = mpcAddress_;
+        _minHealthFactor = minHealthFactor;
+        _defaultLTV = defaultLTV;
+        _mpcAddress = mpcAddress;
     }
 
     function deposit(uint256 amount) external override whenNotPaused() {
@@ -135,8 +123,7 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
         uint256 deadline,
         bytes calldata signature
     ) external whenNotPaused() {
-        LiquidityPoolStorage storage $ = _getStorage();
-        require(!$.borrowPaused, BorrowingIsPaused());
+        require(!_borrowPaused, BorrowingIsPaused());
         // - Validate MPC signature
         _validateMPCSignature(borrowToken, amount, target, targetCallData, nonce, deadline, signature);
         
@@ -152,7 +139,7 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
 
         // - Check health factor for user after borrow (can be read from aave, getUserAccountData)
         (,,,,,uint256 currentHealthFactor) = pool.getUserAccountData(address(this));
-        require(currentHealthFactor >= $.minHealthFactor, HealthFactorTooLow());
+        require(currentHealthFactor >= _minHealthFactor, HealthFactorTooLow());
 
         // check ltv for token
         _checkTokenLTV(pool, borrowToken);
@@ -188,7 +175,7 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
         uint256 withdrawn = pool.withdraw(address(ASSETS), amount, to);
         // health factor after withdraw
         (,,,,,uint256 currentHealthFactor) = pool.getUserAccountData(address(this));
-        require(currentHealthFactor >= _getStorage().minHealthFactor, HealthFactorTooLow());
+        require(currentHealthFactor >= _minHealthFactor, HealthFactorTooLow());
         emit WithdrawnFromAave(to, withdrawn);
         return withdrawn;
     }
@@ -197,7 +184,7 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
         address[] calldata tokens,
         address to
     ) external onlyRole(WITHDRAW_PROFIT_ROLE) whenNotPaused() {
-        require(_getStorage().borrowPaused, BorrowingIsNotPaused());
+        require(_borrowPaused, BorrowingIsNotPaused());
         IAavePool pool = IAavePool(AAVE_POOL_PROVIDER.getPool());
         AaveDataTypes.ReserveData memory collateralData = pool.getReserveData(address(ASSETS));
         for (uint256 i = 0; i < tokens.length; i++) {
@@ -206,35 +193,30 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
     }
 
     function setBorrowTokenLTV(address token, uint256 ltv) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        LiquidityPoolStorage storage $ = _getStorage();
-        uint256 oldLTV = $.borrowTokenLTV[token];
-        $.borrowTokenLTV[token] = ltv;
+        uint256 oldLTV = _borrowTokenLTV[token];
+        _borrowTokenLTV[token] = ltv;
         emit BorrowTokenLTVSet(token, oldLTV, ltv);
     }
 
     function setDefaultLTV(uint256 defaultLTV_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        LiquidityPoolStorage storage $ = _getStorage();
-        uint256 oldDefaultLTV = $.defaultLTV;
-        $.defaultLTV = defaultLTV_;
+        uint256 oldDefaultLTV = _defaultLTV;
+        _defaultLTV = defaultLTV_;
         emit DefaultLTVSet(oldDefaultLTV, defaultLTV_);
     }
 
     function setHealthFactor(uint256 minHealthFactor) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        LiquidityPoolStorage storage $ = _getStorage();
-        uint256 oldHealthFactor = $.minHealthFactor;
-        $.minHealthFactor = minHealthFactor;
+        uint256 oldHealthFactor = _minHealthFactor;
+        _minHealthFactor = minHealthFactor;
         emit HealthFactorSet(oldHealthFactor, minHealthFactor);
     }
 
     function pauseBorrow() external onlyRole(WITHDRAW_PROFIT_ROLE) {
-        LiquidityPoolStorage storage $ = _getStorage();
-        $.borrowPaused = true;
+        _borrowPaused = true;
         emit BorrowPaused();
     }
 
     function unpauseBorrow() external onlyRole(WITHDRAW_PROFIT_ROLE) {
-        LiquidityPoolStorage storage $ = _getStorage();
-        $.borrowPaused = false;
+        _borrowPaused = false;
         emit BorrowUnpaused();
     }
 
@@ -247,12 +229,6 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
     }
 
     // Internal functions
-
-    function _getStorage() private pure returns (LiquidityPoolStorage storage $) {
-        assembly {
-            $.slot := STORAGE_LOCATION
-        }
-    }
 
     function _validateMPCSignature(
         address borrowToken,
@@ -273,17 +249,15 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
             deadline
         )));
         address signer = digest.recover(signature);
-        LiquidityPoolStorage storage $ = _getStorage();
-        require(signer == $.mpcAddress, InvalidSignature());
-        require($.usedNonces.get(nonce) == false, NonceAlreadyUsed());
-        $.usedNonces.set(nonce);
+        require(signer == _mpcAddress, InvalidSignature());
+        require(_usedNonces.get(nonce) == false, NonceAlreadyUsed());
+        _usedNonces.set(nonce);
         require(notPassed(deadline), ExpiredSignature());
     }
 
     function _checkTokenLTV(IAavePool pool, address borrowToken) private view {
-        LiquidityPoolStorage storage $ = _getStorage();
-        uint256 ltv = $.borrowTokenLTV[borrowToken];
-        if (ltv == 0) ltv = $.defaultLTV;
+        uint256 ltv = _borrowTokenLTV[borrowToken];
+        if (ltv == 0) ltv = _defaultLTV;
 
         AaveDataTypes.ReserveData memory collateralData = pool.getReserveData(address(ASSETS));
         uint256 totalCollateral = IERC20(collateralData.aTokenAddress).balanceOf(address(this));
@@ -357,22 +331,6 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
 
     // View functions
 
-    function defaultLTV() public view returns (uint256) {
-        return _getStorage().defaultLTV;
-    }
-
-    function healthFactor() public view returns (uint256) {
-        return _getStorage().minHealthFactor;
-    }
-
-    function mpcAddress() public view returns (address) {
-        return _getStorage().mpcAddress;
-    }
-
-    function borrowTokenLTV(address token) public view returns (uint256) {
-        return _getStorage().borrowTokenLTV[token];
-    }
-
     function timeNow() internal view returns (uint32) {
         return uint32(block.timestamp);
     }
@@ -383,9 +341,5 @@ contract LiquidityPool is ILiquidityPool, AccessControlUpgradeable, EIP712Upgrad
 
     function notPassed(uint256 timestamp) internal view returns (bool) {
         return !passed(timestamp);
-    }
-
-    function borrowPauseStatus() public view returns (bool) {
-        return _getStorage().borrowPaused;
     }
 }

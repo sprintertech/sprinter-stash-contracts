@@ -66,30 +66,19 @@ describe("LiquidityPool", function () {
 
     const startingNonce = await deployer.getNonce();
 
-    const liquidityPoolAddress = await getCreateAddress(deployer, startingNonce + 1);
-    const liquidityPoolImpl = (
-      await deploy("LiquidityPool", deployer, {nonce: startingNonce},
-        usdc.target, AAVE_POOL_PROVIDER
-      )
-    ) as LiquidityPool;
+    const liquidityPoolAddress = await getCreateAddress(deployer, startingNonce);
     // Initialize health factor as 5 (500%)
     const healthFactor = 500n * 10n ** 18n / 100n;
     // Initialize token LTV as 5%
     const defaultLtv = 5n * 10n ** 18n / 100n;
-    const liquidityPoolInit = 
-      (await liquidityPoolImpl.initialize.populateTransaction(
-        admin.address, healthFactor, defaultLtv, mpc_signer.address
-      )).data;
-    const liquidityPoolProxy = (await deploy(
-      "TransparentUpgradeableProxy", deployer, {nonce: startingNonce + 1},
-      liquidityPoolImpl.target, admin, liquidityPoolInit
-    )) as TransparentUpgradeableProxy;
-    const liquidityPool = (await getContractAt("LiquidityPool", liquidityPoolAddress, deployer)) as LiquidityPool;
-    const liquidityPoolProxyAdminAddress = await getCreateAddress(liquidityPoolProxy, 1);
-    const liquidityPoolAdmin = (await getContractAt("ProxyAdmin", liquidityPoolProxyAdminAddress, admin)) as ProxyAdmin;
+    const liquidityPool = (
+      await deploy("LiquidityPool", deployer, {nonce: startingNonce},
+        usdc.target, AAVE_POOL_PROVIDER, admin.address, mpc_signer.address, healthFactor, defaultLtv 
+      )
+    ) as LiquidityPool;
 
     const mockTarget = (
-      await deploy("MockTarget", deployer, {nonce: startingNonce + 2})
+      await deploy("MockTarget", deployer, {nonce: startingNonce + 1})
     ) as MockTarget;
 
     const LIQUIDITY_ADMIN_ROLE = encodeBytes32String("LIQUIDITY_ADMIN_ROLE");
@@ -102,7 +91,7 @@ describe("LiquidityPool", function () {
     await liquidityPool.connect(admin).grantRole(PAUSER_ROLE, pauser.address);
 
     return {deployer, admin, user, user2, mpc_signer, usdc, usdcOwner, rpl, rplOwner, uni, uniOwner,
-      liquidityPool, liquidityPoolProxy, liquidityPoolAdmin, mockTarget, USDC_DEC, RPL_DEC, UNI_DEC, AAVE_POOL_PROVIDER,
+      liquidityPool, mockTarget, USDC_DEC, RPL_DEC, UNI_DEC, AAVE_POOL_PROVIDER,
       healthFactor, defaultLtv, aavePool, aToken, rplDebtToken, uniDebtToken, usdcDebtToken,
       nonSupportedToken, nonSupportedTokenOwner, liquidityAdmin, withdrawProfit, pauser};
   };
@@ -116,21 +105,21 @@ describe("LiquidityPool", function () {
         .to.be.eq(usdc.target);
       expect(await liquidityPool.AAVE_POOL_PROVIDER())
         .to.be.eq(AAVE_POOL_PROVIDER);
-      expect(await liquidityPool.healthFactor())
+      expect(await liquidityPool._minHealthFactor())
         .to.be.eq(healthFactor);
-      expect(await liquidityPool.defaultLTV())
+      expect(await liquidityPool._defaultLTV())
         .to.be.eq(defaultLtv);
-      expect(await liquidityPool.mpcAddress())
+      expect(await liquidityPool._mpcAddress())
         .to.be.eq(mpc_signer);
     });
 
     it("Should NOT deploy the contract if token cannot be used as collateral", async function () {
       const {
-        deployer, AAVE_POOL_PROVIDER, rpl, liquidityPool
+        deployer, AAVE_POOL_PROVIDER, liquidityPool, rpl, admin, mpc_signer, healthFactor, defaultLtv
       } = await loadFixture(deployAll);
       const startingNonce = await deployer.getNonce();
       await expect(deploy("LiquidityPool", deployer, {nonce: startingNonce},
-        rpl.target, AAVE_POOL_PROVIDER
+        rpl.target, AAVE_POOL_PROVIDER, admin.address,mpc_signer.address, healthFactor, defaultLtv
       )).to.be.revertedWithCustomError(liquidityPool, "CollateralNotSupported");
     });
   });
@@ -1059,11 +1048,11 @@ describe("LiquidityPool", function () {
   describe("Roles and admin functions", function () {
     it("Should allow admin to set default token LTV", async function () {
       const {liquidityPool, admin} = await loadFixture(deployAll);
-      const oldDefaultLTV = await liquidityPool.defaultLTV();
+      const oldDefaultLTV = await liquidityPool._defaultLTV();
       const defaultLtv = 1000;
       await expect(liquidityPool.connect(admin).setDefaultLTV(defaultLtv))
         .to.emit(liquidityPool, "DefaultLTVSet").withArgs(oldDefaultLTV, defaultLtv);
-      expect(await liquidityPool.defaultLTV())
+      expect(await liquidityPool._defaultLTV())
         .to.eq(defaultLtv);
     });
 
@@ -1076,11 +1065,11 @@ describe("LiquidityPool", function () {
 
     it("Should allow admin to set token LTV for each token", async function () {
       const {liquidityPool, admin, uni} = await loadFixture(deployAll);
-      const oldLTV = await liquidityPool.borrowTokenLTV(uni.target);
+      const oldLTV = await liquidityPool._borrowTokenLTV(uni.target);
       const ltv = 1000;
       await expect(liquidityPool.connect(admin).setBorrowTokenLTV(uni.target, ltv))
         .to.emit(liquidityPool, "BorrowTokenLTVSet").withArgs(uni.target, oldLTV, ltv);
-      expect(await liquidityPool.borrowTokenLTV(uni.target))
+      expect(await liquidityPool._borrowTokenLTV(uni.target))
         .to.eq(ltv);
     });
 
@@ -1093,11 +1082,11 @@ describe("LiquidityPool", function () {
 
     it("Should allow admin to set minimal health factor", async function () {
       const {liquidityPool, admin} = await loadFixture(deployAll);
-      const oldHealthFactor = await liquidityPool.healthFactor();
+      const oldHealthFactor = await liquidityPool._minHealthFactor();
       const healthFactor = 300n * 10n ** 18n / 100n;
       await expect(liquidityPool.connect(admin).setHealthFactor(healthFactor))
         .to.emit(liquidityPool, "HealthFactorSet").withArgs(oldHealthFactor, healthFactor);
-      expect(await liquidityPool.healthFactor())
+      expect(await liquidityPool._minHealthFactor())
         .to.eq(healthFactor);
     });
 
@@ -1110,15 +1099,15 @@ describe("LiquidityPool", function () {
 
     it("Should allow WITHDRAW_PROFIT_ROLE to pause and unpause borrowing", async function () {
       const {liquidityPool, admin, withdrawProfit} = await loadFixture(deployAll);
-      expect(await liquidityPool.borrowPauseStatus())
+      expect(await liquidityPool._borrowPaused())
         .to.eq(false);
       await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())
         .to.emit(liquidityPool, "BorrowPaused");
-      expect(await liquidityPool.borrowPauseStatus())
+      expect(await liquidityPool._borrowPaused())
         .to.eq(true);
       await expect(liquidityPool.connect(withdrawProfit).unpauseBorrow())
         .to.emit(liquidityPool, "BorrowUnpaused");
-      expect(await liquidityPool.borrowPauseStatus())
+      expect(await liquidityPool._borrowPaused())
         .to.eq(false);
     });
 

@@ -33,6 +33,20 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
             "uint256 deadline"
         ")"
     );
+    bytes32 private constant BORROW_AND_SWAP_TYPEHASH = keccak256(
+        "BorrowAndSwap("
+            "address borrowToken,"
+            "uint256 borrowAmount,"
+            "address fillToken,"
+            "uint256 fillAmount,"
+            "bytes swapData,"
+            "address target,"
+            "bytes targetCallData,"
+            "uint256 nonce,"
+            "uint256 deadline"
+        ")"
+    );
+    bytes4 private constant SWAP_SELECTOR = bytes4(keccak256("swap(bytes)"));
 
     IERC20 immutable public ASSETS;
     IAavePoolAddressesProvider immutable public AAVE_POOL_PROVIDER;
@@ -44,6 +58,12 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
 
     mapping(address token => uint256 ltv) public _borrowTokenLTV;
     BitMaps.BitMap private _usedNonces;
+
+    struct SwapParams {
+        address fillToken;
+        uint256 fillAmount;
+        bytes swapData;
+    }
     
     bytes32 public constant LIQUIDITY_ADMIN_ROLE = "LIQUIDITY_ADMIN_ROLE";
     bytes32 public constant WITHDRAW_PROFIT_ROLE = "WITHDRAW_PROFIT_ROLE";
@@ -56,6 +76,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
     error NoCollateral();
     error HealthFactorTooLow();
     error TargetCallFailed();
+    error SwapCallFailed();
     error NothingToRepay();
     error ExpiredSignature();
     error NonceAlreadyUsed();
@@ -124,31 +145,45 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
         uint256 deadline,
         bytes calldata signature
     ) external whenNotPaused() {
-        require(!borrowPaused, BorrowingIsPaused());
         // - Validate MPC signature
         _validateMPCSignature(borrowToken, amount, target, targetCallData, nonce, deadline, signature);
-        
-        // - Borrow the requested source token from the lending protocol against available USDC liquidity.
-        IAavePool pool = IAavePool(AAVE_POOL_PROVIDER.getPool());
-        pool.borrow(
-            borrowToken,
-            amount,
-            INTEREST_RATE_MODE_VARIABLE,
-            NO_REFERRAL,
-            address(this)
-        );
-
-        // - Check health factor for user after borrow (can be read from aave, getUserAccountData)
-        (,,,,,uint256 currentHealthFactor) = pool.getUserAccountData(address(this));
-        require(currentHealthFactor >= minHealthFactor, HealthFactorTooLow());
-
-        // check ltv for token
-        _checkTokenLTV(pool, borrowToken);
-        // - Approve the borrowed funds for transfer to the recipient specified in the MPC signature.
-        IERC20(borrowToken).forceApprove(target, amount);
+        _borrow(borrowToken, amount, target);
         // - Invoke the recipient's address with calldata provided in the MPC signature to complete
         // the operation securely.
         (bool success,) = target.call(targetCallData);
+        require(success, TargetCallFailed());
+    }
+
+    function borrowAndSwap(
+        address borrowToken,
+        uint256 borrowAmount,
+        SwapParams calldata swapInputData,
+        address target,
+        bytes calldata targetCallData,
+        uint256 nonce,
+        uint256 deadline,
+        bytes calldata signature
+    ) external whenNotPaused() {
+        _validateMPCSignatureWithSwap(
+            borrowToken,
+            borrowAmount,
+            swapInputData,
+            target,
+            targetCallData,
+            nonce,
+            deadline,
+            signature
+        );
+        _borrow(borrowToken, borrowAmount, msg.sender);
+        // Call the swap function on caller
+        bytes memory swapCallData = abi.encodeWithSelector(SWAP_SELECTOR, swapInputData.swapData);
+        (bool success,) = msg.sender.call(swapCallData);
+        require(success, SwapCallFailed());
+        IERC20(swapInputData.fillToken).safeTransferFrom(msg.sender, address(this), swapInputData.fillAmount);
+        IERC20(swapInputData.fillToken).forceApprove(target, swapInputData.fillAmount);
+        // - Invoke the recipient's address with calldata provided in the MPC signature to complete
+        // the operation securely.
+        (success,) = target.call(targetCallData);
         require(success, TargetCallFailed());
     }
 
@@ -248,6 +283,35 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
             nonce,
             deadline
         )));
+        _validateSig(digest, nonce, deadline, signature);
+    }
+
+    function _validateMPCSignatureWithSwap(
+        address borrowToken,
+        uint256 amount,
+        SwapParams calldata swapInputData,
+        address target,
+        bytes calldata targetCallData,
+        uint256 nonce,
+        uint256 deadline,
+        bytes calldata signature
+    ) internal {
+        bytes32 digest = _hashTypedDataV4(keccak256(abi.encode(
+            BORROW_AND_SWAP_TYPEHASH,
+            borrowToken,
+            amount,
+            swapInputData.fillToken,
+            swapInputData.fillAmount,
+            keccak256(swapInputData.swapData),
+            target,
+            keccak256(targetCallData),
+            nonce,
+            deadline
+        )));
+        _validateSig(digest, nonce, deadline, signature);
+    }
+
+    function _validateSig(bytes32 digest, uint256 nonce, uint256 deadline, bytes calldata signature) internal {
         address signer = digest.recover(signature);
         require(signer == mpcAddress, InvalidSignature());
         require(_usedNonces.get(nonce) == false, NonceAlreadyUsed());
@@ -284,6 +348,28 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
 
         uint256 currentLtv = totalBorrowPrice * MULTIPLIER * collateralUnit / (collateralPrice * borrowUnit);
         require(currentLtv <= ltv, TokenLtvExceeded());
+    }
+
+    function _borrow(address borrowToken, uint256 amount, address target) internal {
+        require(!borrowPaused, BorrowingIsPaused());
+        // - Borrow the requested source token from the lending protocol against available USDC liquidity.
+        IAavePool pool = IAavePool(AAVE_POOL_PROVIDER.getPool());
+        pool.borrow(
+            borrowToken,
+            amount,
+            INTEREST_RATE_MODE_VARIABLE,
+            NO_REFERRAL,
+            address(this)
+        );
+
+        // - Check health factor for user after borrow (can be read from aave, getUserAccountData)
+        (,,,,,uint256 currentHealthFactor) = pool.getUserAccountData(address(this));
+        require(currentHealthFactor >= minHealthFactor, HealthFactorTooLow());
+
+        // check ltv for token
+        _checkTokenLTV(pool, borrowToken);
+        // - Approve the borrowed funds for transfer to the recipient specified in the MPC signature.
+        IERC20(borrowToken).forceApprove(target, amount);
     }
 
     function _repay(address borrowToken, IAavePool pool, bool successInput)

@@ -78,3 +78,56 @@ export async function signBorrow(
 
   return signer.signTypedData(domain, types, value);
 }
+
+export async function signBorrowAndSwap(
+  signer: Signer,
+  verifyingContract: string,
+  borrowToken: string,
+  borrowAmount: string,
+  fillToken: string,
+  fillAmount: string,
+  swapData: string,
+  target: string,
+  targetCallData: string,
+  chainId: number = 1,
+  nonce: bigint = 0n,
+  deadline: bigint = 2000000000n
+) {
+  const name = "LiquidityPool";
+  const version = "1.0.0";
+
+  const domain: TypedDataDomain = {
+    name,
+    version,
+    chainId,
+    verifyingContract
+  };
+
+  const types = {
+    BorrowAndSwap: [
+      {name: "borrowToken", type: "address"},
+      {name: "borrowAmount", type: "uint256"},
+      {name: "fillToken", type: "address"},
+      {name: "fillAmount", type: "uint256"},
+      {name: "swapData", type: "bytes"},
+      {name: "target", type: "address"},
+      {name: "targetCallData", type: "bytes"},
+      {name: "nonce", type: "uint256"},
+      {name: "deadline", type: "uint256"},
+    ],
+  };
+
+  const value = {
+    borrowToken: borrowToken.toLowerCase(),
+    borrowAmount,
+    fillToken: fillToken.toLowerCase(),
+    fillAmount,
+    swapData: swapData,
+    target: target.toLowerCase(),
+    targetCallData,
+    nonce,
+    deadline,
+  };
+
+  return signer.signTypedData(domain, types, value);
+}

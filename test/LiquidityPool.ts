@@ -4,11 +4,11 @@ import {
 import {expect} from "chai";
 import hre from "hardhat";
 import {
-  deploy, signBorrow
+  deploy, signBorrow, signBorrowAndSwap
 } from "./helpers";
-import {encodeBytes32String, MaxUint256} from "ethers";
+import {encodeBytes32String, MaxUint256, AbiCoder} from "ethers";
 import {
-  MockTarget, LiquidityPool
+  MockTarget, MockBorrowSwap, LiquidityPool
 } from "../typechain-types";
 
 async function now() {
@@ -80,6 +80,10 @@ describe("LiquidityPool", function () {
       await deploy("MockTarget", deployer, {nonce: startingNonce + 1})
     ) as MockTarget;
 
+    const mockBorrowSwap = (
+      await deploy("MockBorrowSwap", deployer, {nonce: startingNonce + 2})
+    ) as MockBorrowSwap;
+
     const LIQUIDITY_ADMIN_ROLE = encodeBytes32String("LIQUIDITY_ADMIN_ROLE");
     await liquidityPool.connect(admin).grantRole(LIQUIDITY_ADMIN_ROLE, liquidityAdmin.address);
 
@@ -90,7 +94,7 @@ describe("LiquidityPool", function () {
     await liquidityPool.connect(admin).grantRole(PAUSER_ROLE, pauser.address);
 
     return {deployer, admin, user, user2, mpc_signer, usdc, usdcOwner, rpl, rplOwner, uni, uniOwner,
-      liquidityPool, mockTarget, USDC_DEC, RPL_DEC, UNI_DEC, AAVE_POOL_PROVIDER,
+      liquidityPool, mockTarget, mockBorrowSwap, USDC_DEC, RPL_DEC, UNI_DEC, AAVE_POOL_PROVIDER,
       healthFactor, defaultLtv, aavePool, aToken, rplDebtToken, uniDebtToken, usdcDebtToken,
       nonSupportedToken, nonSupportedTokenOwner, liquidityAdmin, withdrawProfit, pauser};
   };
@@ -276,6 +280,64 @@ describe("LiquidityPool", function () {
         signature);  
       expect(await usdc.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amountCollateral - 1n);
+    });
+
+    it("Should borrow a token with swap", async function () {
+      // RPL is borrowed and swapped to UNI
+      const {
+        liquidityPool, mockTarget, mockBorrowSwap, usdc, USDC_DEC, rpl, RPL_DEC,
+        user, mpc_signer, usdcOwner, uni, UNI_DEC, uniOwner, liquidityAdmin
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC; // $1000
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
+        .to.emit(liquidityPool, "SuppliedToAave");
+
+      const amountToBorrow = 3n * RPL_DEC;
+      const fillAmount = 2n * UNI_DEC;
+      await uni.connect(uniOwner).approve(mockBorrowSwap.target, fillAmount);
+
+      const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
+
+      const callData = await mockTarget.fulfill.populateTransaction(uni.target, fillAmount, additionalData);
+      const swapData = AbiCoder.defaultAbiCoder().encode(
+            ["address", "uint256", "address", "address", "uint256"],
+            [rpl.target, amountToBorrow, uni.target, uniOwner.address, fillAmount]
+          );
+
+      const signature = await signBorrowAndSwap(
+        mpc_signer,
+        liquidityPool.target as string,
+        rpl.target as string,
+        amountToBorrow.toString(),
+        uni.target as string,
+        fillAmount.toString(),
+        swapData,
+        mockTarget.target as string,
+        callData.data,
+        31337
+      );
+
+      const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
+        rpl.target,
+        amountToBorrow,
+        {fillToken: uni.target,
+        fillAmount,
+        swapData},
+        mockTarget.target,
+        callData.data,
+        0n,
+        2000000000n,
+        signature
+      );
+
+      await expect(mockBorrowSwap.connect(user).callBorrow(liquidityPool.target, borrowCalldata.data))
+        .to.emit(mockBorrowSwap, "Swapped").withArgs(swapData) 
+        .and.to.emit(mockTarget, "DataReceived").withArgs(additionalData);  
+      expect(await rpl.balanceOf(liquidityPool.target)).to.eq(0);
+      expect(await rpl.balanceOf(mockBorrowSwap.target)).to.eq(amountToBorrow);
+      expect(await uni.balanceOf(liquidityPool.target)).to.eq(0);
+      expect(await uni.balanceOf(mockTarget.target)).to.eq(fillAmount);
     });
 
     it("Should repay a debt", async function () {
@@ -842,20 +904,31 @@ describe("LiquidityPool", function () {
     });
 
     it("Should NOT borrow if borrowing is paused", async function () {
-      const {liquidityPool, rpl, user, user2, withdrawProfit} = await loadFixture(deployAll);
+      const {liquidityPool, rpl, user, user2, withdrawProfit, mpc_signer, uni, UNI_DEC} = await loadFixture(deployAll);
       
       // Pause borrowing
       await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())
         .to.emit(liquidityPool, "BorrowPaused");
 
+      const amountToBorrow = 2n * UNI_DEC;
+      const signature = await signBorrow(
+        mpc_signer,
+        liquidityPool.target as string,
+        uni.target as string,
+        amountToBorrow.toString(),
+        user2.address,
+        "0x",
+        31337
+      );
+
       await expect(liquidityPool.connect(user).borrow(
-        rpl.target,
-        1,
+        uni.target,
+        amountToBorrow,
         user2,
         "0x",
         0n,
         2000000000n,
-        "0x"))
+        signature))
       .to.be.revertedWithCustomError(liquidityPool, "BorrowingIsPaused");
     });
 

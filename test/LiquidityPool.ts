@@ -904,7 +904,7 @@ describe("LiquidityPool", function () {
     });
 
     it("Should NOT borrow if borrowing is paused", async function () {
-      const {liquidityPool, rpl, user, user2, withdrawProfit, mpc_signer, uni, UNI_DEC} = await loadFixture(deployAll);
+      const {liquidityPool, user, user2, withdrawProfit, mpc_signer, uni, UNI_DEC} = await loadFixture(deployAll);
       
       // Pause borrowing
       await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())

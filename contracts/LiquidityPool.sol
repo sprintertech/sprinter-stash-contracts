@@ -37,10 +37,10 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
     IERC20 immutable public ASSETS;
     IAavePoolAddressesProvider immutable public AAVE_POOL_PROVIDER;
 
-    address public _mpcAddress;
-    uint256 public _minHealthFactor;
-    uint256 public _defaultLTV;
-    bool public _borrowPaused;
+    bool public borrowPaused;
+    address public mpcAddress;
+    uint256 public minHealthFactor;
+    uint256 public defaultLTV;
 
     mapping(address token => uint256 ltv) public _borrowTokenLTV;
     BitMaps.BitMap private _usedNonces;
@@ -62,6 +62,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
     error CollateralNotSupported();
     error BorrowingIsPaused();
     error BorrowingIsNotPaused();
+    error CannotWithdrawAToken();
 
     event SuppliedToAave(uint256 amount);
     event BorrowTokenLTVSet(address token, uint256 oldLTV, uint256 newLTV);
@@ -77,9 +78,9 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
         address liquidityToken,
         address aavePoolProvider,
         address admin,
-        address mpcAddress,
-        uint256 minHealthFactor,
-        uint256 defaultLTV
+        address mpcAddress_,
+        uint256 minHealthFactor_,
+        uint256 defaultLTV_
     ) EIP712("LiquidityPool", "1.0.0") {
         require(liquidityToken != address(0), ZeroAddress());
         ASSETS = IERC20(liquidityToken);
@@ -90,12 +91,12 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
         require(usageAsCollateralEnabled, CollateralNotSupported());
         require(address(admin) != address(0), ZeroAddress());
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _minHealthFactor = minHealthFactor;
-        _defaultLTV = defaultLTV;
-        _mpcAddress = mpcAddress;
+        minHealthFactor = minHealthFactor_;
+        defaultLTV = defaultLTV_;
+        mpcAddress = mpcAddress_;
     }
 
-    function deposit(uint256 amount) external override whenNotPaused() {
+    function deposit(uint256 amount) external override onlyRole(LIQUIDITY_ADMIN_ROLE) {
         // called after receiving deposit in USDC
         uint256 balance = ASSETS.balanceOf(address(this));
         require(balance >= amount, NotEnoughToDeposit());
@@ -105,7 +106,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
         emit SuppliedToAave(amount);
     }
 
-    function depositWithPull(uint256 amount) external whenNotPaused() {
+    function depositWithPull(uint256 amount) external {
         // pulls USDC from the sender
         ASSETS.safeTransferFrom(msg.sender, address(this), amount);
         IAavePool pool = IAavePool(AAVE_POOL_PROVIDER.getPool());
@@ -123,7 +124,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
         uint256 deadline,
         bytes calldata signature
     ) external whenNotPaused() {
-        require(!_borrowPaused, BorrowingIsPaused());
+        require(!borrowPaused, BorrowingIsPaused());
         // - Validate MPC signature
         _validateMPCSignature(borrowToken, amount, target, targetCallData, nonce, deadline, signature);
         
@@ -139,7 +140,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
 
         // - Check health factor for user after borrow (can be read from aave, getUserAccountData)
         (,,,,,uint256 currentHealthFactor) = pool.getUserAccountData(address(this));
-        require(currentHealthFactor >= _minHealthFactor, HealthFactorTooLow());
+        require(currentHealthFactor >= minHealthFactor, HealthFactorTooLow());
 
         // check ltv for token
         _checkTokenLTV(pool, borrowToken);
@@ -151,7 +152,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
         require(success, TargetCallFailed());
     }
 
-    function repay(address[] calldata borrowTokens) external whenNotPaused() {
+    function repay(address[] calldata borrowTokens) external {
         // Repay token to aave
         bool success;
         IAavePool pool = IAavePool(AAVE_POOL_PROVIDER.getPool());
@@ -175,7 +176,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
         uint256 withdrawn = pool.withdraw(address(ASSETS), amount, to);
         // health factor after withdraw
         (,,,,,uint256 currentHealthFactor) = pool.getUserAccountData(address(this));
-        require(currentHealthFactor >= _minHealthFactor, HealthFactorTooLow());
+        require(currentHealthFactor >= minHealthFactor, HealthFactorTooLow());
         emit WithdrawnFromAave(to, withdrawn);
         return withdrawn;
     }
@@ -184,7 +185,6 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
         address[] calldata tokens,
         address to
     ) external onlyRole(WITHDRAW_PROFIT_ROLE) whenNotPaused() {
-        require(_borrowPaused, BorrowingIsNotPaused());
         IAavePool pool = IAavePool(AAVE_POOL_PROVIDER.getPool());
         AaveDataTypes.ReserveData memory collateralData = pool.getReserveData(address(ASSETS));
         for (uint256 i = 0; i < tokens.length; i++) {
@@ -199,24 +199,24 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
     }
 
     function setDefaultLTV(uint256 defaultLTV_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        uint256 oldDefaultLTV = _defaultLTV;
-        _defaultLTV = defaultLTV_;
+        uint256 oldDefaultLTV = defaultLTV;
+        defaultLTV = defaultLTV_;
         emit DefaultLTVSet(oldDefaultLTV, defaultLTV_);
     }
 
-    function setHealthFactor(uint256 minHealthFactor) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        uint256 oldHealthFactor = _minHealthFactor;
-        _minHealthFactor = minHealthFactor;
-        emit HealthFactorSet(oldHealthFactor, minHealthFactor);
+    function setHealthFactor(uint256 minHealthFactor_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        uint256 oldHealthFactor = minHealthFactor;
+        minHealthFactor = minHealthFactor_;
+        emit HealthFactorSet(oldHealthFactor, minHealthFactor_);
     }
 
     function pauseBorrow() external onlyRole(WITHDRAW_PROFIT_ROLE) {
-        _borrowPaused = true;
+        borrowPaused = true;
         emit BorrowPaused();
     }
 
     function unpauseBorrow() external onlyRole(WITHDRAW_PROFIT_ROLE) {
-        _borrowPaused = false;
+        borrowPaused = false;
         emit BorrowUnpaused();
     }
 
@@ -249,7 +249,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
             deadline
         )));
         address signer = digest.recover(signature);
-        require(signer == _mpcAddress, InvalidSignature());
+        require(signer == mpcAddress, InvalidSignature());
         require(_usedNonces.get(nonce) == false, NonceAlreadyUsed());
         _usedNonces.set(nonce);
         require(notPassed(deadline), ExpiredSignature());
@@ -257,7 +257,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
 
     function _checkTokenLTV(IAavePool pool, address borrowToken) private view {
         uint256 ltv = _borrowTokenLTV[borrowToken];
-        if (ltv == 0) ltv = _defaultLTV;
+        if (ltv == 0) ltv = defaultLTV;
 
         AaveDataTypes.ReserveData memory collateralData = pool.getReserveData(address(ASSETS));
         uint256 totalCollateral = IERC20(collateralData.aTokenAddress).balanceOf(address(this));
@@ -315,7 +315,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
         IAavePool pool
     ) internal {
         // Check that not aToken
-        if (token == aToken) return;
+        require(token != aToken, CannotWithdrawAToken());
         uint256 amountToWithdraw = IERC20(token).balanceOf(address(this));
         if (amountToWithdraw == 0) return;
         // Check that the token doesn't have debt

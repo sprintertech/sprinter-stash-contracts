@@ -17,7 +17,8 @@ export function isSet(input?: string): boolean {
 }
 
 export const ProviderSolidity = {
-  CCTP: 0n,
+  LOCAL: 0n,
+  CCTP: 1n,
 };
 
 export const DomainSolidity = {

@@ -71,14 +71,22 @@ task("set-min-health-factor", "Update Liquidity Pool config")
 
 task("set-routes", "Update Rebalancer config")
 .addOptionalParam("rebalancer", "Rebalancer address")
+.addOptionalParam("pools", "Liquidity Pool addresses")
 .addOptionalParam("domains", "Comma separated list of domain names")
 .addOptionalParam("providers", "Comma separated list of provider names")
 .addOptionalParam("allowed", "Allowed or denied")
-.setAction(async (args: {rebalancer?: string, providers?: string, domains?: string, allowed?: string}, hre) => {
+.setAction(async (args: {
+  rebalancer?: string,
+  pools?: string,
+  providers?: string,
+  domains?: string,
+  allowed?: string
+}, hre) => {
   const config = networkConfig[hre.network.name as Network];
 
   const [admin] = await hre.ethers.getSigners();
 
+  const targetPools = args.pools && args.pools.split(",") || [];
   const targetAddress = await resolveAddress(args.rebalancer || process.env.REBALANCER || "");
   const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, admin)) as Rebalancer;
 
@@ -94,7 +102,7 @@ task("set-routes", "Update Rebalancer config")
   });
   assert(!args.allowed || args.allowed === "false" || args.allowed === "true", "Unexpected allowed value");
   const allowed = args.allowed ? args.allowed === "true" : true;
-  await target.setRoute(domainsSolidity, providersSolidity, allowed);
+  await target.setRoute(targetPools, domainsSolidity, providersSolidity, allowed);
   console.log(`Following routes are ${allowed ? "" : "dis"}allowed on ${targetAddress}.`);
   console.table({domains, providers});
 });

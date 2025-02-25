@@ -35,11 +35,11 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
     );
     bytes32 private constant BORROW_AND_SWAP_TYPEHASH = keccak256(
         "BorrowAndSwap("
+            "address caller,"
             "address borrowToken,"
             "uint256 borrowAmount,"
             "address fillToken,"
             "uint256 fillAmount,"
-            "bytes swapData,"
             "address target,"
             "bytes targetCallData,"
             "uint256 nonce,"
@@ -298,11 +298,11 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
     ) internal {
         bytes32 digest = _hashTypedDataV4(keccak256(abi.encode(
             BORROW_AND_SWAP_TYPEHASH,
+            msg.sender,
             borrowToken,
             amount,
             swapInputData.fillToken,
             swapInputData.fillAmount,
-            keccak256(swapInputData.swapData),
             target,
             keccak256(targetCallData),
             nonce,

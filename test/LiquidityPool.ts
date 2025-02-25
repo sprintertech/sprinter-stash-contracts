@@ -308,11 +308,11 @@ describe("LiquidityPool", function () {
       const signature = await signBorrowAndSwap(
         mpc_signer,
         liquidityPool.target as string,
+        mockBorrowSwap.target as string,
         rpl.target as string,
         amountToBorrow.toString(),
         uni.target as string,
         fillAmount.toString(),
-        swapData,
         mockTarget.target as string,
         callData.data,
         31337
@@ -948,6 +948,113 @@ describe("LiquidityPool", function () {
         2000000000n,
         "0x"))
       .to.be.revertedWithCustomError(liquidityPool, "EnforcedPause");
+    });
+
+    it("Should NOT borrow and swap if MPC signature is wrong (caller is wrong)", async function () {
+      // RPL is borrowed and swapped to UNI
+      const {
+        liquidityPool, mockTarget, mockBorrowSwap, usdc, USDC_DEC, rpl, RPL_DEC,
+        user, mpc_signer, usdcOwner, uni, UNI_DEC, uniOwner, liquidityAdmin
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC; // $1000
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
+        .to.emit(liquidityPool, "SuppliedToAave");
+
+      const amountToBorrow = 3n * RPL_DEC;
+      const fillAmount = 2n * UNI_DEC;
+      await uni.connect(uniOwner).approve(mockBorrowSwap.target, fillAmount);
+
+      const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
+
+      const callData = await mockTarget.fulfill.populateTransaction(uni.target, fillAmount, additionalData);
+      const swapData = AbiCoder.defaultAbiCoder().encode(
+            ["address", "uint256", "address", "address", "uint256"],
+            [rpl.target, amountToBorrow, uni.target, uniOwner.address, fillAmount]
+          );
+
+      // user address is signed instead of mockBorrowSwap address
+      const signature = await signBorrowAndSwap(
+        mpc_signer,
+        liquidityPool.target as string,
+        user.address as string,
+        uni.target as string,
+        amountToBorrow.toString(),
+        rpl.target as string,
+        fillAmount.toString(),
+        mockTarget.target as string,
+        callData.data,
+        31337
+      );
+
+      const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
+        rpl.target,
+        amountToBorrow,
+        {fillToken: uni.target,
+        fillAmount,
+        swapData},
+        mockTarget.target,
+        callData.data,
+        0n,
+        2000000000n,
+        signature
+      );
+
+      await expect(mockBorrowSwap.connect(user).callBorrow(liquidityPool.target, borrowCalldata.data))
+        .to.be.reverted;
+    });
+
+    it("Should NOT borrow and swap if the swap fails", async function () {
+      // RPL is borrowed and swapped to UNI
+      const {
+        liquidityPool, mockTarget, mockBorrowSwap, usdc, USDC_DEC, rpl, RPL_DEC,
+        user, mpc_signer, usdcOwner, uni, UNI_DEC, uniOwner, liquidityAdmin
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC; // $1000
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
+        .to.emit(liquidityPool, "SuppliedToAave");
+
+      const amountToBorrow = 3n * RPL_DEC;
+      const fillAmount = 2n * UNI_DEC;
+
+      const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
+
+      const callData = await mockTarget.fulfill.populateTransaction(uni.target, fillAmount, additionalData);
+      const swapData = AbiCoder.defaultAbiCoder().encode(
+            ["address", "uint256", "address", "address", "uint256"],
+            [rpl.target, amountToBorrow, uni.target, uniOwner.address, fillAmount]
+          );
+
+      const signature = await signBorrowAndSwap(
+        mpc_signer,
+        liquidityPool.target as string,
+        mockBorrowSwap.target as string,
+        rpl.target as string,
+        amountToBorrow.toString(),
+        uni.target as string,
+        fillAmount.toString(),
+        mockTarget.target as string,
+        callData.data,
+        31337
+      );
+
+      const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
+        rpl.target,
+        amountToBorrow,
+        {fillToken: uni.target,
+        fillAmount,
+        swapData},
+        mockTarget.target,
+        callData.data,
+        0n,
+        2000000000n,
+        signature
+      );
+
+      // No UNI tokens (fillToken) will be available for swap
+      await expect(mockBorrowSwap.connect(user).callBorrow(liquidityPool.target, borrowCalldata.data))
+      .to.be.reverted;
     });
 
     it("Should NOT repay if all tokens don't have debt or balance", async function () {

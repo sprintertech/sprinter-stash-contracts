@@ -16,6 +16,7 @@ export enum Network {
 };
 
 export enum Provider {
+  LOCAL = "LOCAL",
   CCTP = "CCTP",
 };
 

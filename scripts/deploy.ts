@@ -31,11 +31,14 @@ async function main() {
     process.env.MPC_ADDRESS : deployer.address;
   const withdrawProfit: string = isAddress(process.env.WITHDRAW_PROFIT) ?
     process.env.WITHDRAW_PROFIT : deployer.address;
+  const pauser: string = isAddress(process.env.PAUSER) ?
+    process.env.PAUSER : deployer.address;
   const minHealthFactor: bigint = getBigInt(process.env.MIN_HEALTH_FACTOR || 500n) * 10n ** 18n / 100n;
   const defaultLTV: bigint = getBigInt(process.env.DEFAULT_LTV || 20n) * 10n ** 18n / 100n;
 
   const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
   const WITHDRAW_PROFIT_ROLE = toBytes32("WITHDRAW_PROFIT_ROLE");
+  const PAUSER_ROLE = toBytes32("PAUSER_ROLE");
 
   const verifier = getVerifier();
 
@@ -123,6 +126,7 @@ async function main() {
 
   await liquidityPool.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
   await liquidityPool.grantRole(WITHDRAW_PROFIT_ROLE, withdrawProfit);
+  await liquidityPool.grantRole(PAUSER_ROLE, pauser);
 
   if (config.IsHub) {
     const tiers = [];
@@ -170,6 +174,7 @@ async function main() {
     console.log(`SprinterUSDCLPShare: ${lpToken.target}`);
     console.log(`LiquidityHub: ${liquidityHub.target}`);
     console.log(`LiquidityHubProxyAdmin: ${liquidityHubAdmin.target}`);
+    console.log(`LiquidityHub Adjuster: ${adjuster}`);
     console.log(`SprinterLiquidityMining: ${liquidityMining.target}`);
     console.log("Tiers:");
     console.table(tiers.map(el => {
@@ -180,6 +185,8 @@ async function main() {
 
   console.log(`Admin: ${admin}`);
   console.log(`LiquidityPool: ${liquidityPool.target}`);
+  console.log(`LiquidityPool Withdraw Profit: ${withdrawProfit}`);
+  console.log(`LiquidityPool Pauser: ${pauser}`);
   console.log(`USDC: ${config.USDC}`);
   console.log(`Rebalancer: ${rebalancer.target}`);
   console.log(`RebalancerProxyAdmin: ${rebalancerAdmin.target}`);

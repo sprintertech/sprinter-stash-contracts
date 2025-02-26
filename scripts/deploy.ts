@@ -82,9 +82,9 @@ async function main() {
         config.USDC,
         config.Aave,
         admin,
+        mpcAddress,
         minHealthFactor,
         defaultLTV,
-        mpcAddress,
       ],
     )) as LiquidityPool;
   } else {

@@ -25,4 +25,64 @@ contract TestLiquidityPool is ILiquidityPool, AccessControl {
         SafeERC20.safeTransfer(ASSETS, to, amount);
         return amount;
     }
+
+    function depositWithPull(uint256) external pure override {
+        return;
+    }
+
+    function borrow(
+        address,
+        uint256,
+        address,
+        bytes calldata,
+        uint256,
+        uint256,
+        bytes calldata
+    ) external pure override {
+        return;
+    }
+
+    function borrowAndSwap(
+        address,
+        uint256,
+        SwapParams calldata,
+        address,
+        bytes calldata,
+        uint256,
+        uint256,
+        bytes calldata
+    ) external pure override {
+        return;
+    }
+
+    function repay(address[] calldata) external pure override {
+        return;
+    }
+
+    function withdrawProfit(
+        address[] calldata,
+        address
+    ) external pure override {
+        return;
+    }
+
+    function pauseBorrow() external pure override {
+        return;
+    }
+
+    function unpauseBorrow() external pure override {
+        return;
+    }
+
+    function paused() external pure returns (bool) {
+        return false;
+    }
+
+    function pause() external pure override {
+        return;
+    }
+
+    function unpause() external pure override {
+        return;
+    }
 }

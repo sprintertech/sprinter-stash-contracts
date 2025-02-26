@@ -70,6 +70,7 @@ async function main() {
 
   let liquidityPool: LiquidityPool;
   if (config.Aave) {
+    console.log("Deploying AAVE Liquidity Pool");
     liquidityPool = (await verifier.deploy(
       "LiquidityPool",
       deployer,
@@ -84,8 +85,8 @@ async function main() {
       ],
     )) as LiquidityPool;
   } else {
-    console.log("TEST: Using TEST Liquidity Pool");
-    liquidityPool = (await verifier.deploy("TestLiquidityPool", deployer, {}, [config.USDC])) as LiquidityPool;
+    console.log("Deploying USDC Liquidity Pool");
+    liquidityPool = (await verifier.deploy("LiquidityPoolBase", deployer, {}, [config.USDC, admin])) as LiquidityPool;
   }
 
   const rebalancerVersion = config.IsTest ? "TestRebalancer" : "Rebalancer";

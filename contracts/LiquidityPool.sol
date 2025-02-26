@@ -46,7 +46,7 @@ contract LiquidityPool is LiquidityPoolBase {
         address mpcAddress_,
         uint256 minHealthFactor_,
         uint256 defaultLTV_
-    ) LiquidityPoolBase(liquidityToken, admin) {
+    ) LiquidityPoolBase(liquidityToken, admin, mpcAddress_) {
         ASSETS_DECIMALS = IERC20Metadata(liquidityToken).decimals();
         require(aavePoolProvider != address(0), ZeroAddress());
         IAavePoolAddressesProvider provider = IAavePoolAddressesProvider(aavePoolProvider);

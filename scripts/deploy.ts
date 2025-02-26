@@ -89,7 +89,9 @@ async function main() {
     )) as LiquidityPool;
   } else {
     console.log("Deploying USDC Liquidity Pool");
-    liquidityPool = (await verifier.deploy("LiquidityPoolBase", deployer, {}, [config.USDC, admin])) as LiquidityPool;
+    liquidityPool = (await verifier.deploy(
+      "LiquidityPoolBase", deployer, {}, [config.USDC, admin, mpcAddress]
+    )) as LiquidityPool;
   }
 
   const rebalancerVersion = config.IsTest ? "TestRebalancer" : "Rebalancer";

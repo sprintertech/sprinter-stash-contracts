@@ -70,15 +70,19 @@ contract LiquidityPoolBase is ILiquidityPool, AccessControl, EIP712, Pausable {
     event ProfitWithdrawn(address token, address to, uint256 amount);
     event BorrowPaused();
     event BorrowUnpaused();
+    event MPCAddressSet(address oldMPCAddress, address newMPCAddress);
 
     constructor(
         address liquidityToken,
-        address admin
+        address admin,
+        address mpcAddress_
     ) EIP712("LiquidityPool", "1.0.0") {
         require(liquidityToken != address(0), ZeroAddress());
         ASSETS = IERC20(liquidityToken);
-        require(address(admin) != address(0), ZeroAddress());
+        require(admin != address(0), ZeroAddress());
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        require(mpcAddress_ != address(0), ZeroAddress());
+        mpcAddress = mpcAddress_;
     }
 
     function deposit(uint256 amount) external override onlyRole(LIQUIDITY_ADMIN_ROLE) {
@@ -169,6 +173,12 @@ contract LiquidityPoolBase is ILiquidityPool, AccessControl, EIP712, Pausable {
         address to
     ) external override onlyRole(WITHDRAW_PROFIT_ROLE) whenNotPaused() {
         _withdrawProfit(tokens, to);
+    }
+
+    function setMPCAddress(address mpcAddress_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        address oldMPCAddress = mpcAddress;
+        mpcAddress = mpcAddress_;
+        emit MPCAddressSet(oldMPCAddress, mpcAddress_);
     }
 
     function pauseBorrow() external override onlyRole(WITHDRAW_PROFIT_ROLE) {

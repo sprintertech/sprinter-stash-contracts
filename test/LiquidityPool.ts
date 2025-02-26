@@ -125,7 +125,7 @@ describe("LiquidityPool", function () {
       } = await loadFixture(deployAll);
       const startingNonce = await deployer.getNonce();
       await expect(deploy("LiquidityPool", deployer, {nonce: startingNonce},
-        rpl.target, AAVE_POOL_PROVIDER, admin.address,mpc_signer.address, healthFactor, defaultLtv
+        rpl.target, AAVE_POOL_PROVIDER, admin.address, mpc_signer.address, healthFactor, defaultLtv
       )).to.be.revertedWithCustomError(liquidityPool, "CollateralNotSupported");
     });
   });
@@ -138,6 +138,7 @@ describe("LiquidityPool", function () {
       await expect(liquidityPool.connect(liquidityAdmin).deposit(amount))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
+      expect(await liquidityPool.totalDeposited()).to.eq(amount);
     });
 
     it("Should deposit to aave with pulling funds", async function () {
@@ -147,6 +148,7 @@ describe("LiquidityPool", function () {
       await expect(liquidityPool.connect(usdcOwner).depositWithPull(amount))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
+      expect(await liquidityPool.totalDeposited()).to.eq(amount);
     });
 
     it("Should borrow a token", async function () {
@@ -637,6 +639,7 @@ describe("LiquidityPool", function () {
       await expect(liquidityPool.connect(liquidityAdmin).deposit(amount))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
+      expect(await liquidityPool.totalDeposited()).to.eq(amount);
 
       await expect(liquidityPool.connect(liquidityAdmin).withdraw(user.address, amount))
         .to.emit(liquidityPool, "WithdrawnFromAave").withArgs(user.address, amount);
@@ -650,6 +653,38 @@ describe("LiquidityPool", function () {
       expect(await aToken.balanceOf(liquidityPool.target)).to.eq(0);
       expect(await usdc.balanceOf(liquidityPool.target)).to.eq(0);
       expect(await usdc.balanceOf(user.address)).to.greaterThan(amount);
+      expect(await liquidityPool.totalDeposited()).to.eq(0);
+      expect(await aToken.balanceOf(liquidityPool.target)).to.eq(0);
+    });
+
+    it("Should withdraw accrued interest from aave", async function () {
+      const {
+        liquidityPool, usdc, usdcOwner, USDC_DEC, aToken, user,
+        withdrawProfit, liquidityAdmin
+      } = await loadFixture(deployAll);
+      const amount = 1000n * USDC_DEC; // $1000
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amount))
+        .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
+      expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
+      expect(await liquidityPool.totalDeposited()).to.eq(amount);
+
+       // advance time by one hour to accrue interest
+      await time.increase(3600);
+      const aTokenBalance = await aToken.balanceOf(liquidityPool.target);
+      expect(aTokenBalance).to.be.greaterThanOrEqual(amount + 1n);
+
+      // try to withdraw by liquidityAdmin more that deposited
+      await expect(liquidityPool.connect(liquidityAdmin).withdraw(user.address, amount + 1n))
+        .to.be.revertedWithCustomError(liquidityPool, "InsufficientLiquidity");
+      // withdraw interest as profit
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc.target], user.address))
+        .to.emit(liquidityPool, "ProfitWithdrawn");
+      expect(await aToken.balanceOf(liquidityPool.target))
+        .to.be.greaterThanOrEqual(amount)
+        .and.to.be.lessThan(aTokenBalance);
+      expect(await usdc.balanceOf(user.address)).to.be.greaterThanOrEqual(aTokenBalance - amount);
+      expect(await liquidityPool.totalDeposited()).to.eq(amount);
     });
 
     it("Should withdraw profit for multiple tokens from the pool", async function () {
@@ -984,9 +1019,9 @@ describe("LiquidityPool", function () {
         mpc_signer,
         liquidityPool.target as string,
         user.address as string,
-        uni.target as string,
-        amountToBorrow.toString(),
         rpl.target as string,
+        amountToBorrow.toString(),
+        uni.target as string,
         fillAmount.toString(),
         mockTarget.target as string,
         callData.data,
@@ -1164,6 +1199,25 @@ describe("LiquidityPool", function () {
         .to.be.revertedWithCustomError(liquidityPool, "HealthFactorTooLow");
     });
 
+    it("Should NOT withdraw accrued interest from aave by liquidity admin", async function () {
+      const {
+        liquidityPool, usdc, usdcOwner, USDC_DEC, aToken, user, liquidityAdmin
+      } = await loadFixture(deployAll);
+      const amount = 1000n * USDC_DEC; // $1000
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amount);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amount))
+        .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
+      expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
+      expect(await liquidityPool.totalDeposited()).to.eq(amount);
+
+       // advance time by one hour to accrue interest
+      await time.increase(3600);
+      expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount + 1n);
+
+      await expect(liquidityPool.connect(liquidityAdmin).withdraw(user.address, amount + 1n))
+        .to.be.revertedWithCustomError(liquidityPool, "InsufficientLiquidity");
+    });
+
     it("Should NOT withdraw collateral if the contract is paused", async function () {
       const {liquidityPool, user, liquidityAdmin, pauser} = await loadFixture(deployAll);
       await expect(liquidityPool.connect(pauser).pause())
@@ -1249,6 +1303,21 @@ describe("LiquidityPool", function () {
   });
 
   describe("Roles and admin functions", function () {
+    it("Should allow admin to set MPC address", async function () {
+      const {liquidityPool, admin, user} = await loadFixture(deployAll);
+      const oldMPCAddress = await liquidityPool.mpcAddress();
+      await expect(liquidityPool.connect(admin).setMPCAddress(user.address))
+        .to.emit(liquidityPool, "MPCAddressSet").withArgs(oldMPCAddress, user.address);
+      expect(await liquidityPool.mpcAddress())
+        .to.eq(user.address);
+    });
+
+    it("Should NOT allow others to set MPC address", async function () {
+      const {liquidityPool, user} = await loadFixture(deployAll);
+      await expect(liquidityPool.connect(user).setMPCAddress(user.address))
+        .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
+    });
+
     it("Should allow admin to set default token LTV", async function () {
       const {liquidityPool, admin} = await loadFixture(deployAll);
       const oldDefaultLTV = await liquidityPool.defaultLTV();

@@ -14,7 +14,7 @@ import {
   SprinterLiquidityMining, TestCCTPTokenMessenger, TestCCTPMessageTransmitter,
   Rebalancer, LiquidityPool,
 } from "../typechain-types";
-import {networkConfig, Network, Provider, NetworkConfig} from "../network.config";
+import {networkConfig, Network, Provider, NetworkConfig, PREDICTED} from "../network.config";
 
 async function main() {
   // Rework granting admin roles on deployments so that deployer does not have to be admin.
@@ -39,17 +39,19 @@ async function main() {
 
   const verifier = getVerifier();
 
+  let network: Network;
   let config: NetworkConfig;
   if (Object.values(Network).includes(hre.network.name as Network)) {
-    config = networkConfig[hre.network.name as Network];
+    network = hre.network.name as Network;
+    config = networkConfig[network];
   } else {
+    network = Network.BASE;
     console.log("TEST: Using TEST USDC and CCTP");
     const testUSDC = (await verifier.deploy("TestUSDC", deployer)) as TestUSDC;
     const cctpTokenMessenger = (await verifier.deploy("TestCCTPTokenMessenger", deployer)) as TestCCTPTokenMessenger;
     const cctpMessageTransmitter = (
       await verifier.deploy("TestCCTPMessageTransmitter", deployer)
     ) as TestCCTPMessageTransmitter;
-
     config = {
       CCTP: {
         TokenMessenger: await cctpTokenMessenger.getAddress(),
@@ -59,6 +61,7 @@ async function main() {
       IsTest: false,
       IsHub: true,
       Routes: {
+        Pools: [PREDICTED],
         Domains: [Network.ETHEREUM],
         Providers: [Provider.CCTP],
       },
@@ -67,21 +70,19 @@ async function main() {
 
   let liquidityPool: LiquidityPool;
   if (config.Aave) {
-    const {target, targetAdmin: liquidityPoolAdmin} = await deployProxy<LiquidityPool>(
-      verifier.deploy,
+    liquidityPool = (await verifier.deploy(
       "LiquidityPool",
       deployer,
-      admin,
-      [config.USDC, config.Aave],
+      {},
       [
+        config.USDC,
+        config.Aave,
         admin,
         minHealthFactor,
         defaultLTV,
         mpcAddress,
       ],
-    );
-    liquidityPool = target;
-    console.log(`LiquidityPoolProxyAdmin: ${liquidityPoolAdmin.target}`);
+    )) as LiquidityPool;
   } else {
     console.log("TEST: Using TEST Liquidity Pool");
     liquidityPool = (await verifier.deploy("TestLiquidityPool", deployer, {}, [config.USDC])) as LiquidityPool;
@@ -89,17 +90,33 @@ async function main() {
 
   const rebalancerVersion = config.IsTest ? "TestRebalancer" : "Rebalancer";
 
+  if (!config.Routes) {
+    config.Routes = {
+      Pools: [],
+      Domains: [],
+      Providers: [],
+    };
+  }
+
+  config.Routes.Pools.push(PREDICTED);
+  config.Routes.Domains.push(network);
+  config.Routes.Providers.push(Provider.LOCAL);
+
+  const liquidityPoolAddress = await liquidityPool.getAddress();
+  config.Routes.Pools = config.Routes!.Pools!.map(el => el == PREDICTED ? liquidityPoolAddress : el) || [];
+
   const {target: rebalancer, targetAdmin: rebalancerAdmin} = await deployProxy<Rebalancer>(
     verifier.deploy,
     rebalancerVersion,
     deployer,
     admin,
-    [liquidityPool, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter],
+    [DomainSolidity[network], config.USDC, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter],
     [
       admin,
       rebalanceCaller,
-      config.Routes ? config.Routes.Domains.map(el => DomainSolidity[el]) : [],
-      config.Routes ? config.Routes.Providers.map(el => ProviderSolidity[el]) : [],
+      config.Routes.Pools,
+      config.Routes!.Domains!.map(el => DomainSolidity[el]) || [],
+      config.Routes!.Providers!.map(el => ProviderSolidity[el]) || [],
     ],
   );
 

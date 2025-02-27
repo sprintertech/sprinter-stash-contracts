@@ -9,7 +9,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 contract LiquidityMining is ERC20, Ownable {
     using SafeERC20 for IERC20;
 
-    uint32 public constant MULTIPLIER_PRECISION = 100;
+    uint32 public constant MULTIPLIER_PRECISION = 1000000000;
     IERC20 public immutable STAKING_TOKEN;
 
     struct Tier {

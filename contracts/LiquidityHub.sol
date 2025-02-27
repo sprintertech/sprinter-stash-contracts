@@ -210,7 +210,7 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         SafeERC20.safeTransferFrom(IERC20(asset()), caller, address(LIQUIDITY_POOL), assets);
         _mint(receiver, shares);
         $.totalAssets += assets;
-        LIQUIDITY_POOL.deposit();
+        LIQUIDITY_POOL.deposit(assets);
         emit Deposit(caller, receiver, assets, shares);
     }
 

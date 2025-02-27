@@ -38,6 +38,7 @@ export function divCeil(a: bigint, b: bigint): bigint {
 export async function signBorrow(
   signer: Signer,
   verifyingContract: string,
+  caller: string,
   borrowToken: string,
   amount: string,
   target: string,
@@ -58,6 +59,7 @@ export async function signBorrow(
 
   const types = {
     Borrow: [
+      {name: "caller", type: "address"},
       {name: "borrowToken", type: "address"},
       {name: "amount", type: "uint256"},
       {name: "target", type: "address"},
@@ -68,9 +70,10 @@ export async function signBorrow(
   };
 
   const value = {
-    borrowToken: borrowToken.toLowerCase(),
+    caller,
+    borrowToken,
     amount,
-    target: target.toLowerCase(),
+    target,
     targetCallData,
     nonce,
     deadline,

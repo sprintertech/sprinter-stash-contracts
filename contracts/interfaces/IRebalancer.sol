@@ -19,18 +19,22 @@ interface IRebalancer {
     }
 
     enum Provider {
+        LOCAL,
         CCTP
     }
 
     function initiateRebalance(
         uint256 amount,
-        Domain destinationDomain, 
-        Provider provider, 
+        address sourcePool,
+        address destinationPool,
+        Domain destinationDomain,
+        Provider provider,
         bytes calldata extraData
     ) external;
 
     function processRebalance(
-        Provider provider, 
+        address destinationPool,
+        Provider provider,
         bytes calldata extraData
     ) external;
 }

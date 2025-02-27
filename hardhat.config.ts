@@ -3,7 +3,7 @@ import "@nomicfoundation/hardhat-toolbox";
 import {networkConfig, Network, Provider} from "./network.config";
 import {TypedDataDomain, resolveAddress} from "ethers";
 import {
-  LiquidityPool, Rebalancer,
+  LiquidityPoolAave, Rebalancer,
 } from "./typechain-types";
 import {
   assert, isSet, ProviderSolidity, DomainSolidity,
@@ -33,7 +33,7 @@ task("set-default-ltv", "Update Liquidity Pool config")
   const [admin] = await hre.ethers.getSigners();
 
   const targetAddress = await resolveAddress(pool || process.env.LIQUIDITY_POOL || "");
-  const target = (await hre.ethers.getContractAt("LiquidityPool", targetAddress, admin)) as LiquidityPool;
+  const target = (await hre.ethers.getContractAt("LiquidityPoolAave", targetAddress, admin)) as LiquidityPoolAave;
 
   const newLtv = ltv || "200000000000000000";
   await target.setDefaultLTV(newLtv);
@@ -48,7 +48,7 @@ task("set-token-ltv", "Update Liquidity Pool config")
   const [admin] = await hre.ethers.getSigners();
 
   const targetAddress = await resolveAddress(pool || process.env.LIQUIDITY_POOL || "");
-  const target = (await hre.ethers.getContractAt("LiquidityPool", targetAddress, admin)) as LiquidityPool;
+  const target = (await hre.ethers.getContractAt("LiquidityPoolAave", targetAddress, admin)) as LiquidityPoolAave;
 
   const newLtv = ltv || "200000000000000000";
   await target.setBorrowTokenLTV(token, newLtv);
@@ -62,7 +62,7 @@ task("set-min-health-factor", "Update Liquidity Pool config")
   const [admin] = await hre.ethers.getSigners();
 
   const targetAddress = await resolveAddress(pool || process.env.LIQUIDITY_POOL || "");
-  const target = (await hre.ethers.getContractAt("LiquidityPool", targetAddress, admin)) as LiquidityPool;
+  const target = (await hre.ethers.getContractAt("LiquidityPoolAave", targetAddress, admin)) as LiquidityPoolAave;
 
   const newHealthFactor = healthfactor || "5000000000000000000";
   await target.setHealthFactor(newHealthFactor);
@@ -71,14 +71,22 @@ task("set-min-health-factor", "Update Liquidity Pool config")
 
 task("set-routes", "Update Rebalancer config")
 .addOptionalParam("rebalancer", "Rebalancer address")
+.addOptionalParam("pools", "Liquidity Pool addresses")
 .addOptionalParam("domains", "Comma separated list of domain names")
 .addOptionalParam("providers", "Comma separated list of provider names")
 .addOptionalParam("allowed", "Allowed or denied")
-.setAction(async (args: {rebalancer?: string, providers?: string, domains?: string, allowed?: string}, hre) => {
+.setAction(async (args: {
+  rebalancer?: string,
+  pools?: string,
+  providers?: string,
+  domains?: string,
+  allowed?: string
+}, hre) => {
   const config = networkConfig[hre.network.name as Network];
 
   const [admin] = await hre.ethers.getSigners();
 
+  const targetPools = args.pools && args.pools.split(",") || [];
   const targetAddress = await resolveAddress(args.rebalancer || process.env.REBALANCER || "");
   const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, admin)) as Rebalancer;
 
@@ -94,12 +102,13 @@ task("set-routes", "Update Rebalancer config")
   });
   assert(!args.allowed || args.allowed === "false" || args.allowed === "true", "Unexpected allowed value");
   const allowed = args.allowed ? args.allowed === "true" : true;
-  await target.setRoute(domainsSolidity, providersSolidity, allowed);
+  await target.setRoute(targetPools, domainsSolidity, providersSolidity, allowed);
   console.log(`Following routes are ${allowed ? "" : "dis"}allowed on ${targetAddress}.`);
   console.table({domains, providers});
 });
 
 task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
+.addParam("caller", "Address that will call borrow or borrowAndSwap")
 .addOptionalParam("token", "Token to borrow")
 .addOptionalParam("amount", "Amount to borrow in base units")
 .addOptionalParam("target", "Target address to approve and call")
@@ -108,6 +117,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
 .addOptionalParam("deadline", "Expiry protection timestamp")
 .addOptionalParam("pool", "Liquidity Pool address")
 .setAction(async (args: {
+  caller: string,
   token?: string,
   amount?: string,
   target?: string,
@@ -133,6 +143,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
 
   const types = {
     Borrow: [
+      {name: "caller", type: "address"},
       {name: "borrowToken", type: "address"},
       {name: "amount", type: "uint256"},
       {name: "target", type: "address"},
@@ -150,6 +161,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
   const nonce = args.nonce || `${Date.now()}`;
   const deadline = args.deadline || "2000000000";
   const value = {
+    caller: args.caller,
     borrowToken,
     amount,
     target,
@@ -160,6 +172,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
 
   const sig = await signer.signTypedData(domain, types, value);
 
+  console.log(`caller: ${args.caller}`);
   console.log(`borrowToken: ${borrowToken}`);
   console.log(`amount: ${amount}`);
   console.log(`target: ${target}`);

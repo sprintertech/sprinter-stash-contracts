@@ -75,7 +75,7 @@ async function main() {
   if (config.Aave) {
     console.log("Deploying AAVE Liquidity Pool");
     liquidityPool = (await verifier.deploy(
-      "LiquidityPool",
+      "LiquidityPoolAave",
       deployer,
       {},
       [
@@ -90,7 +90,7 @@ async function main() {
   } else {
     console.log("Deploying USDC Liquidity Pool");
     liquidityPool = (await verifier.deploy(
-      "LiquidityPoolBase", deployer, {}, [config.USDC, admin, mpcAddress]
+      "LiquidityPool", deployer, {}, [config.USDC, admin, mpcAddress]
     )) as LiquidityPool;
   }
 

@@ -3,7 +3,7 @@ import "@nomicfoundation/hardhat-toolbox";
 import {networkConfig, Network, Provider} from "./network.config";
 import {TypedDataDomain, resolveAddress} from "ethers";
 import {
-  LiquidityPool, Rebalancer,
+  LiquidityPoolAave, Rebalancer,
 } from "./typechain-types";
 import {
   assert, isSet, ProviderSolidity, DomainSolidity,
@@ -33,7 +33,7 @@ task("set-default-ltv", "Update Liquidity Pool config")
   const [admin] = await hre.ethers.getSigners();
 
   const targetAddress = await resolveAddress(pool || process.env.LIQUIDITY_POOL || "");
-  const target = (await hre.ethers.getContractAt("LiquidityPool", targetAddress, admin)) as LiquidityPool;
+  const target = (await hre.ethers.getContractAt("LiquidityPoolAave", targetAddress, admin)) as LiquidityPoolAave;
 
   const newLtv = ltv || "200000000000000000";
   await target.setDefaultLTV(newLtv);
@@ -48,7 +48,7 @@ task("set-token-ltv", "Update Liquidity Pool config")
   const [admin] = await hre.ethers.getSigners();
 
   const targetAddress = await resolveAddress(pool || process.env.LIQUIDITY_POOL || "");
-  const target = (await hre.ethers.getContractAt("LiquidityPool", targetAddress, admin)) as LiquidityPool;
+  const target = (await hre.ethers.getContractAt("LiquidityPoolAave", targetAddress, admin)) as LiquidityPoolAave;
 
   const newLtv = ltv || "200000000000000000";
   await target.setBorrowTokenLTV(token, newLtv);
@@ -62,7 +62,7 @@ task("set-min-health-factor", "Update Liquidity Pool config")
   const [admin] = await hre.ethers.getSigners();
 
   const targetAddress = await resolveAddress(pool || process.env.LIQUIDITY_POOL || "");
-  const target = (await hre.ethers.getContractAt("LiquidityPool", targetAddress, admin)) as LiquidityPool;
+  const target = (await hre.ethers.getContractAt("LiquidityPoolAave", targetAddress, admin)) as LiquidityPoolAave;
 
   const newHealthFactor = healthfactor || "5000000000000000000";
   await target.setHealthFactor(newHealthFactor);

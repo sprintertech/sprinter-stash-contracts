@@ -44,6 +44,7 @@ async function main() {
 
   let network: Network;
   let config: NetworkConfig;
+  console.log(`Deploying to: ${hre.network.name}`);
   if (Object.values(Network).includes(hre.network.name as Network)) {
     network = hre.network.name as Network;
     config = networkConfig[network];
@@ -180,7 +181,7 @@ async function main() {
     console.log(`SprinterLiquidityMining: ${liquidityMining.target}`);
     console.log("Tiers:");
     console.table(tiers.map(el => {
-      const multiplier = `${el.multiplier / 100n}.${el.multiplier % 100n}x`;
+      const multiplier = `${el.multiplier / 1000000000n}.${el.multiplier % 1000000000n}x`;
       return {seconds: Number(el.period), multiplier};
     }));
   }

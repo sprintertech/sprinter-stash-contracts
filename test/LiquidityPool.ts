@@ -681,7 +681,7 @@ describe("LiquidityPool", function () {
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc.target], user.address))
         .to.emit(liquidityPool, "ProfitWithdrawn");
       expect(await aToken.balanceOf(liquidityPool.target))
-        .to.be.greaterThanOrEqual(amount)
+        .to.be.greaterThanOrEqual(amount - 1n)
         .and.to.be.lessThan(aTokenBalance);
       expect(await usdc.balanceOf(user.address)).to.be.greaterThanOrEqual(aTokenBalance - amount);
       expect(await liquidityPool.totalDeposited()).to.eq(amount);

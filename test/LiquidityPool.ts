@@ -189,8 +189,6 @@ describe("LiquidityPool", function () {
         mockBorrowSwap.target as string,
         usdc.target as string,
         amountToBorrow.toString(),
-        uni.target as string,
-        fillAmount.toString(),
         mockTarget.target as string,
         callData.data,
         31337
@@ -199,9 +197,7 @@ describe("LiquidityPool", function () {
       const borrowCalldata = await liquidityPoolBase.borrowAndSwap.populateTransaction(
         usdc.target,
         amountToBorrow,
-        {fillToken: uni.target,
-        fillAmount,
-        swapData},
+        {fillToken: uni.target, fillAmount, swapData},
         mockTarget.target,
         callData.data,
         0n,
@@ -513,8 +509,6 @@ describe("LiquidityPool", function () {
         user.address as string,
         usdc.target as string,
         amountToBorrow.toString(),
-        uni.target as string,
-        fillAmount.toString(),
         mockTarget.target as string,
         callData.data,
         31337
@@ -523,9 +517,7 @@ describe("LiquidityPool", function () {
       const borrowCalldata = await liquidityPoolBase.borrowAndSwap.populateTransaction(
         usdc.target,
         amountToBorrow,
-        {fillToken: uni.target,
-        fillAmount,
-        swapData},
+        {fillToken: uni.target, fillAmount, swapData},
         mockTarget.target,
         callData.data,
         0n,
@@ -565,8 +557,6 @@ describe("LiquidityPool", function () {
         mockBorrowSwap.target as string,
         usdc.target as string,
         amountToBorrow.toString(),
-        uni.target as string,
-        fillAmount.toString(),
         mockTarget.target as string,
         callData.data,
         31337
@@ -575,9 +565,7 @@ describe("LiquidityPool", function () {
       const borrowCalldata = await liquidityPoolBase.borrowAndSwap.populateTransaction(
         usdc.target,
         amountToBorrow,
-        {fillToken: uni.target,
-        fillAmount,
-        swapData},
+        {fillToken: uni.target, fillAmount, swapData},
         mockTarget.target,
         callData.data,
         0n,

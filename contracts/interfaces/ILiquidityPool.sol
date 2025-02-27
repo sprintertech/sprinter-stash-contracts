@@ -28,7 +28,7 @@ interface ILiquidityPool {
 
     function borrowAndSwap(
         address borrowToken,
-        uint256 borrowAmount,
+        uint256 amount,
         SwapParams calldata swapInputData,
         address target,
         bytes calldata targetCallData,

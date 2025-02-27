@@ -68,9 +68,9 @@ export async function signBorrow(
   };
 
   const value = {
-    borrowToken: borrowToken.toLowerCase(),
+    borrowToken,
     amount,
-    target: target.toLowerCase(),
+    target,
     targetCallData,
     nonce,
     deadline,
@@ -84,9 +84,7 @@ export async function signBorrowAndSwap(
   verifyingContract: string,
   caller: string,
   borrowToken: string,
-  borrowAmount: string,
-  fillToken: string,
-  fillAmount: string,
+  amount: string,
   target: string,
   targetCallData: string,
   chainId: number = 1,
@@ -107,9 +105,7 @@ export async function signBorrowAndSwap(
     BorrowAndSwap: [
       {name: "caller", type: "address"},
       {name: "borrowToken", type: "address"},
-      {name: "borrowAmount", type: "uint256"},
-      {name: "fillToken", type: "address"},
-      {name: "fillAmount", type: "uint256"},
+      {name: "amount", type: "uint256"},
       {name: "target", type: "address"},
       {name: "targetCallData", type: "bytes"},
       {name: "nonce", type: "uint256"},
@@ -119,11 +115,9 @@ export async function signBorrowAndSwap(
 
   const value = {
     caller,
-    borrowToken: borrowToken.toLowerCase(),
-    borrowAmount,
-    fillToken: fillToken.toLowerCase(),
-    fillAmount,
-    target: target.toLowerCase(),
+    borrowToken,
+    amount,
+    target,
     targetCallData,
     nonce,
     deadline,

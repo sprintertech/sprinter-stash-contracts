@@ -30,9 +30,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
         "BorrowAndSwap("
             "address caller,"
             "address borrowToken,"
-            "uint256 borrowAmount,"
-            "address fillToken,"
-            "uint256 fillAmount,"
+            "uint256 amount,"
             "address target,"
             "bytes targetCallData,"
             "uint256 nonce,"
@@ -118,7 +116,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
 
     function borrowAndSwap(
         address borrowToken,
-        uint256 borrowAmount,
+        uint256 amount,
         SwapParams calldata swapInputData,
         address target,
         bytes calldata targetCallData,
@@ -126,17 +124,8 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
         uint256 deadline,
         bytes calldata signature
     ) external override whenNotPaused() {
-        _validateMPCSignatureWithSwap(
-            borrowToken,
-            borrowAmount,
-            swapInputData,
-            target,
-            targetCallData,
-            nonce,
-            deadline,
-            signature
-        );
-        _borrow(borrowToken, borrowAmount, msg.sender);
+        _validateMPCSignatureWithCaller(borrowToken, amount, target, targetCallData, nonce, deadline, signature);
+        _borrow(borrowToken, amount, msg.sender);
         // Call the swap function on caller
         IBorrower(msg.sender).swap(swapInputData.swapData);
         IERC20(swapInputData.fillToken).safeTransferFrom(msg.sender, address(this), swapInputData.fillAmount);
@@ -232,10 +221,9 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
         _validateSig(digest, nonce, deadline, signature);
     }
 
-    function _validateMPCSignatureWithSwap(
+    function _validateMPCSignatureWithCaller(
         address borrowToken,
         uint256 amount,
-        SwapParams calldata swapInputData,
         address target,
         bytes calldata targetCallData,
         uint256 nonce,
@@ -247,8 +235,6 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
             msg.sender,
             borrowToken,
             amount,
-            swapInputData.fillToken,
-            swapInputData.fillAmount,
             target,
             keccak256(targetCallData),
             nonce,

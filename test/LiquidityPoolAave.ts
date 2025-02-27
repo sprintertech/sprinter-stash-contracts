@@ -316,8 +316,6 @@ describe("LiquidityPoolAave", function () {
         mockBorrowSwap.target as string,
         rpl.target as string,
         amountToBorrow.toString(),
-        uni.target as string,
-        fillAmount.toString(),
         mockTarget.target as string,
         callData.data,
         31337
@@ -326,9 +324,7 @@ describe("LiquidityPoolAave", function () {
       const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
         rpl.target,
         amountToBorrow,
-        {fillToken: uni.target,
-        fillAmount,
-        swapData},
+        {fillToken: uni.target, fillAmount, swapData},
         mockTarget.target,
         callData.data,
         0n,
@@ -1021,8 +1017,6 @@ describe("LiquidityPoolAave", function () {
         user.address as string,
         rpl.target as string,
         amountToBorrow.toString(),
-        uni.target as string,
-        fillAmount.toString(),
         mockTarget.target as string,
         callData.data,
         31337
@@ -1031,9 +1025,7 @@ describe("LiquidityPoolAave", function () {
       const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
         rpl.target,
         amountToBorrow,
-        {fillToken: uni.target,
-        fillAmount,
-        swapData},
+        {fillToken: uni.target, fillAmount, swapData},
         mockTarget.target,
         callData.data,
         0n,
@@ -1073,8 +1065,6 @@ describe("LiquidityPoolAave", function () {
         mockBorrowSwap.target as string,
         rpl.target as string,
         amountToBorrow.toString(),
-        uni.target as string,
-        fillAmount.toString(),
         mockTarget.target as string,
         callData.data,
         31337
@@ -1083,9 +1073,7 @@ describe("LiquidityPoolAave", function () {
       const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
         rpl.target,
         amountToBorrow,
-        {fillToken: uni.target,
-        fillAmount,
-        swapData},
+        {fillToken: uni.target, fillAmount, swapData},
         mockTarget.target,
         callData.data,
         0n,

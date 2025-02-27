@@ -7,12 +7,14 @@ import {IManagedToken} from "./interfaces/IManagedToken.sol";
 contract ManagedToken is IManagedToken, ERC20Permit {
     address immutable public MANAGER;
 
+    error ZeroAddress();
     error AccessDenied();
 
     constructor(string memory name_, string memory symbol_, address manager)
         ERC20(name_, symbol_)
         ERC20Permit(name_)
     {
+        require(manager != address(0), ZeroAddress());
         MANAGER = manager;
     }
 

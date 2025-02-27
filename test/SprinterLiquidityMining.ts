@@ -88,12 +88,14 @@ describe("SprinterLiquidityMining", function () {
     expect(await liquidityMining.tiers(2)).to.eql([12n * MONTH, 200_0000000n]);
     expect(await liquidityMining.getStakes(user.address)).to.eql([]);
 
-    await expect(liquidityHub.transfer(user.address, 1n))
-      .to.be.revertedWithCustomError(liquidityHub, "NotImplemented()");
-    await expect(liquidityHub.approve(user.address, 1n))
-      .to.be.revertedWithCustomError(liquidityHub, "NotImplemented()");
-    await expect(liquidityHub.transferFrom(user.address, user2.address, 1n))
-      .to.be.revertedWithCustomError(liquidityHub, "NotImplemented()");
+    await expect(liquidityMining.burn(1n))
+      .to.be.revertedWithCustomError(liquidityMining, "NotImplemented()");
+    await expect(liquidityMining.transfer(user.address, 1n))
+      .to.be.revertedWithCustomError(liquidityMining, "NotImplemented()");
+    await expect(liquidityMining.approve(user.address, 1n))
+      .to.be.revertedWithCustomError(liquidityMining, "NotImplemented()");
+    await expect(liquidityMining.transferFrom(user.address, user2.address, 1n))
+      .to.be.revertedWithCustomError(liquidityMining, "NotImplemented()");
     await expect(liquidityMining.tiers(3)).to.be.reverted;
   });
 
@@ -120,7 +122,6 @@ describe("SprinterLiquidityMining", function () {
       .withArgs(
         user.address,
         user.address,
-        10n * LP,
         10n * LP,
         until,
         10n * LP,
@@ -163,7 +164,6 @@ describe("SprinterLiquidityMining", function () {
         user.address,
         user.address,
         10n * LP,
-        10n * LP,
         until,
         10n * LP,
       );
@@ -180,7 +180,6 @@ describe("SprinterLiquidityMining", function () {
       .withArgs(
         user2.address,
         user2.address,
-        20n * LP,
         20n * LP,
         until2,
         20n * LP * 150_0000000n / 100_0000000n,
@@ -220,7 +219,6 @@ describe("SprinterLiquidityMining", function () {
         user.address,
         user2.address,
         10n * LP,
-        10n * LP,
         until,
         10n * LP,
       );
@@ -257,7 +255,6 @@ describe("SprinterLiquidityMining", function () {
       .withArgs(
         user.address,
         user.address,
-        10n * LP,
         10n * LP,
         until,
         10n * LP * 150_0000000n / 100_0000000n,
@@ -327,7 +324,6 @@ describe("SprinterLiquidityMining", function () {
       .withArgs(
         user.address,
         user2.address,
-        10n * LP,
         10n * LP,
         await now() + 3n * MONTH,
         10n * LP,
@@ -548,6 +544,21 @@ describe("SprinterLiquidityMining", function () {
       .to.be.revertedWithCustomError(liquidityMining, "ZeroAmount()");
   });
 
+  it("Should not allow to stake with invalid tier", async function () {
+    const {
+      lpToken, liquidityHub, usdc, user, USDC, LP,
+      liquidityMining, deployer,
+    } = await loadFixture(deployAll);
+
+    await usdc.connect(deployer).transfer(user.address, 10n * USDC);
+    await usdc.connect(user).approve(liquidityHub.target, 10n * USDC);
+    await liquidityHub.connect(user).deposit(10n * USDC, user.address);
+    await lpToken.connect(user).approve(liquidityMining.target, 10n * LP);
+
+    await expect(liquidityMining.connect(user).stake(user.address, 10n * USDC, 3n))
+      .to.be.revertedWithCustomError(liquidityMining, "InvalidTierId()");
+  });
+
   it("Should not allow to restake by staking 0 amount", async function () {
     const {
       lpToken, liquidityHub, usdc, user, USDC, LP,
@@ -593,7 +604,6 @@ describe("SprinterLiquidityMining", function () {
       .withArgs(
         user.address,
         user.address,
-        1n * LP,
         1n * LP,
         until,
         addedScore,
@@ -654,7 +664,6 @@ describe("SprinterLiquidityMining", function () {
         user.address,
         user.address,
         1n * LP,
-        1n * LP,
         until,
         addedScore,
       );
@@ -695,7 +704,6 @@ describe("SprinterLiquidityMining", function () {
       .withArgs(
         user.address,
         user.address,
-        1n * LP,
         1n * LP,
         until,
         addedScore,
@@ -874,7 +882,6 @@ describe("SprinterLiquidityMining", function () {
         user.address,
         user2.address,
         10n * LP,
-        10n * LP,
         until,
         10n * LP,
       );
@@ -949,7 +956,6 @@ describe("SprinterLiquidityMining", function () {
       .withArgs(
         user.address,
         user2.address,
-        10n * LP,
         10n * LP,
         until,
         10n * LP,

@@ -108,6 +108,7 @@ task("set-routes", "Update Rebalancer config")
 });
 
 task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
+.addParam("caller", "Address that will call borrow or borrowAndSwap")
 .addOptionalParam("token", "Token to borrow")
 .addOptionalParam("amount", "Amount to borrow in base units")
 .addOptionalParam("target", "Target address to approve and call")
@@ -116,6 +117,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
 .addOptionalParam("deadline", "Expiry protection timestamp")
 .addOptionalParam("pool", "Liquidity Pool address")
 .setAction(async (args: {
+  caller: string,
   token?: string,
   amount?: string,
   target?: string,
@@ -141,6 +143,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
 
   const types = {
     Borrow: [
+      {name: "caller", type: "address"},
       {name: "borrowToken", type: "address"},
       {name: "amount", type: "uint256"},
       {name: "target", type: "address"},
@@ -158,6 +161,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
   const nonce = args.nonce || `${Date.now()}`;
   const deadline = args.deadline || "2000000000";
   const value = {
+    caller: args.caller,
     borrowToken,
     amount,
     target,
@@ -168,6 +172,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
 
   const sig = await signer.signTypedData(domain, types, value);
 
+  console.log(`caller: ${args.caller}`);
   console.log(`borrowToken: ${borrowToken}`);
   console.log(`amount: ${amount}`);
   console.log(`target: ${target}`);

@@ -18,16 +18,6 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
 
     bytes32 private constant BORROW_TYPEHASH = keccak256(
         "Borrow("
-            "address borrowToken,"
-            "uint256 amount,"
-            "address target,"
-            "bytes targetCallData,"
-            "uint256 nonce,"
-            "uint256 deadline"
-        ")"
-    );
-    bytes32 private constant BORROW_AND_SWAP_TYPEHASH = keccak256(
-        "BorrowAndSwap("
             "address caller,"
             "address borrowToken,"
             "uint256 amount,"
@@ -106,7 +96,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
         bytes calldata signature
     ) external override whenNotPaused() {
         // - Validate MPC signature
-        _validateMPCSignature(borrowToken, amount, target, targetCallData, nonce, deadline, signature);
+        _validateMPCSignatureWithCaller(borrowToken, amount, target, targetCallData, nonce, deadline, signature);
         _borrow(borrowToken, amount, target);
         // - Invoke the recipient's address with calldata provided in the MPC signature to complete
         // the operation securely.
@@ -200,27 +190,6 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
         emit Deposit(caller, amount);
     }
 
-    function _validateMPCSignature(
-        address borrowToken,
-        uint256 amount,
-        address target,
-        bytes calldata targetCallData,
-        uint256 nonce,
-        uint256 deadline,
-        bytes calldata signature
-    ) private {
-        bytes32 digest = _hashTypedDataV4(keccak256(abi.encode(
-            BORROW_TYPEHASH,
-            borrowToken,
-            amount,
-            target,
-            keccak256(targetCallData),
-            nonce,
-            deadline
-        )));
-        _validateSig(digest, nonce, deadline, signature);
-    }
-
     function _validateMPCSignatureWithCaller(
         address borrowToken,
         uint256 amount,
@@ -231,7 +200,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
         bytes calldata signature
     ) internal {
         bytes32 digest = _hashTypedDataV4(keccak256(abi.encode(
-            BORROW_AND_SWAP_TYPEHASH,
+            BORROW_TYPEHASH,
             msg.sender,
             borrowToken,
             amount,

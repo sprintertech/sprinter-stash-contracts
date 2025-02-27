@@ -4,7 +4,7 @@ import {
 import {expect} from "chai";
 import hre from "hardhat";
 import {
-  deploy, signBorrow, signBorrowAndSwap
+  deploy, signBorrow
 } from "./helpers";
 import {encodeBytes32String, AbiCoder} from "ethers";
 import {
@@ -165,6 +165,7 @@ describe("LiquidityPoolAave", function () {
       const signature = await signBorrow(
         mpc_signer,
         liquidityPool.target as string,
+        user.address as string,
         rpl.target as string,
         amountToBorrow.toString(),
         user2.address,
@@ -197,6 +198,7 @@ describe("LiquidityPoolAave", function () {
       const signature = await signBorrow(
         mpc_signer,
         liquidityPool.target as string,
+        user.address as string,
         uni.target as string,
         amountToBorrow.toString(),
         user2.address,
@@ -234,6 +236,7 @@ describe("LiquidityPoolAave", function () {
       const signature = await signBorrow(
         mpc_signer,
         liquidityPool.target as string,
+        user.address as string,
         rpl.target as string,
         amountToBorrow.toString(),
         mockTarget.target as string,
@@ -268,6 +271,7 @@ describe("LiquidityPoolAave", function () {
       const signature = await signBorrow(
         mpc_signer,
         liquidityPool.target as string,
+        user.address as string,
         usdc.target as string,
         amountToBorrow.toString(),
         user2.address,
@@ -310,7 +314,7 @@ describe("LiquidityPoolAave", function () {
             [rpl.target, amountToBorrow, uni.target, uniOwner.address, fillAmount]
           );
 
-      const signature = await signBorrowAndSwap(
+      const signature = await signBorrow(
         mpc_signer,
         liquidityPool.target as string,
         mockBorrowSwap.target as string,
@@ -355,6 +359,7 @@ describe("LiquidityPoolAave", function () {
       const signature = await signBorrow(
         mpc_signer,
         liquidityPool.target as string,
+        user.address as string,
         uni.target as string,
         amountToBorrow.toString(),
         user2.address,
@@ -362,7 +367,7 @@ describe("LiquidityPoolAave", function () {
         31337
       );
 
-      await liquidityPool.borrow(
+      await liquidityPool.connect(user).borrow(
         uni.target,
         amountToBorrow,
         user2,
@@ -394,6 +399,7 @@ describe("LiquidityPoolAave", function () {
       const signature = await signBorrow(
         mpc_signer,
         liquidityPool.target as string,
+        user.address as string,
         uni.target as string,
         amountToBorrow.toString(),
         user2.address,
@@ -401,7 +407,7 @@ describe("LiquidityPoolAave", function () {
         31337
       );
 
-      await liquidityPool.borrow(
+      await liquidityPool.connect(user).borrow(
         uni.target,
         amountToBorrow,
         user2,
@@ -462,6 +468,7 @@ describe("LiquidityPoolAave", function () {
       const signature1 = await signBorrow(
         mpc_signer,
         liquidityPool.target as string,
+        user.address as string,
         rpl.target as string,
         amountToBorrow.toString(),
         user2.address,
@@ -482,6 +489,7 @@ describe("LiquidityPoolAave", function () {
       const signature2 = await signBorrow(
         mpc_signer,
         liquidityPool.target as string,
+        user.address as string,
         uni.target as string,
         amountToBorrow.toString(),
         user2.address,
@@ -545,6 +553,7 @@ describe("LiquidityPoolAave", function () {
       const signature1 = await signBorrow(
         mpc_signer,
         liquidityPool.target as string,
+        user.address as string,
         rpl.target as string,
         amountToBorrow.toString(),
         user2.address,
@@ -594,6 +603,7 @@ describe("LiquidityPoolAave", function () {
       const signature1 = await signBorrow(
         mpc_signer,
         liquidityPool.target as string,
+        user.address as string,
         usdc.target as string,
         amountToBorrow.toString(),
         user2.address,
@@ -746,6 +756,7 @@ describe("LiquidityPoolAave", function () {
       const signature = await signBorrow(
         user,
         liquidityPool.target as string,
+        user.address as string,
         rpl.target as string,
         amountToBorrow.toString(),
         user2.address,
@@ -777,6 +788,7 @@ describe("LiquidityPoolAave", function () {
       const signature = await signBorrow(
         mpc_signer,
         liquidityPool.target as string,
+        user.address as string,
         rpl.target as string,
         amountToBorrow.toString(),
         user2.address,
@@ -817,6 +829,7 @@ describe("LiquidityPoolAave", function () {
       const signature = await signBorrow(
         mpc_signer,
         liquidityPool.target as string,
+        user.address as string,
         rpl.target as string,
         amountToBorrow.toString(),
         user2.address,
@@ -851,6 +864,7 @@ describe("LiquidityPoolAave", function () {
       const signature = await signBorrow(
         mpc_signer,
         liquidityPool.target as string,
+        user.address as string,
         uni.target as string,
         amountToBorrow.toString(),
         user2.address,
@@ -886,6 +900,7 @@ describe("LiquidityPoolAave", function () {
       const signature2 = await signBorrow(
         mpc_signer,
         liquidityPool.target as string,
+        user.address as string,
         uni.target as string,
         amountToBorrow.toString(),
         user2.address,
@@ -922,6 +937,7 @@ describe("LiquidityPoolAave", function () {
       const signature = await signBorrow(
         mpc_signer,
         liquidityPool.target as string,
+        user.address as string,
         rpl.target as string,
         amountToBorrow.toString(),
         rpl.target as string,
@@ -951,6 +967,7 @@ describe("LiquidityPoolAave", function () {
       const signature = await signBorrow(
         mpc_signer,
         liquidityPool.target as string,
+        user.address as string,
         uni.target as string,
         amountToBorrow.toString(),
         user2.address,
@@ -987,6 +1004,38 @@ describe("LiquidityPoolAave", function () {
       .to.be.revertedWithCustomError(liquidityPool, "EnforcedPause");
     });
 
+    it("Should NOT borrow if MPC signature is wrong (caller is wrong)", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, user, user2, usdcOwner, liquidityAdmin, mpc_signer, rpl,
+      } = await loadFixture(deployAll);
+      const amountLiquidity = 1000n * USDC_DEC; // $1000
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountLiquidity);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+        .to.emit(liquidityPool, "Deposit");
+
+      const amountToBorrow = 2n * USDC_DEC;
+      const signature = await signBorrow(
+        mpc_signer,
+        liquidityPool.target as string,
+        user.address as string,
+        rpl.target as string,
+        amountToBorrow.toString(),
+        user2.address,
+        "0x",
+        31337
+      );
+
+      await expect(liquidityPool.connect(user2).borrow(
+        rpl.target,
+        amountToBorrow,
+        user2,
+        "0x",
+        0n,
+        2000000000n,
+        signature))
+      .to.be.revertedWithCustomError(liquidityPool, "InvalidSignature");
+    });
+
     it("Should NOT borrow and swap if MPC signature is wrong (caller is wrong)", async function () {
       // RPL is borrowed and swapped to UNI
       const {
@@ -1011,7 +1060,7 @@ describe("LiquidityPoolAave", function () {
           );
 
       // user address is signed instead of mockBorrowSwap address
-      const signature = await signBorrowAndSwap(
+      const signature = await signBorrow(
         mpc_signer,
         liquidityPool.target as string,
         user.address as string,
@@ -1059,7 +1108,7 @@ describe("LiquidityPoolAave", function () {
             [rpl.target, amountToBorrow, uni.target, uniOwner.address, fillAmount]
           );
 
-      const signature = await signBorrowAndSwap(
+      const signature = await signBorrow(
         mpc_signer,
         liquidityPool.target as string,
         mockBorrowSwap.target as string,
@@ -1106,6 +1155,7 @@ describe("LiquidityPoolAave", function () {
       const signature = await signBorrow(
         mpc_signer,
         liquidityPool.target as string,
+        user.address as string,
         rpl.target as string,
         amountToBorrow.toString(),
         mockTarget.target as string,
@@ -1167,6 +1217,7 @@ describe("LiquidityPoolAave", function () {
       const signature = await signBorrow(
         mpc_signer,
         liquidityPool.target as string,
+        user.address as string,
         uni.target as string,
         amountToBorrow.toString(),
         user2.address,
@@ -1257,6 +1308,7 @@ describe("LiquidityPoolAave", function () {
       const signature1 = await signBorrow(
         mpc_signer,
         liquidityPool.target as string,
+        user.address as string,
         rpl.target as string,
         amountToBorrow.toString(),
         user2.address,

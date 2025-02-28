@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {MaxUint256, getBigInt, resolveAddress} from "ethers";
-import {toBytes32, getDeployXAddress} from "../test/helpers";
+import {toBytes32} from "../test/helpers";
 import {
   getVerifier, deployProxyX,
 } from "./helpers";
@@ -84,8 +84,10 @@ export async function main() {
   }
 
   let liquidityPool: LiquidityPool;
+  let mainPoolId: string;
   if (config.Aave) {
     console.log("Deploying AAVE Liquidity Pool");
+    mainPoolId = LiquidityPoolAaveUSDC;
     liquidityPool = (await verifier.deployX(
       "LiquidityPoolAave",
       deployer,
@@ -98,12 +100,13 @@ export async function main() {
         minHealthFactor,
         defaultLTV,
       ],
-      LiquidityPoolAaveUSDC,
+      mainPoolId,
     )) as LiquidityPool;
   } else {
     console.log("Deploying USDC Liquidity Pool");
+    mainPoolId = LiquidityPoolUSDC;
     liquidityPool = (await verifier.deployX(
-      "LiquidityPool", deployer, {}, [config.USDC, admin, mpcAddress], LiquidityPoolUSDC
+      "LiquidityPool", deployer, {}, [config.USDC, admin, mpcAddress], mainPoolId
     )) as LiquidityPool;
   }
 
@@ -126,7 +129,6 @@ export async function main() {
 
   const rebalancerVersion = config.IsTest ? "TestRebalancer" : "Rebalancer";
 
-  const liquidityPoolAddress = await liquidityPool.getAddress();
   config.Routes.Pools = await verifier.predictDeployXAddresses(config.Routes!.Pools!, deployer);
 
   const {target: rebalancer, targetAdmin: rebalancerAdmin} = await deployProxyX<Rebalancer>(
@@ -212,10 +214,15 @@ export async function main() {
   if (deployer.address !== admin) {
     await liquidityPool.grantRole(DEFAULT_ADMIN_ROLE, admin);
     await liquidityPool.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+
+    if (config.ExtraUSDCPool) {
+      await extraPool!.grantRole(DEFAULT_ADMIN_ROLE, admin);
+      await extraPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    }
   }
 
   console.log(`Admin: ${admin}`);
-  console.log(`LiquidityPool: ${liquidityPool.target}`);
+  console.log(`${mainPoolId}: ${liquidityPool.target}`);
   console.log(`LiquidityPool Withdraw Profit: ${withdrawProfit}`);
   console.log(`LiquidityPool Pauser: ${pauser}`);
   console.log(`USDC: ${config.USDC}`);

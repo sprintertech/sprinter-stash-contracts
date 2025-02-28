@@ -3,8 +3,8 @@ dotenv.config();
 import hre from "hardhat";
 import {getVerifier, upgradeProxyX} from "./helpers";
 import {getDeployProxyXAddress} from "../test/helpers";
-import {isSet, assert} from "./common";
-import {LiquidityPool} from "../typechain-types";
+import {isSet, assert, DomainSolidity} from "./common";
+import {Rebalancer} from "../typechain-types";
 import {networkConfig, Network, NetworkConfig} from "../network.config";
 
 export async function main() {
@@ -16,22 +16,26 @@ export async function main() {
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
   console.log(`Upgrade ID: ${process.env.UPGRADE_ID}`);
 
+  let network: Network;
   let config: NetworkConfig;
   if (Object.values(Network).includes(hre.network.name as Network)) {
-    config = networkConfig[hre.network.name as Network];
+    network = hre.network.name as Network;
+    config = networkConfig[network];
   } else {
     console.log(`Nothing to upgrade on ${hre.network.name} network`);
     return;
   }
 
-  const liquidityPoolAddress = await getDeployProxyXAddress("LiquidityPool");
+  const rebalancerAddress = await getDeployProxyXAddress("Rebalancer");
+  const rebalancerVersion = config.IsTest ? "TestRebalancer" : "Rebalancer";
 
-  await upgradeProxyX<LiquidityPool>(
+  await upgradeProxyX<Rebalancer>(
     verifier.deployX,
-    liquidityPoolAddress,
-    "LiquidityPool",
+    rebalancerAddress,
+    rebalancerVersion,
     deployer,
-    [config.USDC, config.Aave],
+    [DomainSolidity[network], config.USDC, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter],
+    "Rebalancer",
   );
 
   await verifier.verify(process.env.VERIFY === "true");

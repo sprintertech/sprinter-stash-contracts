@@ -71,6 +71,10 @@ contract SprinterLiquidityMining is LiquidityMining {
         IERC4626(address(LIQUIDITY_HUB)).redeem(shares, to, address(this));
     }
 
+    function burn(uint256) public pure override {
+        revert NotImplemented();
+    }
+
     function transfer(address, uint256) public pure override returns (bool) {
         revert NotImplemented();
     }

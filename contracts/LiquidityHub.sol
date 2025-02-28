@@ -54,8 +54,8 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
             STORAGE_LOCATION,
             "sprinter.storage.LiquidityHub"
         );
-        if (shares == address(0)) revert ZeroAddress();
-        if (liquidityPool == address(0)) revert ZeroAddress();
+        require(shares != address(0), ZeroAddress());
+        require(liquidityPool != address(0), ZeroAddress());
         SHARES = IManagedToken(shares);
         LIQUIDITY_POOL = ILiquidityPool(liquidityPool);
         _disableInitializers();
@@ -74,6 +74,8 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         );
         // Deliberately not initializing ERC20Upgradable because its
         // functionality is delegated to SHARES.
+        require(admin != address(0), ZeroAddress());
+        require(adjuster != address(0), ZeroAddress());
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(ASSETS_ADJUST_ROLE, adjuster);
         _setAssetsLimit(newAssetsLimit);
@@ -177,35 +179,19 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         deposit(assets, receiver);
     }
 
-    function _toShares(
-        uint256 assets,
-        uint256 supplyShares,
-        uint256 supplyAssets,
-        Math.Rounding rounding
-    ) internal view returns (uint256) {
-        (supplyShares, supplyAssets) = _getTotals(supplyShares, supplyAssets);
+    function _convertToShares(uint256 assets, Math.Rounding rounding) internal view virtual override returns (uint256) {
+        (uint256 supplyShares, uint256 supplyAssets) = _getTotalsForConversion();
         return assets.mulDiv(supplyShares, supplyAssets, rounding);
     }
 
-    function _toAssets(
-        uint256 shares,
-        uint256 supplyShares,
-        uint256 supplyAssets,
-        Math.Rounding rounding
-    ) internal view returns (uint256) {
-        (supplyShares, supplyAssets) = _getTotals(supplyShares, supplyAssets);
+    function _convertToAssets(uint256 shares, Math.Rounding rounding) internal view virtual override returns (uint256) {
+        (uint256 supplyShares, uint256 supplyAssets) = _getTotalsForConversion();
         return shares.mulDiv(supplyAssets, supplyShares, rounding);
     }
 
-    function _convertToShares(uint256 assets, Math.Rounding rounding) internal view virtual override returns (uint256) {
-        return _toShares(assets, totalSupply(), totalAssets(), rounding);
-    }
-
-    function _convertToAssets(uint256 shares, Math.Rounding rounding) internal view virtual override returns (uint256) {
-        return _toAssets(shares, totalSupply(), totalAssets(), rounding);
-    }
-
-    function _getTotals(uint256 supplyShares, uint256 supplyAssets) internal view returns (uint256, uint256) {
+    function _getTotalsForConversion() internal view returns (uint256, uint256) {
+        uint256 supplyShares = totalSupply();
+        uint256 supplyAssets = totalAssets();
         if (supplyShares == 0) {
             supplyShares = 10 ** _decimalsOffset();
         }
@@ -234,7 +220,7 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         SafeERC20.safeTransferFrom(IERC20(asset()), caller, address(LIQUIDITY_POOL), assets);
         _mint(receiver, shares);
         $.totalAssets += assets;
-        LIQUIDITY_POOL.deposit();
+        LIQUIDITY_POOL.deposit(assets);
         emit Deposit(caller, receiver, assets, shares);
     }
 

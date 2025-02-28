@@ -1,5 +1,7 @@
 import * as AAVEPools from "@bgd-labs/aave-address-book";
 
+export const PREDICTED: string = "predicted";
+
 export enum Network {
   ETHEREUM = "ETHEREUM",
   AVALANCHE = "AVALANCHE",
@@ -16,6 +18,7 @@ export enum Network {
 };
 
 export enum Provider {
+  LOCAL = "LOCAL",
   CCTP = "CCTP",
 };
 
@@ -25,6 +28,7 @@ interface CCTPConfig {
 };
 
 interface RoutesConfig {
+  Pools: string[];
   Domains: Network[];
   Providers: Provider[];
 }
@@ -54,6 +58,7 @@ export const networkConfig: NetworksConfig = {
     IsTest: false,
     IsHub: false,
     Routes: {
+      Pools: [PREDICTED],
       Domains: [Network.BASE],
       Providers: [Provider.CCTP],
     },
@@ -102,6 +107,7 @@ export const networkConfig: NetworksConfig = {
     IsTest: false,
     IsHub: true,
     Routes: {
+      Pools: [PREDICTED],
       Domains: [Network.ETHEREUM],
       Providers: [Provider.CCTP],
     },
@@ -128,6 +134,7 @@ export const networkConfig: NetworksConfig = {
     IsTest: true,
     IsHub: false,
     Routes: {
+      Pools: [PREDICTED, PREDICTED],
       Domains: [Network.BASE_SEPOLIA, Network.ARBITRUM_SEPOLIA],
       Providers: [Provider.CCTP, Provider.CCTP],
     },
@@ -165,6 +172,7 @@ export const networkConfig: NetworksConfig = {
     IsTest: true,
     IsHub: false,
     Routes: {
+      Pools: [PREDICTED, PREDICTED],
       Domains: [Network.BASE_SEPOLIA, Network.ETHEREUM_SEPOLIA],
       Providers: [Provider.CCTP, Provider.CCTP],
     },
@@ -180,6 +188,7 @@ export const networkConfig: NetworksConfig = {
     IsTest: true,
     IsHub: true,
     Routes: {
+      Pools: [PREDICTED, PREDICTED],
       Domains: [Network.ETHEREUM_SEPOLIA, Network.ARBITRUM_SEPOLIA],
       Providers: [Provider.CCTP, Provider.CCTP],
     },

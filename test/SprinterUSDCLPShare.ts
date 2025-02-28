@@ -42,6 +42,14 @@ describe("SprinterUSDCLPShare", function () {
       .to.be.revertedWithCustomError(lpToken, "AccessDenied()");
   });
 
+  it("Should not allow to deploy with zero manager", async function () {
+    const {lpToken} = await loadFixture(deployLPToken);
+
+    const SprinterUSDCLPShare = await hre.ethers.getContractFactory("SprinterUSDCLPShare");
+    await expect(SprinterUSDCLPShare.deploy(ZERO_ADDRESS))
+      .to.be.revertedWithCustomError(lpToken, "ZeroAddress()");
+  });
+
   it("Should allow manager to burn", async function () {
     const {lpToken, manager, user} = await loadFixture(deployLPToken);
 

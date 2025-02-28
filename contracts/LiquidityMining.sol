@@ -18,7 +18,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 contract LiquidityMining is ERC20, Ownable {
     using SafeERC20 for IERC20;
 
-    uint32 public constant MULTIPLIER_PRECISION = 100;
+    uint32 public constant MULTIPLIER_PRECISION = 1000000000;
     IERC20 public immutable STAKING_TOKEN;
 
     struct Tier {
@@ -42,7 +42,6 @@ contract LiquidityMining is ERC20, Ownable {
         address from,
         address to,
         uint256 amount,
-        uint256 totalAmount,
         uint32 until,
         uint256 addedScore
     );
@@ -57,11 +56,11 @@ contract LiquidityMining is ERC20, Ownable {
     error ZeroPeriod();
     error ZeroMultiplier();
     error DecreasingPeriod();
-    error InvalidAddedScore();
     error AlreadyDisabled();
     error MiningDisabled();
     error ZeroAmount();
     error Locked();
+    error InvalidTierId();
 
     constructor(
         string memory name_,
@@ -129,6 +128,7 @@ contract LiquidityMining is ERC20, Ownable {
     }
 
     function _stake(address from, address scoreTo, uint256 amount, uint256 tierId) internal {
+        require(tierId < tiers.length, InvalidTierId());
         require(amount > 0, ZeroAmount());
         require(miningAllowed, MiningDisabled());
         Stake memory currentStake;
@@ -143,7 +143,7 @@ contract LiquidityMining is ERC20, Ownable {
             uint256(MULTIPLIER_PRECISION);
         _mint(scoreTo, addedScore);
 
-        emit StakeLocked(from, scoreTo, amount, amount, currentStake.until, addedScore);
+        emit StakeLocked(from, scoreTo, amount, currentStake.until, addedScore);
     }
 
     function _unstake(address from, uint256 id, address to) internal returns (uint256) {
@@ -155,6 +155,10 @@ contract LiquidityMining is ERC20, Ownable {
         emit StakeUnlocked(_msgSender(), to, currentStake.amount);
 
         return currentStake.amount;
+    }
+
+    function burn(uint256 value) public virtual {
+        _burn(_msgSender(), value);
     }
 
     function timeNow() internal view returns (uint32) {

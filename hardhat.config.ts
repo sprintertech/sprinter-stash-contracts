@@ -3,7 +3,7 @@ import "@nomicfoundation/hardhat-toolbox";
 import {networkConfig, Network, Provider} from "./network.config";
 import {TypedDataDomain} from "ethers";
 import {
-  LiquidityPool, Rebalancer,
+  LiquidityPoolAave, Rebalancer,
 } from "./typechain-types";
 import {
   assert, isSet, ProviderSolidity, DomainSolidity,
@@ -31,14 +31,14 @@ task("grant-role", "Grant some role on some AccessControl")
 });
 
 task("set-default-ltv", "Update Liquidity Pool config")
-.addOptionalParam("pool", "Liquidity Pool proxy address or id", "LiquidityPool", types.string)
+.addOptionalParam("pool", "Liquidity Pool proxy address or id", "LiquidityPoolAaveUSDC", types.string)
 .addOptionalParam("ltv", "New default LTV value", 20n * 10n**16n, types.bigint)
 .setAction(async ({pool, ltv}: {pool: string, ltv: bigint}, hre) => {
-  const {resolveProxyXAddress} = await loadTestHelpers();
+  const {resolveXAddress} = await loadTestHelpers();
   const [admin] = await hre.ethers.getSigners();
 
-  const targetAddress = await resolveProxyXAddress(pool);
-  const target = (await hre.ethers.getContractAt("LiquidityPool", targetAddress, admin)) as LiquidityPool;
+  const targetAddress = await resolveXAddress(pool);
+  const target = (await hre.ethers.getContractAt("LiquidityPoolAave", targetAddress, admin)) as LiquidityPoolAave;
 
   await target.setDefaultLTV(ltv);
   console.log(`Default LTV set to ${ltv} on ${targetAddress}.`);
@@ -46,28 +46,28 @@ task("set-default-ltv", "Update Liquidity Pool config")
 
 task("set-token-ltv", "Update Liquidity Pool config")
 .addParam("token", "Token to update LTV for")
-.addOptionalParam("pool", "Liquidity Pool proxy address or id", "LiquidityPool", types.string)
+.addOptionalParam("pool", "Liquidity Pool proxy address or id", "LiquidityPoolAaveUSDC", types.string)
 .addOptionalParam("ltv", "New LTV value", 20n * 10n**16n, types.bigint)
 .setAction(async ({token, pool, ltv}: {token: string, pool: string, ltv: bigint}, hre) => {
-  const {resolveProxyXAddress} = await loadTestHelpers();
+  const {resolveXAddress} = await loadTestHelpers();
   const [admin] = await hre.ethers.getSigners();
 
-  const targetAddress = await resolveProxyXAddress(pool);
-  const target = (await hre.ethers.getContractAt("LiquidityPool", targetAddress, admin)) as LiquidityPool;
+  const targetAddress = await resolveXAddress(pool);
+  const target = (await hre.ethers.getContractAt("LiquidityPoolAave", targetAddress, admin)) as LiquidityPoolAave;
 
   await target.setBorrowTokenLTV(token, ltv);
   console.log(`Token ${token} LTV set to ${ltv} on ${targetAddress}.`);
 });
 
 task("set-min-health-factor", "Update Liquidity Pool config")
-.addOptionalParam("pool", "Liquidity Pool proxy address or id", "LiquidityPool", types.string)
+.addOptionalParam("pool", "Liquidity Pool proxy address or id", "LiquidityPoolAaveUSDC", types.string)
 .addOptionalParam("healthfactor", "New min health factor value", 500n * 10n**16n, types.bigint)
 .setAction(async ({pool, healthfactor}: {pool: string, healthfactor: bigint}, hre) => {
-  const {resolveProxyXAddress} = await loadTestHelpers();
+  const {resolveXAddress} = await loadTestHelpers();
   const [admin] = await hre.ethers.getSigners();
 
-  const targetAddress = await resolveProxyXAddress(pool);
-  const target = (await hre.ethers.getContractAt("LiquidityPool", targetAddress, admin)) as LiquidityPool;
+  const targetAddress = await resolveXAddress(pool);
+  const target = (await hre.ethers.getContractAt("LiquidityPoolAave", targetAddress, admin)) as LiquidityPoolAave;
 
   await target.setHealthFactor(healthfactor);
   console.log(`Min health factor set to ${healthfactor} on ${targetAddress}.`);
@@ -75,10 +75,17 @@ task("set-min-health-factor", "Update Liquidity Pool config")
 
 task("set-routes", "Update Rebalancer config")
 .addOptionalParam("rebalancer", "Rebalancer address or id", "Rebalancer", types.string)
+.addOptionalParam("pools", "Comma separated list of Liquidity Pool ids or addresses")
 .addOptionalParam("domains", "Comma separated list of domain names")
 .addOptionalParam("providers", "Comma separated list of provider names")
 .addOptionalParam("allowed", "Allowed or denied", true, types.boolean)
-.setAction(async (args: {rebalancer: string, providers?: string, domains?: string, allowed: boolean}, hre) => {
+.setAction(async (args: {
+  rebalancer: string,
+  pools?: string,
+  domains?: string,
+  providers?: string,
+  allowed: boolean,
+}, hre) => {
   const {resolveProxyXAddress} = await loadTestHelpers();
   const config = networkConfig[hre.network.name as Network];
 
@@ -87,6 +94,7 @@ task("set-routes", "Update Rebalancer config")
   const targetAddress = await resolveProxyXAddress(args.rebalancer);
   const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, admin)) as Rebalancer;
 
+  const targetPools = args.pools && args.pools.split(",") || [];
   const domains = args.domains && args.domains.split(",") || config.Routes?.Domains || [];
   const domainsSolidity = domains.map(el => {
     assert(Object.values(Network).includes(el as Network), `Invalid domain ${el}`);
@@ -97,12 +105,14 @@ task("set-routes", "Update Rebalancer config")
     assert(Object.values(Provider).includes(el as Provider), `Invalid provider ${el}`);
     return ProviderSolidity[el as Provider];
   });
-  await target.setRoute(domainsSolidity, providersSolidity, args.allowed);
+
+  await target.setRoute(targetPools, domainsSolidity, providersSolidity, args.allowed);
   console.log(`Following routes are ${args.allowed ? "" : "dis"}allowed on ${targetAddress}.`);
   console.table({domains, providers});
 });
 
 task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
+.addParam("caller", "Address that will call borrow or borrowAndSwap")
 .addOptionalParam("token", "Token to borrow")
 .addOptionalParam("amount", "Amount to borrow in base units", 1000000n, types.bigint)
 .addOptionalParam("target", "Target address to approve and call")
@@ -112,6 +122,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
 .addOptionalParam("deadline", "Expiry protection timestamp", 2000000000n, types.bigint)
 .addOptionalParam("pool", "Liquidity Pool proxy address or id", "LiquidityPool", types.string)
 .setAction(async (args: {
+  caller: string,
   token?: string,
   amount: bigint,
   target?: string,
@@ -138,6 +149,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
 
   const types = {
     Borrow: [
+      {name: "caller", type: "address"},
       {name: "borrowToken", type: "address"},
       {name: "amount", type: "uint256"},
       {name: "target", type: "address"},
@@ -155,6 +167,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
   const nonce = args.nonce;
   const deadline = args.deadline;
   const value = {
+    caller: args.caller,
     borrowToken,
     amount,
     target,
@@ -165,6 +178,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
 
   const sig = await signer.signTypedData(domain, types, value);
 
+  console.log(`caller: ${args.caller}`);
   console.log(`borrowToken: ${borrowToken}`);
   console.log(`amount: ${amount}`);
   console.log(`target: ${target}`);

@@ -78,7 +78,7 @@ async function tryResolve(address: string, codeCheck: boolean = true): Promise<s
   return null;
 }
 
-export async function resolveAddressX(addressOrId: string, codeCheck: boolean = true): Promise<string> {
+export async function resolveXAddress(addressOrId: string, codeCheck: boolean = true): Promise<string> {
   const result = await tryResolve(addressOrId, codeCheck);
   return result || await getDeployXAddress(addressOrId, codeCheck);
 }
@@ -143,6 +143,7 @@ export function divCeil(a: bigint, b: bigint): bigint {
 export async function signBorrow(
   signer: Signer,
   verifyingContract: string,
+  caller: string,
   borrowToken: string,
   amount: string,
   target: string,
@@ -163,6 +164,7 @@ export async function signBorrow(
 
   const types = {
     Borrow: [
+      {name: "caller", type: "address"},
       {name: "borrowToken", type: "address"},
       {name: "amount", type: "uint256"},
       {name: "target", type: "address"},
@@ -173,9 +175,10 @@ export async function signBorrow(
   };
 
   const value = {
-    borrowToken: borrowToken.toLowerCase(),
+    caller,
+    borrowToken,
     amount,
-    target: target.toLowerCase(),
+    target,
     targetCallData,
     nonce,
     deadline,

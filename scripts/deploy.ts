@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {MaxUint256, getBigInt, resolveAddress} from "ethers";
-import {toBytes32} from "../test/helpers";
+import {toBytes32, getDeployXAddress} from "../test/helpers";
 import {
   getVerifier, deployProxyX,
 } from "./helpers";
@@ -14,7 +14,10 @@ import {
   SprinterLiquidityMining, TestCCTPTokenMessenger, TestCCTPMessageTransmitter,
   Rebalancer, LiquidityPool,
 } from "../typechain-types";
-import {networkConfig, Network, Provider, NetworkConfig, PREDICTED} from "../network.config";
+import {
+  networkConfig, Network, Provider, NetworkConfig, LiquidityPoolUSDC,
+  LiquidityPoolAaveUSDC,
+} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -62,10 +65,21 @@ export async function main() {
       IsTest: false,
       IsHub: true,
       Routes: {
-        Pools: [PREDICTED],
+        Pools: [LiquidityPoolUSDC],
         Domains: [Network.ETHEREUM],
         Providers: [Provider.CCTP],
       },
+    };
+  }
+  if (config.ExtraUSDCPool) {
+    assert(!config.Aave, "Extra pool can only be deployed beside Aave one.");
+  }
+
+  if (!config.Routes) {
+    config.Routes = {
+      Pools: [],
+      Domains: [],
+      Providers: [],
     };
   }
 
@@ -84,31 +98,36 @@ export async function main() {
         minHealthFactor,
         defaultLTV,
       ],
-      "LiquidityPoolAaveUSDC",
+      LiquidityPoolAaveUSDC,
     )) as LiquidityPool;
   } else {
     console.log("Deploying USDC Liquidity Pool");
     liquidityPool = (await verifier.deployX(
-      "LiquidityPool", deployer, {}, [config.USDC, admin, mpcAddress], "LiquidityPoolUSDC"
+      "LiquidityPool", deployer, {}, [config.USDC, admin, mpcAddress], LiquidityPoolUSDC
     )) as LiquidityPool;
+  }
+
+  config.Routes.Pools.push(await liquidityPool.getAddress());
+  config.Routes.Domains.push(network);
+  config.Routes.Providers.push(Provider.LOCAL);
+
+  let extraPool: LiquidityPool;
+  if (config.ExtraUSDCPool) {
+    console.log("Deploying Extra USDC Liquidity Pool");
+    extraPool = (await verifier.deployX(
+      "LiquidityPool", deployer, {}, [config.USDC, admin, mpcAddress], LiquidityPoolUSDC
+    )) as LiquidityPool;
+    console.log(`LiquidityPoolUSDC: ${extraPool.target}`);
+
+    config.Routes.Pools.push(await extraPool.getAddress());
+    config.Routes.Domains.push(network);
+    config.Routes.Providers.push(Provider.LOCAL);
   }
 
   const rebalancerVersion = config.IsTest ? "TestRebalancer" : "Rebalancer";
 
-  if (!config.Routes) {
-    config.Routes = {
-      Pools: [],
-      Domains: [],
-      Providers: [],
-    };
-  }
-
-  config.Routes.Pools.push(PREDICTED);
-  config.Routes.Domains.push(network);
-  config.Routes.Providers.push(Provider.LOCAL);
-
   const liquidityPoolAddress = await liquidityPool.getAddress();
-  config.Routes.Pools = config.Routes!.Pools!.map(el => el == PREDICTED ? liquidityPoolAddress : el) || [];
+  config.Routes.Pools = await verifier.predictDeployXAddresses(config.Routes!.Pools!, deployer);
 
   const {target: rebalancer, targetAdmin: rebalancerAdmin} = await deployProxyX<Rebalancer>(
     verifier.deployX,
@@ -129,6 +148,12 @@ export async function main() {
   await liquidityPool.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
   await liquidityPool.grantRole(WITHDRAW_PROFIT_ROLE, withdrawProfit);
   await liquidityPool.grantRole(PAUSER_ROLE, pauser);
+
+  if (config.ExtraUSDCPool) {
+    await extraPool!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
+    await extraPool!.grantRole(WITHDRAW_PROFIT_ROLE, withdrawProfit);
+    await extraPool!.grantRole(PAUSER_ROLE, pauser);
+  }
 
   if (config.IsHub) {
     const tiers = [];

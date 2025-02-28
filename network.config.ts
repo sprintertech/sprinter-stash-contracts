@@ -1,6 +1,7 @@
 import * as AAVEPools from "@bgd-labs/aave-address-book";
 
-export const PREDICTED: string = "predicted";
+export const LiquidityPoolAaveUSDC: string = "LiquidityPoolAaveUSDC";
+export const LiquidityPoolUSDC: string = "LiquidityPoolUSDC";
 
 export enum Network {
   ETHEREUM = "ETHEREUM",
@@ -41,6 +42,7 @@ export interface NetworkConfig {
   IsTest: boolean;
   IsHub: boolean;
   Aave?: string;
+  ExtraUSDCPool?: boolean;
 };
 
 type NetworksConfig = {
@@ -58,7 +60,7 @@ export const networkConfig: NetworksConfig = {
     IsTest: false,
     IsHub: false,
     Routes: {
-      Pools: [PREDICTED],
+      Pools: [LiquidityPoolAaveUSDC],
       Domains: [Network.BASE],
       Providers: [Provider.CCTP],
     },
@@ -107,7 +109,7 @@ export const networkConfig: NetworksConfig = {
     IsTest: false,
     IsHub: true,
     Routes: {
-      Pools: [PREDICTED],
+      Pools: [LiquidityPoolAaveUSDC],
       Domains: [Network.ETHEREUM],
       Providers: [Provider.CCTP],
     },
@@ -134,9 +136,9 @@ export const networkConfig: NetworksConfig = {
     IsTest: true,
     IsHub: false,
     Routes: {
-      Pools: [PREDICTED, PREDICTED],
-      Domains: [Network.BASE_SEPOLIA, Network.ARBITRUM_SEPOLIA],
-      Providers: [Provider.CCTP, Provider.CCTP],
+      Pools: [LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
+      Domains: [Network.BASE_SEPOLIA, Network.ARBITRUM_SEPOLIA, Network.BASE_SEPOLIA],
+      Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP],
     },
     // Aave: AAVEPools.AaveV3Sepolia.POOL_ADDRESSES_PROVIDER, // Uses not official USDC.
   },
@@ -172,9 +174,9 @@ export const networkConfig: NetworksConfig = {
     IsTest: true,
     IsHub: false,
     Routes: {
-      Pools: [PREDICTED, PREDICTED],
-      Domains: [Network.BASE_SEPOLIA, Network.ETHEREUM_SEPOLIA],
-      Providers: [Provider.CCTP, Provider.CCTP],
+      Pools: [LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
+      Domains: [Network.BASE_SEPOLIA, Network.ETHEREUM_SEPOLIA, Network.BASE_SEPOLIA],
+      Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP],
     },
     Aave: AAVEPools.AaveV3ArbitrumSepolia.POOL_ADDRESSES_PROVIDER,
   },
@@ -188,11 +190,12 @@ export const networkConfig: NetworksConfig = {
     IsTest: true,
     IsHub: true,
     Routes: {
-      Pools: [PREDICTED, PREDICTED],
+      Pools: [LiquidityPoolUSDC, LiquidityPoolAaveUSDC],
       Domains: [Network.ETHEREUM_SEPOLIA, Network.ARBITRUM_SEPOLIA],
       Providers: [Provider.CCTP, Provider.CCTP],
     },
     Aave: AAVEPools.AaveV3BaseSepolia.POOL_ADDRESSES_PROVIDER,
+    ExtraUSDCPool: true,
   },
   POLYGON_AMOY: {
     chainId: 80002,

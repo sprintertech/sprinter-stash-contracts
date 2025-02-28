@@ -1,5 +1,5 @@
 import hre from "hardhat";
-import {Signer, BaseContract, AddressLike, resolveAddress, ContractTransaction} from "ethers";
+import {Signer, BaseContract, AddressLike, resolveAddress, ContractTransaction, isAddress} from "ethers";
 import {deploy, deployX, getContractAt, getCreateAddress, getDeployXAddressBase} from "../test/helpers";
 import {
   TransparentUpgradeableProxy, ProxyAdmin,
@@ -65,6 +65,17 @@ export function getVerifier(deployXPrefix: string = "") {
         contract: contractVerificationName,
       });
       return contract;
+    },
+    predictDeployXAddresses: async (
+      idsContractNamesOrAddresses: string[],
+      deployer: Signer,
+    ): Promise<string[]> => {
+      return await Promise.all(idsContractNamesOrAddresses.map(idOrNameOrAddress => {
+        if (isAddress(idOrNameOrAddress)) {
+          return idOrNameOrAddress;
+        }
+        return getDeployXAddressBase(deployer, deployXPrefix + idOrNameOrAddress, false);
+      }));
     },
     predictDeployXAddress: async (
       idOrContractName: string,

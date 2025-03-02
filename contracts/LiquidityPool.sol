@@ -11,6 +11,16 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ILiquidityPool} from "./interfaces/ILiquidityPool.sol";
 import {IBorrower} from "./interfaces/IBorrower.sol";
 
+/// @title Liquidity pool contract holds the liquidity asset and allows solvers to borrow
+/// the asset from the pool and to perform an external function call upon providing the MPC signature.
+/// It's possible to perform borrowing with swap by the solver (the solver gets the borrowed
+/// assets from the pool, swaps them to fill tokens, and then the pool performs the target call).
+/// Repayment is done by transferring the assets to the contract without calling any function.
+/// Rebalancing is done by depositing and withdrawing assets from this pool by the LIQUIDITY_ADMIN_ROLE.
+/// Profit from borrowing is accounted for and can be withdrawn by the WITHDRAW_PROFIT_ROLE.
+/// Borrowing can be paused by the WITHDRAW_PROFIT_ROLE before withdrawing the profit.
+/// The contract is pausable by the PAUSER_ROLE.
+/// @author Tanya Bushenyova <tanya@chainsafe.io>
 contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
     using SafeERC20 for IERC20;
     using ECDSA for bytes32;

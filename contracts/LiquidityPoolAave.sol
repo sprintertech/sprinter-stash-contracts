@@ -10,6 +10,14 @@ import {IAaveOracle} from "./interfaces/IAaveOracle.sol";
 import {IAavePoolDataProvider} from "./interfaces/IAavePoolDataProvider.sol";
 import {LiquidityPool} from "./LiquidityPool.sol";
 
+/// @title A version of the liquidity pool contract that uses Aave pool.
+/// Deposits of the liquidity token are supplied to Aave as collateral.
+/// It's possible to borrow other tokens from Aave pool upon providing the MPC signature.
+/// Repayment to Aave is done by transferring the assets to the contract and calling the repay function.
+/// Rebalancing is done by depositing and withdrawing assets from Aave pool by the liquidity admin role.
+/// Profit from borrowing and accrued interest from supplying liquidity is accounted for
+/// and can be withdrawn by a separate role.
+/// @author Tanya Bushenyova <tanya@chainsafe.io>
 contract LiquidityPoolAave is LiquidityPool {
     using SafeERC20 for IERC20;
 

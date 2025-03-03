@@ -21,18 +21,8 @@ import {
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
-  const admin: string = await resolveAddress(process.env.ADMIN || deployer);
-  const adjuster: string = await resolveAddress(process.env.ADJUSTER || deployer);
+
   const maxLimit: bigint = MaxUint256 / 10n ** 12n;
-  const assetsLimit: bigint = getBigInt(process.env.ASSETS_LIMIT || maxLimit);
-
-  const rebalanceCaller: string = await resolveAddress(process.env.REBALANCE_CALLER || deployer);
-
-  const mpcAddress: string = await resolveAddress(process.env.MPC_ADDRESS || deployer);
-  const withdrawProfit: string = await resolveAddress(process.env.WITHDRAW_PROFIT || deployer);
-  const pauser: string = await resolveAddress(process.env.PAUSER || deployer);
-  const minHealthFactor: bigint = getBigInt(process.env.MIN_HEALTH_FACTOR || 500n) * 10n ** 18n / 100n;
-  const defaultLTV: bigint = getBigInt(process.env.DEFAULT_LTV || 20n) * 10n ** 18n / 100n;
 
   const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
   const WITHDRAW_PROFIT_ROLE = toBytes32("WITHDRAW_PROFIT_ROLE");
@@ -64,16 +54,23 @@ export async function main() {
       USDC: await testUSDC.getAddress(),
       IsTest: false,
       IsHub: true,
+      Admin: deployer.address,
+      AssetsAdjuster: deployer.address,
+      WithdrawProfit: deployer.address,
+      Pauser: deployer.address,
+      RebalanceCaller: deployer.address,
+      MpcAddress: deployer.address,
       Routes: {
         Pools: [LiquidityPoolUSDC],
         Domains: [Network.ETHEREUM],
         Providers: [Provider.CCTP],
       },
+      USDCPool: true
     };
   }
-  if (config.ExtraUSDCPool) {
-    assert(!config.Aave, "Extra pool can only be deployed beside Aave one.");
-  }
+
+  assert(typeof config.AavePool !== 'undefined' || (typeof config.USDCPool !== 'undefined' && config.USDCPool),
+    "At least one pool should be present.")
 
   if (!config.Routes) {
     config.Routes = {
@@ -83,48 +80,96 @@ export async function main() {
     };
   }
 
-  let liquidityPool: LiquidityPool;
+  if (!config.Admin) {
+    config.Admin = deployer.address;
+  }
+
+  if (!config.AssetsAdjuster) {
+    config.AssetsAdjuster = deployer.address;
+  }
+
+  let assetsLimit: bigint = getBigInt(maxLimit);
+  if (config.AssetsLimit) {
+    assetsLimit = getBigInt(config.AssetsLimit);
+  }
+
+  if (!config.RebalanceCaller) {
+    config.RebalanceCaller = deployer.address;
+  }
+
+  if (!config.MpcAddress) {
+    config.MpcAddress = deployer.address;
+  }
+
+  if (!config.WithdrawProfit) {
+    config.WithdrawProfit = deployer.address;
+  }
+
+  if (!config.Pauser) {
+    config.Pauser = deployer.address;
+  }
+
+  let minHealthFactor: bigint = getBigInt(500n);
+  if (config.AavePool) {
+    if (config.AavePool.minHealthFactor) {
+      minHealthFactor = getBigInt(config.AavePool.minHealthFactor);
+    }
+    minHealthFactor = minHealthFactor * 10n ** 18n / 100n;
+  }
+
+  let defaultLTV: bigint = getBigInt(20n);
+  if (config.AavePool) {
+    if (config.AavePool.defaultLTV) {
+      defaultLTV = getBigInt(config.AavePool.defaultLTV);
+    }
+    defaultLTV = defaultLTV * 10n ** 18n / 100n;
+  }
+
+  let aavePool: LiquidityPool;
   let mainPoolId: string;
-  if (config.Aave) {
+  if (config.AavePool) {
     console.log("Deploying AAVE Liquidity Pool");
     mainPoolId = LiquidityPoolAaveUSDC;
-    liquidityPool = (await verifier.deployX(
+    aavePool = (await verifier.deployX(
       "LiquidityPoolAave",
       deployer,
       {},
       [
         config.USDC,
-        config.Aave,
+        config.AavePool.AaveAddressesProvider,
         deployer,
-        mpcAddress,
+        config.MpcAddress,
         minHealthFactor,
         defaultLTV,
       ],
       mainPoolId,
     )) as LiquidityPool;
-  } else {
-    console.log("Deploying USDC Liquidity Pool");
-    mainPoolId = LiquidityPoolUSDC;
-    liquidityPool = (await verifier.deployX(
-      "LiquidityPool", deployer, {}, [config.USDC, admin, mpcAddress], mainPoolId
-    )) as LiquidityPool;
-  }
+    console.log(`LiquidityPoolAave: ${aavePool.target}`);
 
-  config.Routes.Pools.push(await liquidityPool.getAddress());
-  config.Routes.Domains.push(network);
-  config.Routes.Providers.push(Provider.LOCAL);
-
-  let extraPool: LiquidityPool;
-  if (config.ExtraUSDCPool) {
-    console.log("Deploying Extra USDC Liquidity Pool");
-    extraPool = (await verifier.deployX(
-      "LiquidityPool", deployer, {}, [config.USDC, admin, mpcAddress], LiquidityPoolUSDC
-    )) as LiquidityPool;
-    console.log(`LiquidityPoolUSDC: ${extraPool.target}`);
-
-    config.Routes.Pools.push(await extraPool.getAddress());
+    config.Routes.Pools.push(await aavePool.getAddress());
     config.Routes.Domains.push(network);
     config.Routes.Providers.push(Provider.LOCAL);
+  } 
+  
+  let usdcPool: LiquidityPool;
+  if (config.USDCPool) {
+    console.log("Deploying USDC Liquidity Pool");
+    usdcPool = (await verifier.deployX(
+      "LiquidityPool", deployer, {}, [config.USDC, config.Admin, config.MpcAddress], LiquidityPoolUSDC
+    )) as LiquidityPool;
+    console.log(`LiquidityPoolUSDC: ${usdcPool.target}`);
+
+    config.Routes.Pools.push(await usdcPool.getAddress());
+    config.Routes.Domains.push(network);
+    config.Routes.Providers.push(Provider.LOCAL);
+  }
+
+  let liquidityPool;
+  if (config.AavePool) {
+    liquidityPool = aavePool!;
+  } else {
+    mainPoolId = LiquidityPoolUSDC;
+    liquidityPool = usdcPool!;
   }
 
   const rebalancerVersion = config.IsTest ? "TestRebalancer" : "Rebalancer";
@@ -135,11 +180,11 @@ export async function main() {
     verifier.deployX,
     rebalancerVersion,
     deployer,
-    admin,
+    config.Admin,
     [DomainSolidity[network], config.USDC, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter],
     [
-      admin,
-      rebalanceCaller,
+      config.Admin,
+      config.RebalanceCaller,
       config.Routes.Pools,
       config.Routes!.Domains!.map(el => DomainSolidity[el]) || [],
       config.Routes!.Providers!.map(el => ProviderSolidity[el]) || [],
@@ -148,13 +193,13 @@ export async function main() {
   );
 
   await liquidityPool.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
-  await liquidityPool.grantRole(WITHDRAW_PROFIT_ROLE, withdrawProfit);
-  await liquidityPool.grantRole(PAUSER_ROLE, pauser);
+  await liquidityPool.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
+  await liquidityPool.grantRole(PAUSER_ROLE, config.Pauser);
 
-  if (config.ExtraUSDCPool) {
-    await extraPool!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
-    await extraPool!.grantRole(WITHDRAW_PROFIT_ROLE, withdrawProfit);
-    await extraPool!.grantRole(PAUSER_ROLE, pauser);
+  if (config.USDCPool) {
+    await usdcPool!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
+    await usdcPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
+    await usdcPool!.grantRole(PAUSER_ROLE, config.Pauser);
   }
 
   if (config.IsHub) {
@@ -187,14 +232,14 @@ export async function main() {
       verifier.deployX,
       "LiquidityHub",
       deployer,
-      admin,
+      config.Admin,
       [lpToken, liquidityPool],
-      [config.USDC, admin, adjuster, assetsLimit],
+      [config.USDC, config.Admin, config.AssetsAdjuster, assetsLimit],
     );
 
     assert(liquidityHubAddress == liquidityHub.target, "LiquidityHub address mismatch");
     const liquidityMining = (
-      await verifier.deployX("SprinterLiquidityMining", deployer, {}, [admin, liquidityHub, tiers])
+      await verifier.deployX("SprinterLiquidityMining", deployer, {}, [config.Admin, liquidityHub, tiers])
     ) as SprinterLiquidityMining;
 
     await liquidityPool.grantRole(LIQUIDITY_ADMIN_ROLE, liquidityHub);
@@ -202,7 +247,7 @@ export async function main() {
     console.log(`SprinterUSDCLPShare: ${lpToken.target}`);
     console.log(`LiquidityHub: ${liquidityHub.target}`);
     console.log(`LiquidityHubProxyAdmin: ${liquidityHubAdmin.target}`);
-    console.log(`LiquidityHub Adjuster: ${adjuster}`);
+    console.log(`LiquidityHub Adjuster: ${config.AssetsAdjuster}`);
     console.log(`SprinterLiquidityMining: ${liquidityMining.target}`);
     console.log("Tiers:");
     console.table(tiers.map(el => {
@@ -211,20 +256,20 @@ export async function main() {
     }));
   }
 
-  if (deployer.address !== admin) {
-    await liquidityPool.grantRole(DEFAULT_ADMIN_ROLE, admin);
+  if (deployer.address !== config.Admin) {
+    await liquidityPool.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
     await liquidityPool.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
 
-    if (config.ExtraUSDCPool) {
-      await extraPool!.grantRole(DEFAULT_ADMIN_ROLE, admin);
-      await extraPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    if (config.USDCPool) {
+      await usdcPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
+      await usdcPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
     }
   }
 
-  console.log(`Admin: ${admin}`);
-  console.log(`${mainPoolId}: ${liquidityPool.target}`);
-  console.log(`LiquidityPool Withdraw Profit: ${withdrawProfit}`);
-  console.log(`LiquidityPool Pauser: ${pauser}`);
+  console.log(`Admin: ${config.Admin}`);
+  console.log(`${mainPoolId!}: ${liquidityPool.target}`);
+  console.log(`LiquidityPool Withdraw Profit: ${config.WithdrawProfit}`);
+  console.log(`LiquidityPool Pauser: ${config.Pauser}`);
   console.log(`USDC: ${config.USDC}`);
   console.log(`Rebalancer: ${rebalancer.target}`);
   console.log(`RebalancerProxyAdmin: ${rebalancerAdmin.target}`);

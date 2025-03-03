@@ -1388,8 +1388,8 @@ describe("LiquidityPoolAave", function () {
 
     it("Should allow admin to set token LTV for each token", async function () {
       const {liquidityPool, admin, uni, rpl} = await loadFixture(deployAll);
-      const oldUniLTV = await liquidityPool._borrowTokenLTV(uni.target);
-      const oldRplLTV = await liquidityPool._borrowTokenLTV(rpl.target);
+      const oldUniLTV = await liquidityPool.borrowTokenLTV(uni.target);
+      const oldRplLTV = await liquidityPool.borrowTokenLTV(rpl.target);
       const uni_ltv = 1000;
       const rpl_ltv = 2000;
       await expect(liquidityPool.connect(admin).setBorrowTokenLTVs(
@@ -1398,9 +1398,9 @@ describe("LiquidityPoolAave", function () {
       ))
         .to.emit(liquidityPool, "BorrowTokenLTVSet").withArgs(uni.target, oldUniLTV, uni_ltv)
         .and.to.emit(liquidityPool, "BorrowTokenLTVSet").withArgs(rpl.target, oldRplLTV, rpl_ltv);
-      expect(await liquidityPool._borrowTokenLTV(uni.target))
+      expect(await liquidityPool.borrowTokenLTV(uni.target))
         .to.eq(uni_ltv);
-      expect(await liquidityPool._borrowTokenLTV(rpl.target))
+      expect(await liquidityPool.borrowTokenLTV(rpl.target))
         .to.eq(rpl_ltv);
     });
 

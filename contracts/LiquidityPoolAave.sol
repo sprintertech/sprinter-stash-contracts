@@ -33,7 +33,7 @@ contract LiquidityPoolAave is LiquidityPool {
     uint256 public minHealthFactor;
     uint256 public defaultLTV;
 
-    mapping(address token => uint256 ltv) public _borrowTokenLTV;
+    mapping(address token => uint256 ltv) public borrowTokenLTV;
 
     error TokenLtvExceeded();
     error NoCollateral();
@@ -92,8 +92,8 @@ contract LiquidityPoolAave is LiquidityPool {
         for (uint256 i = 0; i < tokens.length; ++i) {
             address token = tokens[i];
             uint256 ltv = ltvs[i];
-            uint256 oldLTV = _borrowTokenLTV[token];
-            _borrowTokenLTV[token] = ltv;
+            uint256 oldLTV = borrowTokenLTV[token];
+            borrowTokenLTV[token] = ltv;
             emit BorrowTokenLTVSet(token, oldLTV, ltv);
         }
     }
@@ -113,7 +113,7 @@ contract LiquidityPoolAave is LiquidityPool {
     // Internal functions
 
     function _checkTokenLTV(address borrowToken) private view {
-        uint256 ltv = _borrowTokenLTV[borrowToken];
+        uint256 ltv = borrowTokenLTV[borrowToken];
         if (ltv == 0) ltv = defaultLTV;
 
         uint256 totalCollateral = ATOKEN.balanceOf(address(this));

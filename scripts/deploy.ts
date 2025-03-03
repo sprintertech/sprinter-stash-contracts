@@ -1,7 +1,7 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {MaxUint256, getBigInt, resolveAddress} from "ethers";
+import {MaxUint256, getBigInt} from "ethers";
 import {toBytes32} from "../test/helpers";
 import {
   getVerifier, deployProxyX,
@@ -12,7 +12,7 @@ import {
 import {
   TestUSDC, SprinterUSDCLPShare, LiquidityHub,
   SprinterLiquidityMining, TestCCTPTokenMessenger, TestCCTPMessageTransmitter,
-  Rebalancer, LiquidityPool,
+  Rebalancer, LiquidityPool, LiquidityPoolAave
 } from "../typechain-types";
 import {
   networkConfig, Network, Provider, NetworkConfig, LiquidityPoolUSDC,
@@ -69,7 +69,7 @@ export async function main() {
     };
   }
 
-  assert(typeof config.AavePool !== 'undefined' || (typeof config.USDCPool !== 'undefined' && config.USDCPool),
+  assert(typeof config.AavePool !== "undefined" || (typeof config.USDCPool !== "undefined" && config.USDCPool),
     "At least one pool should be present.")
 
   if (!config.Routes) {
@@ -125,7 +125,7 @@ export async function main() {
     defaultLTV = defaultLTV * 10n ** 18n / 100n;
   }
 
-  let aavePool: LiquidityPool;
+  let aavePool: LiquidityPoolAave;
   let mainPoolId: string;
   if (config.AavePool) {
     console.log("Deploying AAVE Liquidity Pool");
@@ -143,7 +143,11 @@ export async function main() {
         defaultLTV,
       ],
       mainPoolId,
-    )) as LiquidityPool;
+    )) as LiquidityPoolAave;
+
+    if (config.AavePool.tokenLTVs) {
+      await aavePool.setBorrowTokenLTVs(config.AavePool.tokenLTVs.Tokens, config.AavePool.tokenLTVs.LTVs)
+    }
     console.log(`LiquidityPoolAave: ${aavePool.target}`);
 
     config.Routes.Pools.push(await aavePool.getAddress());
@@ -257,8 +261,10 @@ export async function main() {
   }
 
   if (deployer.address !== config.Admin) {
-    await liquidityPool.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-    await liquidityPool.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    if (config.AavePool) {
+      await aavePool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
+      await aavePool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    }
 
     if (config.USDCPool) {
       await usdcPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);

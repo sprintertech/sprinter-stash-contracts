@@ -44,19 +44,23 @@ task("set-default-ltv", "Update Liquidity Pool config")
   console.log(`Default LTV set to ${ltv} on ${targetAddress}.`);
 });
 
-task("set-token-ltv", "Update Liquidity Pool config")
-.addParam("token", "Token to update LTV for")
+task("set-token-ltvs", "Update Liquidity Pool config")
+.addParam("tokens", "Comma separated list of tokens to update LTV for")
+.addParam("ltvs", "Comma separated list of new LTV values")
 .addOptionalParam("pool", "Liquidity Pool proxy address or id", "LiquidityPoolAaveUSDC", types.string)
-.addOptionalParam("ltv", "New LTV value", 20n * 10n**16n, types.bigint)
-.setAction(async ({token, pool, ltv}: {token: string, pool: string, ltv: bigint}, hre) => {
+.setAction(async (args: {tokens: string, ltvs: string, pool: string}, hre) => {
   const {resolveXAddress} = await loadTestHelpers();
   const [admin] = await hre.ethers.getSigners();
 
-  const targetAddress = await resolveXAddress(pool);
+  const targetAddress = await resolveXAddress(args.pool);
   const target = (await hre.ethers.getContractAt("LiquidityPoolAave", targetAddress, admin)) as LiquidityPoolAave;
 
-  await target.setBorrowTokenLTV(token, ltv);
-  console.log(`Token ${token} LTV set to ${ltv} on ${targetAddress}.`);
+  const tokens = args.tokens && args.tokens.split(",") || [];
+  const ltvs = args.ltvs && args.ltvs.split(",") || [];
+
+  await target.setBorrowTokenLTVs(tokens, ltvs);
+  console.log(`Following tokens LTVs set on ${targetAddress}:`);
+  console.table({tokens, ltvs});
 });
 
 task("set-min-health-factor", "Update Liquidity Pool config")

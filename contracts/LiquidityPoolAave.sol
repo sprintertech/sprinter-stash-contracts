@@ -41,6 +41,7 @@ contract LiquidityPoolAave is LiquidityPool {
     error NothingToRepay();
     error CollateralNotSupported();
     error CannotWithdrawAToken();
+    error InvalidLength();
 
     event SuppliedToAave(uint256 amount);
     event BorrowTokenLTVSet(address token, uint256 oldLTV, uint256 newLTV);
@@ -83,10 +84,18 @@ contract LiquidityPoolAave is LiquidityPool {
 
     // Admin functions
 
-    function setBorrowTokenLTV(address token, uint256 ltv) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        uint256 oldLTV = _borrowTokenLTV[token];
-        _borrowTokenLTV[token] = ltv;
-        emit BorrowTokenLTVSet(token, oldLTV, ltv);
+    function setBorrowTokenLTVs(
+        address[] calldata tokens,
+        uint256[] calldata ltvs
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(tokens.length == ltvs.length, InvalidLength());
+        for (uint256 i = 0; i < tokens.length; ++i) {
+            address token = tokens[i];
+            uint256 ltv = ltvs[i];
+            uint256 oldLTV = _borrowTokenLTV[token];
+            _borrowTokenLTV[token] = ltv;
+            emit BorrowTokenLTVSet(token, oldLTV, ltv);
+        }
     }
 
     function setDefaultLTV(uint256 defaultLTV_) external onlyRole(DEFAULT_ADMIN_ROLE) {

@@ -1340,6 +1340,17 @@ describe("LiquidityPoolAave", function () {
       await expect(liquidityPool.connect(user).withdrawProfit([uni.target], user.address))
         .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
     });
+
+    it("Should NOT set token LTVs if array lengths don't match", async function () {
+      const {liquidityPool, admin, uni} = await loadFixture(deployAll);
+      const uni_ltv = 1000;
+      const rpl_ltv = 2000;
+      await expect(liquidityPool.connect(admin).setBorrowTokenLTVs(
+        [uni.target],
+        [uni_ltv, rpl_ltv]
+      ))
+        .to.be.revertedWithCustomError(liquidityPool, "InvalidLength");
+    });
   });
 
   describe("Roles and admin functions", function () {
@@ -1376,19 +1387,27 @@ describe("LiquidityPoolAave", function () {
     });
 
     it("Should allow admin to set token LTV for each token", async function () {
-      const {liquidityPool, admin, uni} = await loadFixture(deployAll);
-      const oldLTV = await liquidityPool._borrowTokenLTV(uni.target);
-      const ltv = 1000;
-      await expect(liquidityPool.connect(admin).setBorrowTokenLTV(uni.target, ltv))
-        .to.emit(liquidityPool, "BorrowTokenLTVSet").withArgs(uni.target, oldLTV, ltv);
+      const {liquidityPool, admin, uni, rpl} = await loadFixture(deployAll);
+      const oldUniLTV = await liquidityPool._borrowTokenLTV(uni.target);
+      const oldRplLTV = await liquidityPool._borrowTokenLTV(rpl.target);
+      const uni_ltv = 1000;
+      const rpl_ltv = 2000;
+      await expect(liquidityPool.connect(admin).setBorrowTokenLTVs(
+        [uni.target, rpl.target],
+        [uni_ltv, rpl_ltv]
+      ))
+        .to.emit(liquidityPool, "BorrowTokenLTVSet").withArgs(uni.target, oldUniLTV, uni_ltv)
+        .and.to.emit(liquidityPool, "BorrowTokenLTVSet").withArgs(rpl.target, oldRplLTV, rpl_ltv);
       expect(await liquidityPool._borrowTokenLTV(uni.target))
-        .to.eq(ltv);
+        .to.eq(uni_ltv);
+      expect(await liquidityPool._borrowTokenLTV(rpl.target))
+        .to.eq(rpl_ltv);
     });
 
     it("Should NOT allow others to set token LTV for each token", async function () {
       const {liquidityPool, user, uni} = await loadFixture(deployAll);
       const ltv = 1000;
-      await expect(liquidityPool.connect(user).setBorrowTokenLTV(uni.target, ltv))
+      await expect(liquidityPool.connect(user).setBorrowTokenLTVs([uni.target], [ltv]))
         .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
     });
 

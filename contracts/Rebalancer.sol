@@ -10,6 +10,12 @@ import {ILiquidityPool} from "./interfaces/ILiquidityPool.sol";
 import {IRebalancer} from "./interfaces/IRebalancer.sol";
 import {ICCTPTokenMessenger, ICCTPMessageTransmitter} from "./interfaces/ICCTP.sol";
 
+/// @title Facilitates liquidity movement between Liquidity Pools on same/different chains.
+/// Routes, which is a destination pool/domain and a bridging provider, have to be approved by admin.
+/// Rebalancing only takes arbitrary input on the amount, then contract enforces correct processing.
+/// REBALANCER_ROLE is needed to finalize/init rebalancing process.
+/// @notice Upgradeable.
+/// @author Oleksii Matiiasevych <oleksii@chainsafe.io>
 contract Rebalancer is IRebalancer, AccessControlUpgradeable {
     using SafeERC20 for IERC20;
     using BitMaps for BitMaps.BitMap;

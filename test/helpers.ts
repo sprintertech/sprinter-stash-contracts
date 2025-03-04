@@ -1,31 +1,136 @@
 import hre from "hardhat";
-import {AddressLike, resolveAddress, Signer, BaseContract, zeroPadBytes, toUtf8Bytes, TypedDataDomain} from "ethers";
-
-export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-export const ZERO_BYTES32 = "0x0000000000000000000000000000000000000000000000000000000000000000";
+import {
+  AddressLike, resolveAddress, Signer, BaseContract, toUtf8Bytes, TypedDataDomain,
+  keccak256, concat, dataSlice, AbiCoder, EventLog, encodeBytes32String, isAddressable,
+} from "ethers";
+import {assert, DEFAULT_PROXY_TYPE} from "../scripts/common";
+import {ICreateX} from "../typechain-types";
+import dotenv from "dotenv";
+dotenv.config();
 
 export async function getCreateAddress(from: AddressLike, nonce: number): Promise<string> {
   return hre.ethers.getCreateAddress({from: await resolveAddress(from), nonce});
 }
 
-export async function getContractAt(contractName: string, address: AddressLike, signer?: Signer):
-  Promise<BaseContract>
-{
+export async function getCreateX(deployer?: Signer): Promise<ICreateX> {
+  const createX = await getContractAt("ICreateX", "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed", deployer) as ICreateX;
+  const expectedBytecodeHash = "0xbd8a7ea8cfca7b4e5f5041d7d4b17bc317c5ce42cfbc42066a00cf26b43eb53f";
+  const actualBytecode = await hre.ethers.provider.getCode(createX);
+  const actualBytecodeHash = keccak256(actualBytecode);
+  assert(actualBytecodeHash === expectedBytecodeHash, `Unexpected CreateX bytecode: ${actualBytecode}`);
+  return createX;
+};
+
+export async function assertCode(contract: AddressLike): Promise<string> {
+  const result = await resolveAddress(contract);
+  assert(
+    await hre.ethers.provider.getCode(result) !== "0x",
+    `${contract} does not have any code.`
+  );
+  return result;
+}
+
+export async function getDeployXAddressBase(
+  deployer: AddressLike,
+  id: string,
+  codeCheck: boolean = true,
+): Promise<string> {
+  const salt = concat([
+    await resolveAddress(deployer),
+    "0x00",
+    dataSlice(keccak256(toUtf8Bytes(id)), 0, 11),
+  ]);
+  const guardedSalt = keccak256(AbiCoder.defaultAbiCoder().encode(
+    ["address", "bytes32"],
+    [await resolveAddress(deployer), salt],
+  ));
+  const createX = await getCreateX();
+  const result = await createX["computeCreate3Address(bytes32)"](guardedSalt);
+  if (codeCheck) {
+    await assertCode(result);
+  }
+  return result;
+}
+
+export async function getDeployXAddress(id: string, codeCheck: boolean = true): Promise<string> {
+  return await getDeployXAddressBase(
+    process.env.DEPLOYER_ADDRESS!,
+    process.env.DEPLOY_ID! + id,
+    codeCheck,
+  );
+}
+
+export async function getDeployProxyXAddress(
+  id: string,
+  codeCheck: boolean = true,
+  proxyType: string = DEFAULT_PROXY_TYPE,
+): Promise<string> {
+  return await getDeployXAddress(proxyType + id, codeCheck);
+}
+
+async function tryResolve(address: string, codeCheck: boolean = true): Promise<string | null> {
+  if (isAddressable(address)) {
+    if (codeCheck) {
+      return await assertCode(address);
+    }
+    return await resolveAddress(address);
+  }
+  return null;
+}
+
+export async function resolveXAddress(addressOrId: string, codeCheck: boolean = true): Promise<string> {
+  const result = await tryResolve(addressOrId, codeCheck);
+  return result || await getDeployXAddress(addressOrId, codeCheck);
+}
+
+export async function resolveProxyXAddress(addressOrId: string, codeCheck: boolean = true): Promise<string> {
+  const result = await tryResolve(addressOrId, codeCheck);
+  return result || await getDeployProxyXAddress(addressOrId, codeCheck);
+}
+
+export async function getContractAt(
+  contractName: string,
+  address: AddressLike,
+  signer?: Signer
+): Promise<BaseContract> {
   return hre.ethers.getContractAt(contractName, await resolveAddress(address), signer);
 }
 
-export async function deploy(contractName: string, signer: Signer, txParams: object = {}, ...params: any[]):
-  Promise<BaseContract>
-{
+export async function deploy(
+  contractName: string,
+  signer: Signer,
+  txParams: object = {},
+  ...params: any[]
+): Promise<BaseContract> {
   const factory = await hre.ethers.getContractFactory(contractName, signer);
   const instance = await factory.deploy(...params, txParams);
   await instance.waitForDeployment();
   return instance;
 }
 
+export async function deployX(
+  contractName: string,
+  signer: Signer,
+  id: string = contractName,
+  txParams: object = {},
+  ...params: any[]
+): Promise<BaseContract> {
+  const factory = await hre.ethers.getContractFactory(contractName, signer);
+  const deployCode = (await factory.getDeployTransaction(...params)).data;
+  const createX = await getCreateX(signer);
+  const salt = concat([
+    await resolveAddress(signer),
+    "0x00",
+    dataSlice(keccak256(toUtf8Bytes(id)), 0, 11),
+  ]);
+  const deployTx = await (await createX["deployCreate3(bytes32,bytes)"](salt, deployCode, txParams)).wait();
+  const deployedTo = (deployTx!.logs[deployTx!.logs.length - 1] as EventLog).args[0];
+  const instance = await getContractAt(contractName, deployedTo, signer);
+  return instance;
+}
+
 export function toBytes32(str: string) {
-  if (str.length > 32) throw new Error("String too long");
-  return zeroPadBytes(toUtf8Bytes(str), 32);
+  return encodeBytes32String(str);
 }
 
 export function divCeil(a: bigint, b: bigint): bigint {

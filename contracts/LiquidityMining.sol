@@ -6,6 +6,15 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
+/// @title Staking contract locks the stake according to the configured/specified tier parameters.
+/// Each tier specifies a lock period in seconds and a multiplier that is used to mint score to the staker.
+/// The score is represented as an ERC20 token which this contract is itself.
+/// Each stake, even by the same user, is treated independently.
+/// Rewards are minted immediately upon staking because user cannot unstake early.
+/// The multiplier is specified in units of 0.01, eg. 150 will result in a 1.5x of staked amount as score.
+/// The owner can disable the future staking, without the ability to enable it again, which does not affect
+/// existing stakes.
+/// @author Oleksii Matiiasevych <oleksii@chainsafe.io>
 contract LiquidityMining is ERC20, Ownable {
     using SafeERC20 for IERC20;
 

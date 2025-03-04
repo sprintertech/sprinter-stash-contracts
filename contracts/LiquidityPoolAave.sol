@@ -10,6 +10,16 @@ import {IAaveOracle} from "./interfaces/IAaveOracle.sol";
 import {IAavePoolDataProvider} from "./interfaces/IAavePoolDataProvider.sol";
 import {LiquidityPool} from "./LiquidityPool.sol";
 
+/// @title A version of the liquidity pool contract that uses Aave pool.
+/// Deposits of the liquidity token are supplied to Aave as collateral.
+/// It's possible to borrow other tokens from Aave pool upon providing the MPC signature.
+/// The contract verifies that the borrowing won't put it at risk of liquidation
+/// by checking the custom LTV and health factor that should be configured with a safety margin.
+/// Repayment to Aave is done by transferring the assets to the contract and calling the repay function.
+/// Rebalancing is done by depositing and withdrawing assets from Aave pool by the liquidity admin role.
+/// Profit from borrowing and accrued interest from supplying liquidity is accounted for
+/// and can be withdrawn by the WITHDRAW_PROFIT_ROLE.
+/// @author Tanya Bushenyova <tanya@chainsafe.io>
 contract LiquidityPoolAave is LiquidityPool {
     using SafeERC20 for IERC20;
 
@@ -23,7 +33,7 @@ contract LiquidityPoolAave is LiquidityPool {
     uint256 public minHealthFactor;
     uint256 public defaultLTV;
 
-    mapping(address token => uint256 ltv) public _borrowTokenLTV;
+    mapping(address token => uint256 ltv) public borrowTokenLTV;
 
     error TokenLtvExceeded();
     error NoCollateral();
@@ -31,6 +41,7 @@ contract LiquidityPoolAave is LiquidityPool {
     error NothingToRepay();
     error CollateralNotSupported();
     error CannotWithdrawAToken();
+    error InvalidLength();
 
     event SuppliedToAave(uint256 amount);
     event BorrowTokenLTVSet(address token, uint256 oldLTV, uint256 newLTV);
@@ -73,10 +84,18 @@ contract LiquidityPoolAave is LiquidityPool {
 
     // Admin functions
 
-    function setBorrowTokenLTV(address token, uint256 ltv) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        uint256 oldLTV = _borrowTokenLTV[token];
-        _borrowTokenLTV[token] = ltv;
-        emit BorrowTokenLTVSet(token, oldLTV, ltv);
+    function setBorrowTokenLTVs(
+        address[] calldata tokens,
+        uint256[] calldata ltvs
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(tokens.length == ltvs.length, InvalidLength());
+        for (uint256 i = 0; i < tokens.length; ++i) {
+            address token = tokens[i];
+            uint256 ltv = ltvs[i];
+            uint256 oldLTV = borrowTokenLTV[token];
+            borrowTokenLTV[token] = ltv;
+            emit BorrowTokenLTVSet(token, oldLTV, ltv);
+        }
     }
 
     function setDefaultLTV(uint256 defaultLTV_) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -94,7 +113,7 @@ contract LiquidityPoolAave is LiquidityPool {
     // Internal functions
 
     function _checkTokenLTV(address borrowToken) private view {
-        uint256 ltv = _borrowTokenLTV[borrowToken];
+        uint256 ltv = borrowTokenLTV[borrowToken];
         if (ltv == 0) ltv = defaultLTV;
 
         uint256 totalCollateral = ATOKEN.balanceOf(address(this));

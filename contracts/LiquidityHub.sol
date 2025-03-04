@@ -16,6 +16,16 @@ import {IManagedToken} from "./interfaces/IManagedToken.sol";
 import {ILiquidityPool} from "./interfaces/ILiquidityPool.sol";
 import {ILiquidityHub} from "./interfaces/ILiquidityHub.sol";
 
+/// @title A modified version of the ERC4626 vault with the following key differences:
+/// 1. The shares token functionality is delegated to a dedicated token contract.
+/// 2. The total assets variable cannot be increased by a donation, making inflation by users impossible.
+/// 3. The total assets could be increased or decreased by an Adjuster role to modify the conversion rate.
+/// 4. Has an admin controlled maximum total assets limit.
+/// 5. Supports deposit with permit if the underlying asset supports permit as well.
+/// 6. Underlying assets are deposited/withdrawn to/from a connected ILiquidityPool contract.
+/// 7. To withdraw/redeem on behalf, owner has to approve spender on the shares contract instead of this one.
+/// @notice Upgradeable.
+/// @author Oleksii Matiiasevych <oleksii@chainsafe.io>
 contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgradeable {
     using Math for uint256;
 

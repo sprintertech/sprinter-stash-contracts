@@ -4,8 +4,9 @@ import {
 import {expect} from "chai";
 import hre from "hardhat";
 import {
-  deploy, signBorrow, ZERO_ADDRESS
+  deploy, signBorrow
 } from "./helpers";
+import {ZERO_ADDRESS} from "../scripts/common";
 import {encodeBytes32String, AbiCoder} from "ethers";
 import {
   MockTarget, MockBorrowSwap, LiquidityPool

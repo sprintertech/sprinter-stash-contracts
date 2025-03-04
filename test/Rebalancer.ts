@@ -5,11 +5,11 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {AbiCoder} from "ethers";
 import {
-  getCreateAddress, getContractAt, deploy,
-  ZERO_ADDRESS, ZERO_BYTES32, toBytes32
+  getCreateAddress, getContractAt, deploy, deployX, toBytes32,
 } from "./helpers";
 import {
-  ProviderSolidity as Provider, DomainSolidity as Domain,
+  ProviderSolidity as Provider, DomainSolidity as Domain, ZERO_ADDRESS,
+  DEFAULT_ADMIN_ROLE,
 } from "../scripts/common";
 import {
   TestUSDC, TransparentUpgradeableProxy, ProxyAdmin,
@@ -23,13 +23,12 @@ describe("Rebalancer", function () {
   const deployAll = async () => {
     const [deployer, admin, rebalanceUser, user] = await hre.ethers.getSigners();
 
-    const DEFAULT_ADMIN_ROLE = ZERO_BYTES32;
     const REBALANCER_ROLE = toBytes32("REBALANCER_ROLE");
     const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
 
     const usdc = (await deploy("TestUSDC", deployer, {})) as TestUSDC;
-    const liquidityPool = (await deploy("TestLiquidityPool", deployer, {}, usdc.target)) as TestLiquidityPool;
-    const liquidityPool2 = (await deploy("TestLiquidityPool", deployer, {}, usdc.target)) as TestLiquidityPool;
+    const liquidityPool = (await deploy("TestLiquidityPool", deployer, {}, usdc, deployer)) as TestLiquidityPool;
+    const liquidityPool2 = (await deploy("TestLiquidityPool", deployer, {}, usdc, deployer)) as TestLiquidityPool;
     const cctpTokenMessenger = (await deploy("TestCCTPTokenMessenger", deployer, {})) as TestCCTPTokenMessenger;
     const cctpMessageTransmitter = (
       await deploy("TestCCTPMessageTransmitter", deployer, {})
@@ -38,7 +37,7 @@ describe("Rebalancer", function () {
     const USDC = 10n ** (await usdc.decimals());
 
     const rebalancerImpl = (
-      await deploy("Rebalancer", deployer, {},
+      await deployX("Rebalancer", deployer, "Rebalancer", {},
         Domain.BASE, usdc.target, cctpTokenMessenger.target, cctpMessageTransmitter.target
       )
     ) as Rebalancer;
@@ -49,8 +48,8 @@ describe("Rebalancer", function () {
       [Domain.BASE, Domain.BASE, Domain.ETHEREUM, Domain.ARBITRUM_ONE],
       [Provider.LOCAL, Provider.LOCAL, Provider.CCTP, Provider.CCTP]
     )).data;
-    const rebalancerProxy = (await deploy(
-      "TransparentUpgradeableProxy", deployer, {},
+    const rebalancerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRebalancer", {},
       rebalancerImpl.target, admin, rebalancerInit
     )) as TransparentUpgradeableProxy;
     const rebalancer = (await getContractAt("Rebalancer", rebalancerProxy.target, deployer)) as Rebalancer;
@@ -188,7 +187,7 @@ describe("Rebalancer", function () {
 
   it("Should not allow admin to enable invalid routes", async function () {
     const {rebalancer, admin, liquidityPool2, deployer} = await loadFixture(deployAll);
-    const liquidityPool3 = (await deploy("TestLiquidityPool", deployer, {}, admin.address)) as TestLiquidityPool;
+    const liquidityPool3 = (await deploy("TestLiquidityPool", deployer, {}, admin, admin)) as TestLiquidityPool;
 
     await expect(rebalancer.connect(admin).setRoute(
       [liquidityPool2.target],

@@ -5,9 +5,10 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {Signature, resolveAddress, MaxUint256, getBigInt} from "ethers";
 import {
-  getCreateAddress, getContractAt, deploy,
-  ZERO_ADDRESS, toBytes32,
+  getCreateAddress, getDeployXAddressBase, getContractAt, deploy, deployX,
+  toBytes32,
 } from "./helpers";
+import {ZERO_ADDRESS} from "../scripts/common";
 import {
   TestUSDC, SprinterUSDCLPShare, LiquidityHub, TransparentUpgradeableProxy, ProxyAdmin,
   TestLiquidityPool,
@@ -22,27 +23,27 @@ describe("LiquidityHub", function () {
 
     const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
 
-    const usdc = (await deploy("TestUSDC", deployer, {})) as TestUSDC;
-    const liquidityPool = (await deploy("TestLiquidityPool", deployer, {}, usdc.target)) as TestLiquidityPool;
+    const usdc = (await deploy("TestUSDC", deployer)) as TestUSDC;
+    const liquidityPool = (
+      await deployX("TestLiquidityPool", deployer, "TestLiquidityPool", {}, usdc.target, deployer)
+    ) as TestLiquidityPool;
 
     const USDC = 10n ** (await usdc.decimals());
 
-    const startingNonce = await deployer.getNonce();
-
-    const liquidityHubAddress = await getCreateAddress(deployer, startingNonce + 2);
+    const liquidityHubAddress = await getDeployXAddressBase(deployer, "TransparentUpgradeableProxyLiquidityHub", false);
     const lpToken = (
-      await deploy("SprinterUSDCLPShare", deployer, {nonce: startingNonce + 0}, liquidityHubAddress)
+      await deployX("SprinterUSDCLPShare", deployer, "SprinterUSDCLPShare", {}, liquidityHubAddress)
     ) as SprinterUSDCLPShare;
     const LP = 10n ** (await lpToken.decimals());
 
     const liquidityHubImpl = (
-      await deploy("LiquidityHub", deployer, {nonce: startingNonce + 1}, lpToken.target, liquidityPool.target)
+      await deployX("LiquidityHub", deployer, "LiquidityHub", {}, lpToken.target, liquidityPool.target)
     ) as LiquidityHub;
     const liquidityHubInit = (await liquidityHubImpl.initialize.populateTransaction(
       usdc.target, admin.address, admin.address, getBigInt(MaxUint256) * USDC / LP)
     ).data;
-    const liquidityHubProxy = (await deploy(
-      "TransparentUpgradeableProxy", deployer, {nonce: startingNonce + 2},
+    const liquidityHubProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyLiquidityHub", {},
       liquidityHubImpl.target, admin, liquidityHubInit
     )) as TransparentUpgradeableProxy;
     const liquidityHub = (await getContractAt("LiquidityHub", liquidityHubAddress, deployer)) as LiquidityHub;

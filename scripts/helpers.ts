@@ -1,12 +1,32 @@
 import hre from "hardhat";
-import {Signer, BaseContract, AddressLike, resolveAddress, ContractTransaction} from "ethers";
-import {deploy, getContractAt, getCreateAddress} from "../test/helpers";
+import {Signer, BaseContract, AddressLike, resolveAddress, ContractTransaction, isAddress} from "ethers";
+import {deploy, deployX, getContractAt, getCreateAddress, getDeployXAddressBase} from "../test/helpers";
 import {
   TransparentUpgradeableProxy, ProxyAdmin,
 } from "../typechain-types";
-import {sleep} from "./common";
+import {sleep, DEFAULT_PROXY_TYPE} from "./common";
 
-export function getVerifier() {
+export async function resolveAddresses(input: any[]): Promise<any[]> {
+  return await Promise.all(input.map(async (el) => {
+    // Resolving all Addressable into string addresses.
+    try {
+      return await resolveAddress(el);
+    } catch {
+      return el;
+    }
+  }));
+}
+
+export function stringify(input?: any[]): string {
+  return JSON.stringify(input, (key, value) => {
+    if ((typeof value) == "bigint") {
+      return value.toString();
+    }
+    return value;
+  });
+}
+
+export function getVerifier(deployXPrefix: string = "") {
   interface VerificationInput {
     address: string;
     constructorArguments: any[];
@@ -24,20 +44,56 @@ export function getVerifier() {
     ): Promise<BaseContract> => {
       const contract = await deploy(contractName, deployer, txParams, ...params);
       contracts.push({
-        address: await contract.getAddress(),
-        constructorArguments: await Promise.all(params.map(async (el) => {
-          // Resolving all Addressable into string addresses.
-          try {
-            return await resolveAddress(el);
-          } catch {
-            return el;
-          }
-        })),
+        address: await resolveAddress(contract),
+        constructorArguments: await resolveAddresses(params),
         contract: contractVerificationName,
       });
       return contract;
     },
+    deployX: async (
+      contractName: string,
+      deployer: Signer,
+      txParams: object = {},
+      params: any[] = [],
+      id: string = contractName,
+      contractVerificationName?: string,
+    ): Promise<BaseContract> => {
+      const contract = await deployX(contractName, deployer, deployXPrefix + id, txParams, ...params);
+      contracts.push({
+        address: await resolveAddress(contract),
+        constructorArguments: await resolveAddresses(params),
+        contract: contractVerificationName,
+      });
+      return contract;
+    },
+    predictDeployXAddresses: async (
+      idsContractNamesOrAddresses: string[],
+      deployer: Signer,
+    ): Promise<string[]> => {
+      return await Promise.all(idsContractNamesOrAddresses.map(idOrNameOrAddress => {
+        if (isAddress(idOrNameOrAddress)) {
+          return idOrNameOrAddress;
+        }
+        return getDeployXAddressBase(deployer, deployXPrefix + idOrNameOrAddress, false);
+      }));
+    },
+    predictDeployXAddress: async (
+      idOrContractName: string,
+      deployer: Signer,
+    ): Promise<string> => {
+      return await getDeployXAddressBase(deployer, deployXPrefix + idOrContractName, false);
+    },
+    predictDeployProxyXAddress: async (
+      idOrContractName: string,
+      deployer: Signer,
+      proxyType: string = DEFAULT_PROXY_TYPE,
+    ): Promise<string> => {
+      return await getDeployXAddressBase(deployer, deployXPrefix + proxyType + idOrContractName, false);
+    },
     verify: async (performVerification: boolean) => {
+      if (hre.network.name === "hardhat") {
+        return;
+      }
       if (performVerification) {
         console.log("Waiting half a minute to start verification");
         await sleep(30000);
@@ -47,7 +103,7 @@ export function getVerifier() {
           } catch(error) {
             console.error(error);
             console.log(`Failed to verify: ${contract.address}`);
-            console.log(JSON.stringify(contract.constructorArguments));
+            console.log(stringify(contract.constructorArguments));
           }
         }
       } else {
@@ -60,12 +116,7 @@ export function getVerifier() {
           }
           if (contract.constructorArguments.length > 0) {
             console.log("Constructor args:");
-            console.log(JSON.stringify(contract.constructorArguments, (key, value) => {
-              if ((typeof value) == "bigint") {
-                return value.toString();
-              }
-              return value;
-            }));
+            console.log(stringify(contract.constructorArguments));
           }
           console.log();
         }
@@ -80,21 +131,31 @@ interface Initializable extends BaseContract {
   }
 }
 
-export async function deployProxy<ContractType extends Initializable>(
-  deployFunc: (contractName: string, deployer: Signer, txParams: object, ...params: any[]) => Promise<BaseContract>,
+type DeployXFunction = (
+  contractName: string,
+  deployer: Signer,
+  txParams: object,
+  params: any[],
+  id: string,
+) => Promise<BaseContract>;
+
+export async function deployProxyX<ContractType extends Initializable>(
+  deployFunc: DeployXFunction,
   contractName: string,
   deployer: Signer,
   upgradeAdmin: AddressLike,
-  contructorArgs: any[],
-  initArgs: any[]
+  contructorArgs: any[] = [],
+  initArgs: any[] = [],
+  id: string = contractName,
 ): Promise<{target: ContractType; targetAdmin: ProxyAdmin;}> {
   const targetImpl = (
-    await deployFunc(contractName, deployer, {}, contructorArgs)
+    await deployFunc(contractName, deployer, {}, contructorArgs, id)
   ) as ContractType;
   const targetInit = (await targetImpl.initialize.populateTransaction(...initArgs)).data;
   const targetProxy = (await deployFunc(
-    "TransparentUpgradeableProxy", deployer, {},
-    [targetImpl.target, await resolveAddress(upgradeAdmin), targetInit]
+    DEFAULT_PROXY_TYPE, deployer, {},
+    [targetImpl.target, await resolveAddress(upgradeAdmin), targetInit],
+    DEFAULT_PROXY_TYPE + id,
   )) as TransparentUpgradeableProxy;
   const target = (await getContractAt(contractName, targetProxy, deployer)) as ContractType;
   const targetProxyAdminAddress = await getCreateAddress(targetProxy, 1);
@@ -102,15 +163,16 @@ export async function deployProxy<ContractType extends Initializable>(
   return {target, targetAdmin};
 }
 
-export async function upgradeProxy<ContractType extends Initializable>(
-  deployFunc: (contractName: string, deployer: Signer, txParams: object, ...params: any[]) => Promise<BaseContract>,
+export async function upgradeProxyX<ContractType extends Initializable>(
+  deployFunc: DeployXFunction,
+  proxyAddress: AddressLike,
   contractName: string,
   deployer: Signer,
-  contructorArgs: any[],
-  proxyAddress: AddressLike
+  contructorArgs: any[] = [],
+  id: string = contractName,
 ): Promise<{target?: ContractType; txRequired: boolean}> {
   const targetImpl = (
-    await deployFunc(contractName, deployer, {}, contructorArgs)
+    await deployFunc(contractName, deployer, {}, contructorArgs, id)
   ) as ContractType;
   console.log(`New ${contractName} implementation deployed to ${await resolveAddress(targetImpl)}`);
   const targetProxyAdminAddress = await resolveAddress(

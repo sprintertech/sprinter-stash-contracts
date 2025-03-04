@@ -49,14 +49,14 @@ interface AavePoolConfig {
 // Liquidity mining tiers.
 // Period is in seconds.
 // Multiplier will be divided by 1000,000,000. So 1750000000 will result in 1.75x.
-// There is no limit to the number of tiers, but has to be atleast one.
+// There is no limit to the number of tiers, but has to be at least one.
 interface Tier {
   period: bigint;
   multiplier: bigint;
 };
 
 interface HubConfig {
-  AssetsAdjuster: string; // Address that can increase/decerease LP conversion rate.
+  AssetsAdjuster: string; // Address that can increase/decrease LP conversion rate.
   AssetsLimit: number; // Deposits to Liquidity Hub are only allowed till this limit is reached.
   Tiers: Tier[];
 };

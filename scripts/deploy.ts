@@ -139,7 +139,9 @@ export async function main() {
     config.Routes.Domains.push(network);
     config.Routes.Providers.push(Provider.LOCAL);
 
-    mainPool = usdcPool;
+    if (!config.AavePool) {
+      mainPool = usdcPool;
+    }
   }
 
   const rebalancerVersion = config.IsTest ? "TestRebalancer" : "Rebalancer";

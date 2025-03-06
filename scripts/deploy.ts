@@ -234,6 +234,7 @@ export async function main() {
   console.log(`Admin: ${config.Admin}`);
   console.log(`LiquidityPool Withdraw Profit: ${config.WithdrawProfit}`);
   console.log(`LiquidityPool Pauser: ${config.Pauser}`);
+  console.log(`MPC Address: ${config.MpcAddress}`);
   console.log(`USDC: ${config.USDC}`);
   console.log(`Rebalancer: ${rebalancer.target}`);
   console.log(`RebalancerProxyAdmin: ${rebalancerAdmin.target}`);

@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IAavePoolAddressesProvider} from "./interfaces/IAavePoolAddressesProvider.sol";
 import {IAavePool, AaveDataTypes, NO_REFERRAL, INTEREST_RATE_MODE_VARIABLE} from "./interfaces/IAavePool.sol";
 import {IAaveOracle} from "./interfaces/IAaveOracle.sol";
@@ -214,7 +215,7 @@ contract LiquidityPoolAave is LiquidityPool {
         if (totalBorrowed == 0) return false;
         uint256 borrowTokenBalance = IERC20(borrowToken).balanceOf(address(this));
         if (borrowTokenBalance == 0) return false;
-        IERC20(borrowToken).forceApprove(address(AAVE_POOL), borrowTokenBalance);
+        IERC20(borrowToken).forceApprove(address(AAVE_POOL), Math.min(borrowTokenBalance, totalBorrowed));
         uint256 repaidAmount = AAVE_POOL.repay(
             borrowToken,
             borrowTokenBalance,

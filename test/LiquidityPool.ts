@@ -1,5 +1,5 @@
 import {
-  loadFixture, time
+  loadFixture, time, setBalance
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {expect} from "chai";
 import hre from "hardhat";
@@ -39,6 +39,7 @@ describe("LiquidityPool", function () {
     if (!UNI_OWNER_ADDRESS) throw new Error("Env variables not configured (UNI_OWNER_ADDRESS missing)");
     const uni = await hre.ethers.getContractAt("ERC20", UNI_ADDRESS);
     const uniOwner = await hre.ethers.getImpersonatedSigner(UNI_OWNER_ADDRESS);
+    await setBalance(UNI_OWNER_ADDRESS, 10n ** 18n);
 
     const USDC_DEC = 10n ** (await usdc.decimals());
     const RPL_DEC = 10n ** (await rpl.decimals());
@@ -655,6 +656,12 @@ describe("LiquidityPool", function () {
         .to.emit(liquidityPoolBase, "Paused");
       await expect(liquidityPoolBase.connect(withdrawProfit).withdrawProfit([usdc.target], user.address))
         .to.be.revertedWithCustomError(liquidityPoolBase, "EnforcedPause");
+    });
+
+    it("Should NOT withdraw profit to zero address", async function () {
+      const {liquidityPoolBase, user, usdc, withdrawProfit, pauser} = await loadFixture(deployAll);
+      await expect(liquidityPoolBase.connect(withdrawProfit).withdrawProfit([usdc.target], ZERO_ADDRESS))
+        .to.be.revertedWithCustomError(liquidityPoolBase, "ZeroAddress()");
     });
 
     it("Should revert during withdrawing profit if no profit", async function () {

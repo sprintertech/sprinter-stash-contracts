@@ -142,19 +142,19 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
 
     // Admin functions
 
+    /// @notice Can withdraw a maximum of totalDeposited. If anything is left, it meant to be withdrawn through
+    /// a withdrawProfit().
     function withdraw(address to, uint256 amount)
         external
         override
         onlyRole(LIQUIDITY_ADMIN_ROLE)
         whenNotPaused()
-        returns (uint256)
     {
-        uint256 withdrawn = _withdrawLogic(to, amount);
         uint256 deposited = totalDeposited;
-        require(deposited >= withdrawn, InsufficientLiquidity());
-        totalDeposited = deposited - withdrawn;
-        emit Withdraw(msg.sender, to, withdrawn);
-        return withdrawn;
+        require(deposited >= amount, InsufficientLiquidity());
+        totalDeposited = deposited - amount;
+        _withdrawLogic(to, amount);
+        emit Withdraw(msg.sender, to, amount);
     }
 
     function withdrawProfit(
@@ -240,6 +240,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
         address[] calldata tokens,
         address to
     ) internal {
+        require(to != address(0), ZeroAddress());
         bool success;
         for (uint256 i = 0; i < tokens.length; i++) {
             IERC20 token = IERC20(tokens[i]);
@@ -261,9 +262,9 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
         require(borrowToken == address(ASSETS), InvalidBorrowToken());
     }
 
-    function _withdrawLogic(address to, uint256 amount) internal virtual returns (uint256) {
+    function _withdrawLogic(address to, uint256 amount) internal virtual {
+        require(ASSETS.balanceOf(address(this)) >= amount, InsufficientLiquidity());
         ASSETS.safeTransfer(to, amount);
-        return amount;
     }
 
     function _withdrawProfitLogic(IERC20 token) internal virtual returns (uint256) {

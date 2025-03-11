@@ -166,14 +166,14 @@ contract LiquidityPoolAave is LiquidityPool {
         _checkTokenLTV(borrowToken);
     }
 
-    function _withdrawLogic(address to, uint256 amount) internal override returns (uint256) {
+    function _withdrawLogic(address to, uint256 amount) internal override {
+        require(ATOKEN.balanceOf(address(this)) >= amount, InsufficientLiquidity());
         // get USDC from AAVE
-        uint256 withdrawn = AAVE_POOL.withdraw(address(ASSETS), amount, to);
+        AAVE_POOL.withdraw(address(ASSETS), amount, to);
         // health factor after withdraw
         (,,,,,uint256 currentHealthFactor) = AAVE_POOL.getUserAccountData(address(this));
         require(currentHealthFactor >= minHealthFactor, HealthFactorTooLow());
-        emit WithdrawnFromAave(to, withdrawn);
-        return withdrawn;
+        emit WithdrawnFromAave(to, amount);
     }
 
     function _withdrawProfitLogic(IERC20 token) internal override returns (uint256) {

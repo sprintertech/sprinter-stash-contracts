@@ -1,11 +1,12 @@
 import {
-  loadFixture, time
+  loadFixture, time, setBalance
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {expect} from "chai";
 import hre from "hardhat";
 import {
   deploy, signBorrow
 } from "./helpers";
+import {ZERO_ADDRESS} from "../scripts/common";
 import {encodeBytes32String, AbiCoder} from "ethers";
 import {
   MockTarget, MockBorrowSwap, LiquidityPoolAave
@@ -51,6 +52,7 @@ describe("LiquidityPoolAave", function () {
     const uniOwner = await hre.ethers.getImpersonatedSigner(UNI_OWNER_ADDRESS);
     const uniData = await aavePool.getReserveData(UNI_ADDRESS);
     const uniDebtToken = await hre.ethers.getContractAt("ERC20", uniData[10]);
+    await setBalance(UNI_OWNER_ADDRESS, 10n ** 18n);
 
     // PRIME token used as not supported by aave
     const NON_SUPPORTED_TOKEN_ADDRESS = "0xb23d80f5FefcDDaa212212F028021B41DEd428CF";
@@ -627,7 +629,7 @@ describe("LiquidityPoolAave", function () {
       const usdcDebtBefore = await usdcDebtToken.balanceOf(liquidityPool.target);
       expect(usdcDebtBefore).to.be.greaterThan(amountToBorrow);
 
-      await usdc.connect(uniOwner).transfer(liquidityPool.target, amountToBorrow);
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountToBorrow);
 
       await expect(liquidityPool.connect(user).repay([usdc.target]))
         .to.emit(liquidityPool, "Repaid");  
@@ -892,7 +894,7 @@ describe("LiquidityPoolAave", function () {
       await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
-      await expect(liquidityPool.connect(admin).setHealthFactor(4000n * 10n ** 18n / 100n))
+      await expect(liquidityPool.connect(admin).setHealthFactor(5000n * 10n ** 18n / 100n))
         .to.emit(liquidityPool, "HealthFactorSet");
 
       const amountToBorrow = 3n * UNI_DEC;
@@ -1272,6 +1274,12 @@ describe("LiquidityPoolAave", function () {
         .to.emit(liquidityPool, "Paused");
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([uni.target], user.address))
         .to.be.revertedWithCustomError(liquidityPool, "EnforcedPause");
+    });
+
+    it("Should NOT withdraw profit to zero address", async function () {
+      const {liquidityPool, user, uni, withdrawProfit, pauser} = await loadFixture(deployAll);
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([uni.target], ZERO_ADDRESS))
+        .to.be.revertedWithCustomError(liquidityPool, "ZeroAddress()");
     });
 
     it("Should revert during withdrawing profit if no profit", async function () {

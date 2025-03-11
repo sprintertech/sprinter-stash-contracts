@@ -23,15 +23,15 @@ import {LiquidityPool} from "./LiquidityPool.sol";
 contract LiquidityPoolAave is LiquidityPool {
     using SafeERC20 for IERC20;
 
-    uint256 private constant MULTIPLIER = 1e18;
+    uint256 private constant MULTIPLIER = 10000;
 
     IAavePoolAddressesProvider immutable public AAVE_POOL_PROVIDER;
     IAavePool immutable public AAVE_POOL;
     IERC20 immutable public ATOKEN;
     uint8 immutable public ASSETS_DECIMALS;
 
-    uint256 public minHealthFactor;
-    uint256 public defaultLTV;
+    uint32 public minHealthFactor;
+    uint32 public defaultLTV;
 
     mapping(address token => uint256 ltv) public borrowTokenLTV;
 
@@ -55,8 +55,8 @@ contract LiquidityPoolAave is LiquidityPool {
         address aavePoolProvider,
         address admin,
         address mpcAddress_,
-        uint256 minHealthFactor_,
-        uint256 defaultLTV_
+        uint32 minHealthFactor_,
+        uint32 defaultLTV_
     ) LiquidityPool(liquidityToken, admin, mpcAddress_) {
         ASSETS_DECIMALS = IERC20Metadata(liquidityToken).decimals();
         require(aavePoolProvider != address(0), ZeroAddress());
@@ -68,9 +68,8 @@ contract LiquidityPoolAave is LiquidityPool {
         IAavePoolDataProvider poolDataProvider = IAavePoolDataProvider(provider.getPoolDataProvider());
         (,,,,,bool usageAsCollateralEnabled,,,,) = poolDataProvider.getReserveConfigurationData(liquidityToken);
         require(usageAsCollateralEnabled, CollateralNotSupported());
-        minHealthFactor = minHealthFactor_;
-        defaultLTV = defaultLTV_;
-        mpcAddress = mpcAddress_;
+        _setHealthFactor(minHealthFactor_);
+        _setDefaultLTV(defaultLTV_);
     }
 
     function repay(address[] calldata borrowTokens) external override {
@@ -86,7 +85,7 @@ contract LiquidityPoolAave is LiquidityPool {
 
     function setBorrowTokenLTVs(
         address[] calldata tokens,
-        uint256[] calldata ltvs
+        uint32[] calldata ltvs
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(tokens.length == ltvs.length, InvalidLength());
         for (uint256 i = 0; i < tokens.length; ++i) {
@@ -98,19 +97,27 @@ contract LiquidityPoolAave is LiquidityPool {
         }
     }
 
-    function setDefaultLTV(uint256 defaultLTV_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        uint256 oldDefaultLTV = defaultLTV;
+    function setDefaultLTV(uint32 defaultLTV_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setDefaultLTV(defaultLTV_);
+    }
+
+    function setHealthFactor(uint32 minHealthFactor_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setHealthFactor(minHealthFactor_);
+    }
+
+    // Internal functions
+
+    function _setDefaultLTV(uint32 defaultLTV_) internal {
+        uint32 oldDefaultLTV = defaultLTV;
         defaultLTV = defaultLTV_;
         emit DefaultLTVSet(oldDefaultLTV, defaultLTV_);
     }
 
-    function setHealthFactor(uint256 minHealthFactor_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        uint256 oldHealthFactor = minHealthFactor;
+    function _setHealthFactor(uint32 minHealthFactor_) internal {
+        uint32 oldHealthFactor = minHealthFactor;
         minHealthFactor = minHealthFactor_;
         emit HealthFactorSet(oldHealthFactor, minHealthFactor_);
     }
-
-    // Internal functions
 
     function _checkTokenLTV(address borrowToken) private view {
         uint256 ltv = borrowTokenLTV[borrowToken];
@@ -160,7 +167,7 @@ contract LiquidityPoolAave is LiquidityPool {
 
         // - Check health factor for user after borrow (can be read from aave, getUserAccountData)
         (,,,,,uint256 currentHealthFactor) = AAVE_POOL.getUserAccountData(address(this));
-        require(currentHealthFactor >= minHealthFactor, HealthFactorTooLow());
+        require(currentHealthFactor / (1e18 / MULTIPLIER) >= minHealthFactor, HealthFactorTooLow());
 
         // check ltv for token
         _checkTokenLTV(borrowToken);
@@ -172,7 +179,7 @@ contract LiquidityPoolAave is LiquidityPool {
         AAVE_POOL.withdraw(address(ASSETS), amount, to);
         // health factor after withdraw
         (,,,,,uint256 currentHealthFactor) = AAVE_POOL.getUserAccountData(address(this));
-        require(currentHealthFactor >= minHealthFactor, HealthFactorTooLow());
+        require(currentHealthFactor / (1e18 / MULTIPLIER) >= minHealthFactor, HealthFactorTooLow());
         emit WithdrawnFromAave(to, amount);
     }
 

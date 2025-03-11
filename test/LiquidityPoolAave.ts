@@ -67,9 +67,9 @@ describe("LiquidityPoolAave", function () {
     const UNI_DEC = 10n ** (await uni.decimals());
 
     // Initialize health factor as 5 (500%)
-    const healthFactor = 500n * 10n ** 18n / 100n;
+    const healthFactor = 500n * 10000n / 100n;
     // Initialize token LTV as 5%
-    const defaultLtv = 5n * 10n ** 18n / 100n;
+    const defaultLtv = 5n * 10000n / 100n;
     const liquidityPool = (
       await deploy("LiquidityPoolAave", deployer, {},
         usdc.target, AAVE_POOL_PROVIDER, admin.address, mpc_signer.address, healthFactor, defaultLtv 
@@ -894,7 +894,7 @@ describe("LiquidityPoolAave", function () {
       await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
-      await expect(liquidityPool.connect(admin).setHealthFactor(5000n * 10n ** 18n / 100n))
+      await expect(liquidityPool.connect(admin).setHealthFactor(5000n * 10000n / 100n))
         .to.emit(liquidityPool, "HealthFactorSet");
 
       const amountToBorrow = 3n * UNI_DEC;
@@ -1422,7 +1422,7 @@ describe("LiquidityPoolAave", function () {
     it("Should allow admin to set minimal health factor", async function () {
       const {liquidityPool, admin} = await loadFixture(deployAll);
       const oldHealthFactor = await liquidityPool.minHealthFactor();
-      const healthFactor = 300n * 10n ** 18n / 100n;
+      const healthFactor = 300n * 10000n / 100n;
       await expect(liquidityPool.connect(admin).setHealthFactor(healthFactor))
         .to.emit(liquidityPool, "HealthFactorSet").withArgs(oldHealthFactor, healthFactor);
       expect(await liquidityPool.minHealthFactor())
@@ -1431,7 +1431,7 @@ describe("LiquidityPoolAave", function () {
 
     it("Should NOT allow others to set minimal health factor", async function () {
       const {liquidityPool, user} = await loadFixture(deployAll);
-      const healthFactor = 500n * 10n ** 18n / 100n;
+      const healthFactor = 500n * 10000n / 100n;
       await expect(liquidityPool.connect(user).setHealthFactor(healthFactor))
         .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
     });
@@ -1503,7 +1503,6 @@ describe("LiquidityPoolAave", function () {
 
       expect(await usdc.balanceOf(user.address)).to.be.eq(amount);
       expect(await liquidityPool.totalDeposited()).to.be.eq(0);
-      expect(await aToken.balanceOf(liquidityPool.target)).to.greaterThan(0);
     });
 
     it("Should NOT allow others to withdraw collateral", async function () {

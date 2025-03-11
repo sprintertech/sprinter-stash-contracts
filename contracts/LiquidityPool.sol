@@ -4,7 +4,6 @@ pragma solidity 0.8.28;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -21,7 +20,7 @@ import {IBorrower} from "./interfaces/IBorrower.sol";
 /// Borrowing can be paused by the WITHDRAW_PROFIT_ROLE before withdrawing the profit.
 /// The contract is pausable by the PAUSER_ROLE.
 /// @author Tanya Bushenyova <tanya@chainsafe.io>
-contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
+contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
     using SafeERC20 for IERC20;
     using ECDSA for bytes32;
     using BitMaps for BitMaps.BitMap;
@@ -40,11 +39,12 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
 
     IERC20 immutable public ASSETS;
 
-    bool public borrowPaused;
-    address public mpcAddress;
+    BitMaps.BitMap private _usedNonces;
     uint256 public totalDeposited;
 
-    BitMaps.BitMap private _usedNonces;
+    bool public paused;
+    bool public borrowPaused;
+    address public mpcAddress;
 
     bytes32 public constant LIQUIDITY_ADMIN_ROLE = "LIQUIDITY_ADMIN_ROLE";
     bytes32 public constant WITHDRAW_PROFIT_ROLE = "WITHDRAW_PROFIT_ROLE";
@@ -62,6 +62,8 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
     error InvalidBorrowToken();
     error NotImplemented();
     error NoProfit();
+    error EnforcedPause();
+    error ExpectedPause();
 
     event Deposit(address from, uint256 amount);
     event Withdraw(address caller, address to, uint256 amount);
@@ -69,6 +71,18 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
     event BorrowPaused();
     event BorrowUnpaused();
     event MPCAddressSet(address oldMPCAddress, address newMPCAddress);
+    event Paused(address account);
+    event Unpaused(address account);
+
+    modifier whenNotPaused() {
+        require(!paused, EnforcedPause());
+        _;
+    }
+
+    modifier whenPaused() {
+        require(paused, ExpectedPause());
+        _;
+    }
 
     constructor(
         address liquidityToken,
@@ -181,15 +195,13 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
     }
 
     function pause() external override onlyRole(PAUSER_ROLE) whenNotPaused() {
-        _pause();
+        paused = true;
+        emit Paused(msg.sender);
     }
 
     function unpause() external override onlyRole(PAUSER_ROLE) whenPaused() {
-        _unpause();
-    }
-
-    function paused() public view override(Pausable, ILiquidityPool) returns (bool) {
-        return super.paused();
+        paused = false;
+        emit Unpaused(msg.sender);
     }
 
     // Internal functions

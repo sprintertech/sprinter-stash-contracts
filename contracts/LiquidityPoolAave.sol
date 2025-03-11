@@ -69,7 +69,7 @@ contract LiquidityPoolAave is LiquidityPool {
         IAavePoolDataProvider poolDataProvider = IAavePoolDataProvider(provider.getPoolDataProvider());
         (,,,,,bool usageAsCollateralEnabled,,,,) = poolDataProvider.getReserveConfigurationData(liquidityToken);
         require(usageAsCollateralEnabled, CollateralNotSupported());
-        _setHealthFactor(minHealthFactor_);
+        _setMinHealthFactor(minHealthFactor_);
         _setDefaultLTV(defaultLTV_);
     }
 
@@ -102,8 +102,8 @@ contract LiquidityPoolAave is LiquidityPool {
         _setDefaultLTV(defaultLTV_);
     }
 
-    function setHealthFactor(uint32 minHealthFactor_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _setHealthFactor(minHealthFactor_);
+    function setMinHealthFactor(uint32 minHealthFactor_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setMinHealthFactor(minHealthFactor_);
     }
 
     // Internal functions
@@ -114,7 +114,7 @@ contract LiquidityPoolAave is LiquidityPool {
         emit DefaultLTVSet(oldDefaultLTV, defaultLTV_);
     }
 
-    function _setHealthFactor(uint32 minHealthFactor_) internal {
+    function _setMinHealthFactor(uint32 minHealthFactor_) internal {
         uint32 oldHealthFactor = minHealthFactor;
         minHealthFactor = minHealthFactor_;
         emit HealthFactorSet(oldHealthFactor, minHealthFactor_);

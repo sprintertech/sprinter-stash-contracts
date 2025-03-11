@@ -57,7 +57,6 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
     error ExpiredSignature();
     error NonceAlreadyUsed();
     error BorrowingIsPaused();
-    error BorrowingIsNotPaused();
     error InsufficientLiquidity();
     error InvalidBorrowToken();
     error NotImplemented();

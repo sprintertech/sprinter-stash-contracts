@@ -594,7 +594,7 @@ describe("LiquidityPoolAave", function () {
 
     it("Should repay collateral", async function () {
       const {
-        liquidityPool, usdc, USDC_DEC, user, user2, mpc_signer, usdcOwner, uniOwner,  liquidityAdmin,
+        liquidityPool, usdc, USDC_DEC, user, user2, mpc_signer, usdcOwner,  liquidityAdmin,
         usdcDebtToken, uniDebtToken
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
@@ -896,7 +896,7 @@ describe("LiquidityPoolAave", function () {
       await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
-      await expect(liquidityPool.connect(admin).setHealthFactor(5000n * 10000n / 100n))
+      await expect(liquidityPool.connect(admin).setMinHealthFactor(5000n * 10000n / 100n))
         .to.emit(liquidityPool, "HealthFactorSet");
 
       const amountToBorrow = 3n * UNI_DEC;
@@ -1279,7 +1279,7 @@ describe("LiquidityPoolAave", function () {
     });
 
     it("Should NOT withdraw profit to zero address", async function () {
-      const {liquidityPool, user, uni, withdrawProfit, pauser} = await loadFixture(deployAll);
+      const {liquidityPool, uni, withdrawProfit} = await loadFixture(deployAll);
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([uni.target], ZERO_ADDRESS))
         .to.be.revertedWithCustomError(liquidityPool, "ZeroAddress()");
     });
@@ -1425,7 +1425,7 @@ describe("LiquidityPoolAave", function () {
       const {liquidityPool, admin} = await loadFixture(deployAll);
       const oldHealthFactor = await liquidityPool.minHealthFactor();
       const healthFactor = 300n * 10000n / 100n;
-      await expect(liquidityPool.connect(admin).setHealthFactor(healthFactor))
+      await expect(liquidityPool.connect(admin).setMinHealthFactor(healthFactor))
         .to.emit(liquidityPool, "HealthFactorSet").withArgs(oldHealthFactor, healthFactor);
       expect(await liquidityPool.minHealthFactor())
         .to.eq(healthFactor);
@@ -1434,7 +1434,7 @@ describe("LiquidityPoolAave", function () {
     it("Should NOT allow others to set minimal health factor", async function () {
       const {liquidityPool, user} = await loadFixture(deployAll);
       const healthFactor = 500n * 10000n / 100n;
-      await expect(liquidityPool.connect(user).setHealthFactor(healthFactor))
+      await expect(liquidityPool.connect(user).setMinHealthFactor(healthFactor))
         .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
     });
 

@@ -659,7 +659,7 @@ describe("LiquidityPool", function () {
     });
 
     it("Should NOT withdraw profit to zero address", async function () {
-      const {liquidityPoolBase, user, usdc, withdrawProfit, pauser} = await loadFixture(deployAll);
+      const {liquidityPoolBase, usdc, withdrawProfit} = await loadFixture(deployAll);
       await expect(liquidityPoolBase.connect(withdrawProfit).withdrawProfit([usdc.target], ZERO_ADDRESS))
         .to.be.revertedWithCustomError(liquidityPoolBase, "ZeroAddress()");
     });

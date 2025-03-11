@@ -73,7 +73,7 @@ task("set-min-health-factor", "Update Liquidity Pool config")
   const targetAddress = await resolveXAddress(pool);
   const target = (await hre.ethers.getContractAt("LiquidityPoolAave", targetAddress, admin)) as LiquidityPoolAave;
 
-  await target.setHealthFactor(healthfactor);
+  await target.setMinHealthFactor(healthfactor);
   console.log(`Min health factor set to ${healthfactor} on ${targetAddress}.`);
 });
 

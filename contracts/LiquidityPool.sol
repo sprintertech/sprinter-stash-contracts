@@ -109,6 +109,14 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         _deposit(msg.sender, amount);
     }
 
+    /// @notice This function allows an authorized caller to borrow funds from the contract.
+    /// The MPC signer needs to sign the data:
+    /// caller's address, borrow token address, amount, target call address and calldata, nonce and deadline.
+    /// The contract verifies the MPC signature, approves the tokens for the target address
+    /// and performs the target call.
+    /// It's supposed that the target is a trusted contract that fulfills the request, performs transferFrom
+    /// of borrow tokens and guarantees to repay the tokens to the pool later.
+    /// targetCallData is a trusted and checked calldata.
     function borrow(
         address borrowToken,
         uint256 amount,
@@ -127,6 +135,20 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         require(success, TargetCallFailed());
     }
 
+    /// @notice This function allows an authorized caller to perform borrowing with swap by the solver
+    /// (the solver gets the borrow tokens from the pool, swaps them to fill tokens,
+    /// and then the pool performs the target call).
+    /// The MPC signer needs to sign the data:
+    /// caller's address, borrow token address, amount, target call address and calldata, nonce and deadline.
+    /// The contract verifies the MPC signature, approves the borrow tokens for the caller's address
+    /// and performs the swap call back to the caller.
+    /// The caller is supposed to swap borrow tokens for fill tokens (transfer borrow tokens from the contract
+    /// and approve fill tokens). This contract transfers fill tokens from the caller and approves them for the target.
+    /// It's supposed that the target is a trusted contract that fulfills the request,
+    /// performs transferFrom of fill tokens and guarantees to repay the tokens later.
+    /// targetCallData is a trusted and checked calldata.
+    /// fillToken and fillAmount are not part of the signature because that's the solver's responsibility to
+    /// provide tokens for the target call: if the required fillToken is not provided then the target call would fail.
     function borrowAndSwap(
         address borrowToken,
         uint256 amount,

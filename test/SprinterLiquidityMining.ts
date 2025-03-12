@@ -47,7 +47,7 @@ describe("SprinterLiquidityMining", function () {
       await deployX("LiquidityHub", deployer, "LiquidityHub2", {}, lpToken.target, liquidityPool.target)
     ) as LiquidityHub;
     const liquidityHubInit = (await liquidityHubImpl.initialize.populateTransaction(
-      usdc.target, admin.address, admin.address, getBigInt(MaxUint256) * USDC / LP)
+      usdc.target, admin.address, admin.address, admin.address, getBigInt(MaxUint256) * USDC / LP)
     ).data;
     const liquidityHubProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyLiquidityHub2", {},

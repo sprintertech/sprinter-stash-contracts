@@ -651,7 +651,7 @@ describe("LiquidityPool", function () {
     });
 
     it("Should NOT withdraw liquidity to zero address", async function () {
-      const {liquidityPoolBase, user, liquidityAdmin, pauser} = await loadFixture(deployAll);
+      const {liquidityPoolBase, liquidityAdmin} = await loadFixture(deployAll);
       await expect(liquidityPoolBase.connect(liquidityAdmin).withdraw(ZERO_ADDRESS, 10))
         .to.be.revertedWithCustomError(liquidityPoolBase, "ZeroAddress()");
     });

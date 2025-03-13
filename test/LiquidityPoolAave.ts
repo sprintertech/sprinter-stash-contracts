@@ -1272,7 +1272,7 @@ describe("LiquidityPoolAave", function () {
     });
 
     it("Should NOT withdraw collateral to zero address", async function () {
-      const {liquidityPool, user, liquidityAdmin, pauser} = await loadFixture(deployAll);
+      const {liquidityPool, liquidityAdmin} = await loadFixture(deployAll);
       await expect(liquidityPool.connect(liquidityAdmin).withdraw(ZERO_ADDRESS, 10))
         .to.be.revertedWithCustomError(liquidityPool, "ZeroAddress()");
     });

@@ -148,7 +148,15 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
     /// performs transferFrom of fill tokens and guarantees to repay the tokens later.
     /// targetCallData is a trusted and checked calldata.
     /// fillToken and fillAmount are not part of the signature because that's the solver's responsibility to
-    /// provide tokens for the target call: if the required fillToken is not provided then the target call would fail.
+    /// provide tokens for the target call: if the required fillToken is not provided then the target call should fail.
+    /// Considered solver misbehave scenarios:
+    /// 1. If the fillToken is incorrect, then allowance for the expected token will be 0 and target call will fail.
+    /// 2. If the fillAmount is too small, then allowance will be less that what is needed for target call to succeed.
+    /// 3. If the fillAmount is too big, then this contract will transfer extra payment from the caller and the diff
+    ///    allowance to the target will remain for the subsequent borrower to use, or it will be overridden instead.
+    /// 4. The swapData could be anything, the caller cannot reuse the signature in a reentrancy as the nonce is
+    ///    already marked as used. The caller can reenter with another valid signature, which is an allowed scenario
+    ///    as there are no state assumptions/changes made afterwards.
     function borrowAndSwap(
         address borrowToken,
         uint256 amount,
@@ -185,6 +193,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         onlyRole(LIQUIDITY_ADMIN_ROLE)
         whenNotPaused()
     {
+        require(to != address(0), ZeroAddress());
         uint256 deposited = totalDeposited;
         require(deposited >= amount, InsufficientLiquidity());
         totalDeposited = deposited - amount;
@@ -196,7 +205,18 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         address[] calldata tokens,
         address to
     ) external override onlyRole(WITHDRAW_PROFIT_ROLE) whenNotPaused() {
-        _withdrawProfit(tokens, to);
+        require(to != address(0), ZeroAddress());
+        bool success;
+        for (uint256 i = 0; i < tokens.length; i++) {
+            IERC20 token = IERC20(tokens[i]);
+            uint256 amountToWithdraw = _withdrawProfitLogic(token);
+            if (amountToWithdraw == 0) continue;
+            success = true;
+            // Withdraw from this contract
+            token.safeTransfer(to, amountToWithdraw);
+            emit ProfitWithdrawn(address(token), to, amountToWithdraw);
+        }
+        require(success, NoProfit());
     }
 
     function setMPCAddress(address mpcAddress_) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -267,24 +287,6 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         require(!borrowPaused, BorrowingIsPaused());
         _borrowLogic(borrowToken, amount, target);
         IERC20(borrowToken).forceApprove(target, amount);
-    }
-
-    function _withdrawProfit(
-        address[] calldata tokens,
-        address to
-    ) internal {
-        require(to != address(0), ZeroAddress());
-        bool success;
-        for (uint256 i = 0; i < tokens.length; i++) {
-            IERC20 token = IERC20(tokens[i]);
-            uint256 amountToWithdraw = _withdrawProfitLogic(token);
-            if (amountToWithdraw == 0) continue;
-            success = true;
-            // Withdraw from this contract
-            token.safeTransfer(to, amountToWithdraw);
-            emit ProfitWithdrawn(address(token), to, amountToWithdraw);
-        }
-        require(success, NoProfit());
     }
 
     function _depositLogic(address /*caller*/, uint256 /*amount*/) internal virtual {

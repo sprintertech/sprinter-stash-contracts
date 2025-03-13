@@ -650,6 +650,12 @@ describe("LiquidityPool", function () {
         .to.be.revertedWithCustomError(liquidityPoolBase, "EnforcedPause");
     });
 
+    it("Should NOT withdraw liquidity to zero address", async function () {
+      const {liquidityPoolBase, user, liquidityAdmin, pauser} = await loadFixture(deployAll);
+      await expect(liquidityPoolBase.connect(liquidityAdmin).withdraw(ZERO_ADDRESS, 10))
+        .to.be.revertedWithCustomError(liquidityPoolBase, "ZeroAddress()");
+    });
+
     it("Should NOT withdraw profit if the contract is paused", async function () {
       const {liquidityPoolBase, user, usdc, withdrawProfit, pauser} = await loadFixture(deployAll);
       await expect(liquidityPoolBase.connect(pauser).pause())

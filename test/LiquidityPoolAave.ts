@@ -1270,6 +1270,12 @@ describe("LiquidityPoolAave", function () {
         .to.be.revertedWithCustomError(liquidityPool, "EnforcedPause");
     });
 
+    it("Should NOT withdraw collateral to zero address", async function () {
+      const {liquidityPool, user, liquidityAdmin, pauser} = await loadFixture(deployAll);
+      await expect(liquidityPool.connect(liquidityAdmin).withdraw(ZERO_ADDRESS, 10))
+        .to.be.revertedWithCustomError(liquidityPool, "ZeroAddress()");
+    });
+
     it("Should NOT withdraw profit if the contract is paused", async function () {
       const {liquidityPool, user, uni, withdrawProfit, pauser} = await loadFixture(deployAll);
       await expect(liquidityPool.connect(pauser).pause())

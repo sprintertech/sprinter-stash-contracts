@@ -151,7 +151,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
     /// provide tokens for the target call: if the required fillToken is not provided then the target call should fail.
     /// Considered solver misbehave scenarios:
     /// 1. If the fillToken is incorrect, then allowance for the expected token will be 0 and target call will fail.
-    /// 2. If the fillAmount is too small, then allowance will be less that what is needed for target call to succeed.
+    /// 2. If the fillAmount is too small, then allowance will be less than what is needed for target call to succeed.
     /// 3. If the fillAmount is too big, then this contract will transfer extra payment from the caller and the diff
     ///    allowance to the target will remain for the subsequent borrower to use, or it will be overridden instead.
     /// 4. The swapData could be anything, the caller cannot reuse the signature in a reentrancy as the nonce is
@@ -185,7 +185,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
 
     // Admin functions
 
-    /// @notice Can withdraw a maximum of totalDeposited. If anything is left, it meant to be withdrawn through
+    /// @notice Can withdraw a maximum of totalDeposited. If anything is left, it is meant to be withdrawn through
     /// a withdrawProfit().
     function withdraw(address to, uint256 amount)
         external

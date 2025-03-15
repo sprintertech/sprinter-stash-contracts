@@ -11,7 +11,7 @@ import {ILiquidityHub} from "./interfaces/ILiquidityHub.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 /// @title Modified version of the LiquidityMining contract, with the following differences:
-/// 1. The score tokens can only be minted. No transfers or burns. Used for convinient show on explorers.
+/// 1. The score tokens can only be minted. No transfers or burns. Used for convenient show on explorers.
 /// 2. Supports deposit into the connected liquidity hub with a subsequent stake in the same transaction.
 /// 3. Supports above scenario with permit of liquidity hub's underlying asset.
 /// 4. Supports unstake with a subsequent withdraw from the connected liquidity hub.

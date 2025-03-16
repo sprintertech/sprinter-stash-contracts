@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IAavePoolAddressesProvider} from "./interfaces/IAavePoolAddressesProvider.sol";
 import {IAavePool, AaveDataTypes, NO_REFERRAL, INTEREST_RATE_MODE_VARIABLE} from "./interfaces/IAavePool.sol";
 import {IAaveOracle} from "./interfaces/IAaveOracle.sol";
@@ -23,15 +24,15 @@ import {LiquidityPool} from "./LiquidityPool.sol";
 contract LiquidityPoolAave is LiquidityPool {
     using SafeERC20 for IERC20;
 
-    uint256 private constant MULTIPLIER = 1e18;
+    uint256 private constant MULTIPLIER = 10000;
 
     IAavePoolAddressesProvider immutable public AAVE_POOL_PROVIDER;
     IAavePool immutable public AAVE_POOL;
     IERC20 immutable public ATOKEN;
     uint8 immutable public ASSETS_DECIMALS;
 
-    uint256 public minHealthFactor;
-    uint256 public defaultLTV;
+    uint32 public minHealthFactor;
+    uint32 public defaultLTV;
 
     mapping(address token => uint256 ltv) public borrowTokenLTV;
 
@@ -55,8 +56,8 @@ contract LiquidityPoolAave is LiquidityPool {
         address aavePoolProvider,
         address admin,
         address mpcAddress_,
-        uint256 minHealthFactor_,
-        uint256 defaultLTV_
+        uint32 minHealthFactor_,
+        uint32 defaultLTV_
     ) LiquidityPool(liquidityToken, admin, mpcAddress_) {
         ASSETS_DECIMALS = IERC20Metadata(liquidityToken).decimals();
         require(aavePoolProvider != address(0), ZeroAddress());
@@ -68,9 +69,8 @@ contract LiquidityPoolAave is LiquidityPool {
         IAavePoolDataProvider poolDataProvider = IAavePoolDataProvider(provider.getPoolDataProvider());
         (,,,,,bool usageAsCollateralEnabled,,,,) = poolDataProvider.getReserveConfigurationData(liquidityToken);
         require(usageAsCollateralEnabled, CollateralNotSupported());
-        minHealthFactor = minHealthFactor_;
-        defaultLTV = defaultLTV_;
-        mpcAddress = mpcAddress_;
+        _setMinHealthFactor(minHealthFactor_);
+        _setDefaultLTV(defaultLTV_);
     }
 
     function repay(address[] calldata borrowTokens) external override {
@@ -86,7 +86,7 @@ contract LiquidityPoolAave is LiquidityPool {
 
     function setBorrowTokenLTVs(
         address[] calldata tokens,
-        uint256[] calldata ltvs
+        uint32[] calldata ltvs
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(tokens.length == ltvs.length, InvalidLength());
         for (uint256 i = 0; i < tokens.length; ++i) {
@@ -98,19 +98,27 @@ contract LiquidityPoolAave is LiquidityPool {
         }
     }
 
-    function setDefaultLTV(uint256 defaultLTV_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        uint256 oldDefaultLTV = defaultLTV;
+    function setDefaultLTV(uint32 defaultLTV_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setDefaultLTV(defaultLTV_);
+    }
+
+    function setMinHealthFactor(uint32 minHealthFactor_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setMinHealthFactor(minHealthFactor_);
+    }
+
+    // Internal functions
+
+    function _setDefaultLTV(uint32 defaultLTV_) internal {
+        uint32 oldDefaultLTV = defaultLTV;
         defaultLTV = defaultLTV_;
         emit DefaultLTVSet(oldDefaultLTV, defaultLTV_);
     }
 
-    function setHealthFactor(uint256 minHealthFactor_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        uint256 oldHealthFactor = minHealthFactor;
+    function _setMinHealthFactor(uint32 minHealthFactor_) internal {
+        uint32 oldHealthFactor = minHealthFactor;
         minHealthFactor = minHealthFactor_;
         emit HealthFactorSet(oldHealthFactor, minHealthFactor_);
     }
-
-    // Internal functions
 
     function _checkTokenLTV(address borrowToken) private view {
         uint256 ltv = borrowTokenLTV[borrowToken];
@@ -160,20 +168,20 @@ contract LiquidityPoolAave is LiquidityPool {
 
         // - Check health factor for user after borrow (can be read from aave, getUserAccountData)
         (,,,,,uint256 currentHealthFactor) = AAVE_POOL.getUserAccountData(address(this));
-        require(currentHealthFactor >= minHealthFactor, HealthFactorTooLow());
+        require(currentHealthFactor / (1e18 / MULTIPLIER) >= minHealthFactor, HealthFactorTooLow());
 
         // check ltv for token
         _checkTokenLTV(borrowToken);
     }
 
-    function _withdrawLogic(address to, uint256 amount) internal override returns (uint256) {
+    function _withdrawLogic(address to, uint256 amount) internal override {
+        require(ATOKEN.balanceOf(address(this)) >= amount, InsufficientLiquidity());
         // get USDC from AAVE
-        uint256 withdrawn = AAVE_POOL.withdraw(address(ASSETS), amount, to);
+        AAVE_POOL.withdraw(address(ASSETS), amount, to);
         // health factor after withdraw
         (,,,,,uint256 currentHealthFactor) = AAVE_POOL.getUserAccountData(address(this));
-        require(currentHealthFactor >= minHealthFactor, HealthFactorTooLow());
-        emit WithdrawnFromAave(to, withdrawn);
-        return withdrawn;
+        require(currentHealthFactor / (1e18 / MULTIPLIER) >= minHealthFactor, HealthFactorTooLow());
+        emit WithdrawnFromAave(to, amount);
     }
 
     function _withdrawProfitLogic(IERC20 token) internal override returns (uint256) {
@@ -207,7 +215,7 @@ contract LiquidityPoolAave is LiquidityPool {
         if (totalBorrowed == 0) return false;
         uint256 borrowTokenBalance = IERC20(borrowToken).balanceOf(address(this));
         if (borrowTokenBalance == 0) return false;
-        IERC20(borrowToken).forceApprove(address(AAVE_POOL), borrowTokenBalance);
+        IERC20(borrowToken).forceApprove(address(AAVE_POOL), Math.min(borrowTokenBalance, totalBorrowed));
         uint256 repaidAmount = AAVE_POOL.repay(
             borrowToken,
             borrowTokenBalance,

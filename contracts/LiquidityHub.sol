@@ -32,9 +32,11 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
     IManagedToken immutable public SHARES;
     ILiquidityPool immutable public LIQUIDITY_POOL;
     bytes32 public constant ASSETS_ADJUST_ROLE = "ASSETS_ADJUST_ROLE";
+    bytes32 public constant DEPOSIT_PROFIT_ROLE = "DEPOSIT_PROFIT_ROLE";
 
     event TotalAssetsAdjustment(uint256 oldAssets, uint256 newAssets);
     event AssetsLimitSet(uint256 oldLimit, uint256 newLimit);
+    event DepositProfit(address caller, uint256 assets);
 
     error ZeroAddress();
     error NotImplemented();
@@ -65,6 +67,7 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         IERC20 asset_,
         address admin,
         address adjuster,
+        address depositorProfit,
         uint256 newAssetsLimit
     ) external initializer() {
         ERC4626Upgradeable.__ERC4626_init(asset_);
@@ -76,8 +79,10 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         // functionality is delegated to SHARES.
         require(admin != address(0), ZeroAddress());
         require(adjuster != address(0), ZeroAddress());
+        require(depositorProfit != address(0), ZeroAddress());
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(ASSETS_ADJUST_ROLE, adjuster);
+        _grantRole(DEPOSIT_PROFIT_ROLE, depositorProfit);
         _setAssetsLimit(newAssetsLimit);
     }
 
@@ -177,6 +182,14 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
             s
         );
         deposit(assets, receiver);
+    }
+
+    function depositProfit(uint256 assets) external onlyRole(DEPOSIT_PROFIT_ROLE) {
+        LiquidityHubStorage storage $ = _getStorage();
+        SafeERC20.safeTransferFrom(IERC20(asset()), _msgSender(), address(LIQUIDITY_POOL), assets);
+        $.totalAssets += assets;
+        LIQUIDITY_POOL.deposit(assets);
+        emit DepositProfit(_msgSender(), assets);
     }
 
     function _convertToShares(uint256 assets, Math.Rounding rounding) internal view virtual override returns (uint256) {

@@ -1,11 +1,12 @@
 import {
-  loadFixture, time
+  loadFixture, time, setBalance
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {expect} from "chai";
 import hre from "hardhat";
 import {
   deploy, signBorrow
 } from "./helpers";
+import {ZERO_ADDRESS} from "../scripts/common";
 import {encodeBytes32String, AbiCoder} from "ethers";
 import {
   MockTarget, MockBorrowSwap, LiquidityPoolAave
@@ -51,11 +52,12 @@ describe("LiquidityPoolAave", function () {
     const uniOwner = await hre.ethers.getImpersonatedSigner(UNI_OWNER_ADDRESS);
     const uniData = await aavePool.getReserveData(UNI_ADDRESS);
     const uniDebtToken = await hre.ethers.getContractAt("ERC20", uniData[10]);
+    await setBalance(UNI_OWNER_ADDRESS, 10n ** 18n);
 
     // PRIME token used as not supported by aave
     const NON_SUPPORTED_TOKEN_ADDRESS = "0xb23d80f5FefcDDaa212212F028021B41DEd428CF";
     const NON_SUPPORTED_TOKEN_OWNER_ADDRESS = process.env.PRIME_OWNER_ADDRESS!;
-    if (!NON_SUPPORTED_TOKEN_OWNER_ADDRESS) 
+    if (!NON_SUPPORTED_TOKEN_OWNER_ADDRESS)
       throw new Error("Env variables not configured (PRIME_OWNER_ADDRESS missing)");
     const nonSupportedToken = await hre.ethers.getContractAt("ERC20", NON_SUPPORTED_TOKEN_ADDRESS);
     const nonSupportedTokenOwner = await hre.ethers.getImpersonatedSigner(NON_SUPPORTED_TOKEN_OWNER_ADDRESS);
@@ -65,12 +67,12 @@ describe("LiquidityPoolAave", function () {
     const UNI_DEC = 10n ** (await uni.decimals());
 
     // Initialize health factor as 5 (500%)
-    const healthFactor = 500n * 10n ** 18n / 100n;
+    const healthFactor = 500n * 10000n / 100n;
     // Initialize token LTV as 5%
-    const defaultLtv = 5n * 10n ** 18n / 100n;
+    const defaultLtv = 5n * 10000n / 100n;
     const liquidityPool = (
       await deploy("LiquidityPoolAave", deployer, {},
-        usdc.target, AAVE_POOL_PROVIDER, admin.address, mpc_signer.address, healthFactor, defaultLtv 
+        usdc.target, AAVE_POOL_PROVIDER, admin.address, mpc_signer.address, healthFactor, defaultLtv
       )
     ) as LiquidityPoolAave;
 
@@ -180,10 +182,10 @@ describe("LiquidityPoolAave", function () {
         "0x",
         0n,
         2000000000n,
-        signature);  
+        signature);
       expect(await rpl.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
     });
-   
+
     it("Should calculate token ltv if decimals of token and collateral are different", async function () {
       const {
         liquidityPool, usdc, uni, mpc_signer, user, user2, usdcOwner, liquidityAdmin, USDC_DEC, UNI_DEC
@@ -252,7 +254,7 @@ describe("LiquidityPoolAave", function () {
         0n,
         2000000000n,
         signature))
-      .to.emit(mockTarget, "DataReceived").withArgs(additionalData);  
+      .to.emit(mockTarget, "DataReceived").withArgs(additionalData);
       expect(await rpl.balanceOf(liquidityPool.target)).to.eq(0);
       expect(await rpl.balanceOf(mockTarget.target)).to.eq(amountToBorrow);
     });
@@ -286,7 +288,7 @@ describe("LiquidityPoolAave", function () {
         "0x",
         0n,
         2000000000n,
-        signature);  
+        signature);
       expect(await usdc.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amountCollateral - 1n);
     });
@@ -337,8 +339,8 @@ describe("LiquidityPoolAave", function () {
       );
 
       await expect(mockBorrowSwap.connect(user).callBorrow(liquidityPool.target, borrowCalldata.data))
-        .to.emit(mockBorrowSwap, "Swapped").withArgs(swapData) 
-        .and.to.emit(mockTarget, "DataReceived").withArgs(additionalData);  
+        .to.emit(mockBorrowSwap, "Swapped").withArgs(swapData)
+        .and.to.emit(mockTarget, "DataReceived").withArgs(additionalData);
       expect(await rpl.balanceOf(liquidityPool.target)).to.eq(0);
       expect(await rpl.balanceOf(mockBorrowSwap.target)).to.eq(amountToBorrow);
       expect(await uni.balanceOf(liquidityPool.target)).to.eq(0);
@@ -347,7 +349,8 @@ describe("LiquidityPoolAave", function () {
 
     it("Should repay a debt", async function () {
       const {
-        liquidityPool, usdc, uni, mpc_signer, user, user2, usdcOwner, uniOwner, liquidityAdmin, USDC_DEC, UNI_DEC
+        liquidityPool, usdc, uni, mpc_signer, user, user2, usdcOwner, uniOwner, liquidityAdmin, USDC_DEC, UNI_DEC,
+        aavePool,
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
@@ -374,13 +377,14 @@ describe("LiquidityPoolAave", function () {
         "0x",
         0n,
         2000000000n,
-        signature);  
+        signature);
       expect(await uni.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
 
       await uni.connect(uniOwner).transfer(liquidityPool.target, amountToBorrow);
 
       await expect(liquidityPool.connect(user).repay([uni.target]))
-        .to.emit(liquidityPool, "Repaid");  
+        .to.emit(liquidityPool, "Repaid");
+      expect(await uni.allowance(liquidityPool.target, aavePool.target)).to.eq(0);
       expect(await uni.balanceOf(liquidityPool.target)).to.be.lessThan(amountToBorrow);
     });
 
@@ -414,7 +418,7 @@ describe("LiquidityPoolAave", function () {
         "0x",
         0n,
         2000000000n,
-        signature);  
+        signature);
       expect(await uni.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
 
       await expect(liquidityPool.connect(pauser).pause())
@@ -423,7 +427,7 @@ describe("LiquidityPoolAave", function () {
       await uni.connect(uniOwner).transfer(liquidityPool.target, amountToBorrow);
 
       await expect(liquidityPool.connect(user).repay([uni.target]))
-        .to.emit(liquidityPool, "Repaid");  
+        .to.emit(liquidityPool, "Repaid");
       expect(await uni.balanceOf(liquidityPool.target)).to.be.lessThan(amountToBorrow);
     });
 
@@ -483,7 +487,7 @@ describe("LiquidityPoolAave", function () {
         "0x",
         0n,
         2000000000n,
-        signature1);  
+        signature1);
       expect(await rpl.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
 
       const signature2 = await signBorrow(
@@ -505,7 +509,7 @@ describe("LiquidityPoolAave", function () {
         "0x",
         1n,
         2000000000n,
-        signature2);  
+        signature2);
       expect(await uni.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
 
       // advance time by one hour
@@ -519,7 +523,7 @@ describe("LiquidityPoolAave", function () {
       // Repaying with the borrowed tokens that are still in the pool contract
       await expect(liquidityPool.connect(user).repay([uni.target, rpl.target]))
         .to.emit(liquidityPool, "Repaid").withArgs(uni.target, amountToBorrow)
-        .and.to.emit(liquidityPool, "Repaid").withArgs(rpl.target, amountToBorrow); 
+        .and.to.emit(liquidityPool, "Repaid").withArgs(rpl.target, amountToBorrow);
       const uniDebtAfter1 = await uniDebtToken.balanceOf(liquidityPool.target);
       expect(uniDebtAfter1).to.be.lessThan(uniDebtBefore);
       const rplDebtAfter1 = await rplDebtToken.balanceOf(liquidityPool.target);
@@ -527,13 +531,13 @@ describe("LiquidityPoolAave", function () {
 
       await uni.connect(uniOwner).transfer(liquidityPool.target, amountToBorrow);
       await expect(liquidityPool.connect(user).repay([uni.target]))
-      .to.emit(liquidityPool, "Repaid");  
+      .to.emit(liquidityPool, "Repaid");
       const uniDebtAfter2 = await uniDebtToken.balanceOf(liquidityPool.target);
       expect(uniDebtAfter2).to.eq(0);
 
       await rpl.connect(rplOwner).transfer(liquidityPool.target, amountToBorrow);
       await expect(liquidityPool.connect(user).repay([rpl.target]))
-        .to.emit(liquidityPool, "Repaid");  
+        .to.emit(liquidityPool, "Repaid");
       const rplDebtAfter2 = await rplDebtToken.balanceOf(liquidityPool.target);
       expect(rplDebtAfter2).to.eq(0);
     });
@@ -568,7 +572,7 @@ describe("LiquidityPoolAave", function () {
         "0x",
         0n,
         2000000000n,
-        signature1);  
+        signature1);
       expect(await rpl.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
 
       // advance time by one hour
@@ -581,7 +585,7 @@ describe("LiquidityPoolAave", function () {
       await rpl.connect(rplOwner).transfer(liquidityPool.target, amountToBorrow);
 
       await expect(liquidityPool.connect(user).repay([uni.target, rpl.target]))
-        .to.emit(liquidityPool, "Repaid");  
+        .to.emit(liquidityPool, "Repaid");
       const uniDebtAfter = await uniDebtToken.balanceOf(liquidityPool.target);
       expect(uniDebtAfter).to.eq(0);
       const rplDebtAfter = await rplDebtToken.balanceOf(liquidityPool.target);
@@ -590,7 +594,7 @@ describe("LiquidityPoolAave", function () {
 
     it("Should repay collateral", async function () {
       const {
-        liquidityPool, usdc, USDC_DEC, user, user2, mpc_signer, usdcOwner, uniOwner,  liquidityAdmin,
+        liquidityPool, usdc, USDC_DEC, user, user2, mpc_signer, usdcOwner,  liquidityAdmin,
         usdcDebtToken, uniDebtToken
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
@@ -618,7 +622,7 @@ describe("LiquidityPoolAave", function () {
         "0x",
         0n,
         2000000000n,
-        signature1);  
+        signature1);
       expect(await usdc.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
 
       // advance time by one hour
@@ -627,10 +631,10 @@ describe("LiquidityPoolAave", function () {
       const usdcDebtBefore = await usdcDebtToken.balanceOf(liquidityPool.target);
       expect(usdcDebtBefore).to.be.greaterThan(amountToBorrow);
 
-      await usdc.connect(uniOwner).transfer(liquidityPool.target, amountToBorrow);
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountToBorrow);
 
       await expect(liquidityPool.connect(user).repay([usdc.target]))
-        .to.emit(liquidityPool, "Repaid");  
+        .to.emit(liquidityPool, "Repaid");
       const usdcDebtAfter = await uniDebtToken.balanceOf(liquidityPool.target);
       expect(usdcDebtAfter).to.eq(0);
     });
@@ -647,6 +651,7 @@ describe("LiquidityPoolAave", function () {
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
       expect(await liquidityPool.totalDeposited()).to.eq(amount);
 
+      await time.increase(3600);
       await expect(liquidityPool.connect(liquidityAdmin).withdraw(user.address, amount))
         .to.emit(liquidityPool, "WithdrawnFromAave").withArgs(user.address, amount);
       expect(await usdc.balanceOf(user.address)).to.be.eq(amount);
@@ -892,7 +897,7 @@ describe("LiquidityPoolAave", function () {
       await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
-      await expect(liquidityPool.connect(admin).setHealthFactor(4000n * 10n ** 18n / 100n))
+      await expect(liquidityPool.connect(admin).setMinHealthFactor(5000n * 10000n / 100n))
         .to.emit(liquidityPool, "HealthFactorSet");
 
       const amountToBorrow = 3n * UNI_DEC;
@@ -958,7 +963,7 @@ describe("LiquidityPoolAave", function () {
 
     it("Should NOT borrow if borrowing is paused", async function () {
       const {liquidityPool, user, user2, withdrawProfit, mpc_signer, uni, UNI_DEC} = await loadFixture(deployAll);
-      
+
       // Pause borrowing
       await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())
         .to.emit(liquidityPool, "BorrowPaused");
@@ -988,7 +993,7 @@ describe("LiquidityPoolAave", function () {
 
     it("Should NOT borrow if the contract is paused", async function () {
       const {liquidityPool, rpl, user, user2, pauser} = await loadFixture(deployAll);
-      
+
       // Pause the contract
       await expect(liquidityPool.connect(pauser).pause())
         .to.emit(liquidityPool, "Paused");
@@ -1171,7 +1176,7 @@ describe("LiquidityPoolAave", function () {
         0n,
         2000000000n,
         signature))
-      .to.emit(mockTarget, "DataReceived").withArgs(additionalData);  
+      .to.emit(mockTarget, "DataReceived").withArgs(additionalData);
       expect(await rpl.balanceOf(liquidityPool.target)).to.eq(0);
       expect(await rpl.balanceOf(mockTarget.target)).to.eq(amountToBorrow);
 
@@ -1261,9 +1266,15 @@ describe("LiquidityPoolAave", function () {
       const {liquidityPool, user, liquidityAdmin, pauser} = await loadFixture(deployAll);
       await expect(liquidityPool.connect(pauser).pause())
         .to.emit(liquidityPool, "Paused");
-      
+
       await expect(liquidityPool.connect(liquidityAdmin).withdraw(user.address, 10))
         .to.be.revertedWithCustomError(liquidityPool, "EnforcedPause");
+    });
+
+    it("Should NOT withdraw collateral to zero address", async function () {
+      const {liquidityPool, liquidityAdmin} = await loadFixture(deployAll);
+      await expect(liquidityPool.connect(liquidityAdmin).withdraw(ZERO_ADDRESS, 10))
+        .to.be.revertedWithCustomError(liquidityPool, "ZeroAddress()");
     });
 
     it("Should NOT withdraw profit if the contract is paused", async function () {
@@ -1272,6 +1283,12 @@ describe("LiquidityPoolAave", function () {
         .to.emit(liquidityPool, "Paused");
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([uni.target], user.address))
         .to.be.revertedWithCustomError(liquidityPool, "EnforcedPause");
+    });
+
+    it("Should NOT withdraw profit to zero address", async function () {
+      const {liquidityPool, uni, withdrawProfit} = await loadFixture(deployAll);
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([uni.target], ZERO_ADDRESS))
+        .to.be.revertedWithCustomError(liquidityPool, "ZeroAddress()");
     });
 
     it("Should revert during withdrawing profit if no profit", async function () {
@@ -1323,7 +1340,7 @@ describe("LiquidityPoolAave", function () {
         "0x",
         0n,
         2000000000n,
-        signature1);  
+        signature1);
       expect(await rpl.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
       expect(await rplDebtToken.balanceOf(liquidityPool.target)).to.be.greaterThan(0);
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([rpl.target], user.address))
@@ -1414,8 +1431,8 @@ describe("LiquidityPoolAave", function () {
     it("Should allow admin to set minimal health factor", async function () {
       const {liquidityPool, admin} = await loadFixture(deployAll);
       const oldHealthFactor = await liquidityPool.minHealthFactor();
-      const healthFactor = 300n * 10n ** 18n / 100n;
-      await expect(liquidityPool.connect(admin).setHealthFactor(healthFactor))
+      const healthFactor = 300n * 10000n / 100n;
+      await expect(liquidityPool.connect(admin).setMinHealthFactor(healthFactor))
         .to.emit(liquidityPool, "HealthFactorSet").withArgs(oldHealthFactor, healthFactor);
       expect(await liquidityPool.minHealthFactor())
         .to.eq(healthFactor);
@@ -1423,8 +1440,8 @@ describe("LiquidityPoolAave", function () {
 
     it("Should NOT allow others to set minimal health factor", async function () {
       const {liquidityPool, user} = await loadFixture(deployAll);
-      const healthFactor = 500n * 10n ** 18n / 100n;
-      await expect(liquidityPool.connect(user).setHealthFactor(healthFactor))
+      const healthFactor = 500n * 10000n / 100n;
+      await expect(liquidityPool.connect(user).setMinHealthFactor(healthFactor))
         .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
     });
 
@@ -1495,7 +1512,6 @@ describe("LiquidityPoolAave", function () {
 
       expect(await usdc.balanceOf(user.address)).to.be.eq(amount);
       expect(await liquidityPool.totalDeposited()).to.be.eq(0);
-      expect(await aToken.balanceOf(liquidityPool.target)).to.greaterThan(0);
     });
 
     it("Should NOT allow others to withdraw collateral", async function () {

@@ -4,7 +4,6 @@ pragma solidity 0.8.28;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -21,7 +20,7 @@ import {IBorrower} from "./interfaces/IBorrower.sol";
 /// Borrowing can be paused by the WITHDRAW_PROFIT_ROLE before withdrawing the profit.
 /// The contract is pausable by the PAUSER_ROLE.
 /// @author Tanya Bushenyova <tanya@chainsafe.io>
-contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
+contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
     using SafeERC20 for IERC20;
     using ECDSA for bytes32;
     using BitMaps for BitMaps.BitMap;
@@ -40,11 +39,12 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
 
     IERC20 immutable public ASSETS;
 
-    bool public borrowPaused;
-    address public mpcAddress;
+    BitMaps.BitMap private _usedNonces;
     uint256 public totalDeposited;
 
-    BitMaps.BitMap private _usedNonces;
+    bool public paused;
+    bool public borrowPaused;
+    address public mpcAddress;
 
     bytes32 public constant LIQUIDITY_ADMIN_ROLE = "LIQUIDITY_ADMIN_ROLE";
     bytes32 public constant WITHDRAW_PROFIT_ROLE = "WITHDRAW_PROFIT_ROLE";
@@ -57,11 +57,12 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
     error ExpiredSignature();
     error NonceAlreadyUsed();
     error BorrowingIsPaused();
-    error BorrowingIsNotPaused();
     error InsufficientLiquidity();
     error InvalidBorrowToken();
     error NotImplemented();
     error NoProfit();
+    error EnforcedPause();
+    error ExpectedPause();
 
     event Deposit(address from, uint256 amount);
     event Withdraw(address caller, address to, uint256 amount);
@@ -69,6 +70,18 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
     event BorrowPaused();
     event BorrowUnpaused();
     event MPCAddressSet(address oldMPCAddress, address newMPCAddress);
+    event Paused(address account);
+    event Unpaused(address account);
+
+    modifier whenNotPaused() {
+        require(!paused, EnforcedPause());
+        _;
+    }
+
+    modifier whenPaused() {
+        require(paused, ExpectedPause());
+        _;
+    }
 
     constructor(
         address liquidityToken,
@@ -96,6 +109,14 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
         _deposit(msg.sender, amount);
     }
 
+    /// @notice This function allows an authorized caller to borrow funds from the contract.
+    /// The MPC signer needs to sign the data:
+    /// caller's address, borrow token address, amount, target call address and calldata, nonce and deadline.
+    /// The contract verifies the MPC signature, approves the tokens for the target address
+    /// and performs the target call.
+    /// It's supposed that the target is a trusted contract that fulfills the request, performs transferFrom
+    /// of borrow tokens and guarantees to repay the tokens to the pool later.
+    /// targetCallData is a trusted and checked calldata.
     function borrow(
         address borrowToken,
         uint256 amount,
@@ -114,6 +135,28 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
         require(success, TargetCallFailed());
     }
 
+    /// @notice This function allows an authorized caller to perform borrowing with swap by the solver
+    /// (the solver gets the borrow tokens from the pool, swaps them to fill tokens,
+    /// and then the pool performs the target call).
+    /// The MPC signer needs to sign the data:
+    /// caller's address, borrow token address, amount, target call address and calldata, nonce and deadline.
+    /// The contract verifies the MPC signature, approves the borrow tokens for the caller's address
+    /// and performs the swap call back to the caller.
+    /// The caller is supposed to swap borrow tokens for fill tokens (transfer borrow tokens from the contract
+    /// and approve fill tokens). This contract transfers fill tokens from the caller and approves them for the target.
+    /// It's supposed that the target is a trusted contract that fulfills the request,
+    /// performs transferFrom of fill tokens and guarantees to repay the tokens later.
+    /// targetCallData is a trusted and checked calldata.
+    /// fillToken and fillAmount are not part of the signature because that's the solver's responsibility to
+    /// provide tokens for the target call: if the required fillToken is not provided then the target call should fail.
+    /// Considered solver misbehave scenarios:
+    /// 1. If the fillToken is incorrect, then allowance for the expected token will be 0 and target call will fail.
+    /// 2. If the fillAmount is too small, then allowance will be less than what is needed for target call to succeed.
+    /// 3. If the fillAmount is too big, then this contract will transfer extra payment from the caller and the diff
+    ///    allowance to the target will remain for the subsequent borrower to use, or it will be overridden instead.
+    /// 4. The swapData could be anything, the caller cannot reuse the signature in a reentrancy as the nonce is
+    ///    already marked as used. The caller can reenter with another valid signature, which is an allowed scenario
+    ///    as there are no state assumptions/changes made afterwards.
     function borrowAndSwap(
         address borrowToken,
         uint256 amount,
@@ -142,26 +185,38 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
 
     // Admin functions
 
+    /// @notice Can withdraw a maximum of totalDeposited. If anything is left, it is meant to be withdrawn through
+    /// a withdrawProfit().
     function withdraw(address to, uint256 amount)
         external
         override
         onlyRole(LIQUIDITY_ADMIN_ROLE)
         whenNotPaused()
-        returns (uint256)
     {
-        uint256 withdrawn = _withdrawLogic(to, amount);
+        require(to != address(0), ZeroAddress());
         uint256 deposited = totalDeposited;
-        require(deposited >= withdrawn, InsufficientLiquidity());
-        totalDeposited = deposited - withdrawn;
-        emit Withdraw(msg.sender, to, withdrawn);
-        return withdrawn;
+        require(deposited >= amount, InsufficientLiquidity());
+        totalDeposited = deposited - amount;
+        _withdrawLogic(to, amount);
+        emit Withdraw(msg.sender, to, amount);
     }
 
     function withdrawProfit(
         address[] calldata tokens,
         address to
     ) external override onlyRole(WITHDRAW_PROFIT_ROLE) whenNotPaused() {
-        _withdrawProfit(tokens, to);
+        require(to != address(0), ZeroAddress());
+        bool success;
+        for (uint256 i = 0; i < tokens.length; i++) {
+            IERC20 token = IERC20(tokens[i]);
+            uint256 amountToWithdraw = _withdrawProfitLogic(token);
+            if (amountToWithdraw == 0) continue;
+            success = true;
+            // Withdraw from this contract
+            token.safeTransfer(to, amountToWithdraw);
+            emit ProfitWithdrawn(address(token), to, amountToWithdraw);
+        }
+        require(success, NoProfit());
     }
 
     function setMPCAddress(address mpcAddress_) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -181,15 +236,13 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
     }
 
     function pause() external override onlyRole(PAUSER_ROLE) whenNotPaused() {
-        _pause();
+        paused = true;
+        emit Paused(msg.sender);
     }
 
     function unpause() external override onlyRole(PAUSER_ROLE) whenPaused() {
-        _unpause();
-    }
-
-    function paused() public view override(Pausable, ILiquidityPool) returns (bool) {
-        return super.paused();
+        paused = false;
+        emit Unpaused(msg.sender);
     }
 
     // Internal functions
@@ -236,23 +289,6 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
         IERC20(borrowToken).forceApprove(target, amount);
     }
 
-    function _withdrawProfit(
-        address[] calldata tokens,
-        address to
-    ) internal {
-        bool success;
-        for (uint256 i = 0; i < tokens.length; i++) {
-            IERC20 token = IERC20(tokens[i]);
-            uint256 amountToWithdraw = _withdrawProfitLogic(token);
-            if (amountToWithdraw == 0) continue;
-            success = true;
-            // Withdraw from this contract
-            token.safeTransfer(to, amountToWithdraw);
-            emit ProfitWithdrawn(address(token), to, amountToWithdraw);
-        }
-        require(success, NoProfit());
-    }
-
     function _depositLogic(address /*caller*/, uint256 /*amount*/) internal virtual {
         return;
     }
@@ -261,9 +297,9 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, Pausable {
         require(borrowToken == address(ASSETS), InvalidBorrowToken());
     }
 
-    function _withdrawLogic(address to, uint256 amount) internal virtual returns (uint256) {
+    function _withdrawLogic(address to, uint256 amount) internal virtual {
+        require(ASSETS.balanceOf(address(this)) >= amount, InsufficientLiquidity());
         ASSETS.safeTransfer(to, amount);
-        return amount;
     }
 
     function _withdrawProfitLogic(IERC20 token) internal virtual returns (uint256) {

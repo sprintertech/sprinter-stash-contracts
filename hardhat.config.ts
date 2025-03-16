@@ -32,7 +32,7 @@ task("grant-role", "Grant some role on some AccessControl")
 
 task("set-default-ltv", "Update Liquidity Pool config")
 .addOptionalParam("pool", "Liquidity Pool proxy address or id", "LiquidityPoolAaveUSDC", types.string)
-.addOptionalParam("ltv", "New default LTV value", 20n * 10n**16n, types.bigint)
+.addOptionalParam("ltv", "New default LTV value, where 10000 is 100%", 2000n, types.bigint)
 .setAction(async ({pool, ltv}: {pool: string, ltv: bigint}, hre) => {
   const {resolveXAddress} = await loadTestHelpers();
   const [admin] = await hre.ethers.getSigners();
@@ -46,7 +46,7 @@ task("set-default-ltv", "Update Liquidity Pool config")
 
 task("set-token-ltvs", "Update Liquidity Pool config")
 .addParam("tokens", "Comma separated list of tokens to update LTV for")
-.addParam("ltvs", "Comma separated list of new LTV values")
+.addParam("ltvs", "Comma separated list of new LTV values where 10000 is 100%")
 .addOptionalParam("pool", "Liquidity Pool proxy address or id", "LiquidityPoolAaveUSDC", types.string)
 .setAction(async (args: {tokens: string, ltvs: string, pool: string}, hre) => {
   const {resolveXAddress} = await loadTestHelpers();
@@ -65,7 +65,7 @@ task("set-token-ltvs", "Update Liquidity Pool config")
 
 task("set-min-health-factor", "Update Liquidity Pool config")
 .addOptionalParam("pool", "Liquidity Pool proxy address or id", "LiquidityPoolAaveUSDC", types.string)
-.addOptionalParam("healthfactor", "New min health factor value", 500n * 10n**16n, types.bigint)
+.addOptionalParam("healthfactor", "New min health factor value, where 10000 is 1", 50000n, types.bigint)
 .setAction(async ({pool, healthfactor}: {pool: string, healthfactor: bigint}, hre) => {
   const {resolveXAddress} = await loadTestHelpers();
   const [admin] = await hre.ethers.getSigners();
@@ -73,7 +73,7 @@ task("set-min-health-factor", "Update Liquidity Pool config")
   const targetAddress = await resolveXAddress(pool);
   const target = (await hre.ethers.getContractAt("LiquidityPoolAave", targetAddress, admin)) as LiquidityPoolAave;
 
-  await target.setHealthFactor(healthfactor);
+  await target.setMinHealthFactor(healthfactor);
   console.log(`Min health factor set to ${healthfactor} on ${targetAddress}.`);
 });
 

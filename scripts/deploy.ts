@@ -53,6 +53,7 @@ export async function main() {
       IsTest: false,
       Hub: {
         AssetsAdjuster: deployer.address,
+        DepositProfit: deployer.address,
         AssetsLimit: 10_000_000,
         Tiers: [
           {period: 7776000n, multiplier: 300000000n},
@@ -97,8 +98,8 @@ export async function main() {
   let mainPool: LiquidityPool;
   let aavePool: LiquidityPoolAave;
   if (config.AavePool) {
-    const minHealthFactor = BigInt(config.AavePool.minHealthFactor) * 10n ** 18n / 100n;
-    const defaultLTV = BigInt(config.AavePool.defaultLTV) * 10n ** 18n / 100n;
+    const minHealthFactor = BigInt(config.AavePool.minHealthFactor) * 10000n / 100n;
+    const defaultLTV = BigInt(config.AavePool.defaultLTV) * 10000n / 100n;
     console.log("Deploying AAVE Liquidity Pool");
     aavePool = (await verifier.deployX(
       "LiquidityPoolAave",
@@ -196,7 +197,7 @@ export async function main() {
       deployer,
       config.Admin,
       [lpToken, mainPool!],
-      [config.USDC, config.Admin, config.Hub.AssetsAdjuster, assetsLimit],
+      [config.USDC, config.Admin, config.Hub.AssetsAdjuster, config.Hub.DepositProfit, assetsLimit],
     );
 
     assert(liquidityHubAddress == liquidityHub.target, "LiquidityHub address mismatch");
@@ -210,6 +211,7 @@ export async function main() {
     console.log(`LiquidityHub: ${liquidityHub.target}`);
     console.log(`LiquidityHubProxyAdmin: ${liquidityHubAdmin.target}`);
     console.log(`LiquidityHub Adjuster: ${config.Hub!.AssetsAdjuster}`);
+    console.log(`LiquidityHub DepositProfit: ${config.Hub!.DepositProfit}`);
     console.log(`LiquidityHub Assets Limit: ${config.Hub!.AssetsLimit}`);
     console.log(`SprinterLiquidityMining: ${liquidityMining.target}`);
     console.log("Tiers:");
@@ -234,6 +236,7 @@ export async function main() {
   console.log(`Admin: ${config.Admin}`);
   console.log(`LiquidityPool Withdraw Profit: ${config.WithdrawProfit}`);
   console.log(`LiquidityPool Pauser: ${config.Pauser}`);
+  console.log(`MPC Address: ${config.MpcAddress}`);
   console.log(`USDC: ${config.USDC}`);
   console.log(`Rebalancer: ${rebalancer.target}`);
   console.log(`RebalancerProxyAdmin: ${rebalancerAdmin.target}`);

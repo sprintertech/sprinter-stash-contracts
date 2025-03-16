@@ -57,6 +57,7 @@ interface Tier {
 
 interface HubConfig {
   AssetsAdjuster: string; // Address that can increase/decrease LP conversion rate.
+  DepositProfit: string; // Address that can deposit profit to the Liquidity Pool via Liquidity Hub.
   AssetsLimit: number; // Deposits to Liquidity Hub are only allowed till this limit is reached.
   Tiers: Tier[];
 };
@@ -178,6 +179,7 @@ export const networkConfig: NetworksConfig = {
     MpcAddress: "",
     Hub: {
       AssetsAdjuster: "",
+      DepositProfit: "",
       AssetsLimit: 10_000_000,
       Tiers: [
         {period: 7776000n, multiplier: 300000000n},
@@ -227,12 +229,13 @@ export const networkConfig: NetworksConfig = {
     WithdrawProfit: "0xed24c1ca7c8d01c4ba862c6792ad6144f01566f2",
     Pauser: "0xcc5dd1eec29dbe028e61e91db5da4d453be48d90",
     RebalanceCaller: "0x20ad9b208767e98dba19346f88b2686f00dbcf58",
-    MpcAddress: "0xc731bac6c62ecb49dba1393700218d03beaa0359",
+    MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     Routes: {
       Pools: [LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
       Domains: [Network.BASE_SEPOLIA, Network.ARBITRUM_SEPOLIA, Network.BASE_SEPOLIA],
       Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP],
     },
+    USDCPool: true,
     // Aave: AAVEPools.AaveV3Sepolia.POOL_ADDRESSES_PROVIDER, // Uses not official USDC.
   },
   AVALANCHE_FUJI: {
@@ -247,7 +250,7 @@ export const networkConfig: NetworksConfig = {
     WithdrawProfit: "0xed24c1ca7c8d01c4ba862c6792ad6144f01566f2",
     Pauser: "0xcc5dd1eec29dbe028e61e91db5da4d453be48d90",
     RebalanceCaller: "0x20ad9b208767e98dba19346f88b2686f00dbcf58",
-    MpcAddress: "0xc731bac6c62ecb49dba1393700218d03beaa0359",
+    MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3Fuji.POOL_ADDRESSES_PROVIDER,
       minHealthFactor: 500,
@@ -266,7 +269,7 @@ export const networkConfig: NetworksConfig = {
     WithdrawProfit: "0xed24c1ca7c8d01c4ba862c6792ad6144f01566f2",
     Pauser: "0xcc5dd1eec29dbe028e61e91db5da4d453be48d90",
     RebalanceCaller: "0x20ad9b208767e98dba19346f88b2686f00dbcf58",
-    MpcAddress: "0xc731bac6c62ecb49dba1393700218d03beaa0359",
+    MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3OptimismSepolia.POOL_ADDRESSES_PROVIDER,
       minHealthFactor: 500,
@@ -285,7 +288,7 @@ export const networkConfig: NetworksConfig = {
     WithdrawProfit: "0xed24c1ca7c8d01c4ba862c6792ad6144f01566f2",
     Pauser: "0xcc5dd1eec29dbe028e61e91db5da4d453be48d90",
     RebalanceCaller: "0x20ad9b208767e98dba19346f88b2686f00dbcf58",
-    MpcAddress: "0xc731bac6c62ecb49dba1393700218d03beaa0359",
+    MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     Routes: {
       Pools: [LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
       Domains: [Network.BASE_SEPOLIA, Network.ETHEREUM_SEPOLIA, Network.BASE_SEPOLIA],
@@ -309,9 +312,10 @@ export const networkConfig: NetworksConfig = {
     WithdrawProfit: "0xed24c1ca7c8d01c4ba862c6792ad6144f01566f2",
     Pauser: "0xcc5dd1eec29dbe028e61e91db5da4d453be48d90",
     RebalanceCaller: "0x20ad9b208767e98dba19346f88b2686f00dbcf58",
-    MpcAddress: "0xc731bac6c62ecb49dba1393700218d03beaa0359",
+    MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     Hub: {
       AssetsAdjuster: "0x6c663396827e68d10c58691f9c4bb58ae9ec85e3",
+      DepositProfit: "0x6c663396827e68d10c58691f9c4bb58ae9ec85e3",
       AssetsLimit: 1000,
       Tiers: [
         {period: 600n, multiplier: 300000000n},
@@ -343,6 +347,6 @@ export const networkConfig: NetworksConfig = {
     WithdrawProfit: "0xed24c1ca7c8d01c4ba862c6792ad6144f01566f2",
     Pauser: "0xcc5dd1eec29dbe028e61e91db5da4d453be48d90",
     RebalanceCaller: "0x20ad9b208767e98dba19346f88b2686f00dbcf58",
-    MpcAddress: "0xc731bac6c62ecb49dba1393700218d03beaa0359",
+    MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
   },
 };

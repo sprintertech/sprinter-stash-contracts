@@ -110,4 +110,19 @@ describe("CensoredTransferFromMulticall", function () {
       [(await usdc.transferFrom.populateTransaction(multicall.target, multicall.target, 1n)).data],
     )).to.be.revertedWithCustomError(multicall, "CensoredTransferFrom()");
   });
+
+  it("Should revert if one of the calls reverts", async function () {
+    const {
+      deployer, multicall, mockTarget
+    } = await loadFixture(deployAll);
+
+    await expect(multicall.connect(deployer).multicall(
+      [mockTarget.target, mockTarget.target],
+      ["0x1234", "0x5678"],
+    )).to.be.reverted;
+    await expect(multicall.connect(deployer).multicall(
+      [deployer.address],
+      ["0x1234"],
+    )).to.be.reverted;
+  });
 });

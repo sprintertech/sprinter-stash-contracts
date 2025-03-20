@@ -1,0 +1,25 @@
+Deployment ID: MVP
+Deploying to: ARBITRUM_SEPOLIA
+Deploying AAVE Liquidity Pool
+LiquidityPoolAaveUSDC: 0x7C255279c098fdF6c3116D2BecD9978002c09f4b
+Deploying USDC Liquidity Pool
+LiquidityPoolUSDC: 0xB58Bb9643884abbbad64FA7eBc874c5481E5c032
+Multicall: 0x7C472EBa1945E970a23C903FC8812D469a29B6bb
+Admin: 0xcf2d403c75ba3481ae7b190b1cd3246b5afe9120
+LiquidityPool Withdraw Profit: 0xed24c1ca7c8d01c4ba862c6792ad6144f01566f2
+LiquidityPool Pauser: 0xcc5dd1eec29dbe028e61e91db5da4d453be48d90
+MPC Address: 0x6adAF8c96151962198a9b73132c16E99F4682Eb5
+USDC: 0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d
+Rebalancer: 0xA85Cf46c150db2600b1D03E437bedD5513869888
+RebalancerProxyAdmin: 0x818E818aC77112034aBf79506d53ba197Cac5077
+Routes:
+┌─────────┬──────────────────────────────────────────────┬────────────────────┬──────────┐
+│ (index) │ Pool                                         │ Domain             │ Provider │
+├─────────┼──────────────────────────────────────────────┼────────────────────┼──────────┤
+│ 0       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'BASE_SEPOLIA'     │ 'CCTP'   │
+│ 1       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'OP_SEPOLIA'       │ 'CCTP'   │
+│ 2       │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'BASE_SEPOLIA'     │ 'CCTP'   │
+│ 3       │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'OP_SEPOLIA'       │ 'CCTP'   │
+│ 4       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'ARBITRUM_SEPOLIA' │ 'LOCAL'  │
+│ 5       │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'ARBITRUM_SEPOLIA' │ 'LOCAL'  │
+└─────────┴──────────────────────────────────────────────┴────────────────────┴──────────┘

@@ -33,3 +33,7 @@ To deploy to Base Sepolia Testnet do:
 Make sure to save the output of the deployment. You can use those later in the `.env` file to run other scripts on the already deployed system.
 
 You could optionally set VERIFY to `true` in order to publish the source code after deployment to Etherscan.
+
+### Deployed contract addresses
+
+[Base Sepolia](deploy-basesepolia.log), [Optimism Sepolia](deploy-opsepolia.log), [Arbitrum Sepolia](deploy-arbitrumsepolia.log)

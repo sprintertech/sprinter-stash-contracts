@@ -223,10 +223,40 @@ const config: HardhatUserConfig = {
       url: process.env.ARBITRUM_SEPOLIA_RPC || "https://sepolia-rollup.arbitrum.io/rpc",
       accounts,
     },
+    [Network.OP_SEPOLIA]: {
+      chainId: networkConfig.OP_SEPOLIA.chainId,
+      url: process.env.OP_SEPOLIA_RPC || "https://sepolia.optimism.io",
+      accounts,
+    },
+    [Network.BASE]: {
+      chainId: networkConfig.BASE.chainId,
+      url: process.env.BASE_RPC || "https://base-mainnet.public.blastapi.io",
+      accounts,
+    },
+    [Network.ETHEREUM]: {
+      chainId: networkConfig.ETHEREUM.chainId,
+      url: process.env.ETHEREUM_RPC || "https://eth-mainnet.public.blastapi.io",
+      accounts,
+    },
+    [Network.ARBITRUM_ONE]: {
+      chainId: networkConfig.ARBITRUM_ONE.chainId,
+      url: process.env.ARBITRUM_ONE_RPC || "https://arbitrum-one.public.blastapi.io",
+      accounts,
+    },
+    [Network.OP_MAINNET]: {
+      chainId: networkConfig.OP_MAINNET.chainId,
+      url: process.env.OP_MAINNET_RPC || "https://optimism-mainnet.public.blastapi.io",
+      accounts,
+    },
     hardhat: {
       forking: {
-        url: process.env.FORK_PROVIDER || "https://eth-mainnet.public.blastapi.io",
+        url: isSet(process.env.DRY_RUN)
+          ? process.env[`${process.env.DRY_RUN}_RPC`]!
+          : (process.env.FORK_PROVIDER || "https://eth-mainnet.public.blastapi.io"),
       },
+      accounts: isSet(process.env.DRY_RUN)
+        ? [{privateKey: process.env.PRIVATE_KEY!, balance: "1000000000000000000"}]
+        : undefined,
     },
   },
   sourcify: {
@@ -237,7 +267,22 @@ const config: HardhatUserConfig = {
       baseSepolia: process.env.ETHERSCAN_BASE_SEPOLIA || "",
       sepolia: process.env.ETHERSCAN_ETHEREUM_SEPOLIA || "",
       arbitrumSepolia: process.env.ETHERSCAN_ARBITRUM_SEPOLIA || "",
+      opSepolia: process.env.ETHERSCAN_OP_SEPOLIA || "",
+      base: process.env.ETHERSCAN_BASE || "",
+      mainnet: process.env.ETHERSCAN_ETHEREUM || "",
+      arbitrumOne: process.env.ETHERSCAN_ARBITRUM_ONE || "",
+      optimisticEthereum: process.env.ETHERSCAN_OP_MAINNET || "",
     },
+    customChains: [
+      {
+        network: "opSepolia",
+        chainId: networkConfig.OP_SEPOLIA.chainId,
+        urls: {
+          apiURL: "https://api-sepolia-optimism.etherscan.io/api",
+          browserURL: "https://sepolia-optimism.etherscan.io"
+        },
+      },
+    ],
   },
 };
 

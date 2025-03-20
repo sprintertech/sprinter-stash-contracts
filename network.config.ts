@@ -63,7 +63,7 @@ interface HubConfig {
 };
 
 export interface NetworkConfig {
-  chainId?: number;
+  chainId: number;
   CCTP: CCTPConfig;
   USDC: string;
   Routes?: RoutesConfig;
@@ -96,11 +96,6 @@ export const networkConfig: NetworksConfig = {
     Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     MpcAddress: "0x1337000000000000000000000000000000000000",
-    Routes: {
-      Pools: [LiquidityPoolAaveUSDC],
-      Domains: [Network.BASE],
-      Providers: [Provider.CCTP],
-    },
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3Ethereum.POOL_ADDRESSES_PROVIDER,
       minHealthFactor: 300,
@@ -139,11 +134,17 @@ export const networkConfig: NetworksConfig = {
     Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     MpcAddress: "0x1337000000000000000000000000000000000000",
+    Routes: {
+      Pools: [LiquidityPoolAaveUSDC, LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
+      Domains: [Network.BASE, Network.ARBITRUM_ONE, Network.BASE, Network.ARBITRUM_ONE],
+      Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP],
+    },
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3Optimism.POOL_ADDRESSES_PROVIDER,
       minHealthFactor: 300,
       defaultLTV: 0,
     },
+    USDCPool: true,
   },
   ARBITRUM_ONE: {
     chainId: 42161,
@@ -158,11 +159,17 @@ export const networkConfig: NetworksConfig = {
     Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     MpcAddress: "0x1337000000000000000000000000000000000000",
+    Routes: {
+      Pools: [LiquidityPoolAaveUSDC, LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
+      Domains: [Network.BASE, Network.OP_MAINNET, Network.BASE, Network.OP_MAINNET],
+      Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP],
+    },
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3Arbitrum.POOL_ADDRESSES_PROVIDER,
       minHealthFactor: 300,
       defaultLTV: 0,
     },
+    USDCPool: true,
   },
   BASE: {
     chainId: 8453,
@@ -188,9 +195,9 @@ export const networkConfig: NetworksConfig = {
       ]
     },
     Routes: {
-      Pools: [LiquidityPoolAaveUSDC],
-      Domains: [Network.ETHEREUM],
-      Providers: [Provider.CCTP],
+      Pools: [LiquidityPoolAaveUSDC, LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
+      Domains: [Network.OP_MAINNET, Network.ARBITRUM_ONE, Network.OP_MAINNET, Network.ARBITRUM_ONE],
+      Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP],
     },
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3Base.POOL_ADDRESSES_PROVIDER,
@@ -231,11 +238,6 @@ export const networkConfig: NetworksConfig = {
     Pauser: "0xcc5dd1eec29dbe028e61e91db5da4d453be48d90",
     RebalanceCaller: "0x20ad9b208767e98dba19346f88b2686f00dbcf58",
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
-    Routes: {
-      Pools: [LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
-      Domains: [Network.BASE_SEPOLIA, Network.ARBITRUM_SEPOLIA, Network.BASE_SEPOLIA],
-      Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP],
-    },
     USDCPool: true,
     // Aave: AAVEPools.AaveV3Sepolia.POOL_ADDRESSES_PROVIDER, // Uses not official USDC.
   },
@@ -271,11 +273,17 @@ export const networkConfig: NetworksConfig = {
     Pauser: "0xcc5dd1eec29dbe028e61e91db5da4d453be48d90",
     RebalanceCaller: "0x20ad9b208767e98dba19346f88b2686f00dbcf58",
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
+    Routes: {
+      Pools: [LiquidityPoolAaveUSDC, LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
+      Domains: [Network.BASE_SEPOLIA, Network.ARBITRUM_SEPOLIA, Network.BASE_SEPOLIA, Network.ARBITRUM_SEPOLIA],
+      Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP],
+    },
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3OptimismSepolia.POOL_ADDRESSES_PROVIDER,
       minHealthFactor: 500,
       defaultLTV: 20,
     },
+    USDCPool: true,
   },
   ARBITRUM_SEPOLIA: {
     chainId: 421614,
@@ -291,15 +299,16 @@ export const networkConfig: NetworksConfig = {
     RebalanceCaller: "0x20ad9b208767e98dba19346f88b2686f00dbcf58",
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     Routes: {
-      Pools: [LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
-      Domains: [Network.BASE_SEPOLIA, Network.ETHEREUM_SEPOLIA, Network.BASE_SEPOLIA],
-      Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP],
+      Pools: [LiquidityPoolAaveUSDC, LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
+      Domains: [Network.BASE_SEPOLIA, Network.OP_SEPOLIA, Network.BASE_SEPOLIA, Network.OP_SEPOLIA],
+      Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP],
     },
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3ArbitrumSepolia.POOL_ADDRESSES_PROVIDER,
       minHealthFactor: 500,
       defaultLTV: 20,
     },
+    USDCPool: true,
   },
   BASE_SEPOLIA: {
     chainId: 84532,
@@ -325,9 +334,9 @@ export const networkConfig: NetworksConfig = {
       ]
     },
     Routes: {
-      Pools: [LiquidityPoolUSDC, LiquidityPoolAaveUSDC],
-      Domains: [Network.ETHEREUM_SEPOLIA, Network.ARBITRUM_SEPOLIA],
-      Providers: [Provider.CCTP, Provider.CCTP],
+      Pools: [LiquidityPoolAaveUSDC, LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
+      Domains: [Network.ARBITRUM_SEPOLIA, Network.OP_SEPOLIA, Network.ARBITRUM_SEPOLIA, Network.OP_SEPOLIA],
+      Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP],
     },
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3BaseSepolia.POOL_ADDRESSES_PROVIDER,

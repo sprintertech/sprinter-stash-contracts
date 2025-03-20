@@ -33,7 +33,11 @@ export async function main() {
   let network: Network;
   let config: NetworkConfig;
   console.log(`Deploying to: ${hre.network.name}`);
-  if (Object.values(Network).includes(hre.network.name as Network)) {
+  if (hre.network.name === "hardhat" && Object.values(Network).includes(process.env.DRY_RUN as Network)) {
+    network = process.env.DRY_RUN as Network;
+    config = networkConfig[network];
+    console.log(`Dry run on fork: ${network}`);
+  } else if (Object.values(Network).includes(hre.network.name as Network)) {
     network = hre.network.name as Network;
     config = networkConfig[network];
   } else {
@@ -44,7 +48,9 @@ export async function main() {
     const cctpMessageTransmitter = (
       await verifier.deploy("TestCCTPMessageTransmitter", deployer)
     ) as TestCCTPMessageTransmitter;
+    const [, opsAdmin, superAdmin, mpc] = await hre.ethers.getSigners();
     config = {
+      chainId: 31337,
       CCTP: {
         TokenMessenger: await cctpTokenMessenger.getAddress(),
         MessageTransmitter: await cctpMessageTransmitter.getAddress(),
@@ -52,8 +58,8 @@ export async function main() {
       USDC: await testUSDC.getAddress(),
       IsTest: false,
       Hub: {
-        AssetsAdjuster: deployer.address,
-        DepositProfit: deployer.address,
+        AssetsAdjuster: superAdmin.address,
+        DepositProfit: opsAdmin.address,
         AssetsLimit: 10_000_000,
         Tiers: [
           {period: 7776000n, multiplier: 300000000n},
@@ -61,11 +67,11 @@ export async function main() {
           {period: 31104000n, multiplier: 1666666667n},
         ]
       },
-      Admin: deployer.address,
-      WithdrawProfit: deployer.address,
-      Pauser: deployer.address,
-      RebalanceCaller: deployer.address,
-      MpcAddress: deployer.address,
+      Admin: superAdmin.address,
+      WithdrawProfit: opsAdmin.address,
+      Pauser: opsAdmin.address,
+      RebalanceCaller: opsAdmin.address,
+      MpcAddress: mpc.address,
       Routes: {
         Pools: [LiquidityPoolUSDC],
         Domains: [Network.ETHEREUM],
@@ -132,7 +138,7 @@ export async function main() {
   if (config.USDCPool) {
     console.log("Deploying USDC Liquidity Pool");
     usdcPool = (await verifier.deployX(
-      "LiquidityPool", deployer, {}, [config.USDC, config.Admin, config.MpcAddress], LiquidityPoolUSDC
+      "LiquidityPool", deployer, {}, [config.USDC, deployer, config.MpcAddress], LiquidityPoolUSDC
     )) as LiquidityPool;
     console.log(`LiquidityPoolUSDC: ${usdcPool.target}`);
 
@@ -240,8 +246,18 @@ export async function main() {
   console.log(`USDC: ${config.USDC}`);
   console.log(`Rebalancer: ${rebalancer.target}`);
   console.log(`RebalancerProxyAdmin: ${rebalancerAdmin.target}`);
-  console.log("Routes:");
-  console.table(config.Routes!);
+  if (config.Routes) {
+    console.log("Routes:");
+    const transposedRoutes = [];
+    for (let i = 0; i < config.Routes.Pools!.length; i++) {
+      transposedRoutes.push({
+        Pool: config.Routes.Pools![i],
+        Domain: config.Routes.Domains![i],
+        Provider: config.Routes.Providers![i],
+      });
+    }
+    console.table(transposedRoutes);
+  }
 
   await verifier.verify(process.env.VERIFY === "true");
 }

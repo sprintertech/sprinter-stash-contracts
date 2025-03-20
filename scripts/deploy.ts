@@ -12,7 +12,7 @@ import {
 import {
   TestUSDC, SprinterUSDCLPShare, LiquidityHub,
   SprinterLiquidityMining, TestCCTPTokenMessenger, TestCCTPMessageTransmitter,
-  Rebalancer, LiquidityPool, LiquidityPoolAave
+  Rebalancer, LiquidityPool, LiquidityPoolAave, CensoredTransferFromMulticall,
 } from "../typechain-types";
 import {
   networkConfig, Network, Provider, NetworkConfig, LiquidityPoolUSDC,
@@ -233,6 +233,12 @@ export async function main() {
     }
   }
 
+  const multicall = (await verifier.deployX(
+    "CensoredTransferFromMulticall",
+    deployer,
+  )) as CensoredTransferFromMulticall;
+
+  console.log(`Multicall: ${multicall.target}`);
   console.log(`Admin: ${config.Admin}`);
   console.log(`LiquidityPool Withdraw Profit: ${config.WithdrawProfit}`);
   console.log(`LiquidityPool Pauser: ${config.Pauser}`);

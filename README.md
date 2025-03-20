@@ -25,9 +25,10 @@ Local deployment wallet private key is: 0xac0974bec39a17e36ba4a6b4d238ff944bacb4
 To deploy to live networks, create a `.env` file using the `.env.example` and fill in the relevant variables (only the ones needed for your deployment).
 You need to have a private key specified.
 Inspect and modify if needed the `network.config.ts`.
-To deploy to Base Testnet do:
+To deploy to Base Sepolia Testnet do:
 
-    npm run deploy-basetest
+    npm run dry:deploy-basesepolia
+    npm run deploy-basesepolia
 
 Make sure to save the output of the deployment. You can use those later in the `.env` file to run other scripts on the already deployed system.
 

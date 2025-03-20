@@ -249,11 +249,11 @@ export async function main() {
   if (config.Routes) {
     console.log("Routes:");
     const transposedRoutes = [];
-    for (let i = 0; i < config.Routes.Pools!.length; i++) {
+    for (let i = 0; i < config.Routes.Pools.length; i++) {
       transposedRoutes.push({
-        Pool: config.Routes.Pools![i],
-        Domain: config.Routes.Domains![i],
-        Provider: config.Routes.Providers![i],
+        Pool: config.Routes.Pools[i],
+        Domain: config.Routes.Domains[i],
+        Provider: config.Routes.Providers[i],
       });
     }
     console.table(transposedRoutes);

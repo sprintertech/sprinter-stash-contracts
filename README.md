@@ -36,4 +36,6 @@ You could optionally set VERIFY to `true` in order to publish the source code af
 
 ### Deployed contract addresses
 
-[Base Sepolia](deploy-basesepolia.log), [Optimism Sepolia](deploy-opsepolia.log), [Arbitrum Sepolia](deploy-arbitrumsepolia.log)
+[Base Sepolia](deployments/deploy-basesepolia.log), [Optimism Sepolia](deployments/deploy-opsepolia.log), [Arbitrum Sepolia](deployments/deploy-arbitrumsepolia.log)
+
+[Base](deployments/deploy-base.log), [Optimism Mainnet](deployments/deploy-opmainnet.log), [Arbitrum One](deployments/deploy-arbitrumone.log)

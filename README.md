@@ -36,6 +36,10 @@ You could optionally set VERIFY to `true` in order to publish the source code af
 
 ### Deployed contract addresses
 
+[YAML](deployments/deployments.yml)
+
+### Deployment logs
+
 [Base Sepolia](deployments/deploy-basesepolia.log), [Optimism Sepolia](deployments/deploy-opsepolia.log), [Arbitrum Sepolia](deployments/deploy-arbitrumsepolia.log)
 
 [Base](deployments/deploy-base.log), [Optimism Mainnet](deployments/deploy-opmainnet.log), [Arbitrum One](deployments/deploy-arbitrumone.log)

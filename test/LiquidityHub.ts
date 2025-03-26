@@ -278,6 +278,54 @@ describe("LiquidityHub", function () {
     expect(await usdc.balanceOf(liquidityPool.target)).to.equal(0n);
   });
 
+  it("Should expect to burn shares when shares.decimals > assets.decimals", async function () {
+    const {lpToken, liquidityHub, usdc, deployer, user, USDC, LP} = await loadFixture(deployAll);
+
+    await usdc.connect(deployer).transfer(user.address, 1n);
+    await usdc.connect(user).approve(liquidityHub.target, 1n);
+    // Deposit 0.000010 USDC
+    await liquidityHub.connect(user).deposit(1n, user.address);
+    // Get shares
+    expect(await lpToken.balanceOf(user.address)).to.equal(1n * (LP / USDC));
+    // Burn all shares except 1
+    await liquidityHub.connect(user).redeem(LP / USDC - 1n, user.address, user.address);
+    expect(await liquidityHub.totalSupply()).to.equal(1n);
+    expect(await liquidityHub.totalAssets()).to.equal(1n);
+    expect(await usdc.balanceOf(user.address)).to.equal(0n);
+  });
+ 
+  it("Burning shares when shares.decimals > assets.decimals should be impractical", async function () {
+    const {lpToken, liquidityHub, usdc, deployer, user, USDC, LP, liquidityPool} = await loadFixture(deployAll);
+
+    await usdc.connect(deployer).transfer(user.address, 10n * USDC);
+    await usdc.connect(user).approve(liquidityHub.target, 10n * USDC);
+    // Deposit 0.000010 USDC
+    await liquidityHub.connect(user).deposit(10n, user.address);
+    // Get shares
+    expect(await lpToken.balanceOf(user.address)).to.equal(10n * (LP / USDC));
+    expect(await liquidityHub.previewRedeem(1n * LP)).to.equal(1n * USDC);
+    // Burn all shares except 10 (to get 1:1 with assets)
+    let i = 0;
+    let amount = await liquidityHub.previewWithdraw(1n);
+    while(true) {
+      amount = await liquidityHub.previewWithdraw(1n);
+      if (amount <=1) break;
+      await liquidityHub.connect(user).redeem(amount - 1n, user.address, user.address);
+      i++;
+    }
+    // It takes 268 iterations to burn all shares except 10
+    expect(i).to.equal(268);
+    expect(await lpToken.balanceOf(user.address)).to.equal(10);
+    expect(await liquidityHub.previewRedeem(1n)).to.equal(1n);
+    const tx = liquidityHub.connect(user).redeem(1n, user.address, user.address);
+    await expect(tx)
+      .to.emit(lpToken, "Transfer")
+      .withArgs(user.address, ZERO_ADDRESS, 1n);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(liquidityPool.target, user.address, 1n);
+  });
+
   it("Should allow to redeem from another user", async function () {
     const {
       lpToken, liquidityHub, usdc, deployer, user, user2, user3, USDC, LP,

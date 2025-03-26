@@ -1,5 +1,5 @@
 import {
-  loadFixture, time
+  loadFixture, time, setBalance
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {expect} from "chai";
 import hre from "hardhat";
@@ -49,6 +49,7 @@ describe("LiquidityPoolAave", function () {
     if (!UNI_OWNER_ADDRESS) throw new Error("Env variables not configured (UNI_OWNER_ADDRESS missing)");
     const uni = await hre.ethers.getContractAt("ERC20", UNI_ADDRESS);
     const uniOwner = await hre.ethers.getImpersonatedSigner(UNI_OWNER_ADDRESS);
+    await setBalance(uniOwner.address, 10n ** 18n);
     const uniData = await aavePool.getReserveData(UNI_ADDRESS);
     const uniDebtToken = await hre.ethers.getContractAt("ERC20", uniData[10]);
 
@@ -590,7 +591,7 @@ describe("LiquidityPoolAave", function () {
 
     it("Should repay collateral", async function () {
       const {
-        liquidityPool, usdc, USDC_DEC, user, user2, mpc_signer, usdcOwner, uniOwner,  liquidityAdmin,
+        liquidityPool, usdc, USDC_DEC, user, user2, mpc_signer, usdcOwner, liquidityAdmin,
         usdcDebtToken, uniDebtToken
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
@@ -627,7 +628,7 @@ describe("LiquidityPoolAave", function () {
       const usdcDebtBefore = await usdcDebtToken.balanceOf(liquidityPool.target);
       expect(usdcDebtBefore).to.be.greaterThan(amountToBorrow);
 
-      await usdc.connect(uniOwner).transfer(liquidityPool.target, amountToBorrow);
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountToBorrow);
 
       await expect(liquidityPool.connect(user).repay([usdc.target]))
         .to.emit(liquidityPool, "Repaid");  

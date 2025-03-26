@@ -50,6 +50,7 @@
   },
   "dependencies": {
     "@bgd-labs/aave-address-book": "^4.10.0",
+    "@crytic/properties": "github:crytic/properties",
     "@openzeppelin/contracts": "^5.1.0",
     "@openzeppelin/contracts-upgradeable": "^5.1.0"
   }

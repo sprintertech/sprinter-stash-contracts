@@ -1,0 +1,6 @@
+testMode: assertion 
+corpusDir: "echidna-corpus"
+seqLen: 25
+testLimit: 10000
+deployer: "0x10000"
+sender: ["0x10000"]

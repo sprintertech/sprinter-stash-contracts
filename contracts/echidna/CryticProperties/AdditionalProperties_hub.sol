@@ -1,0 +1,178 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+pragma solidity ^0.8.0;
+
+import {CryticERC4626PropertyBase} from "@crytic/properties/contracts/ERC4626/util/ERC4626PropertyTestBase.sol";
+import {CryticERC4626VaultProxy} from "@crytic/properties/contracts/ERC4626/properties/VaultProxy.sol";
+import {ERC4626LiquidityHubBase} from "./ERC4626LiquidityHubBase.sol";
+
+contract AdditionalProperties_hub is
+    CryticERC4626PropertyBase,
+    CryticERC4626VaultProxy,
+    ERC4626LiquidityHubBase
+{
+
+    event Debug(uint256 arg);
+    event Debug2(address arg);
+
+    /// @notice Validates the following properties:
+    /// - vault.convertToAssets() must not revert for reasonable values
+    function verify_convertToAssetsMustNotRevert_hub(uint256 shares) public {
+        // arbitrarily define "reasonable values" to be 10**(token.decimals+20)
+        // assert(false);
+        emit Debug2(address(shares_));
+        // emit Debug(shares_.decimals());
+        // assert(false);
+        uint256 reasonably_largest_value = 10 ** (shares_.decimals() + 20);
+
+        // prevent scenarios where there is enough totalSupply to trigger overflows
+        emit Debug(reasonably_largest_value);
+        require(vault.totalSupply() <= reasonably_largest_value);
+        emit Debug(vault.totalSupply());
+        shares = clampLte(shares, reasonably_largest_value);
+        emit Debug(shares);
+
+        // exclude the possibility of idiosyncratic reverts. Might have to add more in future.
+        shares = clampLte(shares, vault.totalSupply());
+
+        emit LogUint256("totalSupply", vault.totalSupply());
+        emit LogUint256("totalAssets", vault.totalAssets());
+
+        try vault.convertToAssets(shares) {
+            emit Debug(shares);
+            return;
+        } catch {
+            assertWithMsg(false, "vault.convertToAssets() must not revert");
+        }
+    }
+
+        /// @notice verifies `redeem()` must allow proxies to redeem shares on behalf of the owner using share token approvals
+    ///         verifies third party `redeem()` calls must update the msg.sender's allowance
+    function verify_redeemViaApprovalProxy_hub(
+        uint256 receiverId,
+        uint256 shares
+    ) public returns (uint256 tokensWithdrawn) {
+        address owner = address(this);
+        address receiver = restrictAddressToThirdParties(receiverId);
+        shares = requireValidRedeemAmount(owner, shares);
+
+        shares_.approve(address(redemptionProxy), shares);
+        measureAddressHoldings(address(this), "vault", "before redeemption");
+
+        try redemptionProxy.redeemOnBehalf(shares, receiver, owner) returns (
+            uint256 _tokensWithdrawn
+        ) {
+            tokensWithdrawn = _tokensWithdrawn;
+        } catch {
+            assertWithMsg(
+                false,
+                "vault.redeem() reverted during redeem via approval"
+            );
+        }
+
+        // verify allowance is updated
+        uint256 newAllowance = shares_.allowance(owner, address(redemptionProxy));
+        assertEq(
+            newAllowance,
+            0,
+            "The vault failed to update the redemption proxy's share allowance"
+        );
+        emit Debug(newAllowance);
+    }
+
+    /// @notice verifies `withdraw()` must allow proxies to withdraw shares on behalf of the owner using share token approvals
+    ///         verifies third party `withdraw()` calls must update the msg.sender's allowance
+    function verify_withdrawViaApprovalProxy_hub(
+        uint256 receiverId,
+        uint256 tokens
+    ) public returns (uint256 sharesBurned) {
+        address owner = address(this);
+        address receiver = restrictAddressToThirdParties(receiverId);
+        tokens = requireValidWithdrawAmount(owner, tokens);
+
+        uint256 expectedSharesConsumed = vault.previewWithdraw(tokens);
+        shares_.approve(address(redemptionProxy), expectedSharesConsumed);
+        measureAddressHoldings(address(this), "vault", "before withdraw");
+
+        try redemptionProxy.withdrawOnBehalf(tokens, receiver, owner) returns (
+            uint256 _sharesBurned
+        ) {
+            sharesBurned = _sharesBurned;
+        } catch {
+            assertWithMsg(
+                false,
+                "vault.withdraw() reverted during withdraw via approval"
+            );
+        }
+
+        emit LogUint256("withdraw consumed this many shares:", sharesBurned);
+
+        // verify allowance is updated
+        uint256 newAllowance = shares_.allowance(owner, address(redemptionProxy));
+        uint256 expectedAllowance = expectedSharesConsumed - sharesBurned;
+        emit LogUint256("Expecting allowance to now be:", expectedAllowance);
+        assertEq(
+            expectedAllowance,
+            newAllowance,
+            "The vault failed to update the redemption proxy's share allowance"
+        );
+    }
+
+    /// @notice verifies third parties must not be able to `withdraw()` tokens on an owner's behalf without a token approval
+    function verify_withdrawRequiresTokenApproval_hub(
+        uint256 receiverId,
+        uint256 tokens,
+        uint256 sharesApproved
+    ) public {
+        address owner = address(this);
+        address receiver = restrictAddressToThirdParties(receiverId);
+        tokens = requireValidWithdrawAmount(owner, tokens);
+        uint256 expectedSharesConsumed = vault.previewWithdraw(tokens);
+        emit LogUint256(
+            "Will attempt to proxy withdraw this many shares:",
+            expectedSharesConsumed
+        );
+
+        require(sharesApproved < expectedSharesConsumed);
+        emit LogUint256("Approving spend of this many shares:", sharesApproved);
+        shares_.approve(address(redemptionProxy), sharesApproved);
+
+        try redemptionProxy.withdrawOnBehalf(tokens, receiver, owner) returns (
+            uint256 _sharesBurned
+        ) {
+            assertLte(
+                _sharesBurned,
+                sharesApproved,
+                "Redemption proxy must not be able to withdraw more shares than it was approved"
+            );
+        } catch {}
+    }
+
+    /// @notice verifies third parties must not be able to `redeem()` shares on an owner's behalf without a token approval
+    function verify_redeemRequiresTokenApproval_hub(
+        uint256 receiverId,
+        uint256 shares,
+        uint256 sharesApproved
+    ) public {
+        address owner = address(this);
+        address receiver = restrictAddressToThirdParties(receiverId);
+        shares = requireValidRedeemAmount(owner, shares);
+        emit LogUint256(
+            "Will attempt to proxy redeem this many shares:",
+            shares
+        );
+
+        require(sharesApproved < shares);
+        emit LogUint256("Approving spend of this many shares:", sharesApproved);
+        shares_.approve(address(redemptionProxy), sharesApproved);
+
+        try redemptionProxy.redeemOnBehalf(shares, receiver, owner)
+        {
+            assert(false);
+        } catch {
+            assert(true);
+        }
+    }
+
+
+
+}

@@ -189,9 +189,9 @@ export const networkConfig: NetworksConfig = {
       DepositProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
       AssetsLimit: 10_000_000,
       Tiers: [
-        {period: 7776000n, multiplier: 300000000n},
-        {period: 15552000n, multiplier: 800000000n},
-        {period: 31104000n, multiplier: 1666666667n},
+        {period: 7776000n, multiplier: 400000000n},
+        {period: 15552000n, multiplier: 1000000000n},
+        {period: 31104000n, multiplier: 2200000000n},
       ]
     },
     Routes: {
@@ -328,9 +328,9 @@ export const networkConfig: NetworksConfig = {
       DepositProfit: "0x6c663396827e68d10c58691f9c4bb58ae9ec85e3",
       AssetsLimit: 1000,
       Tiers: [
-        {period: 600n, multiplier: 300000000n},
-        {period: 1200n, multiplier: 800000000n},
-        {period: 2400n, multiplier: 1666666667n},
+        {period: 600n, multiplier: 400000000n},
+        {period: 1200n, multiplier: 1000000000n},
+        {period: 2400n, multiplier: 2200000000n},
       ]
     },
     Routes: {

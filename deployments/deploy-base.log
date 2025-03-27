@@ -38,3 +38,17 @@ Routes:
 │ 4       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'BASE'         │ 'LOCAL'  │
 │ 5       │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'BASE'         │ 'LOCAL'  │
 └─────────┴──────────────────────────────────────────────┴────────────────┴──────────┘
+
+Deployment ID: MVP
+Redeployment ID: MVP2
+Redeploying to: BASE
+Admin: 0x4eA9E682BA79bC403523c9e8D98A05EaF3810636
+SprinterLiquidityMining: 0x479D158959B59328E89f0fbF7DfeBb198c313C21
+Tiers:
+┌─────────┬──────────┬────────────────┐
+│ (index) │ seconds  │ multiplier     │
+├─────────┼──────────┼────────────────┤
+│ 0       │ 7776000  │ '0.400000000x' │
+│ 1       │ 15552000 │ '1.0x'         │
+│ 2       │ 31104000 │ '2.200000000x' │
+└─────────┴──────────┴────────────────┘

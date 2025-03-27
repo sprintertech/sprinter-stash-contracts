@@ -15,6 +15,8 @@
     "deploy-ethereum": "hardhat run ./scripts/deploy.ts --network ETHEREUM",
     "deploy-arbitrumone": "hardhat run ./scripts/deploy.ts --network ARBITRUM_ONE",
     "deploy-opmainnet": "hardhat run ./scripts/deploy.ts --network OP_MAINNET",
+    "redeploy-stash-basesepolia": "hardhat run ./scripts/redeployStash.ts --network BASE_SEPOLIA",
+    "redeploy-stash-base": "hardhat run ./scripts/redeployStash.ts --network BASE",
     "upgrade-liquiditypool": "hardhat run ./scripts/upgradeLiquidityPool.ts",
     "upgrade-liquiditypool-basesepolia": "hardhat run ./scripts/upgradeLiquidityPool.ts --network BASE_SEPOLIA",
     "upgrade-liquiditypool-ethereumsepolia": "hardhat run ./scripts/upgradeLiquidityPool.ts --network ETHEREUM_SEPOLIA",
@@ -28,12 +30,13 @@
     "dry:deploy-ethereum": "DRY_RUN=ETHEREUM VERIFY=false ts-node --files ./scripts/deploy.ts",
     "dry:deploy-arbitrumone": "DRY_RUN=ARBITRUM_ONE VERIFY=false ts-node --files ./scripts/deploy.ts",
     "dry:deploy-opmainnet": "DRY_RUN=OP_MAINNET VERIFY=false ts-node --files ./scripts/deploy.ts",
+    "dry:redeploy-stash-basesepolia": "DRY_RUN=BASE_SEPOLIA VERIFY=false ts-node --files ./scripts/redeployStash.ts",
+    "dry:redeploy-stash-base": "DRY_RUN=BASE VERIFY=false ts-node --files ./scripts/redeployStash.ts",
     "lint": "npm run lint:solidity && npm run lint:ts",
     "lint:solidity": "solhint 'contracts/**/*.sol'",
     "lint:ts": "eslint",
     "test": "hardhat test --typecheck",
     "test:deploy": "ts-node --files ./scripts/deploy.ts",
-    "test:upgrade": "ts-node --files ./scripts/upgradeLiquidityPool.ts",
     "test:scripts": "SCRIPT_ENV=CI DEPLOY_ID=CI ts-node --files ./scripts/test.ts"
   },
   "repository": {

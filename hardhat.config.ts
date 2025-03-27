@@ -257,6 +257,9 @@ const config: HardhatUserConfig = {
       accounts: isSet(process.env.DRY_RUN)
         ? [{privateKey: process.env.PRIVATE_KEY!, balance: "1000000000000000000"}]
         : undefined,
+      chains: isSet(process.env.DRY_RUN) // https://github.com/NomicFoundation/hardhat/issues/5511
+        ? {[networkConfig[`${process.env.DRY_RUN}` as Network]!.chainId]: {hardforkHistory: {cancun: 0}}}
+        : undefined,
     },
   },
   sourcify: {

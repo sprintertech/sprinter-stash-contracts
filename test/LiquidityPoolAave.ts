@@ -50,6 +50,7 @@ describe("LiquidityPoolAave", function () {
     if (!UNI_OWNER_ADDRESS) throw new Error("Env variables not configured (UNI_OWNER_ADDRESS missing)");
     const uni = await hre.ethers.getContractAt("ERC20", UNI_ADDRESS);
     const uniOwner = await hre.ethers.getImpersonatedSigner(UNI_OWNER_ADDRESS);
+    await setBalance(uniOwner.address, 10n ** 18n);
     const uniData = await aavePool.getReserveData(UNI_ADDRESS);
     const uniDebtToken = await hre.ethers.getContractAt("ERC20", uniData[10]);
     await setBalance(UNI_OWNER_ADDRESS, 10n ** 18n);

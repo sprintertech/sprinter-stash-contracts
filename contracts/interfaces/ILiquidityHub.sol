@@ -5,4 +5,5 @@ import {IManagedToken} from "./IManagedToken.sol";
 
 interface ILiquidityHub {
     function SHARES() external view returns (IManagedToken);
+    function setAssetsLimit(uint256 newAssetsLimit) external;
 }

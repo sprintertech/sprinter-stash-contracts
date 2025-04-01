@@ -1,11 +1,11 @@
 import {
-  loadFixture, time,
+  loadFixture,
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {expect} from "chai";
 import hre from "hardhat";
 import {MaxUint256, getBigInt} from "ethers";
 import {
-  getCreateAddress, getDeployXAddressBase, getContractAt, deploy, deployX, toBytes32,
+  getCreateAddress, getDeployXAddressBase, getContractAt, deploy, deployX, 
 } from "./helpers";
 import {DEFAULT_ADMIN_ROLE} from "../scripts/common";
 import {
@@ -61,8 +61,8 @@ describe("CapSetter", function () {
   it("Should have default values", async function () {
     const {capSetter, liquidityHub, admin} = await loadFixture(deployAll);
 
-    expect(await capSetter.liquidityHub()).to.equal(liquidityHub.target);
-    expect(await capSetter.owner()).to.equal(admin.address);
+    expect(await capSetter.LIQUIDITY_HUB()).to.equal(liquidityHub.target);
+    expect(await capSetter.OWNER()).to.equal(admin.address);
   });
 
   it("Should set assets limit for liquidity hub", async function () {

@@ -5,8 +5,8 @@ import {ILiquidityHub} from "./interfaces/ILiquidityHub.sol";
 
 /// @title Sets assets limit on LiquidityHub contract.
 contract CapSetter {
-    address immutable public owner;
-    ILiquidityHub immutable public liquidityHub;
+    address immutable public OWNER;
+    ILiquidityHub immutable public LIQUIDITY_HUB;
 
     error ZeroAddress();
     error Unauthorized();
@@ -17,12 +17,12 @@ contract CapSetter {
     ) {
         require(_owner != address(0), ZeroAddress());
         require(_liquidityHub != address(0), ZeroAddress());
-        owner = _owner;
-        liquidityHub = ILiquidityHub(_liquidityHub);
+        OWNER = _owner;
+        LIQUIDITY_HUB = ILiquidityHub(_liquidityHub);
     }
 
     function setCap(uint256 newCap) external {
-        if (msg.sender != owner) revert Unauthorized();
-        liquidityHub.setAssetsLimit(newCap);
+        if (msg.sender != OWNER) revert Unauthorized();
+        LIQUIDITY_HUB.setAssetsLimit(newCap);
     }
 }

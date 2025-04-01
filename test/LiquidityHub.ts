@@ -693,6 +693,37 @@ describe("LiquidityHub", function () {
     expect(await usdc.balanceOf(liquidityHub.target)).to.equal(0n);
   });
 
+  it("Should calculate maxMint without revert after after adjustment with decreased assets", async function () {
+    const {liquidityHub, deployer, admin, user, usdc, USDC, LP} = await loadFixture(deployAll);
+
+    await usdc.connect(deployer).transfer(user.address, 10n * USDC);
+    await usdc.connect(user).approve(liquidityHub.target, 10n * USDC);
+
+    await liquidityHub.connect(user).deposit(2n, user.address);
+    expect(await liquidityHub.totalSupply()).to.equal(2n * LP / USDC);
+
+    await liquidityHub.connect(admin).adjustTotalAssets(1n, false);
+    
+    expect(await liquidityHub.maxMint(ZERO_ADDRESS))
+      .to.be.lessThan(getBigInt(MaxUint256));
+  });
+
+  it("Should calculate maxDeposit without revert after after adjustment with increased assets", async function () {
+    const {liquidityHub, deployer, admin, user, usdc, USDC, LP} = await loadFixture(deployAll);
+
+    await usdc.connect(deployer).transfer(user.address, 10n * USDC);
+    await usdc.connect(user).approve(liquidityHub.target, 10n * USDC);
+
+    await liquidityHub.connect(user).mint(1n, user.address);
+    expect(await liquidityHub.totalAssets()).to.equal(1n);
+    expect(await liquidityHub.totalSupply()).to.equal(1n);
+
+    await liquidityHub.connect(admin).adjustTotalAssets(1n, true);
+    
+    expect(await liquidityHub.maxDeposit(ZERO_ADDRESS))
+      .to.be.lessThan(getBigInt(MaxUint256));
+  });
+
   it("Should allow to deposit with permit", async function () {
     const {lpToken, liquidityHub, usdc, deployer, user, user2, USDC, LP, liquidityPool} = await loadFixture(deployAll);
 

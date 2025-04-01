@@ -5,31 +5,24 @@ import {CryticERC4626PropertyBase} from "@crytic/properties/contracts/ERC4626/ut
 import {CryticERC4626VaultProxy} from "@crytic/properties/contracts/ERC4626/properties/VaultProxy.sol";
 import {ERC4626LiquidityHubBase} from "./ERC4626LiquidityHubBase.sol";
 
+import {LiquidityHub} from "../../LiquidityHub.sol";
+
+
 contract AdditionalProperties_hub is
     CryticERC4626PropertyBase,
     CryticERC4626VaultProxy,
     ERC4626LiquidityHubBase
 {
 
-    event Debug(uint256 arg);
-    event Debug2(address arg);
-
     /// @notice Validates the following properties:
     /// - vault.convertToAssets() must not revert for reasonable values
     function verify_convertToAssetsMustNotRevert_hub(uint256 shares) public {
         // arbitrarily define "reasonable values" to be 10**(token.decimals+20)
-        // assert(false);
-        emit Debug2(address(shares_));
-        // emit Debug(shares_.decimals());
-        // assert(false);
         uint256 reasonably_largest_value = 10 ** (shares_.decimals() + 20);
 
         // prevent scenarios where there is enough totalSupply to trigger overflows
-        emit Debug(reasonably_largest_value);
         require(vault.totalSupply() <= reasonably_largest_value);
-        emit Debug(vault.totalSupply());
         shares = clampLte(shares, reasonably_largest_value);
-        emit Debug(shares);
 
         // exclude the possibility of idiosyncratic reverts. Might have to add more in future.
         shares = clampLte(shares, vault.totalSupply());
@@ -38,7 +31,6 @@ contract AdditionalProperties_hub is
         emit LogUint256("totalAssets", vault.totalAssets());
 
         try vault.convertToAssets(shares) {
-            emit Debug(shares);
             return;
         } catch {
             assertWithMsg(false, "vault.convertToAssets() must not revert");
@@ -56,7 +48,9 @@ contract AdditionalProperties_hub is
         shares = requireValidRedeemAmount(owner, shares);
 
         shares_.approve(address(redemptionProxy), shares);
-        measureAddressHoldings(address(this), "vault", "before redeemption");
+        measureAddressHoldings(address(this), "vault", "before redemption");
+
+        measureAddressHoldings(address(vault), "hub", "before redemption");
 
         try redemptionProxy.redeemOnBehalf(shares, receiver, owner) returns (
             uint256 _tokensWithdrawn
@@ -76,7 +70,6 @@ contract AdditionalProperties_hub is
             0,
             "The vault failed to update the redemption proxy's share allowance"
         );
-        emit Debug(newAllowance);
     }
 
     /// @notice verifies `withdraw()` must allow proxies to withdraw shares on behalf of the owner using share token approvals
@@ -172,7 +165,4 @@ contract AdditionalProperties_hub is
             assert(true);
         }
     }
-
-
-
 }

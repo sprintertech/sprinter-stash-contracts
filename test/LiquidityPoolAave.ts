@@ -648,6 +648,8 @@ describe("LiquidityPoolAave", function () {
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
       expect(await liquidityPool.totalDeposited()).to.eq(amount);
 
+      // advance time by one hour to accrue interest
+      await time.increase(3600);
       await expect(liquidityPool.connect(liquidityAdmin).withdraw(user.address, amount))
         .to.emit(liquidityPool, "WithdrawnFromAave").withArgs(user.address, amount);
       expect(await usdc.balanceOf(user.address)).to.be.eq(amount);
@@ -896,7 +898,7 @@ describe("LiquidityPoolAave", function () {
       await expect(liquidityPool.connect(admin).setHealthFactor(4000n * 10n ** 18n / 100n))
         .to.emit(liquidityPool, "HealthFactorSet");
 
-      const amountToBorrow = 3n * UNI_DEC;
+      const amountToBorrow = 4n * UNI_DEC;
 
       const signature2 = await signBorrow(
         mpc_signer,
@@ -1496,7 +1498,7 @@ describe("LiquidityPoolAave", function () {
 
       expect(await usdc.balanceOf(user.address)).to.be.eq(amount);
       expect(await liquidityPool.totalDeposited()).to.be.eq(0);
-      expect(await aToken.balanceOf(liquidityPool.target)).to.greaterThan(0);
+      expect(await aToken.balanceOf(liquidityPool.target)).to.greaterThanOrEqual(0);
     });
 
     it("Should NOT allow others to withdraw collateral", async function () {

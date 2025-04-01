@@ -80,7 +80,7 @@ contract EchidnaLiquidityPool {
     }
 
     // Liquidity should not be withdrawn as profit
-    function testWithdrawProfit(uint256 amountProfit) public {
+    function testWithdrawProfit() public {
         // Preconditions
         uint256 balanceBefore = liquidityToken.balanceOf(address(pool));
         uint256 depositedBefore = pool.totalDeposited();

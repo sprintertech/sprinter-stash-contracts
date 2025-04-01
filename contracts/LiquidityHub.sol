@@ -152,7 +152,16 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         if (total >= limit) {
             return 0;
         }
-        return limit - total;
+        uint256 totalShares = totalSupply();
+        uint256 multiplier = uint256(10) ** _decimalsOffset();
+        uint256 assetsHardLimit;
+        if (total * multiplier <= totalShares) {
+            uint256 sharesHardLimit = type(uint256).max - totalShares;
+            assetsHardLimit = _convertToAssets(sharesHardLimit, Math.Rounding.Floor);
+        } else {
+            assetsHardLimit = type(uint256).max / multiplier - total;
+        }
+        return Math.min(assetsHardLimit, limit - total);
     }
 
     function maxMint(address) public view virtual override returns (uint256) {

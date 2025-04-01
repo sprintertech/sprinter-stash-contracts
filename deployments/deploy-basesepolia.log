@@ -52,3 +52,8 @@ Tiers:
 │ 1       │ 1200    │ '1.0x'         │
 │ 2       │ 2400    │ '2.200000000x' │
 └─────────┴─────────┴────────────────┘
+
+Deployment ID: MVP
+Deploying to: BASE_SEPOLIA
+Owner: 0x6c663396827e68d10c58691f9c4bb58ae9ec85e3
+CapSetter: 0x0d7e4e537210164Eb0Eeb93fbc7A06B1Ebd6985F

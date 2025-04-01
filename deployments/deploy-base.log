@@ -52,3 +52,8 @@ Tiers:
 │ 1       │ 15552000 │ '1.0x'         │
 │ 2       │ 31104000 │ '2.200000000x' │
 └─────────┴──────────┴────────────────┘
+
+Deployment ID: MVP
+Deploying to: BASE
+Owner: 0x83B8D2eAda788943c3e80892f37f9c102271C1D6
+CapSetter: 0x0d7e4e537210164Eb0Eeb93fbc7A06B1Ebd6985F

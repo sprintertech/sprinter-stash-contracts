@@ -29,6 +29,7 @@ contract EchidnaLiquidityHub {
             liquidityToken,
             address(this),
             address(this),
+            address(this),
             type(uint256).max / 10 ** 14);
         pool.grantRole(pool.LIQUIDITY_ADMIN_ROLE(), address(hub));
     }

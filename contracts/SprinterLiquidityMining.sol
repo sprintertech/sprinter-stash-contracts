@@ -11,7 +11,7 @@ import {ILiquidityHub} from "./interfaces/ILiquidityHub.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 /// @title Modified version of the LiquidityMining contract, with the following differences:
-/// 1. The score tokens can only be minted. No transfers or burns. Used for convinient show on explorers.
+/// 1. The score tokens can only be minted. No transfers or burns. Used for convenient show on explorers.
 /// 2. Supports deposit into the connected liquidity hub with a subsequent stake in the same transaction.
 /// 3. Supports above scenario with permit of liquidity hub's underlying asset.
 /// 4. Supports unstake with a subsequent withdraw from the connected liquidity hub.
@@ -35,18 +35,18 @@ contract SprinterLiquidityMining is LiquidityMining {
         LIQUIDITY_HUB = ILiquidityHub(liquidityHub);
     }
 
-    function depositAndStake(address scoreTo, uint256 amount, uint256 tierId) public {
+    function depositAndStake(address to, uint256 amount, uint256 tierId) public {
         address from = _msgSender();
         IERC4626 liquidityHub = IERC4626(address(LIQUIDITY_HUB));
         IERC20 asset = IERC20(liquidityHub.asset());
         asset.safeTransferFrom(from, address(this), amount);
         asset.approve(address(liquidityHub), amount);
         uint256 shares = liquidityHub.deposit(amount, address(this));
-        _stake(from, scoreTo, shares, tierId);
+        _stake(from, to, shares, tierId);
     }
 
     function depositAndStakeWithPermit(
-        address scoreTo,
+        address to,
         uint256 amount,
         uint256 tierId,
         uint256 deadline,
@@ -63,7 +63,7 @@ contract SprinterLiquidityMining is LiquidityMining {
             r,
             s
         );
-        depositAndStake(scoreTo, amount, tierId);
+        depositAndStake(to, amount, tierId);
     }
 
     function unstakeAndWithdraw(uint256 id, address to) external {

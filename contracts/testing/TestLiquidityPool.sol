@@ -21,9 +21,8 @@ contract TestLiquidityPool is ILiquidityPool, AccessControl {
         emit Deposit();
     }
 
-    function withdraw(address to, uint256 amount) external override onlyRole(LIQUIDITY_ADMIN_ROLE) returns (uint256) {
+    function withdraw(address to, uint256 amount) external override onlyRole(LIQUIDITY_ADMIN_ROLE) {
         SafeERC20.safeTransfer(ASSETS, to, amount);
-        return amount;
     }
 
     function depositWithPull(uint256) external pure override {

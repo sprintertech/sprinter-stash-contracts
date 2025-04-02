@@ -39,7 +39,7 @@ describe("LiquidityPool", function () {
     if (!UNI_OWNER_ADDRESS) throw new Error("Env variables not configured (UNI_OWNER_ADDRESS missing)");
     const uni = await hre.ethers.getContractAt("ERC20", UNI_ADDRESS);
     const uniOwner = await hre.ethers.getImpersonatedSigner(UNI_OWNER_ADDRESS);
-    await setBalance(uniOwner.address, 10n ** 18n);
+    await setBalance(UNI_OWNER_ADDRESS, 10n ** 18n);
 
     const USDC_DEC = 10n ** (await usdc.decimals());
     const RPL_DEC = 10n ** (await rpl.decimals());
@@ -650,12 +650,24 @@ describe("LiquidityPool", function () {
         .to.be.revertedWithCustomError(liquidityPoolBase, "EnforcedPause");
     });
 
+    it("Should NOT withdraw liquidity to zero address", async function () {
+      const {liquidityPoolBase, liquidityAdmin} = await loadFixture(deployAll);
+      await expect(liquidityPoolBase.connect(liquidityAdmin).withdraw(ZERO_ADDRESS, 10))
+        .to.be.revertedWithCustomError(liquidityPoolBase, "ZeroAddress()");
+    });
+
     it("Should NOT withdraw profit if the contract is paused", async function () {
       const {liquidityPoolBase, user, usdc, withdrawProfit, pauser} = await loadFixture(deployAll);
       await expect(liquidityPoolBase.connect(pauser).pause())
         .to.emit(liquidityPoolBase, "Paused");
       await expect(liquidityPoolBase.connect(withdrawProfit).withdrawProfit([usdc.target], user.address))
         .to.be.revertedWithCustomError(liquidityPoolBase, "EnforcedPause");
+    });
+
+    it("Should NOT withdraw profit to zero address", async function () {
+      const {liquidityPoolBase, usdc, withdrawProfit} = await loadFixture(deployAll);
+      await expect(liquidityPoolBase.connect(withdrawProfit).withdrawProfit([usdc.target], ZERO_ADDRESS))
+        .to.be.revertedWithCustomError(liquidityPoolBase, "ZeroAddress()");
     });
 
     it("Should revert during withdrawing profit if no profit", async function () {

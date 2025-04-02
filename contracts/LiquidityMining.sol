@@ -90,13 +90,13 @@ contract LiquidityMining is ERC20, Ownable {
         return stakes[user];
     }
 
-    function stake(address scoreTo, uint256 amount, uint256 tierId) public {
+    function stake(address to, uint256 amount, uint256 tierId) public {
         STAKING_TOKEN.safeTransferFrom(_msgSender(), address(this), amount);
-        _stake(_msgSender(), scoreTo, amount, tierId);
+        _stake(_msgSender(), to, amount, tierId);
     }
 
     function stakeWithPermit(
-        address scoreTo,
+        address to,
         uint256 amount,
         uint256 tierId,
         uint256 deadline,
@@ -113,7 +113,7 @@ contract LiquidityMining is ERC20, Ownable {
             r,
             s
         );
-        stake(scoreTo, amount, tierId);
+        stake(to, amount, tierId);
     }
 
     function unstake(uint256 id, address to) external {
@@ -127,7 +127,7 @@ contract LiquidityMining is ERC20, Ownable {
         emit DisableMining();
     }
 
-    function _stake(address from, address scoreTo, uint256 amount, uint256 tierId) internal {
+    function _stake(address from, address to, uint256 amount, uint256 tierId) internal {
         require(tierId < tiers.length, InvalidTierId());
         require(amount > 0, ZeroAmount());
         require(miningAllowed, MiningDisabled());
@@ -137,13 +137,13 @@ contract LiquidityMining is ERC20, Ownable {
         currentStake.period = tier.period;
         currentStake.until = timeNow() + tier.period;
         currentStake.multiplier = tier.multiplier;
-        stakes[from].push(currentStake);
+        stakes[to].push(currentStake);
         uint256 addedScore =
             currentStake.amount * uint256(tier.multiplier) /
             uint256(MULTIPLIER_PRECISION);
-        _mint(scoreTo, addedScore);
+        _mint(to, addedScore);
 
-        emit StakeLocked(from, scoreTo, amount, currentStake.until, addedScore);
+        emit StakeLocked(from, to, amount, currentStake.until, addedScore);
     }
 
     function _unstake(address from, uint256 id, address to) internal returns (uint256) {
@@ -152,7 +152,7 @@ contract LiquidityMining is ERC20, Ownable {
         require(reached(currentStake.until), Locked());
         delete stakes[from][id];
 
-        emit StakeUnlocked(_msgSender(), to, currentStake.amount);
+        emit StakeUnlocked(from, to, currentStake.amount);
 
         return currentStake.amount;
     }

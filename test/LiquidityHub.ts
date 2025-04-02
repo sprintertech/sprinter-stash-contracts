@@ -40,7 +40,7 @@ describe("LiquidityHub", function () {
       await deployX("LiquidityHub", deployer, "LiquidityHub", {}, lpToken.target, liquidityPool.target)
     ) as LiquidityHub;
     const liquidityHubInit = (await liquidityHubImpl.initialize.populateTransaction(
-      usdc.target, admin.address, admin.address, getBigInt(MaxUint256) * USDC / LP)
+      usdc.target, admin.address, admin.address, admin.address, getBigInt(MaxUint256) * USDC / LP)
     ).data;
     const liquidityHubProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyLiquidityHub", {},
@@ -74,10 +74,10 @@ describe("LiquidityHub", function () {
     expect(await liquidityHub.maxMint(ZERO_ADDRESS)).to.equal(getBigInt(MaxUint256) * USDC / LP * LP / USDC);
 
     await expect(liquidityHubImpl.connect(admin).initialize(
-      usdc.target, admin.address, admin.address, getBigInt(MaxUint256) * USDC / LP)
+      usdc.target, admin.address, admin.address, admin.address, getBigInt(MaxUint256) * USDC / LP)
     ).to.be.reverted;
     await expect(liquidityHub.connect(admin).initialize(
-      usdc.target, admin.address, admin.address, getBigInt(MaxUint256) * USDC / LP)
+      usdc.target, admin.address, admin.address, admin.address, getBigInt(MaxUint256) * USDC / LP)
     ).to.be.reverted;
     await expect(liquidityHub.name())
       .to.be.revertedWithCustomError(liquidityHub, "NotImplemented()");
@@ -109,15 +109,9 @@ describe("LiquidityHub", function () {
       {},
       hubImpl.target,
       admin,
-      (await liquidityHub.initialize.populateTransaction(usdc.target, ZERO_ADDRESS, admin.address, 0n)).data
-    )).to.be.revertedWithCustomError(liquidityHub, "ZeroAddress()");
-    await expect(deploy(
-      "TransparentUpgradeableProxy",
-      deployer,
-      {},
-      hubImpl.target,
-      admin,
-      (await liquidityHub.initialize.populateTransaction(usdc.target, admin.address, ZERO_ADDRESS, 0n)).data
+      (await liquidityHub.initialize.populateTransaction(
+        usdc.target, ZERO_ADDRESS, admin.address, admin.address, 0n
+      )).data
     )).to.be.revertedWithCustomError(liquidityHub, "ZeroAddress()");
     await expect(deploy(
       "TransparentUpgradeableProxy",
@@ -126,7 +120,27 @@ describe("LiquidityHub", function () {
       hubImpl.target,
       admin,
       (await liquidityHub.initialize.populateTransaction(
-        usdc.target, admin.address, admin.address, getBigInt(MaxUint256) * USDC / LP + 1n)
+        usdc.target, admin.address, ZERO_ADDRESS, admin.address, 0n
+      )).data
+    )).to.be.revertedWithCustomError(liquidityHub, "ZeroAddress()");
+    await expect(deploy(
+      "TransparentUpgradeableProxy",
+      deployer,
+      {},
+      hubImpl.target,
+      admin,
+      (await liquidityHub.initialize.populateTransaction(
+        usdc.target, admin.address, admin.address, ZERO_ADDRESS, 0n
+      )).data
+    )).to.be.revertedWithCustomError(liquidityHub, "ZeroAddress()");
+    await expect(deploy(
+      "TransparentUpgradeableProxy",
+      deployer,
+      {},
+      hubImpl.target,
+      admin,
+      (await liquidityHub.initialize.populateTransaction(
+        usdc.target, admin.address, admin.address, admin.address, getBigInt(MaxUint256) * USDC / LP + 1n)
       ).data
     )).to.be.revertedWithCustomError(liquidityHub, "AssetsLimitIsTooBig()");
   });
@@ -778,6 +792,30 @@ describe("LiquidityHub", function () {
     expect(await usdc.balanceOf(liquidityHub.target)).to.equal(0n);
     expect(await usdc.balanceOf(liquidityPool.target)).to.equal(10n * USDC);
     expect(await usdc.allowance(user.address, liquidityHub.target)).to.equal(0n);
+  });
+
+  it("Should allow to deposit profit to the pool", async function () {
+    const {lpToken, liquidityHub, usdc, deployer, admin, USDC, liquidityPool} = await loadFixture(deployAll);
+
+    await usdc.connect(deployer).transfer(admin.address, 10n * USDC);
+    await usdc.connect(admin).approve(liquidityHub.target, 10n * USDC);
+    const tx = liquidityHub.connect(admin).depositProfit(10n * USDC);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(admin.address, liquidityPool.target, 10n * USDC);
+    await expect(tx)
+      .to.emit(liquidityHub, "DepositProfit")
+      .withArgs(admin.address, 10n * USDC);
+    await expect(tx)
+      .to.emit(liquidityPool, "Deposit");
+    expect(await lpToken.balanceOf(admin.address)).to.equal(0);
+    expect(await lpToken.totalSupply()).to.equal(0);
+    expect(await liquidityHub.totalSupply()).to.equal(0);
+    expect(await liquidityHub.totalAssets()).to.equal(10n * USDC);
+    expect(await liquidityHub.balanceOf(admin.address)).to.equal(0);
+    expect(await usdc.balanceOf(admin.address)).to.equal(0n);
+    expect(await usdc.balanceOf(liquidityHub.target)).to.equal(0n);
+    expect(await usdc.balanceOf(liquidityPool.target)).to.equal(10n * USDC);
   });
 
   it("Should allow admin to set assets limit", async function () {

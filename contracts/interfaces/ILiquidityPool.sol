@@ -14,7 +14,7 @@ interface ILiquidityPool {
 
     function depositWithPull(uint256 amount) external;
 
-    function withdraw(address to, uint256 amount) external returns (uint256 withdrawn);
+    function withdraw(address to, uint256 amount) external;
 
     function borrow(
         address borrowToken,

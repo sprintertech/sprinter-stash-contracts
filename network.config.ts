@@ -57,12 +57,13 @@ interface Tier {
 
 interface HubConfig {
   AssetsAdjuster: string; // Address that can increase/decrease LP conversion rate.
+  DepositProfit: string; // Address that can deposit profit to the Liquidity Pool via Liquidity Hub.
   AssetsLimit: number; // Deposits to Liquidity Hub are only allowed till this limit is reached.
   Tiers: Tier[];
 };
 
 export interface NetworkConfig {
-  chainId?: number;
+  chainId: number;
   CCTP: CCTPConfig;
   USDC: string;
   Routes?: RoutesConfig;
@@ -90,20 +91,15 @@ export const networkConfig: NetworksConfig = {
     },
     USDC: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
     IsTest: false,
-    Admin: "",
-    WithdrawProfit: "",
-    Pauser: "",
-    RebalanceCaller: "",
-    MpcAddress: "",
-    Routes: {
-      Pools: [LiquidityPoolAaveUSDC],
-      Domains: [Network.BASE],
-      Providers: [Provider.CCTP],
-    },
+    Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
+    WithdrawProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    MpcAddress: "0x1337000000000000000000000000000000000000",
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3Ethereum.POOL_ADDRESSES_PROVIDER,
-      minHealthFactor: 500,
-      defaultLTV: 20,
+      minHealthFactor: 300,
+      defaultLTV: 0,
     },
   },
   AVALANCHE: {
@@ -114,15 +110,15 @@ export const networkConfig: NetworksConfig = {
     },
     USDC: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
     IsTest: false,
-    Admin: "",
-    WithdrawProfit: "",
-    Pauser: "",
-    RebalanceCaller: "",
-    MpcAddress: "",
+    Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
+    WithdrawProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    MpcAddress: "0x1337000000000000000000000000000000000000",
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3Avalanche.POOL_ADDRESSES_PROVIDER,
-      minHealthFactor: 500,
-      defaultLTV: 20,
+      minHealthFactor: 300,
+      defaultLTV: 0,
     },
   },
   OP_MAINNET: {
@@ -133,16 +129,22 @@ export const networkConfig: NetworksConfig = {
     },
     USDC: "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
     IsTest: false,
-    Admin: "",
-    WithdrawProfit: "",
-    Pauser: "",
-    RebalanceCaller: "",
-    MpcAddress: "",
+    Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
+    WithdrawProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    MpcAddress: "0x1337000000000000000000000000000000000000",
+    Routes: {
+      Pools: [LiquidityPoolAaveUSDC, LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
+      Domains: [Network.BASE, Network.ARBITRUM_ONE, Network.BASE, Network.ARBITRUM_ONE],
+      Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP],
+    },
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3Optimism.POOL_ADDRESSES_PROVIDER,
-      minHealthFactor: 500,
-      defaultLTV: 20,
+      minHealthFactor: 300,
+      defaultLTV: 0,
     },
+    USDCPool: true,
   },
   ARBITRUM_ONE: {
     chainId: 42161,
@@ -152,16 +154,22 @@ export const networkConfig: NetworksConfig = {
     },
     USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
     IsTest: false,
-    Admin: "",
-    WithdrawProfit: "",
-    Pauser: "",
-    RebalanceCaller: "",
-    MpcAddress: "",
+    Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
+    WithdrawProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    MpcAddress: "0x1337000000000000000000000000000000000000",
+    Routes: {
+      Pools: [LiquidityPoolAaveUSDC, LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
+      Domains: [Network.BASE, Network.OP_MAINNET, Network.BASE, Network.OP_MAINNET],
+      Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP],
+    },
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3Arbitrum.POOL_ADDRESSES_PROVIDER,
-      minHealthFactor: 500,
-      defaultLTV: 20,
+      minHealthFactor: 300,
+      defaultLTV: 0,
     },
+    USDCPool: true,
   },
   BASE: {
     chainId: 8453,
@@ -171,30 +179,32 @@ export const networkConfig: NetworksConfig = {
     },
     USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
     IsTest: false,
-    Admin: "",
-    WithdrawProfit: "",
-    Pauser: "",
-    RebalanceCaller: "",
-    MpcAddress: "",
+    Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
+    WithdrawProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    MpcAddress: "0x1337000000000000000000000000000000000000",
     Hub: {
-      AssetsAdjuster: "",
+      AssetsAdjuster: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
+      DepositProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
       AssetsLimit: 10_000_000,
       Tiers: [
-        {period: 7776000n, multiplier: 300000000n},
-        {period: 15552000n, multiplier: 800000000n},
-        {period: 31104000n, multiplier: 1666666667n},
+        {period: 7776000n, multiplier: 400000000n},
+        {period: 15552000n, multiplier: 1000000000n},
+        {period: 31104000n, multiplier: 2200000000n},
       ]
     },
     Routes: {
-      Pools: [LiquidityPoolAaveUSDC],
-      Domains: [Network.ETHEREUM],
-      Providers: [Provider.CCTP],
+      Pools: [LiquidityPoolAaveUSDC, LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
+      Domains: [Network.OP_MAINNET, Network.ARBITRUM_ONE, Network.OP_MAINNET, Network.ARBITRUM_ONE],
+      Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP],
     },
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3Base.POOL_ADDRESSES_PROVIDER,
-      minHealthFactor: 500,
-      defaultLTV: 20,
+      minHealthFactor: 300,
+      defaultLTV: 0,
     },
+    USDCPool: true,
   },
   POLYGON_MAINNET: {
     chainId: 137,
@@ -204,15 +214,15 @@ export const networkConfig: NetworksConfig = {
     },
     USDC: "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
     IsTest: false,
-    Admin: "",
-    WithdrawProfit: "",
-    Pauser: "",
-    RebalanceCaller: "",
-    MpcAddress: "",
+    Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
+    WithdrawProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    MpcAddress: "0x1337000000000000000000000000000000000000",
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3Polygon.POOL_ADDRESSES_PROVIDER,
-      minHealthFactor: 500,
-      defaultLTV: 20,
+      minHealthFactor: 300,
+      defaultLTV: 0,
     },
   },
   ETHEREUM_SEPOLIA: {
@@ -227,12 +237,8 @@ export const networkConfig: NetworksConfig = {
     WithdrawProfit: "0xed24c1ca7c8d01c4ba862c6792ad6144f01566f2",
     Pauser: "0xcc5dd1eec29dbe028e61e91db5da4d453be48d90",
     RebalanceCaller: "0x20ad9b208767e98dba19346f88b2686f00dbcf58",
-    MpcAddress: "0xc731bac6c62ecb49dba1393700218d03beaa0359",
-    Routes: {
-      Pools: [LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
-      Domains: [Network.BASE_SEPOLIA, Network.ARBITRUM_SEPOLIA, Network.BASE_SEPOLIA],
-      Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP],
-    },
+    MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
+    USDCPool: true,
     // Aave: AAVEPools.AaveV3Sepolia.POOL_ADDRESSES_PROVIDER, // Uses not official USDC.
   },
   AVALANCHE_FUJI: {
@@ -247,7 +253,7 @@ export const networkConfig: NetworksConfig = {
     WithdrawProfit: "0xed24c1ca7c8d01c4ba862c6792ad6144f01566f2",
     Pauser: "0xcc5dd1eec29dbe028e61e91db5da4d453be48d90",
     RebalanceCaller: "0x20ad9b208767e98dba19346f88b2686f00dbcf58",
-    MpcAddress: "0xc731bac6c62ecb49dba1393700218d03beaa0359",
+    MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3Fuji.POOL_ADDRESSES_PROVIDER,
       minHealthFactor: 500,
@@ -266,12 +272,18 @@ export const networkConfig: NetworksConfig = {
     WithdrawProfit: "0xed24c1ca7c8d01c4ba862c6792ad6144f01566f2",
     Pauser: "0xcc5dd1eec29dbe028e61e91db5da4d453be48d90",
     RebalanceCaller: "0x20ad9b208767e98dba19346f88b2686f00dbcf58",
-    MpcAddress: "0xc731bac6c62ecb49dba1393700218d03beaa0359",
+    MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
+    Routes: {
+      Pools: [LiquidityPoolAaveUSDC, LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
+      Domains: [Network.BASE_SEPOLIA, Network.ARBITRUM_SEPOLIA, Network.BASE_SEPOLIA, Network.ARBITRUM_SEPOLIA],
+      Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP],
+    },
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3OptimismSepolia.POOL_ADDRESSES_PROVIDER,
       minHealthFactor: 500,
       defaultLTV: 20,
     },
+    USDCPool: true,
   },
   ARBITRUM_SEPOLIA: {
     chainId: 421614,
@@ -285,17 +297,18 @@ export const networkConfig: NetworksConfig = {
     WithdrawProfit: "0xed24c1ca7c8d01c4ba862c6792ad6144f01566f2",
     Pauser: "0xcc5dd1eec29dbe028e61e91db5da4d453be48d90",
     RebalanceCaller: "0x20ad9b208767e98dba19346f88b2686f00dbcf58",
-    MpcAddress: "0xc731bac6c62ecb49dba1393700218d03beaa0359",
+    MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     Routes: {
-      Pools: [LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
-      Domains: [Network.BASE_SEPOLIA, Network.ETHEREUM_SEPOLIA, Network.BASE_SEPOLIA],
-      Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP],
+      Pools: [LiquidityPoolAaveUSDC, LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
+      Domains: [Network.BASE_SEPOLIA, Network.OP_SEPOLIA, Network.BASE_SEPOLIA, Network.OP_SEPOLIA],
+      Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP],
     },
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3ArbitrumSepolia.POOL_ADDRESSES_PROVIDER,
       minHealthFactor: 500,
       defaultLTV: 20,
     },
+    USDCPool: true,
   },
   BASE_SEPOLIA: {
     chainId: 84532,
@@ -309,20 +322,21 @@ export const networkConfig: NetworksConfig = {
     WithdrawProfit: "0xed24c1ca7c8d01c4ba862c6792ad6144f01566f2",
     Pauser: "0xcc5dd1eec29dbe028e61e91db5da4d453be48d90",
     RebalanceCaller: "0x20ad9b208767e98dba19346f88b2686f00dbcf58",
-    MpcAddress: "0xc731bac6c62ecb49dba1393700218d03beaa0359",
+    MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     Hub: {
       AssetsAdjuster: "0x6c663396827e68d10c58691f9c4bb58ae9ec85e3",
+      DepositProfit: "0x6c663396827e68d10c58691f9c4bb58ae9ec85e3",
       AssetsLimit: 1000,
       Tiers: [
-        {period: 600n, multiplier: 300000000n},
-        {period: 1200n, multiplier: 800000000n},
-        {period: 2400n, multiplier: 1666666667n},
+        {period: 600n, multiplier: 400000000n},
+        {period: 1200n, multiplier: 1000000000n},
+        {period: 2400n, multiplier: 2200000000n},
       ]
     },
     Routes: {
-      Pools: [LiquidityPoolUSDC, LiquidityPoolAaveUSDC],
-      Domains: [Network.ETHEREUM_SEPOLIA, Network.ARBITRUM_SEPOLIA],
-      Providers: [Provider.CCTP, Provider.CCTP],
+      Pools: [LiquidityPoolAaveUSDC, LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
+      Domains: [Network.ARBITRUM_SEPOLIA, Network.OP_SEPOLIA, Network.ARBITRUM_SEPOLIA, Network.OP_SEPOLIA],
+      Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP],
     },
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3BaseSepolia.POOL_ADDRESSES_PROVIDER,
@@ -343,6 +357,6 @@ export const networkConfig: NetworksConfig = {
     WithdrawProfit: "0xed24c1ca7c8d01c4ba862c6792ad6144f01566f2",
     Pauser: "0xcc5dd1eec29dbe028e61e91db5da4d453be48d90",
     RebalanceCaller: "0x20ad9b208767e98dba19346f88b2686f00dbcf58",
-    MpcAddress: "0xc731bac6c62ecb49dba1393700218d03beaa0359",
+    MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
   },
 };

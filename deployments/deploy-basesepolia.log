@@ -1,0 +1,54 @@
+Deployment ID: MVP
+Deploying to: BASE_SEPOLIA
+Deploying AAVE Liquidity Pool
+LiquidityPoolAaveUSDC: 0x7C255279c098fdF6c3116D2BecD9978002c09f4b
+Deploying USDC Liquidity Pool
+LiquidityPoolUSDC: 0xB58Bb9643884abbbad64FA7eBc874c5481E5c032
+SprinterUSDCLPShare: 0xfa89929b30bC3132f9907CBCe3F2f6f4AC0903b6
+LiquidityHub: 0xa593A9bBBc65be342FF610a01e96da2EB8539FF2
+LiquidityHubProxyAdmin: 0x998c7392B6dD28031fed052e5fF2bF38F291d47b
+LiquidityHub Adjuster: 0x6c663396827e68d10c58691f9c4bb58ae9ec85e3
+LiquidityHub DepositProfit: 0x6c663396827e68d10c58691f9c4bb58ae9ec85e3
+LiquidityHub Assets Limit: 1000
+SprinterLiquidityMining: 0x9EEe9B4a6750BAAb77D23476c2D0c50e4b2e068E
+Tiers:
+┌─────────┬─────────┬────────────────┐
+│ (index) │ seconds │ multiplier     │
+├─────────┼─────────┼────────────────┤
+│ 0       │ 600     │ '0.300000000x' │
+│ 1       │ 1200    │ '0.800000000x' │
+│ 2       │ 2400    │ '1.666666667x' │
+└─────────┴─────────┴────────────────┘
+Multicall: 0x7C472EBa1945E970a23C903FC8812D469a29B6bb
+Admin: 0xcf2d403c75ba3481ae7b190b1cd3246b5afe9120
+LiquidityPool Withdraw Profit: 0xed24c1ca7c8d01c4ba862c6792ad6144f01566f2
+LiquidityPool Pauser: 0xcc5dd1eec29dbe028e61e91db5da4d453be48d90
+MPC Address: 0x6adAF8c96151962198a9b73132c16E99F4682Eb5
+USDC: 0x036CbD53842c5426634e7929541eC2318f3dCF7e
+Rebalancer: 0xA85Cf46c150db2600b1D03E437bedD5513869888
+RebalancerProxyAdmin: 0x818E818aC77112034aBf79506d53ba197Cac5077
+Routes:
+┌─────────┬──────────────────────────────────────────────┬────────────────────┬──────────┐
+│ (index) │ Pool                                         │ Domain             │ Provider │
+├─────────┼──────────────────────────────────────────────┼────────────────────┼──────────┤
+│ 0       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'ARBITRUM_SEPOLIA' │ 'CCTP'   │
+│ 1       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'OP_SEPOLIA'       │ 'CCTP'   │
+│ 2       │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'ARBITRUM_SEPOLIA' │ 'CCTP'   │
+│ 3       │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'OP_SEPOLIA'       │ 'CCTP'   │
+│ 4       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'BASE_SEPOLIA'     │ 'LOCAL'  │
+│ 5       │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'BASE_SEPOLIA'     │ 'LOCAL'  │
+└─────────┴──────────────────────────────────────────────┴────────────────────┴──────────┘
+
+Deployment ID: MVP
+Redeployment ID: MVP2
+Redeploying to: BASE_SEPOLIA
+Admin: 0xcf2d403c75ba3481ae7b190b1cd3246b5afe9120
+SprinterLiquidityMining: 0x479D158959B59328E89f0fbF7DfeBb198c313C21
+Tiers:
+┌─────────┬─────────┬────────────────┐
+│ (index) │ seconds │ multiplier     │
+├─────────┼─────────┼────────────────┤
+│ 0       │ 600     │ '0.400000000x' │
+│ 1       │ 1200    │ '1.0x'         │
+│ 2       │ 2400    │ '2.200000000x' │
+└─────────┴─────────┴────────────────┘

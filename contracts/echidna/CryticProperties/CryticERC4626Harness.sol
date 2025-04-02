@@ -49,6 +49,7 @@
                 address(this),
                 address(this),
                 address(this),
+                address(this),
                 type(uint256).max);
             hubProxy.grantRole(hubProxy.ASSETS_ADJUST_ROLE(), address(hubProxy));
             pool.grantRole(pool.LIQUIDITY_ADMIN_ROLE(), address(hubProxy));

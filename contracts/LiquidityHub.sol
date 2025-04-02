@@ -33,6 +33,7 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
     ILiquidityPool immutable public LIQUIDITY_POOL;
     bytes32 public constant ASSETS_ADJUST_ROLE = "ASSETS_ADJUST_ROLE";
     bytes32 public constant DEPOSIT_PROFIT_ROLE = "DEPOSIT_PROFIT_ROLE";
+    bytes32 public constant SET_ASSETS_LIMIT_ROLE = "SET_ASSETS_LIMIT_ROLE";
 
     event TotalAssetsAdjustment(uint256 oldAssets, uint256 newAssets);
     event AssetsLimitSet(uint256 oldLimit, uint256 newLimit);
@@ -68,6 +69,7 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         address admin,
         address adjuster,
         address depositorProfit,
+        address assetsLimitSetter,
         uint256 newAssetsLimit
     ) external initializer() {
         ERC4626Upgradeable.__ERC4626_init(asset_);
@@ -80,9 +82,11 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         require(admin != address(0), ZeroAddress());
         require(adjuster != address(0), ZeroAddress());
         require(depositorProfit != address(0), ZeroAddress());
+        require(assetsLimitSetter != address(0), ZeroAddress());
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(ASSETS_ADJUST_ROLE, adjuster);
         _grantRole(DEPOSIT_PROFIT_ROLE, depositorProfit);
+        _grantRole(SET_ASSETS_LIMIT_ROLE, assetsLimitSetter);
         _setAssetsLimit(newAssetsLimit);
     }
 
@@ -94,7 +98,7 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         emit TotalAssetsAdjustment(assets, newAssets);
     }
 
-    function setAssetsLimit(uint256 newAssetsLimit) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setAssetsLimit(uint256 newAssetsLimit) external onlyRole(SET_ASSETS_LIMIT_ROLE) {
         _setAssetsLimit(newAssetsLimit);
     }
 

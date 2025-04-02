@@ -58,6 +58,7 @@ interface Tier {
 interface HubConfig {
   AssetsAdjuster: string; // Address that can increase/decrease LP conversion rate.
   DepositProfit: string; // Address that can deposit profit to the Liquidity Pool via Liquidity Hub.
+  AssetsLimitSetter: string; // Address that can set assets limit.
   AssetsLimit: number; // Deposits to Liquidity Hub are only allowed till this limit is reached.
   Tiers: Tier[];
 };

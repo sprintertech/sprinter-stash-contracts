@@ -733,7 +733,7 @@ describe("LiquidityHub", function () {
   });
 
   it("Should calculate maxDeposit without revert after after adjustment with increased assets", async function () {
-    const {liquidityHub, deployer, admin, user, usdc, USDC, LP} = await loadFixture(deployAll);
+    const {liquidityHub, deployer, admin, user, usdc, USDC} = await loadFixture(deployAll);
 
     await usdc.connect(deployer).transfer(user.address, 10n * USDC);
     await usdc.connect(user).approve(liquidityHub.target, 10n * USDC);

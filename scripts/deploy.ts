@@ -204,7 +204,14 @@ export async function main() {
       deployer,
       config.Admin,
       [lpToken, mainPool!],
-      [config.USDC, config.Admin, config.Hub.AssetsAdjuster, config.Hub.DepositProfit, config.Hub.AssetsLimitSetter, assetsLimit],
+      [
+        config.USDC,
+        config.Admin,
+        config.Hub.AssetsAdjuster,
+        config.Hub.DepositProfit,
+        config.Hub.AssetsLimitSetter,
+        assetsLimit
+      ],
     );
 
     assert(liquidityHubAddress == liquidityHub.target, "LiquidityHub address mismatch");

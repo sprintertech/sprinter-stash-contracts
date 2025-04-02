@@ -3,7 +3,7 @@ dotenv.config();
 import hre from "hardhat";
 import {getVerifier, upgradeProxyX} from "./helpers";
 import {getDeployProxyXAddress} from "../test/helpers";
-import {isSet, assert, DomainSolidity} from "./common";
+import {isSet, assert} from "./common";
 import {LiquidityHub} from "../typechain-types";
 import {networkConfig, Network, NetworkConfig} from "../network.config";
 
@@ -36,7 +36,14 @@ export async function main() {
     liquidityHubAddress,
     liquidityHubVersion,
     deployer,
-    [config.USDC, config.Admin, config.Hub!.AssetsAdjuster, config.Hub!.DepositProfit, config.Hub!.AssetsLimitSetter, assetsLimit],
+    [
+      config.USDC,
+      config.Admin,
+      config.Hub!.AssetsAdjuster,
+      config.Hub!.DepositProfit,
+      config.Hub!.AssetsLimitSetter,
+      assetsLimit
+    ],
     "LiquidityHub",
   );
 

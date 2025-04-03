@@ -14,6 +14,7 @@ async function main() {
   console.log("Test redeployStash.")
   await redeployStash();
   console.log("Test deployCensoredMulticall.")
+  process.env.DEPLOY_ID = "NEW_ID";
   await deployCensoredMulticall();
   console.log("Success.");
 }

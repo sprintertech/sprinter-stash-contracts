@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {MaxUint256, isAddress} from "ethers";
-import {toBytes32} from "../test/helpers";
+import {toBytes32, resolveProxyXAddress} from "../test/helpers";
 import {
   getVerifier, deployProxyX,
 } from "./helpers";
@@ -239,12 +239,18 @@ export async function main() {
     }
   }
 
-  const multicall = (await verifier.deployX(
-    "CensoredTransferFromMulticall",
-    deployer,
-  )) as CensoredTransferFromMulticall;
+  let multicall: string;
+  try {
+    multicall = await resolveProxyXAddress("CensoredTransferFromMulticall");
+    console.log(`Multicall was already deployed`);
+  } catch {
+    multicall = await (await verifier.deployX(
+      "CensoredTransferFromMulticall",
+      deployer,
+    )).getAddress();
+  }
 
-  console.log(`Multicall: ${multicall.target}`);
+  console.log(`Multicall: ${multicall}`);
   console.log(`Admin: ${config.Admin}`);
   console.log(`LiquidityPool Withdraw Profit: ${config.WithdrawProfit}`);
   console.log(`LiquidityPool Pauser: ${config.Pauser}`);

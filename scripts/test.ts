@@ -4,6 +4,7 @@ import {assert} from "./common";
 import {main as deploy} from "./deploy";
 import {main as upgradeRebalancer} from "./upgradeRebalancer";
 import {main as redeployStash} from "./redeployStash";
+import {main as deployCensoredMulticall} from "./deployCensoredMulticall";
 
 async function main() {
   console.log("Test deploy.")
@@ -12,6 +13,8 @@ async function main() {
   await upgradeRebalancer();
   console.log("Test redeployStash.")
   await redeployStash();
+  console.log("Test deployCensoredMulticall.")
+  await deployCensoredMulticall();
   console.log("Success.");
 }
 

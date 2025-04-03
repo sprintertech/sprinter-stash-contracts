@@ -30,6 +30,12 @@
   Rebalancer: 0xA85Cf46c150db2600b1D03E437bedD5513869888
 -
   deployment id: MVP
+  env: prod
+  name: ETHEREUM
+  CensoredTransferFromMulticall: 0x7C472EBa1945E970a23C903FC8812D469a29B6bb
+  USDC: 0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48
+-
+  deployment id: MVP
   env: test
   name: BASE_SEPOLIA
   LiquidityPoolAaveUSDC: 0x7C255279c098fdF6c3116D2BecD9978002c09f4b

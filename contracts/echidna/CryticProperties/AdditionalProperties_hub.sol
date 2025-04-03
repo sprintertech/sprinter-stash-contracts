@@ -132,11 +132,7 @@ contract AdditionalProperties_hub is
         try redemptionProxy.withdrawOnBehalf(tokens, receiver, owner) returns (
             uint256 _sharesBurned
         ) {
-            assertLte(
-                _sharesBurned,
-                sharesApproved,
-                "Redemption proxy must not be able to withdraw more shares than it was approved"
-            );
+            assert(false);
         } catch {}
     }
 

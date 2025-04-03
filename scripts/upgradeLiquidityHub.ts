@@ -2,10 +2,10 @@ import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {getVerifier, upgradeProxyX} from "./helpers";
-import {getDeployProxyXAddress} from "../test/helpers";
+import {getDeployProxyXAddress, getContractAt} from "../test/helpers";
 import {isSet, assert} from "./common";
 import {LiquidityHub} from "../typechain-types";
-import {networkConfig, Network, NetworkConfig} from "../network.config";
+import {Network} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -17,33 +17,29 @@ export async function main() {
   console.log(`Upgrade ID: ${process.env.UPGRADE_ID}`);
 
   let network: Network;
-  let config: NetworkConfig;
-  if (Object.values(Network).includes(hre.network.name as Network)) {
+  console.log(`Upgrading on: ${hre.network.name}`);
+  if (hre.network.name === "hardhat" && Object.values(Network).includes(process.env.DRY_RUN as Network)) {
+    network = process.env.DRY_RUN as Network;
+    console.log(`Dry run on fork: ${network}`);
+  } else if (Object.values(Network).includes(hre.network.name as Network)) {
     network = hre.network.name as Network;
-    config = networkConfig[network];
   } else {
     console.log(`Nothing to upgrade on ${hre.network.name} network`);
     return;
   }
 
   const liquidityHubAddress = await getDeployProxyXAddress("LiquidityHub");
-  const liquidityHubVersion = config.IsTest ? "TestLiquidityHub" : "LiquidityHub";
 
-  const assetsLimit = BigInt(config.Hub!.AssetsLimit) * 10n ** 6n;
+  const liquidityHub = (await getContractAt("LiquidityHub", liquidityHubAddress)) as LiquidityHub;
+  const lpToken = await liquidityHub.SHARES();
+  const liquidityPool = await liquidityHub.LIQUIDITY_POOL();
 
   await upgradeProxyX<LiquidityHub>(
     verifier.deployX,
     liquidityHubAddress,
-    liquidityHubVersion,
+    "LiquidityHub",
     deployer,
-    [
-      config.USDC,
-      config.Admin,
-      config.Hub!.AssetsAdjuster,
-      config.Hub!.DepositProfit,
-      config.Hub!.AssetsLimitSetter,
-      assetsLimit
-    ],
+    [lpToken, liquidityPool],
     "LiquidityHub",
   );
 

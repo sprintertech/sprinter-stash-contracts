@@ -717,7 +717,7 @@ describe("LiquidityHub", function () {
     expect(await usdc.balanceOf(liquidityHub.target)).to.equal(0n);
   });
 
-  it("Should calculate maxMint without revert after after adjustment with decreased assets", async function () {
+  it("Should calculate maxMint without revert after adjustment with decreased assets", async function () {
     const {liquidityHub, deployer, admin, user, usdc, USDC, LP} = await loadFixture(deployAll);
 
     await usdc.connect(deployer).transfer(user.address, 10n * USDC);
@@ -732,7 +732,7 @@ describe("LiquidityHub", function () {
       .to.be.lessThan(getBigInt(MaxUint256));
   });
 
-  it("Should calculate maxDeposit without revert after after adjustment with increased assets", async function () {
+  it("Should calculate maxDeposit without revert after adjustment with increased assets", async function () {
     const {liquidityHub, deployer, admin, user, usdc, USDC} = await loadFixture(deployAll);
 
     await usdc.connect(deployer).transfer(user.address, 10n * USDC);

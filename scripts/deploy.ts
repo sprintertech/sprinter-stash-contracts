@@ -12,7 +12,7 @@ import {
 import {
   TestUSDC, SprinterUSDCLPShare, LiquidityHub,
   SprinterLiquidityMining, TestCCTPTokenMessenger, TestCCTPMessageTransmitter,
-  Rebalancer, LiquidityPool, LiquidityPoolAave, CensoredTransferFromMulticall,
+  Rebalancer, LiquidityPool, LiquidityPoolAave,
 } from "../typechain-types";
 import {
   networkConfig, Network, Provider, NetworkConfig, LiquidityPoolUSDC,
@@ -242,7 +242,7 @@ export async function main() {
   let multicall: string;
   try {
     multicall = await resolveProxyXAddress("CensoredTransferFromMulticall");
-    console.log(`Multicall was already deployed`);
+    console.log("Multicall was already deployed");
   } catch {
     multicall = await (await verifier.deployX(
       "CensoredTransferFromMulticall",

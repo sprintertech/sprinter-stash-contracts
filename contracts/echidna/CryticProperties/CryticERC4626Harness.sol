@@ -2,7 +2,7 @@
     pragma solidity 0.8.28;
 
     import {CryticERC4626PropertyTests} from "@crytic/properties/contracts/ERC4626/ERC4626PropertyTests.sol";
-    import {AdditionalProperties_hub} from "./AdditionalProperties_hub.sol";
+    import {AdditionalPropertiesHub} from "./AdditionalPropertiesHub.sol";
     // this token _must_ be the vault's underlying asset
     import {TestERC20Token} from "@crytic/properties/contracts/ERC4626/util/TestERC20Token.sol";
     // change to your vault implementation
@@ -31,7 +31,7 @@
     }
 
     contract CryticERC4626Harness is 
-        AdditionalProperties_hub, CryticERC4626PropertyTests
+        AdditionalPropertiesHub, CryticERC4626PropertyTests
         
     {
         constructor () {

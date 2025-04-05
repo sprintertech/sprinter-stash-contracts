@@ -43,6 +43,8 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
     error NotImplemented();
     error IncompatibleAssetsAndShares();
     error AssetsLimitIsTooBig();
+    error EmptyHub();
+    error AssetsExceedHardLimit();
 
     /// @custom:storage-location erc7201:sprinter.storage.LiquidityHub
     struct LiquidityHubStorage {
@@ -93,6 +95,8 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
     function adjustTotalAssets(uint256 amount, bool isIncrease) external onlyRole(ASSETS_ADJUST_ROLE) {
         LiquidityHubStorage storage $ = _getStorage();
         uint256 assets = $.totalAssets;
+        require(assets > 0, EmptyHub());
+        if (isIncrease) require(amount <= _assetsHardLimit(assets), AssetsExceedHardLimit());
         uint256 newAssets = isIncrease ? assets + amount : assets - amount;
         $.totalAssets = newAssets;
         emit TotalAssetsAdjustment(assets, newAssets);
@@ -161,16 +165,8 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         if (total >= limit) {
             return 0;
         }
-        uint256 totalShares = totalSupply();
-        uint256 multiplier = uint256(10) ** _decimalsOffset();
-        uint256 assetsHardLimit;
-        if (total * multiplier <= totalShares) {
-            uint256 sharesHardLimit = type(uint256).max - totalShares;
-            assetsHardLimit = _convertToAssets(sharesHardLimit, Math.Rounding.Floor);
-        } else {
-            assetsHardLimit = type(uint256).max / multiplier - total;
-        }
-        return Math.min(assetsHardLimit, limit - total);
+        uint256 hardLimit = _assetsHardLimit(total);
+        return Math.min(hardLimit, limit - total);
     }
 
     function maxMint(address) public view virtual override returns (uint256) {
@@ -200,7 +196,11 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
     function depositProfit(uint256 assets) external onlyRole(DEPOSIT_PROFIT_ROLE) {
         LiquidityHubStorage storage $ = _getStorage();
         SafeERC20.safeTransferFrom(IERC20(asset()), _msgSender(), address(LIQUIDITY_POOL), assets);
-        $.totalAssets += assets;
+        uint256 totalAssets = $.totalAssets;
+        require(totalAssets > 0, EmptyHub());
+        require(assets <= _assetsHardLimit(totalAssets), AssetsExceedHardLimit());
+        uint256 newAssets = totalAssets + assets;
+        $.totalAssets = newAssets;
         LIQUIDITY_POOL.deposit(assets);
         emit DepositProfit(_msgSender(), assets);
     }
@@ -269,6 +269,18 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
 
     function _decimalsOffset() internal view virtual override returns (uint8) {
         return IERC20Metadata(address(SHARES)).decimals() - IERC20Metadata(asset()).decimals();
+    }
+    
+    function _assetsHardLimit(uint256 total) internal view returns (uint256) {
+        uint256 totalShares = totalSupply();
+        uint256 multiplier = uint256(10) ** _decimalsOffset();
+        uint256 assetsHardLimit;
+        if (total * multiplier <= totalShares) {
+            uint256 sharesHardLimit = type(uint256).max - totalShares;
+            return _convertToAssets(sharesHardLimit, Math.Rounding.Floor);
+        } else {
+            return type(uint256).max / multiplier - total;
+        }
     }
 
     function _getStorage() private pure returns (LiquidityHubStorage storage $) {

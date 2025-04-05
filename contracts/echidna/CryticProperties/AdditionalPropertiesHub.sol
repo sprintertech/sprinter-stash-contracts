@@ -5,24 +5,23 @@ import {CryticERC4626PropertyBase} from "@crytic/properties/contracts/ERC4626/ut
 import {CryticERC4626VaultProxy} from "@crytic/properties/contracts/ERC4626/properties/VaultProxy.sol";
 import {ERC4626LiquidityHubBase} from "./ERC4626LiquidityHubBase.sol";
 
-import {LiquidityHub} from "../../LiquidityHub.sol";
 
-
-contract AdditionalProperties_hub is
+contract AdditionalPropertiesHub is
     CryticERC4626PropertyBase,
     CryticERC4626VaultProxy,
     ERC4626LiquidityHubBase
 {
+    error RequireFailed();
 
     /// @notice Validates the following properties:
     /// - vault.convertToAssets() must not revert for reasonable values
     function verify_convertToAssetsMustNotRevert_hub(uint256 shares) public {
         // arbitrarily define "reasonable values" to be 10**(token.decimals+20)
-        uint256 reasonably_largest_value = 10 ** (shares_.decimals() + 20);
+        uint256 reasonablyLargestValue = 10 ** (shares_.decimals() + 20);
 
         // prevent scenarios where there is enough totalSupply to trigger overflows
-        require(vault.totalSupply() <= reasonably_largest_value);
-        shares = clampLte(shares, reasonably_largest_value);
+        require(vault.totalSupply() <= reasonablyLargestValue, RequireFailed());
+        shares = clampLte(shares, reasonablyLargestValue);
 
         // exclude the possibility of idiosyncratic reverts. Might have to add more in future.
         shares = clampLte(shares, vault.totalSupply());
@@ -37,8 +36,9 @@ contract AdditionalProperties_hub is
         }
     }
 
-        /// @notice verifies `redeem()` must allow proxies to redeem shares on behalf of the owner using share token approvals
-    ///         verifies third party `redeem()` calls must update the msg.sender's allowance
+    /// @notice verifies `redeem()` must allow proxies to redeem shares
+    /// on behalf of the owner using share token approvals
+    /// verifies third party `redeem()` calls must update the msg.sender's allowance
     function verify_redeemViaApprovalProxy_hub(
         uint256 receiverId,
         uint256 shares
@@ -72,8 +72,9 @@ contract AdditionalProperties_hub is
         );
     }
 
-    /// @notice verifies `withdraw()` must allow proxies to withdraw shares on behalf of the owner using share token approvals
-    ///         verifies third party `withdraw()` calls must update the msg.sender's allowance
+    /// @notice verifies `withdraw()` must allow proxies to withdraw shares
+    /// on behalf of the owner using share token approvals
+    /// verifies third party `withdraw()` calls must update the msg.sender's allowance
     function verify_withdrawViaApprovalProxy_hub(
         uint256 receiverId,
         uint256 tokens
@@ -110,7 +111,8 @@ contract AdditionalProperties_hub is
         );
     }
 
-    /// @notice verifies third parties must not be able to `withdraw()` tokens on an owner's behalf without a token approval
+    /// @notice verifies third parties must not be able to `withdraw()` tokens
+    /// on an owner's behalf without a token approval
     function verify_withdrawRequiresTokenApproval_hub(
         uint256 receiverId,
         uint256 tokens,
@@ -125,7 +127,7 @@ contract AdditionalProperties_hub is
             expectedSharesConsumed
         );
 
-        require(sharesApproved < expectedSharesConsumed);
+        require(sharesApproved < expectedSharesConsumed, RequireFailed());
         emit LogUint256("Approving spend of this many shares:", sharesApproved);
         shares_.approve(address(redemptionProxy), sharesApproved);
 
@@ -133,10 +135,13 @@ contract AdditionalProperties_hub is
             uint256 _sharesBurned
         ) {
             assert(false);
-        } catch {}
+        } catch {
+            return;
+        }
     }
 
-    /// @notice verifies third parties must not be able to `redeem()` shares on an owner's behalf without a token approval
+    /// @notice verifies third parties must not be able to `redeem()` shares 
+    /// on an owner's behalf without a token approval
     function verify_redeemRequiresTokenApproval_hub(
         uint256 receiverId,
         uint256 shares,
@@ -150,7 +155,7 @@ contract AdditionalProperties_hub is
             shares
         );
 
-        require(sharesApproved < shares);
+        require(sharesApproved < shares, RequireFailed());
         emit LogUint256("Approving spend of this many shares:", sharesApproved);
         shares_.approve(address(redemptionProxy), sharesApproved);
 

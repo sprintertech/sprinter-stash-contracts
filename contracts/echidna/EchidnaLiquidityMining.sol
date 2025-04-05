@@ -7,8 +7,8 @@ import {TestUSDC} from "../testing/TestUSDC.sol";
 
 contract EchidnaLiquidityMining {
 
-    TestUSDC stakingToken;
-    LiquidityMining mining;
+    TestUSDC public stakingToken;
+    LiquidityMining public mining;
     LiquidityMining.Tier[] public tiers;
 
     constructor() {

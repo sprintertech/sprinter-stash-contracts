@@ -9,10 +9,12 @@ import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.s
 
 contract EchidnaLiquidityHub {
 
-    TestUSDC liquidityToken;
-    TestERC20Token shares;
-    LiquidityHub hub;
-    TestLiquidityPool pool;
+    TestUSDC public liquidityToken;
+    TestERC20Token public shares;
+    LiquidityHub public hub;
+    TestLiquidityPool public pool;
+
+    error RequireFailed();
 
     constructor() {
         shares = new TestERC20Token("Test Token", "TT", 18);
@@ -43,15 +45,16 @@ contract EchidnaLiquidityHub {
     // totalAssets should increase during deposit
     function testDeposit(uint256 amount) public {
         // Preconditions
-        require(amount > 0);
+        require(amount > 0, RequireFailed());
         uint256 depositedBefore = hub.totalAssets();
         hub.setAssetsLimit(depositedBefore + amount);
 
         // Action
         liquidityToken.mint(address(this), amount);
         liquidityToken.approve(address(hub), amount);
-        bool success = true;
+        bool success;
         try hub.deposit(amount, address(this)) {
+            success = true;
         } catch {
             success = false;
         }
@@ -62,17 +65,18 @@ contract EchidnaLiquidityHub {
         assert(depositedAfter == depositedBefore + amount);
     }
 
-    // totalAssets should not exceed assetsLimit
-    function testAssetsLimit(uint256 amount) public {
+    // totalAssets should not exceed assetsLimit during deposit
+    function testAssetsLimitDeposit(uint256 amount) public {
         // Preconditions
-        require(amount > 2);
+        require(amount > 2, RequireFailed());
         uint256 depositedBefore = hub.totalAssets();
         hub.setAssetsLimit(depositedBefore + amount - 1);
 
         // Action
         liquidityToken.approve(address(hub), amount);
-        bool success = true;
+        bool success;
         try hub.deposit(amount, address(this)) {
+            success = true;
         } catch {
             success = false;
         }
@@ -84,7 +88,7 @@ contract EchidnaLiquidityHub {
     // withdraw() should be successful
     function testWithdraw(uint256 amount) public {
         // Preconditions
-        require(amount > 0);
+        require(amount > 0, RequireFailed());
         // require(shares.balanceOf(address(this)) >= amount);
         liquidityToken.mint(address(this), amount);
         liquidityToken.approve(address(hub), amount);
@@ -93,8 +97,9 @@ contract EchidnaLiquidityHub {
         uint256 balanceSharesBefore = shares.balanceOf(address(this));
     
         // Action
-        bool success = true;
+        bool success;
         try hub.withdraw(amount, address(this), address(this)) {
+            success = true;
         } catch {
             success = false;
         }
@@ -110,7 +115,7 @@ contract EchidnaLiquidityHub {
     // redeem() should be successful
     function testRedeem(uint256 amount) public {
         // Preconditions
-        require(amount > 0);
+        require(amount > 0, RequireFailed());
         // require(shares.balanceOf(address(this)) >= amount);
         liquidityToken.mint(address(this), amount);
         liquidityToken.approve(address(hub), amount);
@@ -119,8 +124,9 @@ contract EchidnaLiquidityHub {
         uint256 balanceSharesBefore = shares.balanceOf(address(this));
     
         // Action
-        bool success = true;
+        bool success;
         try hub.redeem(amount * 10 ** 12, address(this), address(this)) {
+            success = true;
         } catch {
             success = false;
         }

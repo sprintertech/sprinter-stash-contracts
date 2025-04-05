@@ -274,7 +274,6 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
     function _assetsHardLimit(uint256 total) internal view returns (uint256) {
         uint256 totalShares = totalSupply();
         uint256 multiplier = uint256(10) ** _decimalsOffset();
-        uint256 assetsHardLimit;
         if (total * multiplier <= totalShares) {
             uint256 sharesHardLimit = type(uint256).max - totalShares;
             return _convertToAssets(sharesHardLimit, Math.Rounding.Floor);

@@ -6,8 +6,10 @@ import {TestUSDC} from "../testing/TestUSDC.sol";
 
 contract EchidnaLiquidityPool {
 
-    TestUSDC liquidityToken;
-    LiquidityPool pool;
+    TestUSDC public liquidityToken;
+    LiquidityPool public pool;
+
+    error RequireFailed();
 
     constructor() {
         liquidityToken = new TestUSDC();
@@ -31,7 +33,7 @@ contract EchidnaLiquidityPool {
     function testDepositWithPull(uint256 amount) public {
         // Preconditions
         uint256 depositedBefore = pool.totalDeposited();
-        require(amount > 0);
+        require(amount > 0, RequireFailed());
 
         // Action
         liquidityToken.approve(address(pool), amount);
@@ -46,12 +48,13 @@ contract EchidnaLiquidityPool {
     function testDeposit(uint256 amount) public {
         // Preconditions
         uint256 depositedBefore = pool.totalDeposited();
-        require(amount > 0);
+        require(amount > 0, RequireFailed());
 
         // Action
         liquidityToken.transfer(address(pool), amount);
-        bool success = true;
+        bool success;
         try pool.deposit(amount) {
+            success = true;
         } catch {
             success = false;
         }
@@ -66,10 +69,10 @@ contract EchidnaLiquidityPool {
     function testWithdrawal(uint256 amountToWithdraw) public {
         // Preconditions
         uint256 depositedBefore = pool.totalDeposited();
-        require(depositedBefore > 0);
-        require(depositedBefore >= amountToWithdraw);
-        require(amountToWithdraw > 0);
-        require(liquidityToken.balanceOf(address(pool)) > depositedBefore);
+        require(depositedBefore > 0, RequireFailed());
+        require(depositedBefore >= amountToWithdraw, RequireFailed());
+        require(amountToWithdraw > 0, RequireFailed());
+        require(liquidityToken.balanceOf(address(pool)) > depositedBefore, RequireFailed());
 
         // Action
         pool.withdraw(address(this), amountToWithdraw);
@@ -84,7 +87,7 @@ contract EchidnaLiquidityPool {
         // Preconditions
         uint256 balanceBefore = liquidityToken.balanceOf(address(pool));
         uint256 depositedBefore = pool.totalDeposited();
-        require(balanceBefore >= depositedBefore);
+        require(balanceBefore >= depositedBefore, RequireFailed());
         // require(balanceBefore - depositedBefore >= amountProfit);
 
         // Action
@@ -102,7 +105,7 @@ contract EchidnaLiquidityPool {
         // Preconditions
         uint256 balanceBefore = liquidityToken.balanceOf(address(pool));
         uint256 depositedBefore = pool.totalDeposited();
-        require(amount > 0);
+        require(amount > 0, RequireFailed());
 
         // Action
         liquidityToken.approve(address(pool), amount);

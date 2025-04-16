@@ -241,6 +241,11 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         SHARES.spendAllowance(owner, spender, value);
     }
 
+    /// OpenZeppelin's implementation of ERC20 token (used as shares) doesn't revert if _mint() is called with 0 amount
+    /// Therefore it's possible that a user deposits less than the price of 1 share and 0 shares will be minted.
+    /// It might happen only if deposit is very small (1 unit of token) and the balance of shares was significantly
+    /// shifted using adjustTotalAssets(). This situation was modelled with usual and fuzz testing and no protection
+    /// was added due to insignificant consequences.
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal virtual override {
         LiquidityHubStorage storage $ = _getStorage();
         SafeERC20.safeTransferFrom(IERC20(asset()), caller, address(LIQUIDITY_POOL), assets);

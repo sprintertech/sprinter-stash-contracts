@@ -28,6 +28,22 @@ contract EchidnaLiquidityMining {
         );
     }
 
+    function stake(uint256 stakingAmount) public {
+        stakingToken.approve(address(mining), stakingAmount);
+        mining.stake(address(this), stakingAmount, 0);
+    }
+
+    function unstake() public {
+        LiquidityMining.Stake[] memory stakes = mining.getStakes(address(this));
+        if (stakes.length > 0) {
+            mining.unstake(0, address(this));
+        }
+    }
+
+    function burn(uint256 amount) public {
+        mining.burn(amount);
+    }
+
     // Should mint correct amount
     function testStake(uint256 stakingAmount) public {
         // Preconditions

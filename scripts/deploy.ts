@@ -36,10 +36,20 @@ export async function main() {
   if (hre.network.name === "hardhat" && Object.values(Network).includes(process.env.DRY_RUN as Network)) {
     network = process.env.DRY_RUN as Network;
     config = networkConfig[network];
+    if (process.env.DEPLOY_TYPE == "STAGE") {
+      assert(config.Stage != undefined, "Stage config must be defined");
+      console.log(`Deploying staging set of contracts on fork: ${network}`);
+      config = config.Stage!;
+    }
     console.log(`Dry run on fork: ${network}`);
   } else if (Object.values(Network).includes(hre.network.name as Network)) {
     network = hre.network.name as Network;
     config = networkConfig[network];
+    if (process.env.DEPLOY_TYPE == "STAGE") {
+      assert(config.Stage != undefined, "Stage config must be defined");
+      console.log(`Deploying staging set of contracts on: ${network}`);
+      config = config.Stage!;
+    }
   } else {
     network = Network.BASE;
     console.log("TEST: Using TEST USDC and CCTP");

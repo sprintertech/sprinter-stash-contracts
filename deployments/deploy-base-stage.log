@@ -1,0 +1,45 @@
+Deployment ID: MVP
+Deploying to: BASE
+Deploying staging set of contracts on: BASE
+Deploying AAVE Liquidity Pool
+LiquidityPoolAaveUSDC: 0x2D24c6c58bBCe4BC09aE6ac559F697D97665d05D
+SprinterUSDCLPShare: 0xCb85b9fEFcA1316EFe0B7E1965A8922701fF502f
+LiquidityHub: 0x6FD4142Be84134C5a6D45d454529A6C3c9573B61
+LiquidityHubProxyAdmin: 0x806BA52Fad6BED2EE431e4a3CC436B3F3Da54aED
+LiquidityHub Adjuster: 0x2D5B6C193C39D2AECb4a99052074E6F325258a0f
+LiquidityHub DepositProfit: 0x2D5B6C193C39D2AECb4a99052074E6F325258a0f
+LiquidityHub Assets Limit: 10000000
+SprinterLiquidityMining: 0xa85Aa9ac9EaC15BA8636cE4C8014135bC34B0525
+Tiers:
+┌─────────┬──────────┬────────────────┐
+│ (index) │ seconds  │ multiplier     │
+├─────────┼──────────┼────────────────┤
+│ 0       │ 7776000  │ '0.400000000x' │
+│ 1       │ 15552000 │ '1.0x'         │
+│ 2       │ 31104000 │ '2.200000000x' │
+└─────────┴──────────┴────────────────┘
+Multicall: 0xd0A630c391daEb244369DB0f75CBDF7dFeEaEaC3
+Admin: 0x2D5B6C193C39D2AECb4a99052074E6F325258a0f
+LiquidityPool Withdraw Profit: 0x2D5B6C193C39D2AECb4a99052074E6F325258a0f
+LiquidityPool Pauser: 0x2D5B6C193C39D2AECb4a99052074E6F325258a0f
+MPC Address: 0x6adAF8c96151962198a9b73132c16E99F4682Eb5
+USDC: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
+Rebalancer: 0x34Df9cD75fA0b4d8fF300AeDf7591f79dFdd61C9
+RebalancerProxyAdmin: 0xcB33De00942f1004F59B2346d3891864DecEF14C
+Routes:
+┌─────────┬──────────────────────────────────────────────┬────────────────┬──────────┐
+│ (index) │ Pool                                         │ Domain         │ Provider │
+├─────────┼──────────────────────────────────────────────┼────────────────┼──────────┤
+│ 0       │ '0x2D24c6c58bBCe4BC09aE6ac559F697D97665d05D' │ 'OP_MAINNET'   │ 'CCTP'   │
+│ 1       │ '0x2D24c6c58bBCe4BC09aE6ac559F697D97665d05D' │ 'ARBITRUM_ONE' │ 'CCTP'   │
+│ 2       │ '0xfe22Dff2Dc00E80e3127BCac393aC4e0672570F0' │ 'OP_MAINNET'   │ 'CCTP'   │
+│ 3       │ '0xfe22Dff2Dc00E80e3127BCac393aC4e0672570F0' │ 'ARBITRUM_ONE' │ 'CCTP'   │
+│ 4       │ '0x2D24c6c58bBCe4BC09aE6ac559F697D97665d05D' │ 'BASE'         │ 'LOCAL'  │
+└─────────┴──────────────────────────────────────────────┴────────────────┴──────────┘
+
+Deployment ID: MVP
+Redeploying to: BASE
+Deploying staging USDC pool on fork: BASE
+Rebalancer: 0x34Df9cD75fA0b4d8fF300AeDf7591f79dFdd61C9
+Deploying USDC Liquidity Pool
+LiquidityPoolUSDC: 0xfe22Dff2Dc00E80e3127BCac393aC4e0672570F0

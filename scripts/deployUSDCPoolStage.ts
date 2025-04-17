@@ -5,7 +5,7 @@ import {getVerifier} from "./helpers";
 import {resolveProxyXAddress, toBytes32} from "../test/helpers";
 import {isSet, assert, DEFAULT_ADMIN_ROLE} from "./common";
 import {LiquidityPool} from "../typechain-types";
-import {networkConfig, Network, NetworkConfig, LiquidityPoolUSDC, Provider} from "../network.config";
+import {networkConfig, Network, NetworkConfig, LiquidityPoolUSDC} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -43,9 +43,8 @@ export async function main() {
   const rebalancer = await resolveProxyXAddress("Rebalancer");
   console.log(`Rebalancer: ${rebalancer}`);
 
-  let usdcPool: LiquidityPool;
   console.log("Deploying USDC Liquidity Pool");
-  usdcPool = (await verifier.deployX(
+  const usdcPool: LiquidityPool = (await verifier.deployX(
     "LiquidityPool", deployer, {}, [config.USDC, deployer, config.MpcAddress], LiquidityPoolUSDC
   )) as LiquidityPool;
   console.log(`LiquidityPoolUSDC: ${usdcPool.target}`);

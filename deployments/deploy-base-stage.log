@@ -36,3 +36,10 @@ Routes:
 │ 3       │ '0xfe22Dff2Dc00E80e3127BCac393aC4e0672570F0' │ 'ARBITRUM_ONE' │ 'CCTP'   │
 │ 4       │ '0x2D24c6c58bBCe4BC09aE6ac559F697D97665d05D' │ 'BASE'         │ 'LOCAL'  │
 └─────────┴──────────────────────────────────────────────┴────────────────┴──────────┘
+
+Deployment ID: MVP
+Redeploying to: BASE
+Deploying staging USDC pool on fork: BASE
+Rebalancer: 0x34Df9cD75fA0b4d8fF300AeDf7591f79dFdd61C9
+Deploying USDC Liquidity Pool
+LiquidityPoolUSDC: 0xfe22Dff2Dc00E80e3127BCac393aC4e0672570F0

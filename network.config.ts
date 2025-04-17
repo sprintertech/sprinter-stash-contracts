@@ -289,6 +289,7 @@ export const networkConfig: NetworksConfig = {
         minHealthFactor: 300,
         defaultLTV: 0,
       },
+      USDCPool: true,
     },
   },
   POLYGON_MAINNET: {

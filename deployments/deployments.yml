@@ -1,7 +1,7 @@
--
+eip155:8453:
   deployment id: MVP
-  env: prod
   name: BASE
+  env: prod
   LiquidityPoolAaveUSDC: 0x7C255279c098fdF6c3116D2BecD9978002c09f4b
   LiquidityPoolUSDC: 0xB58Bb9643884abbbad64FA7eBc874c5481E5c032
   SprinterUSDCLPShare: 0xfa89929b30bC3132f9907CBCe3F2f6f4AC0903b6
@@ -10,28 +10,31 @@
   CensoredTransferFromMulticall: 0x7C472EBa1945E970a23C903FC8812D469a29B6bb
   USDC: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
   Rebalancer: 0xA85Cf46c150db2600b1D03E437bedD5513869888
--
+
+eip155:10:
   deployment id: MVP
-  env: prod
   name: OP_MAINNET
+  env: prod
   LiquidityPoolAaveUSDC: 0x7C255279c098fdF6c3116D2BecD9978002c09f4b
   LiquidityPoolUSDC: 0xB58Bb9643884abbbad64FA7eBc874c5481E5c032
   CensoredTransferFromMulticall: 0x7C472EBa1945E970a23C903FC8812D469a29B6bb
   USDC: 0x0b2c639c533813f4aa9d7837caf62653d097ff85
   Rebalancer: 0xA85Cf46c150db2600b1D03E437bedD5513869888
--
+
+eip155:42161:
   deployment id: MVP
-  env: prod
   name: ARBITRUM_ONE
+  env: prod
   LiquidityPoolAaveUSDC: 0x7C255279c098fdF6c3116D2BecD9978002c09f4b
   LiquidityPoolUSDC: 0xB58Bb9643884abbbad64FA7eBc874c5481E5c032
   CensoredTransferFromMulticall: 0x7C472EBa1945E970a23C903FC8812D469a29B6bb
   USDC: 0xaf88d065e77c8cC2239327C5EDb3A432268e5831
   Rebalancer: 0xA85Cf46c150db2600b1D03E437bedD5513869888
--
+
+eip155:84532:
   deployment id: MVP
-  env: test
   name: BASE_SEPOLIA
+  env: test
   LiquidityPoolAaveUSDC: 0x7C255279c098fdF6c3116D2BecD9978002c09f4b
   LiquidityPoolUSDC: 0xB58Bb9643884abbbad64FA7eBc874c5481E5c032
   SprinterUSDCLPShare: 0xfa89929b30bC3132f9907CBCe3F2f6f4AC0903b6
@@ -40,19 +43,21 @@
   CensoredTransferFromMulticall: 0x7C472EBa1945E970a23C903FC8812D469a29B6bb
   USDC: 0x036CbD53842c5426634e7929541eC2318f3dCF7e
   Rebalancer: 0xA85Cf46c150db2600b1D03E437bedD5513869888
--
+
+eip155:11155420:
   deployment id: MVP
-  env: test
   name: OP_SEPOLIA
+  env: test
   LiquidityPoolAaveUSDC: 0x7C255279c098fdF6c3116D2BecD9978002c09f4b
   LiquidityPoolUSDC: 0xB58Bb9643884abbbad64FA7eBc874c5481E5c032
   CensoredTransferFromMulticall: 0x7C472EBa1945E970a23C903FC8812D469a29B6bb
   USDC: 0x5fd84259d66Cd46123540766Be93DFE6D43130D7
   Rebalancer: 0xA85Cf46c150db2600b1D03E437bedD5513869888
--
+
+eip155:421614:
   deployment id: MVP
-  env: test
   name: ARBITRUM_SEPOLIA
+  env: test
   LiquidityPoolAaveUSDC: 0x7C255279c098fdF6c3116D2BecD9978002c09f4b
   LiquidityPoolUSDC: 0xB58Bb9643884abbbad64FA7eBc874c5481E5c032
   CensoredTransferFromMulticall: 0x7C472EBa1945E970a23C903FC8812D469a29B6bb

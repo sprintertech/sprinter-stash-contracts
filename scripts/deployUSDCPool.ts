@@ -20,19 +20,27 @@ export async function main() {
 
   let network: Network;
   let config: NetworkConfig;
-  console.log(`Redeploying to: ${hre.network.name}`);
+  console.log(`Deploying to: ${hre.network.name}`);
   if (hre.network.name === "hardhat" && Object.values(Network).includes(process.env.DRY_RUN as Network)) {
     network = process.env.DRY_RUN as Network;
     config = networkConfig[network];
-    assert(config.Stage != undefined, "Stage config must be defined");
-    console.log(`Deploying staging USDC pool on fork: ${network}`);
-    config = config.Stage!;
+    if (process.env.DEPLOY_TYPE == "STAGE") {
+      assert(config.Stage != undefined, "Stage config must be defined");
+      console.log(`Dry run for deploying staging USDC pool on fork: ${network}`);
+      config = config.Stage!;
+    } else {
+      console.log(`Dry run for deploying USDC pool on fork: ${network}`);
+    }
   } else if (Object.values(Network).includes(hre.network.name as Network)) {
     network = hre.network.name as Network;
     config = networkConfig[network];
-    assert(config.Stage != undefined, "Stage config must be defined");
-    console.log(`Deploying staging USDC pool on fork: ${network}`);
-    config = config.Stage!;
+    if (process.env.DEPLOY_TYPE == "STAGE") {
+      assert(config.Stage != undefined, "Stage config must be defined");
+      console.log(`Deploying staging USDC pool on: ${network}`);
+      config = config.Stage!;
+    } else {
+      console.log(`Deploying USDC pool on: ${network}`);
+    }
   } else {
     console.log(`Nothing to deploy on ${hre.network.name} network`);
     return;

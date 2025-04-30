@@ -1,0 +1,26 @@
+Deployment ID: MVP
+Deploying to: ARBITRUM_ONE
+Deploying staging set of contracts on: ARBITRUM_ONE
+Deploying AAVE Liquidity Pool
+LiquidityPoolAaveUSDC: 0x2D24c6c58bBCe4BC09aE6ac559F697D97665d05D
+Deploying USDC Liquidity Pool
+LiquidityPoolUSDC: 0xfe22Dff2Dc00E80e3127BCac393aC4e0672570F0
+Multicall: 0xd0A630c391daEb244369DB0f75CBDF7dFeEaEaC3
+Admin: 0x2D5B6C193C39D2AECb4a99052074E6F325258a0f
+LiquidityPool Withdraw Profit: 0x2D5B6C193C39D2AECb4a99052074E6F325258a0f
+LiquidityPool Pauser: 0x2D5B6C193C39D2AECb4a99052074E6F325258a0f
+MPC Address: 0x6adAF8c96151962198a9b73132c16E99F4682Eb5
+USDC: 0xaf88d065e77c8cC2239327C5EDb3A432268e5831
+Rebalancer: 0x34Df9cD75fA0b4d8fF300AeDf7591f79dFdd61C9
+RebalancerProxyAdmin: 0xcB33De00942f1004F59B2346d3891864DecEF14C
+Routes:
+┌─────────┬──────────────────────────────────────────────┬────────────────┬──────────┐
+│ (index) │ Pool                                         │ Domain         │ Provider │
+├─────────┼──────────────────────────────────────────────┼────────────────┼──────────┤
+│ 0       │ '0x2D24c6c58bBCe4BC09aE6ac559F697D97665d05D' │ 'BASE'         │ 'CCTP'   │
+│ 1       │ '0x2D24c6c58bBCe4BC09aE6ac559F697D97665d05D' │ 'OP_MAINNET'   │ 'CCTP'   │
+│ 2       │ '0xfe22Dff2Dc00E80e3127BCac393aC4e0672570F0' │ 'BASE'         │ 'CCTP'   │
+│ 3       │ '0xfe22Dff2Dc00E80e3127BCac393aC4e0672570F0' │ 'OP_MAINNET'   │ 'CCTP'   │
+│ 4       │ '0x2D24c6c58bBCe4BC09aE6ac559F697D97665d05D' │ 'ARBITRUM_ONE' │ 'LOCAL'  │
+│ 5       │ '0xfe22Dff2Dc00E80e3127BCac393aC4e0672570F0' │ 'ARBITRUM_ONE' │ 'LOCAL'  │
+└─────────┴──────────────────────────────────────────────┴────────────────┴──────────┘

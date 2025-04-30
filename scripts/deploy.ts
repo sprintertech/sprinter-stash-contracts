@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {MaxUint256, isAddress} from "ethers";
-import {toBytes32} from "../test/helpers";
+import {toBytes32, resolveProxyXAddress} from "../test/helpers";
 import {
   getVerifier, deployProxyX,
 } from "./helpers";
@@ -12,7 +12,7 @@ import {
 import {
   TestUSDC, SprinterUSDCLPShare, LiquidityHub,
   SprinterLiquidityMining, TestCCTPTokenMessenger, TestCCTPMessageTransmitter,
-  Rebalancer, LiquidityPool, LiquidityPoolAave, CensoredTransferFromMulticall,
+  Rebalancer, LiquidityPool, LiquidityPoolAave,
 } from "../typechain-types";
 import {
   networkConfig, Network, Provider, NetworkConfig, LiquidityPoolUSDC,
@@ -36,10 +36,20 @@ export async function main() {
   if (hre.network.name === "hardhat" && Object.values(Network).includes(process.env.DRY_RUN as Network)) {
     network = process.env.DRY_RUN as Network;
     config = networkConfig[network];
+    if (process.env.DEPLOY_TYPE == "STAGE") {
+      assert(config.Stage != undefined, "Stage config must be defined");
+      console.log(`Deploying staging set of contracts on fork: ${network}`);
+      config = config.Stage!;
+    }
     console.log(`Dry run on fork: ${network}`);
   } else if (Object.values(Network).includes(hre.network.name as Network)) {
     network = hre.network.name as Network;
     config = networkConfig[network];
+    if (process.env.DEPLOY_TYPE == "STAGE") {
+      assert(config.Stage != undefined, "Stage config must be defined");
+      console.log(`Deploying staging set of contracts on: ${network}`);
+      config = config.Stage!;
+    }
   } else {
     network = Network.BASE;
     console.log("TEST: Using TEST USDC and CCTP");
@@ -248,12 +258,18 @@ export async function main() {
     }
   }
 
-  const multicall = (await verifier.deployX(
-    "CensoredTransferFromMulticall",
-    deployer,
-  )) as CensoredTransferFromMulticall;
+  let multicall: string;
+  try {
+    multicall = await resolveProxyXAddress("CensoredTransferFromMulticall");
+    console.log("Multicall was already deployed");
+  } catch {
+    multicall = await (await verifier.deployX(
+      "CensoredTransferFromMulticall",
+      deployer,
+    )).getAddress();
+  }
 
-  console.log(`Multicall: ${multicall.target}`);
+  console.log(`Multicall: ${multicall}`);
   console.log(`Admin: ${config.Admin}`);
   console.log(`LiquidityPool Withdraw Profit: ${config.WithdrawProfit}`);
   console.log(`LiquidityPool Pauser: ${config.Pauser}`);

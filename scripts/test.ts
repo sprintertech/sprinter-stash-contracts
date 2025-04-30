@@ -4,6 +4,8 @@ import {assert} from "./common";
 import {main as deploy} from "./deploy";
 import {main as upgradeRebalancer} from "./upgradeRebalancer";
 import {main as redeployStash} from "./redeployStash";
+import {main as deployCensoredMulticall} from "./deployCensoredMulticall";
+import {main as deployUSDCPool} from "./deployUSDCPool";
 
 async function main() {
   console.log("Test deploy.")
@@ -12,6 +14,11 @@ async function main() {
   await upgradeRebalancer();
   console.log("Test redeployStash.")
   await redeployStash();
+  console.log("Test deployCensoredMulticall.")
+  process.env.DEPLOY_ID = "NEW_ID";
+  await deployCensoredMulticall();
+  console.log("Test deployUSDCPool.")
+  await deployUSDCPool();
   console.log("Success.");
 }
 

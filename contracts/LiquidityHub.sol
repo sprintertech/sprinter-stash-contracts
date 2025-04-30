@@ -96,7 +96,7 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         LiquidityHubStorage storage $ = _getStorage();
         uint256 assets = $.totalAssets;
         require(assets > 0, EmptyHub());
-        if (isIncrease) require(amount <= _assetsHardLimit(assets), AssetsExceedHardLimit());
+        if (isIncrease) require(amount <= _assetsIncreaseHardLimit(assets), AssetsExceedHardLimit());
         uint256 newAssets = isIncrease ? assets + amount : assets - amount;
         $.totalAssets = newAssets;
         emit TotalAssetsAdjustment(assets, newAssets);
@@ -165,7 +165,7 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         if (total >= limit) {
             return 0;
         }
-        uint256 hardLimit = _assetsHardLimit(total);
+        uint256 hardLimit = _assetsIncreaseHardLimit(total);
         return Math.min(hardLimit, limit - total);
     }
 
@@ -198,7 +198,7 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         SafeERC20.safeTransferFrom(IERC20(asset()), _msgSender(), address(LIQUIDITY_POOL), assets);
         uint256 totalAssets = $.totalAssets;
         require(totalAssets > 0, EmptyHub());
-        require(assets <= _assetsHardLimit(totalAssets), AssetsExceedHardLimit());
+        require(assets <= _assetsIncreaseHardLimit(totalAssets), AssetsExceedHardLimit());
         uint256 newAssets = totalAssets + assets;
         $.totalAssets = newAssets;
         LIQUIDITY_POOL.deposit(assets);
@@ -276,7 +276,7 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         return IERC20Metadata(address(SHARES)).decimals() - IERC20Metadata(asset()).decimals();
     }
     
-    function _assetsHardLimit(uint256 total) internal view returns (uint256) {
+    function _assetsIncreaseHardLimit(uint256 total) internal view returns (uint256) {
         uint256 totalShares = totalSupply();
         uint256 multiplier = uint256(10) ** _decimalsOffset();
         if (total * multiplier <= totalShares) {

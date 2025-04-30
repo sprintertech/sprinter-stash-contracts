@@ -333,7 +333,7 @@ describe("LiquidityHub", function () {
     let amount = await liquidityHub.previewWithdraw(1n);
     while(true) {
       amount = await liquidityHub.previewWithdraw(1n);
-      if (amount <=1) break;
+      if (amount <= 1) break;
       await liquidityHub.connect(user).redeem(amount - 1n, user.address, user.address);
       i++;
     }

@@ -44,6 +44,8 @@
     "dry:redeploy-stash-base": "DRY_RUN=BASE VERIFY=false ts-node --files ./scripts/redeployStash.ts",
     "dry:deploy-censoredmulticall-ethereum": "DRY_RUN=ETHEREUM VERIFY=false ts-node --files ./scripts/deployCensoredMulticall.ts",
     "dry:deploy-usdcpool-base-stage": "DRY_RUN=BASE VERIFY=false ts-node --files ./scripts/deployUSDCPool.ts",
+    "dry:upgrade-liquidityhub-basesepolia": "DRY_RUN=BASE_SEPOLIA VERIFY=false ts-node --files ./scripts/upgradeLiquidityHub.ts",
+    "dry:upgrade-liquidityhub-base": "DRY_RUN=BASE VERIFY=false ts-node --files ./scripts/upgradeLiquidityHub.ts",
     "lint": "npm run lint:solidity && npm run lint:ts",
     "lint:solidity": "solhint 'contracts/**/*.sol'",
     "lint:ts": "eslint",

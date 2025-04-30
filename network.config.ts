@@ -274,6 +274,7 @@ export const networkConfig: NetworksConfig = {
       Hub: {
         AssetsAdjuster: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
         DepositProfit: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+        AssetsLimitSetter: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
         AssetsLimit: 10_000_000,
         Tiers: [
           {period: 7776000n, multiplier: 400000000n},

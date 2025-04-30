@@ -76,6 +76,7 @@ export interface NetworkConfig {
   Hub?: HubConfig;
   AavePool?: AavePoolConfig;
   USDCPool?: boolean;
+  Stage?: NetworkConfig;
 };
 
 type NetworksConfig = {
@@ -145,6 +146,31 @@ export const networkConfig: NetworksConfig = {
       defaultLTV: 0,
     },
     USDCPool: true,
+    Stage: {
+      chainId: 10,
+      CCTP: {
+        TokenMessenger: "0x2B4069517957735bE00ceE0fadAE88a26365528f",
+        MessageTransmitter: "0x4d41f22c5a0e5c74090899e5a8fb597a8842b3e8",
+      },
+      USDC: "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
+      IsTest: false,
+      Admin: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      WithdrawProfit: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      Pauser: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      RebalanceCaller: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
+      Routes: {
+        Pools: [LiquidityPoolAaveUSDC, LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
+        Domains: [Network.BASE, Network.ARBITRUM_ONE, Network.BASE, Network.ARBITRUM_ONE],
+        Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP],
+      },
+      AavePool: {
+        AaveAddressesProvider: AAVEPools.AaveV3Optimism.POOL_ADDRESSES_PROVIDER,
+        minHealthFactor: 300,
+        defaultLTV: 0,
+      },
+      USDCPool: true,
+    },
   },
   ARBITRUM_ONE: {
     chainId: 42161,
@@ -170,6 +196,31 @@ export const networkConfig: NetworksConfig = {
       defaultLTV: 0,
     },
     USDCPool: true,
+    Stage: {
+      chainId: 42161,
+      CCTP: {
+        TokenMessenger: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
+        MessageTransmitter: "0xC30362313FBBA5cf9163F0bb16a0e01f01A896ca",
+      },
+      USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      IsTest: false,
+      Admin: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      WithdrawProfit: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      Pauser: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      RebalanceCaller: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
+      Routes: {
+        Pools: [LiquidityPoolAaveUSDC, LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
+        Domains: [Network.BASE, Network.OP_MAINNET, Network.BASE, Network.OP_MAINNET],
+        Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP],
+      },
+      AavePool: {
+        AaveAddressesProvider: AAVEPools.AaveV3Arbitrum.POOL_ADDRESSES_PROVIDER,
+        minHealthFactor: 300,
+        defaultLTV: 0,
+      },
+      USDCPool: true,
+    },
   },
   BASE: {
     chainId: 8453,
@@ -205,6 +256,41 @@ export const networkConfig: NetworksConfig = {
       defaultLTV: 0,
     },
     USDCPool: true,
+    Stage: {
+      chainId: 8453,
+      CCTP: {
+        TokenMessenger: "0x1682Ae6375C4E4A97e4B583BC394c861A46D8962",
+        MessageTransmitter: "0xAD09780d193884d503182aD4588450C416D6F9D4",
+      },
+      USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      IsTest: false,
+      Admin: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      WithdrawProfit: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      Pauser: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      RebalanceCaller: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
+      Hub: {
+        AssetsAdjuster: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+        DepositProfit: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+        AssetsLimit: 10_000_000,
+        Tiers: [
+          {period: 7776000n, multiplier: 400000000n},
+          {period: 15552000n, multiplier: 1000000000n},
+          {period: 31104000n, multiplier: 2200000000n},
+        ]
+      },
+      Routes: {
+        Pools: [LiquidityPoolAaveUSDC, LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
+        Domains: [Network.OP_MAINNET, Network.ARBITRUM_ONE, Network.OP_MAINNET, Network.ARBITRUM_ONE],
+        Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP],
+      },
+      AavePool: {
+        AaveAddressesProvider: AAVEPools.AaveV3Base.POOL_ADDRESSES_PROVIDER,
+        minHealthFactor: 300,
+        defaultLTV: 0,
+      },
+      USDCPool: true,
+    },
   },
   POLYGON_MAINNET: {
     chainId: 137,

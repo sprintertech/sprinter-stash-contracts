@@ -48,7 +48,6 @@ contract LiquidityPoolAave is LiquidityPool {
     event BorrowTokenLTVSet(address token, uint256 oldLTV, uint256 newLTV);
     event HealthFactorSet(uint256 oldHealthFactor, uint256 newHealthFactor);
     event DefaultLTVSet(uint256 oldDefaultLTV, uint256 newDefaultLTV);
-    event Repaid(address borrowToken, uint256 repaidAmount);
     event WithdrawnFromAave(address to, uint256 amount);
 
     constructor(

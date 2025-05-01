@@ -72,6 +72,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
     event MPCAddressSet(address oldMPCAddress, address newMPCAddress);
     event Paused(address account);
     event Unpaused(address account);
+    event Repaid(address borrowToken, uint256 repaidAmount);
 
     modifier whenNotPaused() {
         require(!paused, EnforcedPause());
@@ -180,7 +181,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
     }
 
     function repay(address[] calldata) external virtual override {
-        revert NotImplemented();
+        emit Repaid(address(0), 0);
     }
 
     // Admin functions

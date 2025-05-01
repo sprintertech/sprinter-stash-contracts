@@ -10,6 +10,7 @@ contract TestLiquidityPool is ILiquidityPool, AccessControl {
     bytes32 public constant LIQUIDITY_ADMIN_ROLE = "LIQUIDITY_ADMIN_ROLE";
 
     event Deposit();
+    event Repaid();
 
     constructor(IERC20 assets, address admin) {
         ASSETS = assets;
@@ -54,8 +55,8 @@ contract TestLiquidityPool is ILiquidityPool, AccessControl {
         return;
     }
 
-    function repay(address[] calldata) external pure override {
-        return;
+    function repay(address[] calldata) external override {
+        emit Repaid();
     }
 
     function withdrawProfit(

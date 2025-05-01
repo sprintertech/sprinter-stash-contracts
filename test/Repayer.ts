@@ -296,8 +296,6 @@ describe("Repayer", function () {
     await expect(tx)
       .to.emit(uni, "Transfer")
       .withArgs(repayer.target, liquidityPool.target, 4n * UNI_DEC);
-    await expect(tx)
-      .to.emit(liquidityPool, "Repaid");
 
     expect(await uni.balanceOf(repayer.target)).to.equal(6n * UNI_DEC);
     expect(await uni.balanceOf(liquidityPool.target)).to.equal(4n * UNI_DEC);
@@ -322,8 +320,6 @@ describe("Repayer", function () {
     await expect(tx)
       .to.emit(usdc, "Transfer")
       .withArgs(repayer.target, liquidityPool2.target, 4n * USDC_DEC);
-    await expect(tx)
-      .to.emit(liquidityPool2, "Repaid");
 
     expect(await usdc.balanceOf(repayer.target)).to.equal(6n * USDC_DEC);
     expect(await usdc.balanceOf(liquidityPool2.target)).to.equal(4n * USDC_DEC);
@@ -438,8 +434,6 @@ describe("Repayer", function () {
     await expect(tx)
       .to.emit(usdc, "Transfer")
       .withArgs(ZERO_ADDRESS, liquidityPool.target, 4n * USDC_DEC);
-    await expect(tx)
-      .to.emit(liquidityPool, "Repaid");
 
     expect(await usdc.balanceOf(liquidityPool.target)).to.equal(4n * USDC_DEC);
     expect(await usdc.balanceOf(repayer.target)).to.equal(0n);

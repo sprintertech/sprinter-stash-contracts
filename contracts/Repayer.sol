@@ -146,9 +146,6 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter {
         if (provider == Provider.CCTP) {
             amount = processTransferCCTP(CCTP_MESSAGE_TRANSMITTER, ASSETS, destinationPool, extraData);
             require(amount > 0, ZeroAmount());
-            address[] memory tokens = new address[](1);
-            tokens[0] = address(ASSETS);
-            ILiquidityPool(destinationPool).repay(tokens);
         } else {
             // Unreachable atm, but could become so when more providers are added to enum.
             revert UnsupportedProvider();
@@ -163,9 +160,6 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter {
         address destinationPool
     ) internal {
         token.safeTransfer(destinationPool, amount);
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(token);
-        ILiquidityPool(destinationPool).repay(tokens);
         emit ProcessRepay(token, amount, destinationPool, Provider.LOCAL);
     }
 

@@ -33,6 +33,7 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
     ILiquidityPool immutable public LIQUIDITY_POOL;
     bytes32 public constant ASSETS_ADJUST_ROLE = "ASSETS_ADJUST_ROLE";
     bytes32 public constant DEPOSIT_PROFIT_ROLE = "DEPOSIT_PROFIT_ROLE";
+    bytes32 public constant SET_ASSETS_LIMIT_ROLE = "SET_ASSETS_LIMIT_ROLE";
 
     event TotalAssetsAdjustment(uint256 oldAssets, uint256 newAssets);
     event AssetsLimitSet(uint256 oldLimit, uint256 newLimit);
@@ -42,6 +43,8 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
     error NotImplemented();
     error IncompatibleAssetsAndShares();
     error AssetsLimitIsTooBig();
+    error EmptyHub();
+    error AssetsExceedHardLimit();
 
     /// @custom:storage-location erc7201:sprinter.storage.LiquidityHub
     struct LiquidityHubStorage {
@@ -68,6 +71,7 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         address admin,
         address adjuster,
         address depositorProfit,
+        address assetsLimitSetter,
         uint256 newAssetsLimit
     ) external initializer() {
         ERC4626Upgradeable.__ERC4626_init(asset_);
@@ -80,21 +84,25 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         require(admin != address(0), ZeroAddress());
         require(adjuster != address(0), ZeroAddress());
         require(depositorProfit != address(0), ZeroAddress());
+        require(assetsLimitSetter != address(0), ZeroAddress());
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(ASSETS_ADJUST_ROLE, adjuster);
         _grantRole(DEPOSIT_PROFIT_ROLE, depositorProfit);
+        _grantRole(SET_ASSETS_LIMIT_ROLE, assetsLimitSetter);
         _setAssetsLimit(newAssetsLimit);
     }
 
     function adjustTotalAssets(uint256 amount, bool isIncrease) external onlyRole(ASSETS_ADJUST_ROLE) {
         LiquidityHubStorage storage $ = _getStorage();
         uint256 assets = $.totalAssets;
+        require(assets > 0, EmptyHub());
+        if (isIncrease) require(amount <= _assetsIncreaseHardLimit(assets), AssetsExceedHardLimit());
         uint256 newAssets = isIncrease ? assets + amount : assets - amount;
         $.totalAssets = newAssets;
         emit TotalAssetsAdjustment(assets, newAssets);
     }
 
-    function setAssetsLimit(uint256 newAssetsLimit) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setAssetsLimit(uint256 newAssetsLimit) external onlyRole(SET_ASSETS_LIMIT_ROLE) {
         _setAssetsLimit(newAssetsLimit);
     }
 
@@ -157,7 +165,8 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         if (total >= limit) {
             return 0;
         }
-        return limit - total;
+        uint256 hardLimit = _assetsIncreaseHardLimit(total);
+        return Math.min(hardLimit, limit - total);
     }
 
     function maxMint(address) public view virtual override returns (uint256) {
@@ -187,7 +196,11 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
     function depositProfit(uint256 assets) external onlyRole(DEPOSIT_PROFIT_ROLE) {
         LiquidityHubStorage storage $ = _getStorage();
         SafeERC20.safeTransferFrom(IERC20(asset()), _msgSender(), address(LIQUIDITY_POOL), assets);
-        $.totalAssets += assets;
+        uint256 totalAssets = $.totalAssets;
+        require(totalAssets > 0, EmptyHub());
+        require(assets <= _assetsIncreaseHardLimit(totalAssets), AssetsExceedHardLimit());
+        uint256 newAssets = totalAssets + assets;
+        $.totalAssets = newAssets;
         LIQUIDITY_POOL.deposit(assets);
         emit DepositProfit(_msgSender(), assets);
     }
@@ -228,6 +241,11 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         SHARES.spendAllowance(owner, spender, value);
     }
 
+    /// OpenZeppelin's implementation of ERC20 token (used as shares) doesn't revert if _mint() is called with 0 amount
+    /// Therefore it's possible that a user deposits less than the price of 1 share and 0 shares will be minted.
+    /// It might happen only if deposit is very small (1 unit of token) and the balance of shares was significantly
+    /// shifted using adjustTotalAssets(). This situation was modelled with usual and fuzz testing and no protection
+    /// was added due to insignificant consequences.
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal virtual override {
         LiquidityHubStorage storage $ = _getStorage();
         SafeERC20.safeTransferFrom(IERC20(asset()), caller, address(LIQUIDITY_POOL), assets);
@@ -256,6 +274,17 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
 
     function _decimalsOffset() internal view virtual override returns (uint8) {
         return IERC20Metadata(address(SHARES)).decimals() - IERC20Metadata(asset()).decimals();
+    }
+    
+    function _assetsIncreaseHardLimit(uint256 total) internal view returns (uint256) {
+        uint256 totalShares = totalSupply();
+        uint256 multiplier = uint256(10) ** _decimalsOffset();
+        if (total * multiplier <= totalShares) {
+            uint256 sharesHardLimit = type(uint256).max - totalShares;
+            return _convertToAssets(sharesHardLimit, Math.Rounding.Floor);
+        } else {
+            return type(uint256).max / multiplier - total;
+        }
     }
 
     function _getStorage() private pure returns (LiquidityHubStorage storage $) {

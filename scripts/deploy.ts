@@ -70,6 +70,7 @@ export async function main() {
       Hub: {
         AssetsAdjuster: superAdmin.address,
         DepositProfit: opsAdmin.address,
+        AssetsLimitSetter: opsAdmin.address,
         AssetsLimit: 10_000_000,
         Tiers: [
           {period: 7776000n, multiplier: 300000000n},
@@ -213,7 +214,14 @@ export async function main() {
       deployer,
       config.Admin,
       [lpToken, mainPool!],
-      [config.USDC, config.Admin, config.Hub.AssetsAdjuster, config.Hub.DepositProfit, assetsLimit],
+      [
+        config.USDC,
+        config.Admin,
+        config.Hub.AssetsAdjuster,
+        config.Hub.DepositProfit,
+        config.Hub.AssetsLimitSetter,
+        assetsLimit
+      ],
     );
 
     assert(liquidityHubAddress == liquidityHub.target, "LiquidityHub address mismatch");
@@ -228,6 +236,7 @@ export async function main() {
     console.log(`LiquidityHubProxyAdmin: ${liquidityHubAdmin.target}`);
     console.log(`LiquidityHub Adjuster: ${config.Hub!.AssetsAdjuster}`);
     console.log(`LiquidityHub DepositProfit: ${config.Hub!.DepositProfit}`);
+    console.log(`LiquidityHub AssetsLimitSetter: ${config.Hub!.AssetsLimitSetter}`);
     console.log(`LiquidityHub Assets Limit: ${config.Hub!.AssetsLimit}`);
     console.log(`SprinterLiquidityMining: ${liquidityMining.target}`);
     console.log("Tiers:");

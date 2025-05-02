@@ -165,7 +165,7 @@ describe("LiquidityPoolStablecoin", function () {
 
     it("Should borrow a different token", async function () {
       const {
-        liquidityPoolStablecoin, mockTarget, uni, UNI_DEC, uniOwner, user, mpc_signer, usdcOwner, liquidityAdmin
+        liquidityPoolStablecoin, mockTarget, uni, UNI_DEC, uniOwner, user, mpc_signer
       } = await loadFixture(deployAll);
       const amountUni = 1000n * UNI_DEC; // $1000
       await uni.connect(uniOwner).transfer(liquidityPoolStablecoin.target, amountUni);
@@ -378,7 +378,8 @@ describe("LiquidityPoolStablecoin", function () {
       const amountRpl = 1n * UNI_DEC;
       await uni.connect(uniOwner).transfer(liquidityPoolStablecoin.target, amountUni);
       await rpl.connect(rplOwner).transfer(liquidityPoolStablecoin.target, amountRpl);
-      await expect(liquidityPoolStablecoin.connect(withdrawProfit).withdrawProfit([uni.target, rpl.target], user.address))
+      await expect(liquidityPoolStablecoin.connect(withdrawProfit)
+        .withdrawProfit([uni.target, rpl.target], user.address))
         .to.emit(liquidityPoolStablecoin, "ProfitWithdrawn").withArgs(uni.target, user.address, amountUni)
         .and.to.emit(liquidityPoolStablecoin, "ProfitWithdrawn").withArgs(rpl.target, user.address, amountRpl);
       expect(await uni.balanceOf(user.address)).to.eq(amountUni);
@@ -563,7 +564,9 @@ describe("LiquidityPoolStablecoin", function () {
     });
 
     it("Should NOT borrow if borrowing is paused", async function () {
-      const {liquidityPoolStablecoin, user, user2, withdrawProfit, mpc_signer, usdc, USDC_DEC} = await loadFixture(deployAll);
+      const {
+        liquidityPoolStablecoin, user, user2, withdrawProfit, mpc_signer, usdc, USDC_DEC
+      } = await loadFixture(deployAll);
       
       // Pause borrowing
       await expect(liquidityPoolStablecoin.connect(withdrawProfit).pauseBorrow())
@@ -743,7 +746,7 @@ describe("LiquidityPoolStablecoin", function () {
 
     it("Should NOT borrow a different token if not enough in the pool", async function () {
       const {
-        liquidityPoolStablecoin, mockTarget, uni, UNI_DEC, uniOwner, user, mpc_signer, usdcOwner, liquidityAdmin
+        liquidityPoolStablecoin, mockTarget, uni, UNI_DEC, uniOwner, user, mpc_signer
       } = await loadFixture(deployAll);
       const amountUni = 1n * UNI_DEC; // $1000
       await uni.connect(uniOwner).transfer(liquidityPoolStablecoin.target, amountUni);
@@ -844,7 +847,8 @@ describe("LiquidityPoolStablecoin", function () {
       expect(await liquidityPoolStablecoin.totalDeposited()).to.eq(amountLiquidity);
       expect(await usdc.balanceOf(mockTarget.target)).to.eq(amountToBorrow);
 
-      await expect(liquidityPoolStablecoin.connect(withdrawProfit).withdrawProfit([uni.target, rpl.target], user.address))
+      await expect(liquidityPoolStablecoin.connect(withdrawProfit)
+        .withdrawProfit([uni.target, rpl.target], user.address))
         .to.be.revertedWithCustomError(liquidityPoolStablecoin, "WithdrawProfitDenied");
       await expect(liquidityPoolStablecoin.connect(withdrawProfit).withdrawProfit([usdc.target], user.address))
         .to.be.revertedWithCustomError(liquidityPoolStablecoin, "WithdrawProfitDenied");

@@ -9,6 +9,7 @@ import {ILiquidityPool} from "./interfaces/ILiquidityPool.sol";
 import {IRepayer} from "./interfaces/IRepayer.sol";
 import {ICCTPTokenMessenger, ICCTPMessageTransmitter} from "./interfaces/ICCTP.sol";
 import {CCTPAdapter} from "./utils/CCTPAdapter.sol";
+import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 
 /// @title Performs repayment to Liquidity Pools on same/different chains.
 /// Routes, which is a destination pool/domain and a bridging provider, have to be approved by admin.

@@ -6,7 +6,6 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {IRoute} from ".././interfaces/IRoute.sol";
 
 contract CCTPAdapter is IRoute {
-
     using SafeERC20 for IERC20;
 
     error ProcessFailed();

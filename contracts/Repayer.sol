@@ -68,6 +68,10 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter {
         address cctpTokenMessenger,
         address cctpMessageTransmitter
     ) {
+        ERC7201Helper.validateStorageLocation(
+            STORAGE_LOCATION,
+            "sprinter.storage.Repayer"
+        );
         require(address(assets) != address(0), ZeroAddress());
         DOMAIN = localDomain;
         ASSETS = assets;

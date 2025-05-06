@@ -7,9 +7,9 @@ import {
   deploy, signBorrow
 } from "./helpers";
 import {ZERO_ADDRESS} from "../scripts/common";
-import {encodeBytes32String, AbiCoder} from "ethers";
+import {encodeBytes32String, AbiCoder, Interface, Contract, solidityPacked} from "ethers";
 import {
-  MockTarget, MockBorrowSwap, LiquidityPoolStablecoin
+  MockTarget, MockBorrowSwap, LiquidityPoolStablecoin, CensoredTransferFromMulticall
 } from "../typechain-types";
 
 async function now() {
@@ -254,12 +254,65 @@ describe("LiquidityPoolStablecoin", function () {
       expect(await uni.balanceOf(mockTarget.target)).to.eq(fillAmount);
     });
 
-    it("Should allow repaying using borrowAndSwap", async function () {
-      // USDC is supplied and borrowed
+    it("Should allow repaying using borrow() and swapping externally", async function () {
       const {
         liquidityPoolStablecoin, mockTarget, usdc, USDC_DEC, user, mpc_signer, usdcOwner, liquidityAdmin,
-        uni, uniOwner, UNI_DEC, mockBorrowSwap
+        uni, uniOwner, UNI_DEC, deployer
       } = await loadFixture(deployAll);
+
+      const SWAP_ROUTER_ADDRESS = "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45";
+
+      const swapRouterInterface = [
+        {
+          "inputs": [
+            {
+              "components": [
+                {
+                  "internalType": "bytes",
+                  "name": "path",
+                  "type": "bytes"
+                },
+                {
+                  "internalType": "address",
+                  "name": "recipient",
+                  "type": "address"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "amountIn",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "amountOutMinimum",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct ISwapRouter.ExactInputParams",
+              "name": "params",
+              "type": "tuple"
+            }
+          ],
+          "name": "exactInput",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "amountOut",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "payable",
+          "type": "function"
+        }
+      ];
+      const swapRouterIface = new Interface(swapRouterInterface);
+      const swapRouter = new Contract(SWAP_ROUTER_ADDRESS, swapRouterIface);
+
+      const multicall = (
+        await deploy("CensoredTransferFromMulticall", deployer)
+      ) as CensoredTransferFromMulticall;
+
+      // USDC is supplied and borrowed
       const amountLiquidity = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPoolStablecoin.target, amountLiquidity);
       await expect(liquidityPoolStablecoin.connect(liquidityAdmin).deposit(amountLiquidity))
@@ -296,48 +349,61 @@ describe("LiquidityPoolStablecoin", function () {
       expect(await usdc.balanceOf(mockTarget.target)).to.eq(amountToBorrow);
 
       // UNI is returned to the pool
-      const amountToRepay = 3n * UNI_DEC;
+      const amountToRepay = 5n * UNI_DEC;
       await uni.connect(uniOwner).transfer(liquidityPoolStablecoin.target, amountToRepay);
 
-      // UNI is swapped to USDC with borrowAndSwap
-      const fillAmount = amountToBorrow;
-      await usdc.connect(usdcOwner).approve(mockBorrowSwap.target, fillAmount);
+      // UNI is borrowed and swapped to USDC with Uniswap
 
-      const callDataSwap = "0x";
-      const swapData = AbiCoder.defaultAbiCoder().encode(
-            ["address", "uint256", "address", "address", "uint256"],
-            [uni.target, amountToRepay, usdc.target, usdcOwner.address, fillAmount]
-          );
+      // Calldata for transferring uni from pool to msg.sender
+      const uniTransferFromData = await uni.transferFrom.populateTransaction(
+        liquidityPoolStablecoin.target,
+        multicall.target,
+        amountToRepay
+      );
+      
+      // Calldata for approving uni to swap router
+      const uniApproveToSwapRouterData = await uni.approve.populateTransaction(
+        SWAP_ROUTER_ADDRESS,
+        amountToRepay
+      );
 
-          // borrowToken, amount, target, targetCallData, nonce, deadline, signature
+      // Calldata for Uniswap swap
+      const path = solidityPacked(["address", "uint24", "address"], [uni.target, 3000, usdc.target]);
+      const swapData = await swapRouter.exactInput.populateTransaction([
+        path, // path
+        liquidityPoolStablecoin.target,  // recipient
+        amountToRepay, // amountIn
+        amountToBorrow // amountOutMin
+      ]
+      );
+
+      const callDataRepay = (await multicall.multicall.populateTransaction(
+        [uni.target, uni.target, SWAP_ROUTER_ADDRESS],
+        [uniTransferFromData.data, uniApproveToSwapRouterData.data, swapData.data]
+      )).data;
+
       const signatureSwap = await signBorrow(
         mpc_signer,
         liquidityPoolStablecoin.target as string,
-        mockBorrowSwap.target as string,
+        user.address as string,
         uni.target as string,
         amountToRepay.toString(),
-        mpc_signer.address as string, /// used as target so that the target call doesn't fail
-        callDataSwap,
+        multicall.target as string,
+        callDataRepay,
         31337,
         1n
       );
 
-      const borrowCalldataSwap = await liquidityPoolStablecoin.borrowAndSwap.populateTransaction(
+      await expect(liquidityPoolStablecoin.connect(user).borrow(
         uni.target,
         amountToRepay,
-        {fillToken: usdc.target, fillAmount, swapData},
-        mpc_signer.address as string, /// used as target so that the target call doesn't fail
-        callDataSwap,
+        multicall.target,
+        callDataRepay,
         1n,
         2000000000n,
-        signatureSwap
-      );
-
-      await expect(mockBorrowSwap.connect(user).callBorrow(liquidityPoolStablecoin.target, borrowCalldataSwap.data))
-        .to.emit(mockBorrowSwap, "Swapped").withArgs(swapData);
-      expect(await usdc.balanceOf(liquidityPoolStablecoin.target)).to.be.eq(amountLiquidity);
-      expect(await uni.balanceOf(mockBorrowSwap.target)).to.eq(amountToRepay);
-      expect(await uni.balanceOf(liquidityPoolStablecoin.target)).to.eq(0);
+        signatureSwap))
+      .to.emit(uni, "Transfer");
+      expect(await usdc.balanceOf(liquidityPoolStablecoin.target)).to.be.greaterThanOrEqual(amountLiquidity);
     });
 
     it("Should deposit when the contract is paused", async function () {

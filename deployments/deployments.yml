@@ -42,7 +42,6 @@ eip155:84532:
   deployment id: MVP
   env: test
   name: BASE_SEPOLIA
-  env: test
   LiquidityPoolAaveUSDC: 0x7C255279c098fdF6c3116D2BecD9978002c09f4b
   LiquidityPoolUSDC: 0xB58Bb9643884abbbad64FA7eBc874c5481E5c032
   SprinterUSDCLPShare: 0xfa89929b30bC3132f9907CBCe3F2f6f4AC0903b6

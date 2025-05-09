@@ -150,7 +150,6 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter {
         uint256 amount = 0;
         if (provider == Provider.CCTP) {
             amount = processTransferCCTP(CCTP_MESSAGE_TRANSMITTER, ASSETS, destinationPool, extraData);
-            require(amount > 0, ZeroAmount());
         } else {
             // Unreachable atm, but could become so when more providers are added to enum.
             revert UnsupportedProvider();

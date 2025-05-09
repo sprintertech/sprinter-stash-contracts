@@ -6,6 +6,7 @@ import {main as upgradeRebalancer} from "./upgradeRebalancer";
 import {main as redeployStash} from "./redeployStash";
 import {main as deployCensoredMulticall} from "./deployCensoredMulticall";
 import {main as deployUSDCPool} from "./deployUSDCPool";
+import {main as deployRepayer} from "./deployRepayer";
 
 async function main() {
   console.log("Test deploy.")
@@ -19,6 +20,8 @@ async function main() {
   await deployCensoredMulticall();
   console.log("Test deployUSDCPool.")
   await deployUSDCPool();
+  console.log("Test deployRepayer.")
+  await deployRepayer();
   console.log("Success.");
 }
 

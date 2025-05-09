@@ -99,12 +99,12 @@ task("set-routes", "Update Rebalancer config")
   const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, admin)) as Rebalancer;
 
   const targetPools = args.pools && args.pools.split(",") || [];
-  const domains = args.domains && args.domains.split(",") || config.Routes?.Domains || [];
+  const domains = args.domains && args.domains.split(",") || config.RebalancerRoutes?.Domains || [];
   const domainsSolidity = domains.map(el => {
     assert(Object.values(Network).includes(el as Network), `Invalid domain ${el}`);
     return DomainSolidity[el as Network];
   });
-  const providers = args.providers && args.providers.split(",") || config.Routes?.Providers || [];
+  const providers = args.providers && args.providers.split(",") || config.RebalancerRoutes?.Providers || [];
   const providersSolidity = providers.map(el => {
     assert(Object.values(Provider).includes(el as Provider), `Invalid provider ${el}`);
     return ProviderSolidity[el as Provider];

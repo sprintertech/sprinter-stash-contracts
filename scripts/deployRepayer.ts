@@ -3,8 +3,8 @@ dotenv.config();
 import hre from "hardhat";
 import {isAddress} from "ethers";
 import {getVerifier, deployProxyX} from "./helpers";
-import {resolveProxyXAddress, resolveXAddress} from "../test/helpers";
-import {isSet, assert, ProviderSolidity, DomainSolidity, DEFAULT_ADMIN_ROLE} from "./common";
+import {resolveXAddress} from "../test/helpers";
+import {isSet, assert, ProviderSolidity, DomainSolidity} from "./common";
 import {Repayer} from "../typechain-types";
 import {networkConfig, Network, NetworkConfig, Provider} from "../network.config";
 

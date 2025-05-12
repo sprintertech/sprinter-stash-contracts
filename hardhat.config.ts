@@ -130,12 +130,12 @@ task("set-routes-repayer", "Update Repayer config")
   supportsalltokens?: string,
   allowed: boolean,
 }, hre) => {
-  const {resolveXAddress} = await loadTestHelpers();
+  const {resolveProxyXAddress} = await loadTestHelpers();
   const config = networkConfig[hre.network.name as Network];
 
   const [admin] = await hre.ethers.getSigners();
 
-  const targetAddress = await resolveXAddress(args.repayer);
+  const targetAddress = await resolveProxyXAddress(args.repayer);
   const target = (await hre.ethers.getContractAt("Repayer", targetAddress, admin)) as Repayer;
 
   const targetPools = args.pools && args.pools.split(",") || [];

@@ -50,6 +50,7 @@ describe("LiquidityPoolAave", function () {
     if (!UNI_OWNER_ADDRESS) throw new Error("Env variables not configured (UNI_OWNER_ADDRESS missing)");
     const uni = await hre.ethers.getContractAt("ERC20", UNI_ADDRESS);
     const uniOwner = await hre.ethers.getImpersonatedSigner(UNI_OWNER_ADDRESS);
+    await setBalance(uniOwner.address, 10n ** 18n);
     const uniData = await aavePool.getReserveData(UNI_ADDRESS);
     const uniDebtToken = await hre.ethers.getContractAt("ERC20", uniData[10]);
     await setBalance(UNI_OWNER_ADDRESS, 10n ** 18n);
@@ -594,7 +595,7 @@ describe("LiquidityPoolAave", function () {
 
     it("Should repay collateral", async function () {
       const {
-        liquidityPool, usdc, USDC_DEC, user, user2, mpc_signer, usdcOwner,  liquidityAdmin,
+        liquidityPool, usdc, USDC_DEC, user, user2, mpc_signer, usdcOwner, liquidityAdmin,
         usdcDebtToken, uniDebtToken
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
@@ -651,6 +652,7 @@ describe("LiquidityPoolAave", function () {
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
       expect(await liquidityPool.totalDeposited()).to.eq(amount);
 
+      // advance time by one hour to accrue interest
       await time.increase(3600);
       await expect(liquidityPool.connect(liquidityAdmin).withdraw(user.address, amount))
         .to.emit(liquidityPool, "WithdrawnFromAave").withArgs(user.address, amount);
@@ -1512,6 +1514,7 @@ describe("LiquidityPoolAave", function () {
 
       expect(await usdc.balanceOf(user.address)).to.be.eq(amount);
       expect(await liquidityPool.totalDeposited()).to.be.eq(0);
+      expect(await aToken.balanceOf(liquidityPool.target)).to.greaterThanOrEqual(0);
     });
 
     it("Should NOT allow others to withdraw collateral", async function () {

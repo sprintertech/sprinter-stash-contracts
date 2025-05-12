@@ -31,6 +31,8 @@
     "deploy-repayer-base-stage": "DEPLOY_TYPE=STAGE hardhat run ./scripts/deployRepayer.ts --network BASE",
     "deploy-repayer-arbitrumone-stage": "DEPLOY_TYPE=STAGE hardhat run ./scripts/deployRepayer.ts --network ARBITRUM_ONE",
     "deploy-repayer-opmainnet-stage": "DEPLOY_TYPE=STAGE hardhat run ./scripts/deployRepayer.ts --network OP_MAINNET",
+    "upgrade-liquidityhub-basesepolia": "hardhat run ./scripts/upgradeLiquidityHub.ts --network BASE_SEPOLIA",
+    "upgrade-liquidityhub-base": "hardhat run ./scripts/upgradeLiquidityHub.ts --network BASE",
     "node": "hardhat node",
     "hardhat": "hardhat",
     "dry:deploy-basesepolia": "DRY_RUN=BASE_SEPOLIA VERIFY=false ts-node --files ./scripts/deploy.ts",
@@ -54,6 +56,8 @@
     "dry:deploy-repayer-base-stage": "DRY_RUN=BASE DEPLOY_TYPE=STAGE VERIFY=false ts-node --files ./scripts/deployRepayer.ts",
     "dry:deploy-repayer-arbitrumone-stage": "DRY_RUN=ARBITRUM_ONE DEPLOY_TYPE=STAGE VERIFY=false ts-node --files ./scripts/deployRepayer.ts",
     "dry:deploy-repayer-opmainnet-stage": "DRY_RUN=OP_MAINNET DEPLOY_TYPE=STAGE VERIFY=false ts-node --files ./scripts/deployRepayer.ts",
+    "dry:upgrade-liquidityhub-basesepolia": "DRY_RUN=BASE_SEPOLIA VERIFY=false ts-node --files ./scripts/upgradeLiquidityHub.ts",
+    "dry:upgrade-liquidityhub-base": "DRY_RUN=BASE VERIFY=false ts-node --files ./scripts/upgradeLiquidityHub.ts",
     "lint": "npm run lint:solidity && npm run lint:ts",
     "lint:solidity": "solhint 'contracts/**/*.sol'",
     "lint:ts": "eslint",
@@ -88,6 +92,7 @@
   },
   "dependencies": {
     "@bgd-labs/aave-address-book": "^4.10.0",
+    "@crytic/properties": "github:crytic/properties",
     "@openzeppelin/contracts": "^5.1.0",
     "@openzeppelin/contracts-upgradeable": "^5.1.0"
   }

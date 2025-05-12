@@ -3,7 +3,7 @@ import "@nomicfoundation/hardhat-toolbox";
 import {networkConfig, Network, Provider} from "./network.config";
 import {TypedDataDomain} from "ethers";
 import {
-  LiquidityPoolAave, Rebalancer,
+  LiquidityPoolAave, Rebalancer, Repayer
 } from "./typechain-types";
 import {
   assert, isSet, ProviderSolidity, DomainSolidity,
@@ -77,7 +77,7 @@ task("set-min-health-factor", "Update Liquidity Pool config")
   console.log(`Min health factor set to ${healthfactor} on ${targetAddress}.`);
 });
 
-task("set-routes", "Update Rebalancer config")
+task("set-routes-rebalancer", "Update Rebalancer config")
 .addOptionalParam("rebalancer", "Rebalancer address or id", "Rebalancer", types.string)
 .addOptionalParam("pools", "Comma separated list of Liquidity Pool ids or addresses")
 .addOptionalParam("domains", "Comma separated list of domain names")
@@ -111,6 +111,48 @@ task("set-routes", "Update Rebalancer config")
   });
 
   await target.setRoute(targetPools, domainsSolidity, providersSolidity, args.allowed);
+  console.log(`Following routes are ${args.allowed ? "" : "dis"}allowed on ${targetAddress}.`);
+  console.table({domains, providers});
+});
+
+task("set-routes-repayer", "Update Repayer config")
+.addOptionalParam("repayer", "Repayer address or id", "Repayer", types.string)
+.addOptionalParam("pools", "Comma separated list of Liquidity Pool ids or addresses")
+.addOptionalParam("domains", "Comma separated list of domain names")
+.addOptionalParam("providers", "Comma separated list of provider names")
+.addOptionalParam("supportsalltokens", "Comma separated bool flags whether the pool supports all tokens")
+.addOptionalParam("allowed", "Allowed or denied", true, types.boolean)
+.setAction(async (args: {
+  repayer: string,
+  pools?: string,
+  domains?: string,
+  providers?: string,
+  supportsalltokens?: string,
+  allowed: boolean,
+}, hre) => {
+  const {resolveXAddress} = await loadTestHelpers();
+  const config = networkConfig[hre.network.name as Network];
+
+  const [admin] = await hre.ethers.getSigners();
+
+  const targetAddress = await resolveXAddress(args.repayer);
+  const target = (await hre.ethers.getContractAt("Repayer", targetAddress, admin)) as Repayer;
+
+  const targetPools = args.pools && args.pools.split(",") || [];
+  const domains = args.domains && args.domains.split(",") || config.RebalancerRoutes?.Domains || [];
+  const domainsSolidity = domains.map(el => {
+    assert(Object.values(Network).includes(el as Network), `Invalid domain ${el}`);
+    return DomainSolidity[el as Network];
+  });
+  const providers = args.providers && args.providers.split(",") || config.RebalancerRoutes?.Providers || [];
+  const providersSolidity = providers.map(el => {
+    assert(Object.values(Provider).includes(el as Provider), `Invalid provider ${el}`);
+    return ProviderSolidity[el as Provider];
+  });
+  const supportsAllTokens = args.supportsalltokens && args.supportsalltokens.split(",") || [];
+  const supportsAllTokensBool = supportsAllTokens.map(el => Boolean(el));
+
+  await target.setRoute(targetPools, domainsSolidity, providersSolidity, supportsAllTokensBool, args.allowed);
   console.log(`Following routes are ${args.allowed ? "" : "dis"}allowed on ${targetAddress}.`);
   console.table({domains, providers});
 });

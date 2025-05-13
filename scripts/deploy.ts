@@ -12,11 +12,11 @@ import {
 import {
   TestUSDC, SprinterUSDCLPShare, LiquidityHub,
   SprinterLiquidityMining, TestCCTPTokenMessenger, TestCCTPMessageTransmitter,
-  Rebalancer, LiquidityPool, LiquidityPoolAave,
+  Rebalancer, LiquidityPool, LiquidityPoolAave, LiquidityPoolStablecoin
 } from "../typechain-types";
 import {
   networkConfig, Network, Provider, NetworkConfig, LiquidityPoolUSDC,
-  LiquidityPoolAaveUSDC,
+  LiquidityPoolAaveUSDC, LiquidityPoolUSDCStablecoin
 } from "../network.config";
 
 export async function main() {
@@ -88,11 +88,13 @@ export async function main() {
         Domains: [Network.ETHEREUM],
         Providers: [Provider.CCTP],
       },
-      USDCPool: true
+      USDCPool: true,
+      StablecoinPool: true
     };
   }
 
-  assert(config.AavePool !== undefined || config.USDCPool!, "At least one pool should be present.");
+  assert(config.AavePool !== undefined || config.USDCPool! || config.StablecoinPool!,
+    "At least one pool should be present.");
   if (config.Hub) {
     assert(config.Hub!.Tiers.length > 0, "Empty liquidity mining tiers configuration.");
     assert(isAddress(config.USDC), "USDC must be an address");
@@ -162,6 +164,23 @@ export async function main() {
     }
   }
 
+  let stablecoinPool: LiquidityPoolStablecoin;
+  if (config.StablecoinPool) {
+    console.log("Deploying Stablecoin Liquidity Pool");
+    stablecoinPool = (await verifier.deployX(
+      "LiquidityPoolStablecoin", deployer, {}, [config.USDC, deployer, config.MpcAddress], LiquidityPoolUSDCStablecoin
+    )) as LiquidityPool;
+    console.log(`LiquidityPoolUSDCStablecoin: ${stablecoinPool.target}`);
+
+    config.Routes.Pools.push(await stablecoinPool.getAddress());
+    config.Routes.Domains.push(network);
+    config.Routes.Providers.push(Provider.LOCAL);
+
+    if ((!config.AavePool) && (!config.USDCPool)) {
+      mainPool = stablecoinPool;
+    }
+  }
+
   const rebalancerVersion = config.IsTest ? "TestRebalancer" : "Rebalancer";
 
   config.Routes.Pools = await verifier.predictDeployXAddresses(config.Routes!.Pools!, deployer);
@@ -192,6 +211,12 @@ export async function main() {
     await usdcPool!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
     await usdcPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
     await usdcPool!.grantRole(PAUSER_ROLE, config.Pauser);
+  }
+
+  if (config.StablecoinPool) {
+    await stablecoinPool!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
+    await stablecoinPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
+    await stablecoinPool!.grantRole(PAUSER_ROLE, config.Pauser);
   }
 
   if (config.Hub) {

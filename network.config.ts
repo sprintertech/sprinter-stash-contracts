@@ -2,6 +2,7 @@ import * as AAVEPools from "@bgd-labs/aave-address-book";
 
 export const LiquidityPoolAaveUSDC: string = "LiquidityPoolAaveUSDC";
 export const LiquidityPoolUSDC: string = "LiquidityPoolUSDC";
+export const LiquidityPoolUSDCStablecoin: string = "LiquidityPoolUSDCStablecoin";
 
 export enum Network {
   ETHEREUM = "ETHEREUM",
@@ -77,6 +78,7 @@ export interface NetworkConfig {
   Hub?: HubConfig;
   AavePool?: AavePoolConfig;
   USDCPool?: boolean;
+  StablecoinPool?: boolean;
   Stage?: NetworkConfig;
 };
 

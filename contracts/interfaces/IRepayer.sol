@@ -2,18 +2,19 @@
 pragma solidity 0.8.28;
 
 import {IRoute} from "./IRoute.sol";
+import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
-interface IRebalancer is IRoute {
-    function initiateRebalance(
+interface IRepayer is IRoute {
+    function initiateRepay(
+        IERC20 token,
         uint256 amount,
-        address sourcePool,
         address destinationPool,
         Domain destinationDomain,
         Provider provider,
         bytes calldata extraData
     ) external;
 
-    function processRebalance(
+    function processRepay(
         address destinationPool,
         Provider provider,
         bytes calldata extraData

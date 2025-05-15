@@ -196,10 +196,10 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
     function depositProfit(uint256 assets) external onlyRole(DEPOSIT_PROFIT_ROLE) {
         LiquidityHubStorage storage $ = _getStorage();
         SafeERC20.safeTransferFrom(IERC20(asset()), _msgSender(), address(LIQUIDITY_POOL), assets);
-        uint256 totalAssets = $.totalAssets;
-        require(totalAssets > 0, EmptyHub());
-        require(assets <= _assetsIncreaseHardLimit(totalAssets), AssetsExceedHardLimit());
-        uint256 newAssets = totalAssets + assets;
+        uint256 currentAssets = $.totalAssets;
+        require(currentAssets > 0, EmptyHub());
+        require(assets <= _assetsIncreaseHardLimit(currentAssets), AssetsExceedHardLimit());
+        uint256 newAssets = currentAssets + assets;
         $.totalAssets = newAssets;
         LIQUIDITY_POOL.deposit(assets);
         emit DepositProfit(_msgSender(), assets);

@@ -8,6 +8,7 @@ import {
 import {
   assert, isSet, ProviderSolidity, DomainSolidity,
 } from "./scripts/common";
+import "hardhat-ignore-warnings";
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -90,7 +91,7 @@ task("set-routes-rebalancer", "Update Rebalancer config")
   providers?: string,
   allowed: boolean,
 }, hre) => {
-  const {resolveProxyXAddress} = await loadTestHelpers();
+  const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
   const config = networkConfig[hre.network.name as Network];
 
   const [admin] = await hre.ethers.getSigners();
@@ -98,7 +99,8 @@ task("set-routes-rebalancer", "Update Rebalancer config")
   const targetAddress = await resolveProxyXAddress(args.rebalancer);
   const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, admin)) as Rebalancer;
 
-  const targetPools = args.pools && args.pools.split(",") || [];
+  const targetPools = args.pools && args.pools.split(",") || config.RebalancerRoutes?.Pools || [];
+  const pools = await Promise.all(targetPools.map(el => resolveXAddress(el, false)));
   const domains = args.domains && args.domains.split(",") || config.RebalancerRoutes?.Domains || [];
   const domainsSolidity = domains.map(el => {
     assert(Object.values(Network).includes(el as Network), `Invalid domain ${el}`);
@@ -110,7 +112,7 @@ task("set-routes-rebalancer", "Update Rebalancer config")
     return ProviderSolidity[el as Provider];
   });
 
-  await target.setRoute(targetPools, domainsSolidity, providersSolidity, args.allowed);
+  await target.setRoute(pools, domainsSolidity, providersSolidity, args.allowed);
   console.log(`Following routes are ${args.allowed ? "" : "dis"}allowed on ${targetAddress}.`);
   console.table({domains, providers});
 });
@@ -130,7 +132,7 @@ task("set-routes-repayer", "Update Repayer config")
   supportsalltokens?: string,
   allowed: boolean,
 }, hre) => {
-  const {resolveProxyXAddress} = await loadTestHelpers();
+  const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
   const config = networkConfig[hre.network.name as Network];
 
   const [admin] = await hre.ethers.getSigners();
@@ -138,23 +140,25 @@ task("set-routes-repayer", "Update Repayer config")
   const targetAddress = await resolveProxyXAddress(args.repayer);
   const target = (await hre.ethers.getContractAt("Repayer", targetAddress, admin)) as Repayer;
 
-  const targetPools = args.pools && args.pools.split(",") || [];
-  const domains = args.domains && args.domains.split(",") || config.RebalancerRoutes?.Domains || [];
+  const targetPools = args.pools && args.pools.split(",") || config.RepayerRoutes?.Pools || [];
+  const pools = await Promise.all(targetPools.map(el => resolveXAddress(el, false)));
+  const domains = args.domains && args.domains.split(",") || config.RepayerRoutes?.Domains || [];
   const domainsSolidity = domains.map(el => {
     assert(Object.values(Network).includes(el as Network), `Invalid domain ${el}`);
     return DomainSolidity[el as Network];
   });
-  const providers = args.providers && args.providers.split(",") || config.RebalancerRoutes?.Providers || [];
+  const providers = args.providers && args.providers.split(",") || config.RepayerRoutes?.Providers || [];
   const providersSolidity = providers.map(el => {
     assert(Object.values(Provider).includes(el as Provider), `Invalid provider ${el}`);
     return ProviderSolidity[el as Provider];
   });
-  const supportsAllTokens = args.supportsalltokens && args.supportsalltokens.split(",") || [];
-  const supportsAllTokensBool = supportsAllTokens.map(el => Boolean(el));
+  const supportsAllTokens = args.supportsalltokens && args.supportsalltokens.split(",") ||
+    config.RepayerRoutes?.SupportsAllTokens || [];
+  const supportsAllTokensBool = supportsAllTokens.map(el => el.toString() === "true");
 
-  await target.setRoute(targetPools, domainsSolidity, providersSolidity, supportsAllTokensBool, args.allowed);
+  await target.setRoute(pools, domainsSolidity, providersSolidity, supportsAllTokensBool, args.allowed);
   console.log(`Following routes are ${args.allowed ? "" : "dis"}allowed on ${targetAddress}.`);
-  console.table({domains, providers});
+  console.table({domains, providers, allTokens: supportsAllTokensBool});
 });
 
 task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
@@ -328,6 +332,14 @@ const config: HardhatUserConfig = {
         },
       },
     ],
+  },
+  warnings: {
+    "contracts/echidna/**/*": {
+      default: "off",
+    },
+    "@crytic/**/*": {
+      default: "off",
+    },
   },
 };
 

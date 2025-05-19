@@ -12,11 +12,11 @@ import {
 import {
   TestUSDC, SprinterUSDCLPShare, LiquidityHub,
   SprinterLiquidityMining, TestCCTPTokenMessenger, TestCCTPMessageTransmitter,
-  Rebalancer, Repayer, LiquidityPool, LiquidityPoolAave,
+  Rebalancer, Repayer, LiquidityPool, LiquidityPoolAave, LiquidityPoolStablecoin
 } from "../typechain-types";
 import {
   networkConfig, Network, Provider, NetworkConfig, LiquidityPoolUSDC,
-  LiquidityPoolAaveUSDC,
+  LiquidityPoolAaveUSDC, LiquidityPoolUSDCStablecoin
 } from "../network.config";
 
 export async function main() {
@@ -95,11 +95,13 @@ export async function main() {
         Providers: [Provider.CCTP],
         SupportsAllTokens: [false],
       },
-      USDCPool: true
+      USDCPool: true,
+      USDCStablecoinPool: true,
     };
   }
 
-  assert(config.AavePool !== undefined || config.USDCPool!, "At least one pool should be present.");
+  assert(config.AavePool! || config.USDCPool! || config.USDCStablecoinPool!,
+    "At least one pool should be present.");
   assert(isAddress(config.USDC), "USDC must be an address");
   assert(isAddress(config.Admin), "Admin must be an address");
   assert(isAddress(config.WithdrawProfit), "WithdrawProfit must be an address");
@@ -107,6 +109,7 @@ export async function main() {
   assert(isAddress(config.RebalanceCaller), "RebalanceCaller must be an address");
   assert(isAddress(config.RepayerCaller), "RepayerCaller must be an address");
   assert(isAddress(config.MpcAddress), "MpcAddress must be an address");
+
   if (config.Hub) {
     assert(config.Hub!.Tiers.length > 0, "Empty liquidity mining tiers configuration.");
     assert(config.Hub!.AssetsLimit <= MaxUint256 / 10n ** 12n, "Assets limit is too high");
@@ -189,6 +192,28 @@ export async function main() {
     }
   }
 
+  let usdcStablecoinPool: LiquidityPoolStablecoin;
+  if (config.USDCStablecoinPool) {
+    console.log("Deploying USDC Stablecoin Liquidity Pool");
+    usdcStablecoinPool = (await verifier.deployX(
+      "LiquidityPoolStablecoin", deployer, {}, [config.USDC, deployer, config.MpcAddress], LiquidityPoolUSDCStablecoin
+    )) as LiquidityPool;
+    console.log(`LiquidityPoolUSDCStablecoin: ${usdcStablecoinPool.target}`);
+
+    config.RebalancerRoutes.Pools.push(await usdcStablecoinPool.getAddress());
+    config.RebalancerRoutes.Domains.push(network);
+    config.RebalancerRoutes.Providers.push(Provider.LOCAL);
+
+    config.RepayerRoutes.Pools.push(await usdcStablecoinPool.getAddress());
+    config.RepayerRoutes.Domains.push(network);
+    config.RepayerRoutes.Providers.push(Provider.LOCAL);
+    config.RepayerRoutes.SupportsAllTokens.push(false);
+
+    if ((!config.AavePool) && (!config.USDCPool)) {
+      mainPool = usdcStablecoinPool;
+    }
+  }
+
   const rebalancerVersion = config.IsTest ? "TestRebalancer" : "Rebalancer";
 
   config.RebalancerRoutes.Pools = await verifier.predictDeployXAddresses(config.RebalancerRoutes!.Pools!, deployer);
@@ -219,6 +244,12 @@ export async function main() {
     await usdcPool!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
     await usdcPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
     await usdcPool!.grantRole(PAUSER_ROLE, config.Pauser);
+  }
+
+  if (config.USDCStablecoinPool) {
+    await usdcStablecoinPool!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
+    await usdcStablecoinPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
+    await usdcStablecoinPool!.grantRole(PAUSER_ROLE, config.Pauser);
   }
 
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
@@ -303,6 +334,11 @@ export async function main() {
     if (config.USDCPool) {
       await usdcPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
       await usdcPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    }
+
+    if (config.USDCStablecoinPool) {
+      await usdcStablecoinPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
+      await usdcStablecoinPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
     }
   }
 

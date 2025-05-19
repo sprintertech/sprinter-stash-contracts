@@ -6,6 +6,7 @@ import {main as upgradeRebalancer} from "./upgradeRebalancer";
 import {main as redeployStash} from "./redeployStash";
 import {main as deployCensoredMulticall} from "./deployCensoredMulticall";
 import {main as deployUSDCPool} from "./deployUSDCPool";
+import {main as deployUSDCStablecoinPool} from "./deployUSDCStablecoinPool";
 import {main as deployRepayer} from "./deployRepayer";
 import {main as upgradeLiquidityHub} from "./upgradeLiquidityHub";
 
@@ -21,6 +22,8 @@ async function main() {
   await deployCensoredMulticall();
   console.log("Test deployUSDCPool.")
   await deployUSDCPool();
+  console.log("Test deployUSDCStablecoinPool.")
+  await deployUSDCStablecoinPool();
   console.log("Test deployRepayer.")
   await deployRepayer();
   console.log("Test upgradeLiquidityHub.")

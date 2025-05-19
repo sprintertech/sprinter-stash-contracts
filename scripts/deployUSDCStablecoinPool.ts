@@ -4,8 +4,8 @@ import hre from "hardhat";
 import {getVerifier} from "./helpers";
 import {resolveProxyXAddress, toBytes32} from "../test/helpers";
 import {isSet, assert, DEFAULT_ADMIN_ROLE} from "./common";
-import {LiquidityPool} from "../typechain-types";
-import {networkConfig, Network, NetworkConfig, LiquidityPoolUSDC} from "../network.config";
+import {LiquidityPoolStablecoin} from "../typechain-types";
+import {networkConfig, Network, NetworkConfig, LiquidityPoolUSDCStablecoin} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -26,44 +26,44 @@ export async function main() {
     config = networkConfig[network];
     if (process.env.DEPLOY_TYPE == "STAGE") {
       assert(config.Stage != undefined, "Stage config must be defined");
-      console.log(`Dry run for deploying staging USDC pool on fork: ${network}`);
+      console.log(`Dry run for deploying staging USDC stablecoin pool on fork: ${network}`);
       config = config.Stage!;
     } else {
-      console.log(`Dry run for deploying USDC pool on fork: ${network}`);
+      console.log(`Dry run for deploying USDC stablecoin pool on fork: ${network}`);
     }
   } else if (Object.values(Network).includes(hre.network.name as Network)) {
     network = hre.network.name as Network;
     config = networkConfig[network];
     if (process.env.DEPLOY_TYPE == "STAGE") {
       assert(config.Stage != undefined, "Stage config must be defined");
-      console.log(`Deploying staging USDC pool on: ${network}`);
+      console.log(`Deploying staging USDC stablecoin pool on: ${network}`);
       config = config.Stage!;
     } else {
-      console.log(`Deploying USDC pool on: ${network}`);
+      console.log(`Deploying USDC stablecoin pool on: ${network}`);
     }
   } else {
     console.log(`Nothing to deploy on ${hre.network.name} network`);
     return;
   }
 
-  assert(config.USDCPool, "USDC pool is not configured");
+  assert(config.USDCStablecoinPool, "USDC stablecoin pool is not configured");
 
   const rebalancer = await resolveProxyXAddress("Rebalancer");
   console.log(`Rebalancer: ${rebalancer}`);
 
-  console.log("Deploying USDC Liquidity Pool");
-  const usdcPool: LiquidityPool = (await verifier.deployX(
-    "LiquidityPool", deployer, {}, [config.USDC, deployer, config.MpcAddress], LiquidityPoolUSDC
-  )) as LiquidityPool;
-  console.log(`LiquidityPoolUSDC: ${usdcPool.target}`);
+  console.log("Deploying USDC Stablecoin Liquidity Pool");
+  const usdcPoolStablecoin: LiquidityPoolStablecoin = (await verifier.deployX(
+    "LiquidityPoolStablecoin", deployer, {}, [config.USDC, deployer, config.MpcAddress], LiquidityPoolUSDCStablecoin
+  )) as LiquidityPoolStablecoin;
+  console.log(`LiquidityPoolUSDCStablecoin: ${usdcPoolStablecoin.target}`);
 
-  await usdcPool!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
-  await usdcPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
-  await usdcPool!.grantRole(PAUSER_ROLE, config.Pauser);
+  await usdcPoolStablecoin!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
+  await usdcPoolStablecoin!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
+  await usdcPoolStablecoin!.grantRole(PAUSER_ROLE, config.Pauser);
 
   if (deployer.address !== config.Admin) {
-    await usdcPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-    await usdcPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    await usdcPoolStablecoin!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
+    await usdcPoolStablecoin!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
   }
 
   await verifier.verify(process.env.VERIFY === "true");

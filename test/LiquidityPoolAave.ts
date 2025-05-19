@@ -866,7 +866,7 @@ describe("LiquidityPoolAave", function () {
       await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
-      const amountToBorrow = 10n * UNI_DEC;
+      const amountToBorrow = 20n * UNI_DEC;
 
       const signature = await signBorrow(
         mpc_signer,

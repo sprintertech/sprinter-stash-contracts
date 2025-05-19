@@ -1219,7 +1219,7 @@ describe("LiquidityPoolAave", function () {
       await expect(liquidityPool.connect(liquidityAdmin).deposit(amount))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
 
-      const amountToBorrow = 3n * UNI_DEC;
+      const amountToBorrow = 4n * UNI_DEC;
 
       const signature = await signBorrow(
         mpc_signer,

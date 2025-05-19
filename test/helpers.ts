@@ -1,7 +1,7 @@
 import hre from "hardhat";
 import {
   AddressLike, resolveAddress, Signer, BaseContract, toUtf8Bytes, TypedDataDomain,
-  keccak256, concat, dataSlice, AbiCoder, EventLog, encodeBytes32String, isAddressable,
+  keccak256, concat, dataSlice, AbiCoder, EventLog, encodeBytes32String, isAddress,
 } from "ethers";
 import {assert, DEFAULT_PROXY_TYPE} from "../scripts/common";
 import {ICreateX} from "../typechain-types";
@@ -69,7 +69,7 @@ export async function getDeployProxyXAddress(
 }
 
 async function tryResolve(address: string, codeCheck: boolean = true): Promise<string | null> {
-  if (isAddressable(address)) {
+  if (isAddress(address)) {
     if (codeCheck) {
       return await assertCode(address);
     }

@@ -100,7 +100,7 @@ export async function main() {
     };
   }
 
-  assert(config.AavePool !== undefined || config.USDCPool! || config.StablecoinPool!,
+  assert(config.AavePool! || config.USDCPool! || config.StablecoinPool!,
     "At least one pool should be present.");
   assert(isAddress(config.USDC), "USDC must be an address");
   assert(isAddress(config.Admin), "Admin must be an address");

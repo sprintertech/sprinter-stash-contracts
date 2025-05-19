@@ -21,11 +21,11 @@ contract LiquidityPoolStablecoin is LiquidityPool {
         return;
     }
 
-    function _borrowLogic(address /*borrowToken*/, uint256 /*amount*/, address /*target*/) internal override {
+    function _borrowLogic(address /*borrowToken*/, uint256 /*amount*/, address /*target*/) internal pure override {
         return;
     }
 
-    function _withdrawProfitLogic(IERC20 token) internal override returns (uint256) {
+    function _withdrawProfitLogic(IERC20 token) internal view override returns (uint256) {
         uint256 assetBalance = ASSETS.balanceOf(address(this));
         uint256 deposited = totalDeposited;
         require(assetBalance >= deposited, WithdrawProfitDenied());

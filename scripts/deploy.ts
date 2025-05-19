@@ -96,11 +96,11 @@ export async function main() {
         SupportsAllTokens: [false],
       },
       USDCPool: true,
-      StablecoinPool: true,
+      USDCStablecoinPool: true,
     };
   }
 
-  assert(config.AavePool! || config.USDCPool! || config.StablecoinPool!,
+  assert(config.AavePool! || config.USDCPool! || config.USDCStablecoinPool!,
     "At least one pool should be present.");
   assert(isAddress(config.USDC), "USDC must be an address");
   assert(isAddress(config.Admin), "Admin must be an address");
@@ -192,25 +192,25 @@ export async function main() {
     }
   }
 
-  let stablecoinPool: LiquidityPoolStablecoin;
-  if (config.StablecoinPool) {
-    console.log("Deploying Stablecoin Liquidity Pool");
-    stablecoinPool = (await verifier.deployX(
+  let usdcStablecoinPool: LiquidityPoolStablecoin;
+  if (config.USDCStablecoinPool) {
+    console.log("Deploying USDC Stablecoin Liquidity Pool");
+    usdcStablecoinPool = (await verifier.deployX(
       "LiquidityPoolStablecoin", deployer, {}, [config.USDC, deployer, config.MpcAddress], LiquidityPoolUSDCStablecoin
     )) as LiquidityPool;
-    console.log(`LiquidityPoolUSDCStablecoin: ${stablecoinPool.target}`);
+    console.log(`LiquidityPoolUSDCStablecoin: ${usdcStablecoinPool.target}`);
 
-    config.RebalancerRoutes.Pools.push(await stablecoinPool.getAddress());
+    config.RebalancerRoutes.Pools.push(await usdcStablecoinPool.getAddress());
     config.RebalancerRoutes.Domains.push(network);
     config.RebalancerRoutes.Providers.push(Provider.LOCAL);
 
-    config.RepayerRoutes.Pools.push(await stablecoinPool.getAddress());
+    config.RepayerRoutes.Pools.push(await usdcStablecoinPool.getAddress());
     config.RepayerRoutes.Domains.push(network);
     config.RepayerRoutes.Providers.push(Provider.LOCAL);
     config.RepayerRoutes.SupportsAllTokens.push(false);
 
     if ((!config.AavePool) && (!config.USDCPool)) {
-      mainPool = stablecoinPool;
+      mainPool = usdcStablecoinPool;
     }
   }
 
@@ -246,10 +246,10 @@ export async function main() {
     await usdcPool!.grantRole(PAUSER_ROLE, config.Pauser);
   }
 
-  if (config.StablecoinPool) {
-    await stablecoinPool!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
-    await stablecoinPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
-    await stablecoinPool!.grantRole(PAUSER_ROLE, config.Pauser);
+  if (config.USDCStablecoinPool) {
+    await usdcStablecoinPool!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
+    await usdcStablecoinPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
+    await usdcStablecoinPool!.grantRole(PAUSER_ROLE, config.Pauser);
   }
 
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
@@ -336,9 +336,9 @@ export async function main() {
       await usdcPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
     }
 
-    if (config.StablecoinPool) {
-      await stablecoinPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-      await stablecoinPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    if (config.USDCStablecoinPool) {
+      await usdcStablecoinPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
+      await usdcStablecoinPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
     }
   }
 

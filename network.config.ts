@@ -87,7 +87,7 @@ export interface NetworkConfig {
   Hub?: HubConfig;
   AavePool?: AavePoolConfig;
   USDCPool?: boolean;
-  StablecoinPool?: boolean;
+  USDCStablecoinPool?: boolean;
   Stage?: NetworkConfig;
 };
 

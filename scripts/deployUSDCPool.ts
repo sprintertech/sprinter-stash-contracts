@@ -1,11 +1,11 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {getVerifier} from "./helpers";
+import {getVerifier, getHardhatNetworkConfig, getNetworkConfig} from "./helpers";
 import {resolveProxyXAddress, toBytes32} from "../test/helpers";
 import {isSet, assert, DEFAULT_ADMIN_ROLE} from "./common";
 import {LiquidityPool} from "../typechain-types";
-import {networkConfig, Network, NetworkConfig, LiquidityPoolUSDC} from "../network.config";
+import {Network, NetworkConfig, LiquidityPoolUSDC} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -17,33 +17,15 @@ export async function main() {
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
   const verifier = getVerifier(process.env.DEPLOY_ID);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
+  let id = LiquidityPoolUSDC;
 
   let network: Network;
   let config: NetworkConfig;
-  console.log(`Deploying to: ${hre.network.name}`);
-  if (hre.network.name === "hardhat" && Object.values(Network).includes(process.env.DRY_RUN as Network)) {
-    network = process.env.DRY_RUN as Network;
-    config = networkConfig[network];
-    if (process.env.DEPLOY_TYPE == "STAGE") {
-      assert(config.Stage != undefined, "Stage config must be defined");
-      console.log(`Dry run for deploying staging USDC pool on fork: ${network}`);
-      config = config.Stage!;
-    } else {
-      console.log(`Dry run for deploying USDC pool on fork: ${network}`);
-    }
-  } else if (Object.values(Network).includes(hre.network.name as Network)) {
-    network = hre.network.name as Network;
-    config = networkConfig[network];
-    if (process.env.DEPLOY_TYPE == "STAGE") {
-      assert(config.Stage != undefined, "Stage config must be defined");
-      console.log(`Deploying staging USDC pool on: ${network}`);
-      config = config.Stage!;
-    } else {
-      console.log(`Deploying USDC pool on: ${network}`);
-    }
-  } else {
-    console.log(`Nothing to deploy on ${hre.network.name} network`);
-    return;
+  console.log("Deploying USDC Pool");
+  ({network, config} = await getNetworkConfig());
+  if (!network) {
+    ({network, config} = await getHardhatNetworkConfig());
+    id += "DeployTest";
   }
 
   assert(config.USDCPool, "USDC pool is not configured");
@@ -53,7 +35,7 @@ export async function main() {
 
   console.log("Deploying USDC Liquidity Pool");
   const usdcPool: LiquidityPool = (await verifier.deployX(
-    "LiquidityPool", deployer, {}, [config.USDC, deployer, config.MpcAddress], LiquidityPoolUSDC
+    "LiquidityPool", deployer, {}, [config.USDC, deployer, config.MpcAddress], id
   )) as LiquidityPool;
   console.log(`LiquidityPoolUSDC: ${usdcPool.target}`);
 

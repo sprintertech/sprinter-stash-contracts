@@ -2,11 +2,11 @@ import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {isAddress} from "ethers";
-import {getVerifier, deployProxyX} from "./helpers";
+import {getVerifier, deployProxyX, getHardhatNetworkConfig, getNetworkConfig} from "./helpers";
 import {resolveXAddress} from "../test/helpers";
 import {isSet, assert, ProviderSolidity, DomainSolidity} from "./common";
 import {Repayer} from "../typechain-types";
-import {networkConfig, Network, NetworkConfig, Provider} from "../network.config";
+import {Network, NetworkConfig, Provider} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -14,33 +14,15 @@ export async function main() {
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
   const verifier = getVerifier(process.env.DEPLOY_ID);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
+  let id = "Repayer";
 
   let network: Network;
   let config: NetworkConfig;
-  console.log(`Deploying to: ${hre.network.name}`);
-  if (hre.network.name === "hardhat" && Object.values(Network).includes(process.env.DRY_RUN as Network)) {
-    network = process.env.DRY_RUN as Network;
-    config = networkConfig[network];
-    if (process.env.DEPLOY_TYPE == "STAGE") {
-      assert(config.Stage != undefined, "Stage config must be defined");
-      console.log(`Dry run for deploying staging repayer on fork: ${network}`);
-      config = config.Stage!;
-    } else {
-      console.log(`Dry run for deploying repayer on fork: ${network}`);
-    }
-  } else if (Object.values(Network).includes(hre.network.name as Network)) {
-    network = hre.network.name as Network;
-    config = networkConfig[network];
-    if (process.env.DEPLOY_TYPE == "STAGE") {
-      assert(config.Stage != undefined, "Stage config must be defined");
-      console.log(`Deploying staging repayer on: ${network}`);
-      config = config.Stage!;
-    } else {
-      console.log(`Deploying repayer on: ${network}`);
-    }
-  } else {
-    console.log(`Nothing to deploy on ${hre.network.name} network`);
-    return;
+  console.log("Deploying Repayer");
+  ({network, config} = await getNetworkConfig());
+  if (!network) {
+    ({network, config} = await getHardhatNetworkConfig());
+    id += "DeployTest";
   }
 
   assert(isAddress(config.USDC), "USDC must be an address");
@@ -94,7 +76,7 @@ export async function main() {
       config.RepayerRoutes!.Providers!.map(el => ProviderSolidity[el]) || [],
       config.RepayerRoutes!.SupportsAllTokens,
     ],
-    "Repayer",
+    id,
   );
 
   console.log(`Repayer: ${repayer.target}`);

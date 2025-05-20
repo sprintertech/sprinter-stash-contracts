@@ -3,6 +3,7 @@ dotenv.config();
 import {assert} from "./common";
 import {main as deploy} from "./deploy";
 import {main as upgradeRebalancer} from "./upgradeRebalancer";
+import {main as upgradeRepayer} from "./upgradeRepayer";
 import {main as redeployStash} from "./redeployStash";
 import {main as deployCensoredMulticall} from "./deployCensoredMulticall";
 import {main as deployUSDCPool} from "./deployUSDCPool";
@@ -15,11 +16,10 @@ async function main() {
   await deploy();
   console.log("Test upgradeRebalancer.")
   await upgradeRebalancer();
+  console.log("Test upgradeRepayer.")
+  await upgradeRepayer();
   console.log("Test redeployStash.")
   await redeployStash();
-  console.log("Test deployCensoredMulticall.")
-  process.env.DEPLOY_ID = "NEW_ID";
-  await deployCensoredMulticall();
   console.log("Test deployUSDCPool.")
   await deployUSDCPool();
   console.log("Test deployUSDCStablecoinPool.")
@@ -28,6 +28,9 @@ async function main() {
   await deployRepayer();
   console.log("Test upgradeLiquidityHub.")
   await upgradeLiquidityHub();
+  console.log("Test deployCensoredMulticall.")
+  process.env.DEPLOY_ID = "NEW_ID";
+  await deployCensoredMulticall();
   console.log("Success.");
 }
 

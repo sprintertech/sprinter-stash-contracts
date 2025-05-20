@@ -1,6 +1,7 @@
-export function assert(condition: any, message: string): void {
-  if (condition) return;
-  throw new Error(message);
+export function assert(condition: any, message: string): asserts condition {
+  if (!condition) {
+    throw new Error(message);
+  }
 }
 
 export function sleep(msec: number): Promise<boolean> {

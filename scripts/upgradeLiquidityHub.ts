@@ -1,7 +1,7 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {getVerifier, upgradeProxyX} from "./helpers";
+import {getVerifier, upgradeProxyX, getHardhatNetworkConfig, getNetworkConfig} from "./helpers";
 import {getDeployProxyXAddress, getContractAt} from "../test/helpers";
 import {isSet, assert} from "./common";
 import {LiquidityHub} from "../typechain-types";
@@ -17,15 +17,10 @@ export async function main() {
   console.log(`Upgrade ID: ${process.env.UPGRADE_ID}`);
 
   let network: Network;
-  console.log(`Upgrading on: ${hre.network.name}`);
-  if (hre.network.name === "hardhat" && Object.values(Network).includes(process.env.DRY_RUN as Network)) {
-    network = process.env.DRY_RUN as Network;
-    console.log(`Dry run on fork: ${network}`);
-  } else if (Object.values(Network).includes(hre.network.name as Network)) {
-    network = hre.network.name as Network;
-  } else {
-    console.log(`Nothing to upgrade on ${hre.network.name} network`);
-    return;
+  console.log("Upgrading Liquidity Hub");
+  ({network} = await getNetworkConfig());
+  if (!network) {
+    ({network} = await getHardhatNetworkConfig());
   }
 
   const liquidityHubAddress = await getDeployProxyXAddress("LiquidityHub");

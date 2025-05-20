@@ -1,10 +1,14 @@
 import hre from "hardhat";
 import {Signer, BaseContract, AddressLike, resolveAddress, ContractTransaction, isAddress} from "ethers";
-import {deploy, deployX, getContractAt, getCreateAddress, getDeployXAddressBase} from "../test/helpers";
+import {
+  deploy, deployX, getContractAt, getCreateAddress, getDeployXAddressBase,
+  getDeployXAddress,
+} from "../test/helpers";
 import {
   TransparentUpgradeableProxy, ProxyAdmin,
 } from "../typechain-types";
-import {sleep, DEFAULT_PROXY_TYPE} from "./common";
+import {sleep, DEFAULT_PROXY_TYPE, assert} from "./common";
+import {networkConfig, Network, Provider, NetworkConfig, LiquidityPoolUSDC} from "../network.config";
 
 export async function resolveAddresses(input: any[]): Promise<any[]> {
   return await Promise.all(input.map(async (el) => {
@@ -207,4 +211,78 @@ export async function upgradeProxyX<ContractType extends Initializable>(
 
 export async function getProxyCreateAddress(deployer: Signer, startingNonce: number) {
   return await getCreateAddress(deployer, startingNonce + 1);
+}
+
+export async function getNetworkConfig() {
+  let network: Network;
+  let config: NetworkConfig;
+  let message = "Using config for: ";
+  if (hre.network.name === "hardhat" && Object.values(Network).includes(process.env.DRY_RUN as Network)) {
+    message += "dry run, ";
+    network = process.env.DRY_RUN as Network;
+    config = networkConfig[network];
+  } else if (Object.values(Network).includes(hre.network.name as Network)) {
+    network = hre.network.name as Network;
+    config = networkConfig[network];
+  }
+  if (config! && network!) {
+    if (process.env.DEPLOY_TYPE === "STAGE") {
+      assert(config.Stage, "Stage config must be defined");
+      message += "stage, ";
+      config = config.Stage;
+    }
+    console.log(`${message}${network}`);
+  }
+  return {network: network!, config: config!};
+}
+
+export async function getHardhatNetworkConfig() {
+  assert(hre.network.name === "hardhat", "Only for Hardhat network");
+  const network = Network.BASE;
+  const [deployer, opsAdmin, superAdmin, mpc] = await hre.ethers.getSigners();
+  process.env.DEPLOYER_ADDRESS = await resolveAddress(deployer);
+  const config: NetworkConfig = {
+    chainId: 31337,
+    CCTP: {
+      TokenMessenger: await getDeployXAddress("TestCCTPTokenMessenger"),
+      MessageTransmitter: await getDeployXAddress("TestCCTPMessageTransmitter"),
+    },
+    USDC: await getDeployXAddress("TestUSDC"),
+    IsTest: false,
+    Hub: {
+      AssetsAdjuster: superAdmin.address,
+      DepositProfit: opsAdmin.address,
+      AssetsLimitSetter: opsAdmin.address,
+      AssetsLimit: 10_000_000,
+      Tiers: [
+        {period: 7776000n, multiplier: 300000000n},
+        {period: 15552000n, multiplier: 800000000n},
+        {period: 31104000n, multiplier: 1666666667n},
+      ]
+    },
+    Admin: superAdmin.address,
+    WithdrawProfit: opsAdmin.address,
+    Pauser: opsAdmin.address,
+    RebalanceCaller: opsAdmin.address,
+    RepayerCaller: opsAdmin.address,
+    MpcAddress: mpc.address,
+    RebalancerRoutes: {
+      Pools: [LiquidityPoolUSDC],
+      Domains: [Network.ETHEREUM],
+      Providers: [Provider.CCTP],
+    },
+    RepayerRoutes: {
+      Pools: [LiquidityPoolUSDC],
+      Domains: [Network.ETHEREUM],
+      Providers: [Provider.CCTP],
+      SupportsAllTokens: [false],
+    },
+    USDCPool: true,
+    USDCStablecoinPool: true,
+  };
+
+  console.log(`Using config for: hardhat`);
+  return {
+    network, config, opsAdmin, superAdmin, mpc,
+  };
 }

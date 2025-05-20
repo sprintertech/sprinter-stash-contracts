@@ -8,7 +8,10 @@ import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/acce
 import {ILiquidityPool} from "./interfaces/ILiquidityPool.sol";
 import {IRepayer} from "./interfaces/IRepayer.sol";
 import {ICCTPTokenMessenger, ICCTPMessageTransmitter} from "./interfaces/ICCTP.sol";
+
+import {V3SpokePoolInterface} from "./interfaces/IAcross.sol";
 import {CCTPAdapter} from "./utils/CCTPAdapter.sol";
+import {AcrossAdapter} from "./utils/AcrossAdapter.sol";
 import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 
 /// @title Performs repayment to Liquidity Pools on same/different chains.
@@ -25,6 +28,7 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter {
     IERC20 immutable public ASSETS;
     ICCTPTokenMessenger immutable public CCTP_TOKEN_MESSENGER;
     ICCTPMessageTransmitter immutable public CCTP_MESSAGE_TRANSMITTER;
+    V3SpokePoolInterface immutable public ACROSS_SPOKE_POOL;
     bytes32 constant public REPAYER_ROLE = "REPAYER_ROLE";
 
 
@@ -67,7 +71,8 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter {
         Domain localDomain,
         IERC20 assets,
         address cctpTokenMessenger,
-        address cctpMessageTransmitter
+        address cctpMessageTransmitter,
+        address acrossSpokePool
     ) {
         ERC7201Helper.validateStorageLocation(
             STORAGE_LOCATION,
@@ -80,6 +85,7 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter {
         require(cctpMessageTransmitter != address(0), ZeroAddress());
         CCTP_TOKEN_MESSENGER = ICCTPTokenMessenger(cctpTokenMessenger);
         CCTP_MESSAGE_TRANSMITTER = ICCTPMessageTransmitter(cctpMessageTransmitter);
+        ACROSS_SPOKE_POOL = V3SpokePoolInterface(acrossSpokePool);
     }
 
     function initialize(
@@ -135,6 +141,9 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter {
         if (provider == Provider.CCTP) {
             require(token == ASSETS, InvalidToken());
             initiateTransferCCTP(CCTP_TOKEN_MESSENGER, ASSETS, amount, destinationPool, destinationDomain);
+        } else
+        if (provider == Provider.ACROSS) {
+            initiateTransferAcross(ACROSS_SPOKE_POOL, ASSETS, amount, destinationPool, destinationDomain);
         } else {
             // Unreachable atm, but could become so when more providers are added to enum.
             revert UnsupportedProvider();

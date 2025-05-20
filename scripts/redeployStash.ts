@@ -1,11 +1,11 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {getVerifier} from "./helpers";
+import {getVerifier, getHardhatNetworkConfig, getNetworkConfig} from "./helpers";
 import {resolveProxyXAddress} from "../test/helpers";
 import {isSet, assert} from "./common";
 import {SprinterLiquidityMining} from "../typechain-types";
-import {networkConfig, Network, NetworkConfig} from "../network.config";
+import {Network, NetworkConfig} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -18,17 +18,10 @@ export async function main() {
 
   let network: Network;
   let config: NetworkConfig;
-  console.log(`Redeploying to: ${hre.network.name}`);
-  if (hre.network.name === "hardhat" && Object.values(Network).includes(process.env.DRY_RUN as Network)) {
-    network = process.env.DRY_RUN as Network;
-    config = networkConfig[network];
-    console.log(`Dry run on fork: ${network}`);
-  } else if (Object.values(Network).includes(hre.network.name as Network)) {
-    network = hre.network.name as Network;
-    config = networkConfig[network];
-  } else {
-    console.log(`Nothing to redeploy on ${hre.network.name} network`);
-    return;
+  console.log("Redeploying Stash");
+  ({network, config} = await getNetworkConfig());
+  if (!network) {
+    ({network, config} = await getHardhatNetworkConfig());
   }
 
   assert(config.Hub, "Must be a network with a hub");

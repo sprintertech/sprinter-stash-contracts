@@ -5,7 +5,7 @@ import {isAddress} from "ethers";
 import {getVerifier, upgradeProxyX, getHardhatNetworkConfig, getNetworkConfig} from "./helpers";
 import {getDeployProxyXAddress} from "../test/helpers";
 import {isSet, assert, DomainSolidity} from "./common";
-import {Rebalancer} from "../typechain-types";
+import {Repayer} from "../typechain-types";
 import {Network, NetworkConfig} from "../network.config";
 
 export async function main() {
@@ -19,7 +19,7 @@ export async function main() {
 
   let network: Network;
   let config: NetworkConfig;
-  console.log("Upgrading Rebalancer");
+  console.log("Upgrading Repayer");
   ({network, config} = await getNetworkConfig());
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
@@ -29,16 +29,16 @@ export async function main() {
   assert(isAddress(config.CCTP.TokenMessenger), "CCTP TokenMessenger must be an address");
   assert(isAddress(config.CCTP.MessageTransmitter), "CCTP MessageTransmitter must be an address");
 
-  const rebalancerAddress = await getDeployProxyXAddress("Rebalancer");
-  const rebalancerVersion = config.IsTest ? "TestRebalancer" : "Rebalancer";
+  const repayerAddress = await getDeployProxyXAddress("Repayer");
+  const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
 
-  await upgradeProxyX<Rebalancer>(
+  await upgradeProxyX<Repayer>(
     verifier.deployX,
-    rebalancerAddress,
-    rebalancerVersion,
+    repayerAddress,
+    repayerVersion,
     deployer,
     [DomainSolidity[network], config.USDC, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter],
-    "Rebalancer",
+    "Repayer",
   );
 
   await verifier.verify(process.env.VERIFY === "true");

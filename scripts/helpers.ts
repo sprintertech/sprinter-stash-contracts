@@ -281,7 +281,7 @@ export async function getHardhatNetworkConfig() {
     USDCStablecoinPool: true,
   };
 
-  console.log(`Using config for: hardhat`);
+  console.log("Using config for: hardhat");
   return {
     network, config, opsAdmin, superAdmin, mpc,
   };

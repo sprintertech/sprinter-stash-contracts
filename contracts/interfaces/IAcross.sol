@@ -112,6 +112,22 @@ interface V3SpokePoolInterface {
         bytes message
     );
 
+    event FundsDeposited(
+        bytes32 inputToken,
+        bytes32 outputToken,
+        uint256 inputAmount,
+        uint256 outputAmount,
+        uint256 indexed destinationChainId,
+        uint256 indexed depositId,
+        uint32 quoteTimestamp,
+        uint32 fillDeadline,
+        uint32 exclusivityDeadline,
+        bytes32 indexed depositor,
+        bytes32 recipient,
+        bytes32 exclusiveRelayer,
+        bytes message
+    );
+
     event RequestedSpeedUpV3Deposit(
         uint256 updatedOutputAmount,
         uint32 indexed depositId,

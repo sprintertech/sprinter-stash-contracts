@@ -1,11 +1,12 @@
 import {
-  loadFixture, setBalance
+  loadFixture, setBalance, time
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {expect} from "chai";
 import hre from "hardhat";
-import {AbiCoder} from "ethers";
+import {AbiCoder, zeroPadValue} from "ethers";
+import {anyValue} from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import {
-  getCreateAddress, getContractAt, deploy, deployX, toBytes32,
+  getCreateAddress, getContractAt, deploy, deployX, toBytes32
 } from "./helpers";
 import {
   ProviderSolidity as Provider, DomainSolidity as Domain, ZERO_ADDRESS,
@@ -19,6 +20,10 @@ import {
 
 const ALLOWED = true;
 const DISALLOWED = false;
+
+async function now() {
+  return BigInt(await time.latest());
+}
 
 describe("Repayer", function () {
   const deployAll = async () => {
@@ -396,6 +401,95 @@ describe("Repayer", function () {
 
     expect(await uni.balanceOf(repayer.target)).to.equal(6n * UNI_DEC);
   });
+
+  it.only("Should allow repayer to initiate Across repay with SpokePool on fork", async function () {
+    const {deployer, repayer, USDC_DEC, admin, repayUser, repayerAdmin, repayerProxy,
+      liquidityPool, cctpTokenMessenger, cctpMessageTransmitter
+    } = await loadFixture(deployAll);
+    
+
+    const acrossV3SpokePoolForkAddress = "0x5c7BCd6E7De5423a257D81B442095A1a6ced35C5";
+    const acrossV3SpokePoolFork = await hre.ethers.getContractAt("V3SpokePoolInterface", acrossV3SpokePoolForkAddress);
+    const base_usdc = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+
+    const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+    const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;
+    if (!USDC_OWNER_ADDRESS) throw new Error("Env variables not configured (USDC_OWNER_ADDRESS missing)");
+    const usdc = await hre.ethers.getContractAt("ERC20", USDC_ADDRESS);
+    const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ADDRESS);
+
+    const repayerImpl2 = (
+      await deployX("Repayer", deployer, "Repayer2", {},
+        Domain.ETHEREUM, usdc.target, cctpTokenMessenger.target, cctpMessageTransmitter.target, acrossV3SpokePoolFork.target,
+      )
+    ) as Repayer;
+
+    expect(await repayerAdmin.connect(admin).upgradeAndCall(repayerProxy, repayerImpl2, "0x"))
+      .to.emit(repayerProxy, "Upgraded");
+    expect(await repayer.ACROSS_SPOKE_POOL())
+      .to.equal(acrossV3SpokePoolFork.target);
+
+    await usdc.connect(usdcOwner).transfer(repayer.target, 10n * USDC_DEC);
+
+    await repayer.connect(admin).setRoute(
+      [liquidityPool.target],
+      [Domain.BASE],
+      [Provider.ACROSS],
+      [true],
+      ALLOWED
+    );
+    const amount = 4n * USDC_DEC;
+    const currentTime = await now();
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256", "address", "uint32", "uint32", "uint32"],
+      [base_usdc, amount * 998n / 1000n, ZERO_ADDRESS, currentTime - 1n, currentTime + 2n, 0n]
+    );
+    const tx = repayer.connect(repayUser).initiateRepay(
+      usdc.target,
+      amount,
+      liquidityPool.target,
+      Domain.BASE,
+      Provider.ACROSS,
+      extraData
+    );
+    await expect(tx)
+      .to.emit(repayer, "InitiateRepay")
+      .withArgs(usdc.target, amount, liquidityPool.target, Domain.BASE, Provider.ACROSS);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(repayer.target, acrossV3SpokePoolFork.target, amount);
+    await expect(tx)
+      .to.emit(acrossV3SpokePoolFork, "FundsDeposited")
+      // address inputToken,
+      // address outputToken,
+      // uint256 inputAmount,
+      // uint256 outputAmount,
+      // uint256 indexed destinationChainId,
+      // uint32 indexed depositId,
+      // uint32 quoteTimestamp,
+      // uint32 fillDeadline,
+      // uint32 exclusivityDeadline,
+      // address indexed depositor,
+      // address recipient,
+      // address exclusiveRelayer,
+      // bytes message
+      .withArgs(
+        zeroPadValue(usdc.target.toString(), 32),
+        zeroPadValue(base_usdc.toString(), 32),
+        amount,
+        amount * 998n / 1000n,
+        await repayer.domainChainId(Domain.BASE),
+        anyValue,
+        currentTime - 1n,
+        currentTime + 2n,
+        0n,
+        zeroPadValue(repayer.target.toString(), 32),
+        zeroPadValue(liquidityPool.target.toString(), 32),
+        zeroPadValue("0x", 32),
+        "0x"
+      );
+  });
+
 
   it("Should revert Across repay if call to Across reverts", async function () {
     const {repayer, UNI_DEC, admin, repayUser,

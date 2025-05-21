@@ -35,7 +35,7 @@ abstract contract AcrossAdapter is BridgeAdapter {
             uint32 fillDeadline, // Validated in the spoke pool
             uint32 exclusivityDeadline
         ) = abi.decode(extraData, (address, uint256, address, uint32, uint32, uint32));
-        require(outputAmount > (amount * 9 / 10), SlippageTooHigh()); // TODO: Probably needs to be stricter.
+        require(outputAmount >= (amount * 9980 / 10000), SlippageTooHigh());
         ACROSS_SPOKE_POOL.depositV3(
             address(this),
             destinationPool,

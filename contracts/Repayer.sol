@@ -135,7 +135,7 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapt
             initiateTransferCCTP(ASSETS, amount, destinationPool, destinationDomain);
         } else
         if (provider == Provider.ACROSS) {
-            initiateTransferAcross(ASSETS, amount, destinationPool, destinationDomain, extraData);
+            initiateTransferAcross(token, amount, destinationPool, destinationDomain, extraData);
         } else {
             // Unreachable atm, but could become so when more providers are added to enum.
             revert UnsupportedProvider();

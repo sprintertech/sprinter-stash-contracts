@@ -289,20 +289,171 @@ describe("Repayer", function () {
     expect(await usdc.balanceOf(repayer.target)).to.equal(6n * USDC_DEC);
   });
 
-  it.skip("Should allow repayer to initiate Across repay", async function () {
+  it("Should allow repayer to initiate Across repay", async function () {
+    const {repayer, usdc, USDC_DEC, admin, repayUser,
+      liquidityPool, acrossV3SpokePool, uni, user,
+    } = await loadFixture(deployAll);
 
+    await usdc.transfer(repayer.target, 10n * USDC_DEC);
+
+    await repayer.connect(admin).setRoute(
+      [liquidityPool.target],
+      [Domain.ETHEREUM],
+      [Provider.ACROSS],
+      [true],
+      ALLOWED
+    );
+    const amount = 4n * USDC_DEC;
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256", "address", "uint32", "uint32", "uint32"],
+      [uni.target, amount + 1n, user.address, 1n, 2n, 3n]
+    );
+    const tx = repayer.connect(repayUser).initiateRepay(
+      usdc.target,
+      amount,
+      liquidityPool.target,
+      Domain.ETHEREUM,
+      Provider.ACROSS,
+      extraData
+    );
+    await expect(tx)
+      .to.emit(repayer, "InitiateRepay")
+      .withArgs(usdc.target, amount, liquidityPool.target, Domain.ETHEREUM, Provider.ACROSS);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(repayer.target, acrossV3SpokePool.target, amount);
+    await expect(tx)
+      .to.emit(acrossV3SpokePool, "V3FundsDeposited")
+      .withArgs(
+        usdc.target,
+        uni.target,
+        amount,
+        amount + 1n,
+        1n,
+        1337n,
+        1n,
+        2n,
+        3n,
+        repayer.target,
+        liquidityPool.target,
+        user.address,
+        "0x"
+      );
+
+    expect(await usdc.balanceOf(repayer.target)).to.equal(6n * USDC_DEC);
   });
 
-  it.skip("Should allow repayer to initiate Across repay with a different token", async function () {
+  it("Should allow repayer to initiate Across repay with a different token", async function () {
+    const {repayer, UNI_DEC, admin, repayUser,
+      liquidityPool, acrossV3SpokePool, uni, user, uniOwner,
+    } = await loadFixture(deployAll);
 
+    await uni.connect(uniOwner).transfer(repayer.target, 10n * UNI_DEC);
+
+    await repayer.connect(admin).setRoute(
+      [liquidityPool.target],
+      [Domain.ETHEREUM],
+      [Provider.ACROSS],
+      [true],
+      ALLOWED
+    );
+    const amount = 4n * UNI_DEC;
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256", "address", "uint32", "uint32", "uint32"],
+      [ZERO_ADDRESS, amount * 998n / 1000n, user.address, 1n, 2n, 3n]
+    );
+    const tx = repayer.connect(repayUser).initiateRepay(
+      uni.target,
+      amount,
+      liquidityPool.target,
+      Domain.ETHEREUM,
+      Provider.ACROSS,
+      extraData
+    );
+    await expect(tx)
+      .to.emit(repayer, "InitiateRepay")
+      .withArgs(uni.target, amount, liquidityPool.target, Domain.ETHEREUM, Provider.ACROSS);
+    await expect(tx)
+      .to.emit(uni, "Transfer")
+      .withArgs(repayer.target, acrossV3SpokePool.target, amount);
+    await expect(tx)
+      .to.emit(acrossV3SpokePool, "V3FundsDeposited")
+      .withArgs(
+        uni.target,
+        ZERO_ADDRESS,
+        amount,
+        amount * 998n / 1000n,
+        1n,
+        1337n,
+        1n,
+        2n,
+        3n,
+        repayer.target,
+        liquidityPool.target,
+        user.address,
+        "0x"
+      );
+
+    expect(await uni.balanceOf(repayer.target)).to.equal(6n * UNI_DEC);
   });
 
-  it.skip("Should revert Across repay if call to Across reverts", async function () {
+  it("Should revert Across repay if call to Across reverts", async function () {
+    const {repayer, UNI_DEC, admin, repayUser,
+      liquidityPool, acrossV3SpokePool, uni, user, uniOwner,
+    } = await loadFixture(deployAll);
 
+    await uni.connect(uniOwner).transfer(repayer.target, 10n * UNI_DEC);
+
+    await repayer.connect(admin).setRoute(
+      [liquidityPool.target],
+      [Domain.ETHEREUM],
+      [Provider.ACROSS],
+      [true],
+      ALLOWED
+    );
+    const amount = 4n * UNI_DEC;
+    const fillDeadlineError = 0n;
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256", "address", "uint32", "uint32", "uint32"],
+      [ZERO_ADDRESS, amount, user.address, 1n, fillDeadlineError, 3n]
+    );
+    await expect(repayer.connect(repayUser).initiateRepay(
+      uni.target,
+      amount,
+      liquidityPool.target,
+      Domain.ETHEREUM,
+      Provider.ACROSS,
+      extraData
+    )).to.be.revertedWithCustomError(acrossV3SpokePool, "InvalidFillDeadline()");
   });
 
-  it.skip("Should revert Across repay if slippage is above 10%", async function () {
+  it("Should revert Across repay if slippage is above 10%", async function () {
+    const {repayer, UNI_DEC, admin, repayUser,
+      liquidityPool, uni, user, uniOwner,
+    } = await loadFixture(deployAll);
 
+    await uni.connect(uniOwner).transfer(repayer.target, 10n * UNI_DEC);
+
+    await repayer.connect(admin).setRoute(
+      [liquidityPool.target],
+      [Domain.ETHEREUM],
+      [Provider.ACROSS],
+      [true],
+      ALLOWED
+    );
+    const amount = 4n * UNI_DEC;
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256", "address", "uint32", "uint32", "uint32"],
+      [ZERO_ADDRESS, amount * 998n / 1000n - 1n, user.address, 1n, 2n, 3n]
+    );
+    await expect(repayer.connect(repayUser).initiateRepay(
+      uni.target,
+      amount,
+      liquidityPool.target,
+      Domain.ETHEREUM,
+      Provider.ACROSS,
+      extraData
+    )).to.be.revertedWithCustomError(repayer, "SlippageTooHigh()");
   });
 
   it("Should allow repayer to initiate repay of a different token", async function () {

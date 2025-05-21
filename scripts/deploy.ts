@@ -7,7 +7,7 @@ import {
   getVerifier, deployProxyX, getHardhatNetworkConfig, getNetworkConfig,
 } from "./helpers";
 import {
-  assert, isSet, ProviderSolidity, DomainSolidity, DEFAULT_ADMIN_ROLE,
+  assert, isSet, ProviderSolidity, DomainSolidity, DEFAULT_ADMIN_ROLE, ZERO_ADDRESS
 } from "./common";
 import {
   SprinterUSDCLPShare, LiquidityHub, SprinterLiquidityMining,
@@ -71,6 +71,10 @@ export async function main() {
       Providers: [],
       SupportsAllTokens: [],
     };
+  }
+
+  if (!config.AcrossV3SpokePool) {
+    config.AcrossV3SpokePool = ZERO_ADDRESS;
   }
 
   let mainPool: LiquidityPool;
@@ -202,7 +206,13 @@ export async function main() {
     repayerVersion,
     deployer,
     config.Admin,
-    [DomainSolidity[network], config.USDC, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter],
+    [
+      DomainSolidity[network],
+      config.USDC,
+      config.CCTP.TokenMessenger,
+      config.CCTP.MessageTransmitter,
+      config.AcrossV3SpokePool
+    ],
     [
       config.Admin,
       config.RepayerCaller,

@@ -4,18 +4,17 @@ import hre from "hardhat";
 import {MaxUint256, isAddress} from "ethers";
 import {toBytes32, resolveProxyXAddress} from "../test/helpers";
 import {
-  getVerifier, deployProxyX,
+  getVerifier, deployProxyX, getHardhatNetworkConfig, getNetworkConfig,
 } from "./helpers";
 import {
   assert, isSet, ProviderSolidity, DomainSolidity, DEFAULT_ADMIN_ROLE,
 } from "./common";
 import {
-  TestUSDC, SprinterUSDCLPShare, LiquidityHub,
-  SprinterLiquidityMining, TestCCTPTokenMessenger, TestCCTPMessageTransmitter,
+  SprinterUSDCLPShare, LiquidityHub, SprinterLiquidityMining,
   Rebalancer, Repayer, LiquidityPool, LiquidityPoolAave, LiquidityPoolStablecoin
 } from "../typechain-types";
 import {
-  networkConfig, Network, Provider, NetworkConfig, LiquidityPoolUSDC,
+  Network, Provider, NetworkConfig, LiquidityPoolUSDC,
   LiquidityPoolAaveUSDC, LiquidityPoolUSDCStablecoin
 } from "../network.config";
 
@@ -32,72 +31,14 @@ export async function main() {
 
   let network: Network;
   let config: NetworkConfig;
-  console.log(`Deploying to: ${hre.network.name}`);
-  if (hre.network.name === "hardhat" && Object.values(Network).includes(process.env.DRY_RUN as Network)) {
-    network = process.env.DRY_RUN as Network;
-    config = networkConfig[network];
-    if (process.env.DEPLOY_TYPE == "STAGE") {
-      assert(config.Stage != undefined, "Stage config must be defined");
-      console.log(`Deploying staging set of contracts on fork: ${network}`);
-      config = config.Stage!;
-    }
-    console.log(`Dry run on fork: ${network}`);
-  } else if (Object.values(Network).includes(hre.network.name as Network)) {
-    network = hre.network.name as Network;
-    config = networkConfig[network];
-    if (process.env.DEPLOY_TYPE == "STAGE") {
-      assert(config.Stage != undefined, "Stage config must be defined");
-      console.log(`Deploying staging set of contracts on: ${network}`);
-      config = config.Stage!;
-    }
-  } else {
-    network = Network.BASE;
+  console.log("Deploying contracts set");
+  ({network, config} = await getNetworkConfig());
+  if (!network) {
     console.log("TEST: Using TEST USDC and CCTP");
-    const testUSDC = (await verifier.deploy("TestUSDC", deployer)) as TestUSDC;
-    const cctpTokenMessenger = (await verifier.deploy("TestCCTPTokenMessenger", deployer)) as TestCCTPTokenMessenger;
-    const cctpMessageTransmitter = (
-      await verifier.deploy("TestCCTPMessageTransmitter", deployer)
-    ) as TestCCTPMessageTransmitter;
-    const [, opsAdmin, superAdmin, mpc] = await hre.ethers.getSigners();
-    config = {
-      chainId: 31337,
-      CCTP: {
-        TokenMessenger: await cctpTokenMessenger.getAddress(),
-        MessageTransmitter: await cctpMessageTransmitter.getAddress(),
-      },
-      USDC: await testUSDC.getAddress(),
-      IsTest: false,
-      Hub: {
-        AssetsAdjuster: superAdmin.address,
-        DepositProfit: opsAdmin.address,
-        AssetsLimitSetter: opsAdmin.address,
-        AssetsLimit: 10_000_000,
-        Tiers: [
-          {period: 7776000n, multiplier: 300000000n},
-          {period: 15552000n, multiplier: 800000000n},
-          {period: 31104000n, multiplier: 1666666667n},
-        ]
-      },
-      Admin: superAdmin.address,
-      WithdrawProfit: opsAdmin.address,
-      Pauser: opsAdmin.address,
-      RebalanceCaller: opsAdmin.address,
-      RepayerCaller: opsAdmin.address,
-      MpcAddress: mpc.address,
-      RebalancerRoutes: {
-        Pools: [LiquidityPoolUSDC],
-        Domains: [Network.ETHEREUM],
-        Providers: [Provider.CCTP],
-      },
-      RepayerRoutes: {
-        Pools: [LiquidityPoolUSDC],
-        Domains: [Network.ETHEREUM],
-        Providers: [Provider.CCTP],
-        SupportsAllTokens: [false],
-      },
-      USDCPool: true,
-      USDCStablecoinPool: true,
-    };
+    await verifier.deployX("TestUSDC", deployer);
+    await verifier.deployX("TestCCTPTokenMessenger", deployer);
+    await verifier.deployX("TestCCTPMessageTransmitter", deployer);
+    ({network, config} = await getHardhatNetworkConfig());
   }
 
   assert(config.AavePool! || config.USDCPool! || config.USDCStablecoinPool!,

@@ -402,7 +402,7 @@ describe("Repayer", function () {
     expect(await uni.balanceOf(repayer.target)).to.equal(6n * UNI_DEC);
   });
 
-  it.only("Should allow repayer to initiate Across repay with SpokePool on fork", async function () {
+  it("Should allow repayer to initiate Across repay with SpokePool on fork", async function () {
     const {deployer, repayer, USDC_DEC, admin, repayUser, repayerAdmin, repayerProxy,
       liquidityPool, cctpTokenMessenger, cctpMessageTransmitter
     } = await loadFixture(deployAll);
@@ -419,8 +419,16 @@ describe("Repayer", function () {
     const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ADDRESS);
 
     const repayerImpl2 = (
-      await deployX("Repayer", deployer, "Repayer2", {},
-        Domain.ETHEREUM, usdc.target, cctpTokenMessenger.target, cctpMessageTransmitter.target, acrossV3SpokePoolFork.target,
+      await deployX(
+        "Repayer",
+        deployer, 
+        "Repayer2", 
+        {},
+        Domain.ETHEREUM, 
+        usdc.target,
+        cctpTokenMessenger.target,
+        cctpMessageTransmitter.target,
+        acrossV3SpokePoolFork.target,
       )
     ) as Repayer;
 

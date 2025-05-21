@@ -28,4 +28,8 @@ interface IRoute {
         ASSETS,
         ALL
     }
+
+    error ZeroAddress();
+    error ProcessFailed();
+    error UnsupportedDomain();
 }

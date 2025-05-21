@@ -22,6 +22,7 @@ export enum Network {
 export enum Provider {
   LOCAL = "LOCAL",
   CCTP = "CCTP",
+  ACROSS = "ACROSS",
 };
 
 interface CCTPConfig {

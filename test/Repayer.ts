@@ -14,6 +14,7 @@ import {
 import {
   TestUSDC, TransparentUpgradeableProxy, ProxyAdmin,
   TestLiquidityPool, Repayer, TestCCTPTokenMessenger, TestCCTPMessageTransmitter,
+  TestAcrossV3SpokePool,
 } from "../typechain-types";
 
 const ALLOWED = true;
@@ -32,7 +33,10 @@ describe("Repayer", function () {
     const cctpTokenMessenger = (await deploy("TestCCTPTokenMessenger", deployer, {})) as TestCCTPTokenMessenger;
     const cctpMessageTransmitter = (
       await deploy("TestCCTPMessageTransmitter", deployer, {})
-    ) as TestCCTPMessageTransmitter
+    ) as TestCCTPMessageTransmitter;
+    const acrossV3SpokePool = (
+      await deploy("TestAcrossV3SpokePool", deployer, {})
+    ) as TestAcrossV3SpokePool;
 
     const USDC_DEC = 10n ** (await usdc.decimals());
 
@@ -46,7 +50,7 @@ describe("Repayer", function () {
 
     const repayerImpl = (
       await deployX("Repayer", deployer, "Repayer", {},
-        Domain.BASE, usdc.target, cctpTokenMessenger.target, cctpMessageTransmitter.target
+        Domain.BASE, usdc.target, cctpTokenMessenger.target, cctpMessageTransmitter.target, acrossV3SpokePool.target,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -70,18 +74,19 @@ describe("Repayer", function () {
     return {
       deployer, admin, repayUser, user, usdc,
       USDC_DEC, uni, UNI_DEC, uniOwner, liquidityPool, liquidityPool2, repayer, repayerProxy, repayerAdmin,
-      cctpTokenMessenger, cctpMessageTransmitter, REPAYER_ROLE, DEFAULT_ADMIN_ROLE,
+      cctpTokenMessenger, cctpMessageTransmitter, REPAYER_ROLE, DEFAULT_ADMIN_ROLE, acrossV3SpokePool,
     };
   };
 
   it("Should have default values", async function () {
     const {liquidityPool, liquidityPool2, repayer, usdc, REPAYER_ROLE, DEFAULT_ADMIN_ROLE,
-      cctpTokenMessenger, cctpMessageTransmitter, admin, repayUser, deployer,
+      cctpTokenMessenger, cctpMessageTransmitter, admin, repayUser, deployer, acrossV3SpokePool,
     } = await loadFixture(deployAll);
 
     expect(await repayer.ASSETS()).to.equal(usdc.target);
     expect(await repayer.CCTP_TOKEN_MESSENGER()).to.equal(cctpTokenMessenger.target);
     expect(await repayer.CCTP_MESSAGE_TRANSMITTER()).to.equal(cctpMessageTransmitter.target);
+    expect(await repayer.ACROSS_SPOKE_POOL()).to.equal(acrossV3SpokePool.target);
     expect(await repayer.REPAYER_ROLE()).to.equal(REPAYER_ROLE);
     expect(await repayer.isRouteAllowed(liquidityPool.target, Domain.BASE, Provider.LOCAL)).to.be.true;
     expect(await repayer.isRouteAllowed(liquidityPool2.target, Domain.BASE, Provider.LOCAL)).to.be.true;
@@ -90,6 +95,7 @@ describe("Repayer", function () {
     expect(await repayer.isRouteAllowed(liquidityPool.target, Domain.ETHEREUM, Provider.CCTP)).to.be.true;
     expect(await repayer.isRouteAllowed(liquidityPool.target, Domain.AVALANCHE, Provider.CCTP)).to.be.false;
     expect(await repayer.isRouteAllowed(liquidityPool.target, Domain.ARBITRUM_ONE, Provider.CCTP)).to.be.true;
+    expect(await repayer.isRouteAllowed(liquidityPool.target, Domain.ETHEREUM, Provider.ACROSS)).to.be.false;
     expect(await repayer.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be.true;
     expect(await repayer.hasRole(DEFAULT_ADMIN_ROLE, deployer.address)).to.be.false;
     expect(await repayer.hasRole(REPAYER_ROLE, repayUser.address)).to.be.true;
@@ -100,6 +106,12 @@ describe("Repayer", function () {
     expect(await repayer.domainCCTP(Domain.ARBITRUM_ONE)).to.equal(3n);
     expect(await repayer.domainCCTP(Domain.BASE)).to.equal(6n);
     expect(await repayer.domainCCTP(Domain.POLYGON_MAINNET)).to.equal(7n);
+    expect(await repayer.domainChainId(Domain.ETHEREUM)).to.equal(1n);
+    expect(await repayer.domainChainId(Domain.AVALANCHE)).to.equal(43114n);
+    expect(await repayer.domainChainId(Domain.OP_MAINNET)).to.equal(10n);
+    expect(await repayer.domainChainId(Domain.ARBITRUM_ONE)).to.equal(42161n);
+    expect(await repayer.domainChainId(Domain.BASE)).to.equal(8453n);
+    expect(await repayer.domainChainId(Domain.POLYGON_MAINNET)).to.equal(137n);
     expect(await repayer.getAllRoutes()).to.deep.equal([
       [liquidityPool.target, liquidityPool.target, liquidityPool.target, liquidityPool2.target],
       [Domain.ETHEREUM, Domain.ARBITRUM_ONE, Domain.BASE, Domain.BASE],
@@ -250,7 +262,7 @@ describe("Repayer", function () {
     )).to.be.revertedWithCustomError(repayer, "AccessControlUnauthorizedAccount(address,bytes32)");
   });
 
-  it("Should allow repayer to initiate repay", async function () {
+  it("Should allow repayer to initiate CCTP repay", async function () {
     const {repayer, usdc, USDC_DEC, repayUser, liquidityPool,
       cctpTokenMessenger
     } = await loadFixture(deployAll);
@@ -275,6 +287,22 @@ describe("Repayer", function () {
       .withArgs(cctpTokenMessenger.target, ZERO_ADDRESS, 4n * USDC_DEC);
 
     expect(await usdc.balanceOf(repayer.target)).to.equal(6n * USDC_DEC);
+  });
+
+  it.skip("Should allow repayer to initiate Across repay", async function () {
+
+  });
+
+  it.skip("Should allow repayer to initiate Across repay with a different token", async function () {
+
+  });
+
+  it.skip("Should revert Across repay if call to Across reverts", async function () {
+
+  });
+
+  it.skip("Should revert Across repay if slippage is above 10%", async function () {
+
   });
 
   it("Should allow repayer to initiate repay of a different token", async function () {

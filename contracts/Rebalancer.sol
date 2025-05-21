@@ -8,7 +8,6 @@ import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/acce
 import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 import {ILiquidityPool} from "./interfaces/ILiquidityPool.sol";
 import {IRebalancer} from "./interfaces/IRebalancer.sol";
-import {ICCTPTokenMessenger, ICCTPMessageTransmitter} from "./interfaces/ICCTP.sol";
 import {CCTPAdapter} from "./utils/CCTPAdapter.sol";
 
 /// @title Facilitates liquidity movement between Liquidity Pools on same/different chains.
@@ -24,8 +23,6 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable, CCTPAdapter {
 
     Domain immutable public DOMAIN;
     IERC20 immutable public ASSETS;
-    ICCTPTokenMessenger immutable public CCTP_TOKEN_MESSENGER;
-    ICCTPMessageTransmitter immutable public CCTP_MESSAGE_TRANSMITTER;
     bytes32 constant public REBALANCER_ROLE = "REBALANCER_ROLE";
 
     event InitiateRebalance(
@@ -38,7 +35,6 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable, CCTPAdapter {
     event ProcessRebalance(uint256 amount, address destinationPool, Provider provider);
     event SetRoute(address destinationPool, Domain destinationDomain, Provider provider, bool isAllowed);
 
-    error ZeroAddress();
     error ZeroAmount();
     error RouteDenied();
     error InvalidRoute();
@@ -59,18 +55,16 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable, CCTPAdapter {
         IERC20 assets,
         address cctpTokenMessenger,
         address cctpMessageTransmitter
-    ) {
+    )
+        CCTPAdapter(cctpTokenMessenger, cctpMessageTransmitter)
+    {
         ERC7201Helper.validateStorageLocation(
             STORAGE_LOCATION,
             "sprinter.storage.Rebalancer"
         );
         require(address(assets) != address(0), ZeroAddress());
-        require(cctpTokenMessenger != address(0), ZeroAddress());
-        require(cctpMessageTransmitter != address(0), ZeroAddress());
         DOMAIN = localDomain;
         ASSETS = assets;
-        CCTP_TOKEN_MESSENGER = ICCTPTokenMessenger(cctpTokenMessenger);
-        CCTP_MESSAGE_TRANSMITTER = ICCTPMessageTransmitter(cctpMessageTransmitter);
 
         _disableInitializers();
     }
@@ -188,7 +182,7 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable, CCTPAdapter {
             _processRebalanceLOCAL(amount, destinationPool);
         } else
         if (provider == Provider.CCTP) {
-            initiateTransferCCTP(CCTP_TOKEN_MESSENGER, ASSETS, amount, destinationPool, destinationDomain);
+            initiateTransferCCTP(ASSETS, amount, destinationPool, destinationDomain);
         } else {
             // Unreachable atm, but could become so when more providers are added to enum.
             revert UnsupportedProvider();
@@ -203,7 +197,7 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable, CCTPAdapter {
         require(isRouteAllowed(destinationPool, DOMAIN, Provider.LOCAL), RouteDenied());
         uint256 depositAmount = 0;
         if (provider == Provider.CCTP) {
-            depositAmount = processTransferCCTP(CCTP_MESSAGE_TRANSMITTER, ASSETS, destinationPool, extraData);
+            depositAmount = processTransferCCTP(ASSETS, destinationPool, extraData);
             ILiquidityPool(destinationPool).deposit(depositAmount);
         } else {
             // Unreachable atm, but could become so when more providers are added to enum.

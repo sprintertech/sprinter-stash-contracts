@@ -173,33 +173,33 @@ interface V3SpokePoolInterface {
         bytes calldata message
     ) external payable;
 
-    function speedUpV3Deposit(
-        address depositor,
-        uint32 depositId,
-        uint256 updatedOutputAmount,
-        address updatedRecipient,
-        bytes calldata updatedMessage,
-        bytes calldata depositorSignature
-    ) external;
+    // function speedUpV3Deposit(
+    //     address depositor,
+    //     uint32 depositId,
+    //     uint256 updatedOutputAmount,
+    //     address updatedRecipient,
+    //     bytes calldata updatedMessage,
+    //     bytes calldata depositorSignature
+    // ) external;
 
-    function fillV3Relay(V3RelayData calldata relayData, uint256 repaymentChainId) external;
+    // function fillV3Relay(V3RelayData calldata relayData, uint256 repaymentChainId) external;
 
-    function fillV3RelayWithUpdatedDeposit(
-        V3RelayData calldata relayData,
-        uint256 repaymentChainId,
-        uint256 updatedOutputAmount,
-        address updatedRecipient,
-        bytes calldata updatedMessage,
-        bytes calldata depositorSignature
-    ) external;
+    // function fillV3RelayWithUpdatedDeposit(
+    //     V3RelayData calldata relayData,
+    //     uint256 repaymentChainId,
+    //     uint256 updatedOutputAmount,
+    //     address updatedRecipient,
+    //     bytes calldata updatedMessage,
+    //     bytes calldata depositorSignature
+    // ) external;
 
-    function requestV3SlowFill(V3RelayData calldata relayData) external;
+    // function requestV3SlowFill(V3RelayData calldata relayData) external;
 
-    function executeV3SlowRelayLeaf(
-        V3SlowFill calldata slowFillLeaf,
-        uint32 rootBundleId,
-        bytes32[] calldata proof
-    ) external;
+    // function executeV3SlowRelayLeaf(
+    //     V3SlowFill calldata slowFillLeaf,
+    //     uint32 rootBundleId,
+    //     bytes32[] calldata proof
+    // ) external;
 
     /**************************************
      *              ERRORS                *

@@ -192,10 +192,24 @@ export const networkConfig: NetworksConfig = {
         Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP],
       },
       RepayerRoutes: {
-        Pools: [LiquidityPoolAaveUSDC, LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
-        Domains: [Network.BASE, Network.ARBITRUM_ONE, Network.BASE, Network.ARBITRUM_ONE],
-        Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP],
-        SupportsAllTokens: [true, true, false, false],
+        Pools: [
+          LiquidityPoolAaveUSDC,
+          LiquidityPoolAaveUSDC,
+          LiquidityPoolUSDC,
+          LiquidityPoolUSDC,
+          LiquidityPoolAaveUSDC,
+          LiquidityPoolAaveUSDC
+        ],
+        Domains: [
+          Network.BASE,
+          Network.ARBITRUM_ONE,
+          Network.BASE,
+          Network.ARBITRUM_ONE,
+          Network.BASE,
+          Network.ARBITRUM_ONE
+        ],
+        Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.ACROSS, Provider.ACROSS],
+        SupportsAllTokens: [true, true, false, false, true, true],
       },
       AavePool: {
         AaveAddressesProvider: AAVEPools.AaveV3Optimism.POOL_ADDRESSES_PROVIDER,
@@ -258,10 +272,24 @@ export const networkConfig: NetworksConfig = {
         Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP],
       },
       RepayerRoutes: {
-        Pools: [LiquidityPoolAaveUSDC, LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
-        Domains: [Network.BASE, Network.OP_MAINNET, Network.BASE, Network.OP_MAINNET],
-        Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP],
-        SupportsAllTokens: [true, true, false, false],
+        Pools: [
+          LiquidityPoolAaveUSDC,
+          LiquidityPoolAaveUSDC,
+          LiquidityPoolUSDC,
+          LiquidityPoolUSDC,
+          LiquidityPoolAaveUSDC,
+          LiquidityPoolAaveUSDC
+        ],
+        Domains: [
+          Network.BASE,
+          Network.OP_MAINNET,
+          Network.BASE,
+          Network.OP_MAINNET,
+          Network.BASE,
+          Network.OP_MAINNET
+        ],
+        Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.ACROSS, Provider.ACROSS],
+        SupportsAllTokens: [true, true, false, false, true, true],
       },
       AavePool: {
         AaveAddressesProvider: AAVEPools.AaveV3Arbitrum.POOL_ADDRESSES_PROVIDER,
@@ -346,10 +374,24 @@ export const networkConfig: NetworksConfig = {
         Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP],
       },
       RepayerRoutes: {
-        Pools: [LiquidityPoolAaveUSDC, LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
-        Domains: [Network.OP_MAINNET, Network.ARBITRUM_ONE, Network.OP_MAINNET, Network.ARBITRUM_ONE],
-        Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP],
-        SupportsAllTokens: [true, true, false, false],
+        Pools: [
+          LiquidityPoolAaveUSDC,
+          LiquidityPoolAaveUSDC,
+          LiquidityPoolUSDC,
+          LiquidityPoolUSDC,
+          LiquidityPoolAaveUSDC,
+          LiquidityPoolAaveUSDC
+        ],
+        Domains: [
+          Network.OP_MAINNET,
+          Network.ARBITRUM_ONE,
+          Network.OP_MAINNET,
+          Network.ARBITRUM_ONE,
+          Network.OP_MAINNET,
+          Network.ARBITRUM_ONE
+        ],
+        Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.ACROSS, Provider.ACROSS],
+        SupportsAllTokens: [true, true, false, false, true, true],
       },
       AavePool: {
         AaveAddressesProvider: AAVEPools.AaveV3Base.POOL_ADDRESSES_PROVIDER,

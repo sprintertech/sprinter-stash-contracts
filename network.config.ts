@@ -105,7 +105,7 @@ export const networkConfig: NetworksConfig = {
       MessageTransmitter: "0x0a992d191deec32afe36203ad87d7d289a738f81",
     },
     AcrossV3SpokePool: "0x5c7BCd6E7De5423a257D81B442095A1a6ced35C5",
-    USDC: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+    USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
     IsTest: false,
     Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
     WithdrawProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",

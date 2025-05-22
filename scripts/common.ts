@@ -1,7 +1,13 @@
+import {isAddress} from "ethers";
+
 export function assert(condition: any, message: string): asserts condition {
   if (!condition) {
     throw new Error(message);
   }
+}
+
+export function assertAddress(address: any, message: string): asserts address {
+  assert(isAddress(address), message);
 }
 
 export function sleep(msec: number): Promise<boolean> {

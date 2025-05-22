@@ -10,19 +10,24 @@ import {
 } from "./helpers";
 import {
   ProviderSolidity as Provider, DomainSolidity as Domain, ZERO_ADDRESS,
-  DEFAULT_ADMIN_ROLE,
+  DEFAULT_ADMIN_ROLE, assertAddress,
 } from "../scripts/common";
 import {
   TestUSDC, TransparentUpgradeableProxy, ProxyAdmin,
   TestLiquidityPool, Repayer, TestCCTPTokenMessenger, TestCCTPMessageTransmitter,
   TestAcrossV3SpokePool,
 } from "../typechain-types";
+import {networkConfig, Network} from "../network.config";
 
 const ALLOWED = true;
 const DISALLOWED = false;
 
 async function now() {
   return BigInt(await time.latest());
+}
+
+function addressToBytes32(address: any) {
+  return zeroPadValue(address.toString(), 32);
 }
 
 describe("Repayer", function () {
@@ -328,10 +333,10 @@ describe("Repayer", function () {
       .to.emit(usdc, "Transfer")
       .withArgs(repayer.target, acrossV3SpokePool.target, amount);
     await expect(tx)
-      .to.emit(acrossV3SpokePool, "V3FundsDeposited")
+      .to.emit(acrossV3SpokePool, "FundsDeposited")
       .withArgs(
-        usdc.target,
-        uni.target,
+        addressToBytes32(usdc.target),
+        addressToBytes32(uni.target),
         amount,
         amount + 1n,
         1n,
@@ -339,9 +344,9 @@ describe("Repayer", function () {
         1n,
         2n,
         3n,
-        repayer.target,
-        liquidityPool.target,
-        user.address,
+        addressToBytes32(repayer.target),
+        addressToBytes32(liquidityPool.target),
+        addressToBytes32(user.address),
         "0x"
       );
 
@@ -382,10 +387,10 @@ describe("Repayer", function () {
       .to.emit(uni, "Transfer")
       .withArgs(repayer.target, acrossV3SpokePool.target, amount);
     await expect(tx)
-      .to.emit(acrossV3SpokePool, "V3FundsDeposited")
+      .to.emit(acrossV3SpokePool, "FundsDeposited")
       .withArgs(
-        uni.target,
-        ZERO_ADDRESS,
+        addressToBytes32(uni.target),
+        addressToBytes32(ZERO_ADDRESS),
         amount,
         amount * 998n / 1000n,
         1n,
@@ -393,9 +398,9 @@ describe("Repayer", function () {
         1n,
         2n,
         3n,
-        repayer.target,
-        liquidityPool.target,
-        user.address,
+        addressToBytes32(repayer.target),
+        addressToBytes32(liquidityPool.target),
+        addressToBytes32(user.address),
         "0x"
       );
 
@@ -407,15 +412,15 @@ describe("Repayer", function () {
       liquidityPool, cctpTokenMessenger, cctpMessageTransmitter
     } = await loadFixture(deployAll);
     
+    const acrossV3SpokePoolFork = await hre.ethers.getContractAt(
+      "V3SpokePoolInterface",
+      networkConfig[Network.ETHEREUM].AcrossV3SpokePool!
+    );
+    const USDC_BASE_ADDRESS = networkConfig[Network.BASE].USDC;
 
-    const acrossV3SpokePoolForkAddress = "0x5c7BCd6E7De5423a257D81B442095A1a6ced35C5";
-    const acrossV3SpokePoolFork = await hre.ethers.getContractAt("V3SpokePoolInterface", acrossV3SpokePoolForkAddress);
-    const base_usdc = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
-
-    const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+    assertAddress(process.env.USDC_OWNER_ADDRESS, "Env variables not configured (USDC_OWNER_ADDRESS missing)");
     const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;
-    if (!USDC_OWNER_ADDRESS) throw new Error("Env variables not configured (USDC_OWNER_ADDRESS missing)");
-    const usdc = await hre.ethers.getContractAt("ERC20", USDC_ADDRESS);
+    const usdc = await hre.ethers.getContractAt("ERC20", networkConfig[Network.ETHEREUM].USDC);
     const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ADDRESS);
 
     const repayerImpl2 = (
@@ -450,7 +455,7 @@ describe("Repayer", function () {
     const currentTime = await now();
     const extraData = AbiCoder.defaultAbiCoder().encode(
       ["address", "uint256", "address", "uint32", "uint32", "uint32"],
-      [base_usdc, amount * 998n / 1000n, ZERO_ADDRESS, currentTime - 1n, currentTime + 2n, 0n]
+      [USDC_BASE_ADDRESS, amount * 998n / 1000n, ZERO_ADDRESS, currentTime - 1n, currentTime + 90n, 0n]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
       usdc.target,
@@ -468,32 +473,19 @@ describe("Repayer", function () {
       .withArgs(repayer.target, acrossV3SpokePoolFork.target, amount);
     await expect(tx)
       .to.emit(acrossV3SpokePoolFork, "FundsDeposited")
-      // address inputToken,
-      // address outputToken,
-      // uint256 inputAmount,
-      // uint256 outputAmount,
-      // uint256 indexed destinationChainId,
-      // uint32 indexed depositId,
-      // uint32 quoteTimestamp,
-      // uint32 fillDeadline,
-      // uint32 exclusivityDeadline,
-      // address indexed depositor,
-      // address recipient,
-      // address exclusiveRelayer,
-      // bytes message
       .withArgs(
-        zeroPadValue(usdc.target.toString(), 32),
-        zeroPadValue(base_usdc.toString(), 32),
+        addressToBytes32(usdc.target),
+        addressToBytes32(USDC_BASE_ADDRESS),
         amount,
         amount * 998n / 1000n,
         await repayer.domainChainId(Domain.BASE),
         anyValue,
         currentTime - 1n,
-        currentTime + 2n,
+        currentTime + 90n,
         0n,
-        zeroPadValue(repayer.target.toString(), 32),
-        zeroPadValue(liquidityPool.target.toString(), 32),
-        zeroPadValue("0x", 32),
+        addressToBytes32(repayer.target),
+        addressToBytes32(liquidityPool.target),
+        addressToBytes32(ZERO_ADDRESS),
         "0x"
       );
   });

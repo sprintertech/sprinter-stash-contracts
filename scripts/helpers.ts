@@ -7,7 +7,7 @@ import {
 import {
   TransparentUpgradeableProxy, ProxyAdmin,
 } from "../typechain-types";
-import {sleep, DEFAULT_PROXY_TYPE, assert, ZERO_ADDRESS} from "./common";
+import {sleep, DEFAULT_PROXY_TYPE, assert} from "./common";
 import {networkConfig, Network, Provider, NetworkConfig, LiquidityPoolUSDC} from "../network.config";
 
 export async function resolveAddresses(input: any[]): Promise<any[]> {
@@ -247,7 +247,7 @@ export async function getHardhatNetworkConfig() {
       TokenMessenger: await getDeployXAddress("TestCCTPTokenMessenger"),
       MessageTransmitter: await getDeployXAddress("TestCCTPMessageTransmitter"),
     },
-    AcrossV3SpokePool: ZERO_ADDRESS,
+    AcrossV3SpokePool: await getDeployXAddress("TestAcrossV3SpokePool"),
     USDC: await getDeployXAddress("TestUSDC"),
     IsTest: false,
     Hub: {

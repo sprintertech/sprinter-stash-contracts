@@ -11,7 +11,7 @@ import {
 } from "./common";
 import {
   SprinterUSDCLPShare, LiquidityHub, SprinterLiquidityMining,
-  Rebalancer, Repayer, LiquidityPool, LiquidityPoolAave, LiquidityPoolStablecoin
+  Rebalancer, Repayer, LiquidityPool, LiquidityPoolAave, LiquidityPoolStablecoin,
 } from "../typechain-types";
 import {
   Network, Provider, NetworkConfig, LiquidityPoolUSDC,
@@ -38,6 +38,7 @@ export async function main() {
     await verifier.deployX("TestUSDC", deployer);
     await verifier.deployX("TestCCTPTokenMessenger", deployer);
     await verifier.deployX("TestCCTPMessageTransmitter", deployer);
+    await verifier.deployX("TestAcrossV3SpokePool", deployer);
     ({network, config} = await getHardhatNetworkConfig());
   }
 

@@ -96,22 +96,6 @@ interface V3SpokePoolInterface {
      *              EVENTS                *
      **************************************/
 
-    event V3FundsDeposited(
-        address inputToken,
-        address outputToken,
-        uint256 inputAmount,
-        uint256 outputAmount,
-        uint256 indexed destinationChainId,
-        uint32 indexed depositId,
-        uint32 quoteTimestamp,
-        uint32 fillDeadline,
-        uint32 exclusivityDeadline,
-        address indexed depositor,
-        address recipient,
-        address exclusiveRelayer,
-        bytes message
-    );
-
     event FundsDeposited(
         bytes32 inputToken,
         bytes32 outputToken,
@@ -188,34 +172,6 @@ interface V3SpokePoolInterface {
         uint32 exclusivityDeadline,
         bytes calldata message
     ) external payable;
-
-    // function speedUpV3Deposit(
-    //     address depositor,
-    //     uint32 depositId,
-    //     uint256 updatedOutputAmount,
-    //     address updatedRecipient,
-    //     bytes calldata updatedMessage,
-    //     bytes calldata depositorSignature
-    // ) external;
-
-    // function fillV3Relay(V3RelayData calldata relayData, uint256 repaymentChainId) external;
-
-    // function fillV3RelayWithUpdatedDeposit(
-    //     V3RelayData calldata relayData,
-    //     uint256 repaymentChainId,
-    //     uint256 updatedOutputAmount,
-    //     address updatedRecipient,
-    //     bytes calldata updatedMessage,
-    //     bytes calldata depositorSignature
-    // ) external;
-
-    // function requestV3SlowFill(V3RelayData calldata relayData) external;
-
-    // function executeV3SlowRelayLeaf(
-    //     V3SlowFill calldata slowFillLeaf,
-    //     uint32 rootBundleId,
-    //     bytes32[] calldata proof
-    // ) external;
 
     /**************************************
      *              ERRORS                *

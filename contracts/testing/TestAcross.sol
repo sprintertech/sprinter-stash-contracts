@@ -21,9 +21,9 @@ contract TestAcrossV3SpokePool is V3SpokePoolInterface {
     ) external payable override {
         require(fillDeadline > 0, InvalidFillDeadline()); // To simulate revert.
         SafeERC20.safeTransferFrom(IERC20(inputToken), msg.sender, address(this), inputAmount);
-        emit V3FundsDeposited(
-            inputToken,
-            outputToken,
+        emit FundsDeposited(
+            toBytes32(inputToken),
+            toBytes32(outputToken),
             inputAmount,
             outputAmount,
             destinationChainId,
@@ -31,10 +31,14 @@ contract TestAcrossV3SpokePool is V3SpokePoolInterface {
             quoteTimestamp,
             fillDeadline,
             exclusivityDeadline,
-            depositor,
-            recipient,
-            exclusiveRelayer,
+            toBytes32(depositor),
+            toBytes32(recipient),
+            toBytes32(exclusiveRelayer),
             message
         );
+    }
+
+    function toBytes32(address _address) internal pure returns (bytes32) {
+        return bytes32(uint256(uint160(_address)));
     }
 }

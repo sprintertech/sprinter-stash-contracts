@@ -184,7 +184,7 @@ export const networkConfig: NetworksConfig = {
       WithdrawProfit: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
       Pauser: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
       RebalanceCaller: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
-      RepayerCaller: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      RepayerCaller: "0xECf983dD6Ecd4245fBAAF608594033AB0660D225",
       MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
       RebalancerRoutes: {
         Pools: [LiquidityPoolAaveUSDC, LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
@@ -250,7 +250,7 @@ export const networkConfig: NetworksConfig = {
       WithdrawProfit: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
       Pauser: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
       RebalanceCaller: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
-      RepayerCaller: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      RepayerCaller: "0xECf983dD6Ecd4245fBAAF608594033AB0660D225",
       MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
       RebalancerRoutes: {
         Pools: [LiquidityPoolAaveUSDC, LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
@@ -327,7 +327,7 @@ export const networkConfig: NetworksConfig = {
       WithdrawProfit: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
       Pauser: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
       RebalanceCaller: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
-      RepayerCaller: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      RepayerCaller: "0xECf983dD6Ecd4245fBAAF608594033AB0660D225",
       MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
       Hub: {
         AssetsAdjuster: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",

@@ -247,6 +247,7 @@ export async function getHardhatNetworkConfig() {
       TokenMessenger: await getDeployXAddress("TestCCTPTokenMessenger"),
       MessageTransmitter: await getDeployXAddress("TestCCTPMessageTransmitter"),
     },
+    AcrossV3SpokePool: await getDeployXAddress("TestAcrossV3SpokePool"),
     USDC: await getDeployXAddress("TestUSDC"),
     IsTest: false,
     Hub: {

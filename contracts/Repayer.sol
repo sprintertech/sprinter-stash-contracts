@@ -7,8 +7,9 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {ILiquidityPool} from "./interfaces/ILiquidityPool.sol";
 import {IRepayer} from "./interfaces/IRepayer.sol";
-import {ICCTPTokenMessenger, ICCTPMessageTransmitter} from "./interfaces/ICCTP.sol";
+
 import {CCTPAdapter} from "./utils/CCTPAdapter.sol";
+import {AcrossAdapter} from "./utils/AcrossAdapter.sol";
 import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 
 /// @title Performs repayment to Liquidity Pools on same/different chains.
@@ -16,15 +17,13 @@ import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 /// REPAYER_ROLE is needed to finalize/init rebalancing process.
 /// @notice Upgradeable.
 /// @author Tanya Bushenyova <tanya@chainsafe.io>
-contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter {
+contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapter {
     using SafeERC20 for IERC20;
     using BitMaps for BitMaps.BitMap;
     using EnumerableSet for EnumerableSet.AddressSet;
 
     Domain immutable public DOMAIN;
     IERC20 immutable public ASSETS;
-    ICCTPTokenMessenger immutable public CCTP_TOKEN_MESSENGER;
-    ICCTPMessageTransmitter immutable public CCTP_MESSAGE_TRANSMITTER;
     bytes32 constant public REPAYER_ROLE = "REPAYER_ROLE";
 
 
@@ -53,7 +52,6 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter {
     );
     event ProcessRepay(IERC20 token, uint256 amount, address destinationPool, Provider provider);
 
-    error ZeroAddress();
     error ZeroAmount();
     error InsufficientBalance();
     error RouteDenied();
@@ -67,8 +65,12 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter {
         Domain localDomain,
         IERC20 assets,
         address cctpTokenMessenger,
-        address cctpMessageTransmitter
-    ) {
+        address cctpMessageTransmitter,
+        address acrossSpokePool
+    )
+        CCTPAdapter(cctpTokenMessenger, cctpMessageTransmitter)
+        AcrossAdapter(acrossSpokePool)
+    {
         ERC7201Helper.validateStorageLocation(
             STORAGE_LOCATION,
             "sprinter.storage.Repayer"
@@ -76,10 +78,6 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter {
         require(address(assets) != address(0), ZeroAddress());
         DOMAIN = localDomain;
         ASSETS = assets;
-        require(cctpTokenMessenger != address(0), ZeroAddress());
-        require(cctpMessageTransmitter != address(0), ZeroAddress());
-        CCTP_TOKEN_MESSENGER = ICCTPTokenMessenger(cctpTokenMessenger);
-        CCTP_MESSAGE_TRANSMITTER = ICCTPMessageTransmitter(cctpMessageTransmitter);
     }
 
     function initialize(
@@ -111,7 +109,7 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter {
         address destinationPool,
         Domain destinationDomain,
         Provider provider,
-        bytes calldata /*extraData*/
+        bytes calldata extraData
     ) external override onlyRole(REPAYER_ROLE) {
         require(amount > 0, ZeroAmount());
         require(token.balanceOf(address(this)) >= amount, InsufficientBalance());
@@ -134,7 +132,10 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter {
         } else
         if (provider == Provider.CCTP) {
             require(token == ASSETS, InvalidToken());
-            initiateTransferCCTP(CCTP_TOKEN_MESSENGER, ASSETS, amount, destinationPool, destinationDomain);
+            initiateTransferCCTP(ASSETS, amount, destinationPool, destinationDomain);
+        } else
+        if (provider == Provider.ACROSS) {
+            initiateTransferAcross(token, amount, destinationPool, destinationDomain, extraData);
         } else {
             // Unreachable atm, but could become so when more providers are added to enum.
             revert UnsupportedProvider();
@@ -149,9 +150,8 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter {
         require(isRouteAllowed(destinationPool, DOMAIN, Provider.LOCAL), RouteDenied());
         uint256 amount = 0;
         if (provider == Provider.CCTP) {
-            amount = processTransferCCTP(CCTP_MESSAGE_TRANSMITTER, ASSETS, destinationPool, extraData);
+            amount = processTransferCCTP(ASSETS, destinationPool, extraData);
         } else {
-            // Unreachable atm, but could become so when more providers are added to enum.
             revert UnsupportedProvider();
         }
 

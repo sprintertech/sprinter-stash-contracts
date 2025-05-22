@@ -1,7 +1,13 @@
+import {isAddress} from "ethers";
+
 export function assert(condition: any, message: string): asserts condition {
   if (!condition) {
     throw new Error(message);
   }
+}
+
+export function assertAddress(address: any, message: string): asserts address {
+  assert(isAddress(address), message);
 }
 
 export function sleep(msec: number): Promise<boolean> {
@@ -20,6 +26,7 @@ export function isSet(input?: string): boolean {
 export const ProviderSolidity = {
   LOCAL: 0n,
   CCTP: 1n,
+  ACROSS: 2n,
 };
 
 export const DomainSolidity = {

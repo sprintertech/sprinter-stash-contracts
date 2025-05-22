@@ -4,7 +4,7 @@ import hre from "hardhat";
 import {isAddress} from "ethers";
 import {getVerifier, deployProxyX, getHardhatNetworkConfig, getNetworkConfig} from "./helpers";
 import {resolveXAddress} from "../test/helpers";
-import {isSet, assert, ProviderSolidity, DomainSolidity} from "./common";
+import {isSet, assert, ProviderSolidity, DomainSolidity, ZERO_ADDRESS} from "./common";
 import {Repayer} from "../typechain-types";
 import {Network, NetworkConfig, Provider} from "../network.config";
 
@@ -40,6 +40,10 @@ export async function main() {
     };
   }
 
+  if (!config.AcrossV3SpokePool) {
+    config.AcrossV3SpokePool = ZERO_ADDRESS;
+  }
+
   if (config.AavePool) {
     const aavePool = await resolveXAddress("LiquidityPoolAaveUSDC");
     console.log(`LiquidityPoolAave: ${aavePool}`);
@@ -67,7 +71,13 @@ export async function main() {
     repayerVersion,
     deployer,
     config.Admin,
-    [DomainSolidity[network], config.USDC, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter],
+    [
+      DomainSolidity[network],
+      config.USDC,
+      config.CCTP.TokenMessenger,
+      config.CCTP.MessageTransmitter,
+      config.AcrossV3SpokePool
+    ],
     [
       config.Admin,
       config.RepayerCaller,

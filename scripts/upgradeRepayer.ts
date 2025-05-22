@@ -4,7 +4,7 @@ import hre from "hardhat";
 import {isAddress} from "ethers";
 import {getVerifier, upgradeProxyX, getHardhatNetworkConfig, getNetworkConfig} from "./helpers";
 import {getDeployProxyXAddress} from "../test/helpers";
-import {isSet, assert, DomainSolidity} from "./common";
+import {isSet, assert, DomainSolidity, ZERO_ADDRESS} from "./common";
 import {Repayer} from "../typechain-types";
 import {Network, NetworkConfig} from "../network.config";
 
@@ -28,6 +28,9 @@ export async function main() {
   assert(isAddress(config.USDC), "USDC must be an address");
   assert(isAddress(config.CCTP.TokenMessenger), "CCTP TokenMessenger must be an address");
   assert(isAddress(config.CCTP.MessageTransmitter), "CCTP MessageTransmitter must be an address");
+  if (!config.AcrossV3SpokePool) {
+    config.AcrossV3SpokePool = ZERO_ADDRESS;
+  }
 
   const repayerAddress = await getDeployProxyXAddress("Repayer");
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
@@ -37,7 +40,13 @@ export async function main() {
     repayerAddress,
     repayerVersion,
     deployer,
-    [DomainSolidity[network], config.USDC, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter],
+    [
+      DomainSolidity[network],
+      config.USDC,
+      config.CCTP.TokenMessenger,
+      config.CCTP.MessageTransmitter,
+      config.AcrossV3SpokePool
+    ],
     "Repayer",
   );
 

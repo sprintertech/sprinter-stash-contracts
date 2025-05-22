@@ -5,21 +5,30 @@ import {ICCTPTokenMessenger, ICCTPMessageTransmitter} from "../interfaces/ICCTP.
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IRoute} from ".././interfaces/IRoute.sol";
 
-contract CCTPAdapter is IRoute {
+abstract contract CCTPAdapter is IRoute {
     using SafeERC20 for IERC20;
 
-    error ProcessFailed();
-    error UnsupportedDomain();
+    ICCTPTokenMessenger immutable public CCTP_TOKEN_MESSENGER;
+    ICCTPMessageTransmitter immutable public CCTP_MESSAGE_TRANSMITTER;
+
+    constructor(
+        address cctpTokenMessenger,
+        address cctpMessageTransmitter
+    ) {
+        require(cctpTokenMessenger != address(0), ZeroAddress());
+        require(cctpMessageTransmitter != address(0), ZeroAddress());
+        CCTP_TOKEN_MESSENGER = ICCTPTokenMessenger(cctpTokenMessenger);
+        CCTP_MESSAGE_TRANSMITTER = ICCTPMessageTransmitter(cctpMessageTransmitter);
+    }
 
     function initiateTransferCCTP(
-        ICCTPTokenMessenger messenger,
         IERC20 token,
         uint256 amount,
         address destinationPool,
         Domain destinationDomain
     ) internal {
-        token.forceApprove(address(messenger), amount);
-        messenger.depositForBurnWithCaller(
+        token.forceApprove(address(CCTP_TOKEN_MESSENGER), amount);
+        CCTP_TOKEN_MESSENGER.depositForBurnWithCaller(
             amount,
             domainCCTP(destinationDomain),
             _addressToBytes32(address(destinationPool)),
@@ -29,7 +38,6 @@ contract CCTPAdapter is IRoute {
     }
    
     function processTransferCCTP(
-        ICCTPMessageTransmitter messageTransmitter,
         IERC20 token,
         address destinationPool,
         bytes calldata extraData
@@ -37,7 +45,7 @@ contract CCTPAdapter is IRoute {
         uint256 balanceBefore = token.balanceOf(address(destinationPool));
 
         (bytes memory message, bytes memory attestation) = abi.decode(extraData, (bytes, bytes));
-        bool success = messageTransmitter.receiveMessage(message, attestation);
+        bool success = CCTP_MESSAGE_TRANSMITTER.receiveMessage(message, attestation);
         require(success, ProcessFailed());
 
         uint256 balanceAfter = token.balanceOf(address(destinationPool));

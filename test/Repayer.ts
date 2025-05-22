@@ -521,7 +521,7 @@ describe("Repayer", function () {
     )).to.be.revertedWithCustomError(acrossV3SpokePool, "InvalidFillDeadline()");
   });
 
-  it("Should revert Across repay if slippage is above 10%", async function () {
+  it("Should revert Across repay if slippage is above 0.20%", async function () {
     const {repayer, UNI_DEC, admin, repayUser,
       liquidityPool, uni, user, uniOwner,
     } = await loadFixture(deployAll);

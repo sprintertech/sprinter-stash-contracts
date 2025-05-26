@@ -1,5 +1,5 @@
 import {
-  loadFixture, time, setBalance
+  loadFixture, time, setBalance, setCode
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {expect} from "chai";
 import hre from "hardhat";
@@ -21,6 +21,7 @@ describe("LiquidityPoolAave", function () {
     const [
       deployer, admin, user, user2, mpc_signer, liquidityAdmin, withdrawProfit, pauser
     ] = await hre.ethers.getSigners();
+    await setCode(user2.address, "0x00");
 
     const AAVE_POOL_PROVIDER = "0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e";
     const aavePoolAddressesProvider = await hre.ethers.getContractAt("IAavePoolAddressesProvider", AAVE_POOL_PROVIDER);

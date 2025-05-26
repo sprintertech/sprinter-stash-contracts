@@ -1,5 +1,5 @@
 import {
-  loadFixture, time, setBalance
+  loadFixture, time, setBalance, setCode
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {expect} from "chai";
 import hre from "hardhat";
@@ -21,6 +21,7 @@ describe("LiquidityPool", function () {
     const [
       deployer, admin, user, user2, mpc_signer, liquidityAdmin, withdrawProfit, pauser
     ] = await hre.ethers.getSigners();
+    await setCode(user2.address, "0x00");
 
     const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
     const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;

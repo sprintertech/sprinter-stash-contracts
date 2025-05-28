@@ -6,11 +6,11 @@ import hre from "hardhat";
 import {AbiCoder, zeroPadValue} from "ethers";
 import {anyValue} from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import {
-  getCreateAddress, getContractAt, deploy, deployX, toBytes32
+  getCreateAddress, getContractAt, deploy, deployX, toBytes32, getBalance,
 } from "./helpers";
 import {
   ProviderSolidity as Provider, DomainSolidity as Domain, ZERO_ADDRESS,
-  DEFAULT_ADMIN_ROLE, assertAddress,
+  DEFAULT_ADMIN_ROLE, assertAddress, ETH,
 } from "../scripts/common";
 import {
   TestUSDC, TransparentUpgradeableProxy, ProxyAdmin,
@@ -33,6 +33,8 @@ function addressToBytes32(address: any) {
 describe("Repayer", function () {
   const deployAll = async () => {
     const [deployer, admin, repayUser, user] = await hre.ethers.getSigners();
+
+    const forkNetworkConfig = networkConfig[Network.ETHEREUM];
 
     const REPAYER_ROLE = toBytes32("REPAYER_ROLE");
     const DEPOSIT_PROFIT_ROLE = toBytes32("DEPOSIT_PROFIT_ROLE");
@@ -58,9 +60,17 @@ describe("Repayer", function () {
     await setBalance(UNI_OWNER_ADDRESS, 10n ** 18n);
     const UNI_DEC = 10n ** (await uni.decimals());
 
+    const WETH_ADDRESS = forkNetworkConfig.WrappedNativeToken;
+    const weth = await hre.ethers.getContractAt("IWrappedNativeToken", WETH_ADDRESS);
+
     const repayerImpl = (
       await deployX("Repayer", deployer, "Repayer", {},
-        Domain.BASE, usdc.target, cctpTokenMessenger.target, cctpMessageTransmitter.target, acrossV3SpokePool.target,
+        Domain.BASE,
+        usdc.target,
+        cctpTokenMessenger.target,
+        cctpMessageTransmitter.target,
+        acrossV3SpokePool.target,
+        weth.target,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -84,7 +94,7 @@ describe("Repayer", function () {
     return {
       deployer, admin, repayUser, user, usdc,
       USDC_DEC, uni, UNI_DEC, uniOwner, liquidityPool, liquidityPool2, repayer, repayerProxy, repayerAdmin,
-      cctpTokenMessenger, cctpMessageTransmitter, REPAYER_ROLE, DEFAULT_ADMIN_ROLE, acrossV3SpokePool,
+      cctpTokenMessenger, cctpMessageTransmitter, REPAYER_ROLE, DEFAULT_ADMIN_ROLE, acrossV3SpokePool, weth,
     };
   };
 
@@ -409,7 +419,7 @@ describe("Repayer", function () {
 
   it("Should allow repayer to initiate Across repay with SpokePool on fork", async function () {
     const {deployer, repayer, USDC_DEC, admin, repayUser, repayerAdmin, repayerProxy,
-      liquidityPool, cctpTokenMessenger, cctpMessageTransmitter
+      liquidityPool, cctpTokenMessenger, cctpMessageTransmitter, weth,
     } = await loadFixture(deployAll);
     
     const acrossV3SpokePoolFork = await hre.ethers.getContractAt(
@@ -434,6 +444,7 @@ describe("Repayer", function () {
         cctpTokenMessenger.target,
         cctpMessageTransmitter.target,
         acrossV3SpokePoolFork.target,
+        weth.target,
       )
     ) as Repayer;
 
@@ -749,5 +760,164 @@ describe("Repayer", function () {
     const extraData = AbiCoder.defaultAbiCoder().encode(["bytes", "bytes"], [message, signature]);
     await expect(repayer.connect(repayUser).processRepay(liquidityPool.target, Provider.CCTP, extraData))
       .to.be.revertedWithCustomError(repayer, "ProcessFailed()");
+  });
+
+  it("Should allow to receive native tokens", async function () {
+      // Covered in Should wrap native tokens on initiate repay
+  });
+
+  it("Should allow to receive native tokens on initiate repay", async function () {
+      // Covered in Should not wrap native tokens on initiate repay that were sent in as msg.value
+  });
+
+  it("Should wrap native tokens on initiate repay", async function () {
+    const {repayer, repayUser, liquidityPool, weth
+    } = await loadFixture(deployAll);
+
+    const nativeAmount = 10n * ETH;
+    const repayAmount = 4n * ETH;
+
+    await repayUser.sendTransaction({to: repayer.target, value: nativeAmount});
+    const tx = repayer.connect(repayUser).initiateRepay(
+      weth.target,
+      repayAmount,
+      liquidityPool.target,
+      Domain.BASE,
+      Provider.LOCAL,
+      "0x"
+    );
+    await expect(tx)
+      .to.emit(repayer, "InitiateRepay")
+      .withArgs(weth.target, repayAmount, liquidityPool.target, Domain.BASE, Provider.LOCAL);
+    await expect(tx)
+      .to.emit(weth, "Transfer")
+      .withArgs(repayer.target, liquidityPool.target, repayAmount);
+    await expect(tx)
+      .to.emit(weth, "Deposit")
+      .withArgs(repayer.target, nativeAmount);
+
+    expect(await weth.balanceOf(repayer.target)).to.equal(6n * ETH);
+    expect(await weth.balanceOf(liquidityPool.target)).to.equal(4n * ETH);
+    expect(await getBalance(repayer.target)).to.equal(0);
+  });
+
+  it("Should not wrap native tokens on initiate repay if the balance is 0", async function () {
+    const {repayer, repayUser, liquidityPool, weth
+    } = await loadFixture(deployAll);
+
+    const nativeAmount = 10n * ETH;
+    const repayAmount = 4n * ETH;
+
+    await repayUser.sendTransaction({to: repayer.target, value: nativeAmount});
+    await repayer.connect(repayUser).initiateRepay(
+      weth.target,
+      repayAmount,
+      liquidityPool.target,
+      Domain.BASE,
+      Provider.LOCAL,
+      "0x"
+    );
+    const tx = repayer.connect(repayUser).initiateRepay(
+      weth.target,
+      repayAmount,
+      liquidityPool.target,
+      Domain.BASE,
+      Provider.LOCAL,
+      "0x"
+    );
+    await expect(tx)
+      .to.emit(repayer, "InitiateRepay")
+      .withArgs(weth.target, repayAmount, liquidityPool.target, Domain.BASE, Provider.LOCAL);
+    await expect(tx)
+      .to.emit(weth, "Transfer")
+      .withArgs(repayer.target, liquidityPool.target, repayAmount);
+    await expect(tx)
+      .to.not.emit(weth, "Deposit");
+
+    expect(await weth.balanceOf(repayer.target)).to.equal(2n * ETH);
+    expect(await weth.balanceOf(liquidityPool.target)).to.equal(8n * ETH);
+    expect(await getBalance(repayer.target)).to.equal(0);
+  });
+
+  it("Should not wrap native tokens on initiate repay of other tokens", async function () {
+    const {repayer, uni, UNI_DEC, uniOwner, repayUser, liquidityPool, weth,
+    } = await loadFixture(deployAll);
+
+    const nativeAmount = 10n * ETH;
+
+    await repayUser.sendTransaction({to: repayer.target, value: nativeAmount});
+    await uni.connect(uniOwner).transfer(repayer.target, 10n * UNI_DEC);
+    const tx = repayer.connect(repayUser).initiateRepay(
+      uni.target,
+      4n * UNI_DEC,
+      liquidityPool.target,
+      Domain.BASE,
+      Provider.LOCAL,
+      "0x"
+    );
+    await expect(tx)
+      .to.emit(repayer, "InitiateRepay")
+      .withArgs(uni.target, 4n * UNI_DEC, liquidityPool.target, Domain.BASE, Provider.LOCAL);
+    await expect(tx)
+      .to.emit(uni, "Transfer")
+      .withArgs(repayer.target, liquidityPool.target, 4n * UNI_DEC);
+    await expect(tx)
+      .to.not.emit(weth, "Deposit");
+
+    expect(await uni.balanceOf(repayer.target)).to.equal(6n * UNI_DEC);
+    expect(await uni.balanceOf(liquidityPool.target)).to.equal(4n * UNI_DEC);
+    expect(await weth.balanceOf(repayer.target)).to.equal(0);
+    expect(await weth.balanceOf(liquidityPool.target)).to.equal(0);
+    expect(await getBalance(repayer.target)).to.equal(nativeAmount);
+  });
+
+  it("Should not wrap native tokens on initiate repay that were sent in as msg.value", async function () {
+    const {repayer, repayUser, liquidityPool, weth
+    } = await loadFixture(deployAll);
+
+    const nativeAmount = 10n * ETH;
+    const repayAmount = 4n * ETH;
+    const extraAmount = 1n * ETH;
+
+    await repayUser.sendTransaction({to: repayer.target, value: nativeAmount});
+    const tx = repayer.connect(repayUser).initiateRepay(
+      weth.target,
+      repayAmount,
+      liquidityPool.target,
+      Domain.BASE,
+      Provider.LOCAL,
+      "0x",
+      {value: extraAmount}
+    );
+    await expect(tx)
+      .to.emit(repayer, "InitiateRepay")
+      .withArgs(weth.target, repayAmount, liquidityPool.target, Domain.BASE, Provider.LOCAL);
+    await expect(tx)
+      .to.emit(weth, "Transfer")
+      .withArgs(repayer.target, liquidityPool.target, repayAmount);
+    await expect(tx)
+      .to.emit(weth, "Deposit")
+      .withArgs(repayer.target, nativeAmount);
+
+    expect(await weth.balanceOf(repayer.target)).to.equal(6n * ETH);
+    expect(await weth.balanceOf(liquidityPool.target)).to.equal(4n * ETH);
+    expect(await getBalance(repayer.target)).to.equal(extraAmount);
+  });
+
+  it("Should not wrap native tokens on initiate repay if the balance was 0 before the tx", async function () {
+    const {repayer, repayUser, liquidityPool, weth
+    } = await loadFixture(deployAll);
+
+    const nativeAmount = 10n * ETH;
+
+    await expect(repayer.connect(repayUser).initiateRepay(
+      weth.target,
+      nativeAmount,
+      liquidityPool.target,
+      Domain.BASE,
+      Provider.LOCAL,
+      "0x",
+      {value: nativeAmount}
+    )).to.be.revertedWithCustomError(repayer, "InsufficientBalance()");
   });
 });

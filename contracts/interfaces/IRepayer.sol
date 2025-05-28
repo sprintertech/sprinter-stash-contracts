@@ -12,7 +12,7 @@ interface IRepayer is IRoute {
         Domain destinationDomain,
         Provider provider,
         bytes calldata extraData
-    ) external;
+    ) external payable;
 
     function processRepay(
         address destinationPool,

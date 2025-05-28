@@ -4,13 +4,14 @@ import {
 import {expect} from "chai";
 import hre from "hardhat";
 import {
-  deploy, signBorrow
+  deploy, signBorrow, getBalance,
 } from "./helpers";
-import {ZERO_ADDRESS} from "../scripts/common";
+import {ZERO_ADDRESS, ETH} from "../scripts/common";
 import {encodeBytes32String, AbiCoder} from "ethers";
 import {
   MockTarget, MockBorrowSwap, LiquidityPoolAave
 } from "../typechain-types";
+import {networkConfig, Network} from "../network.config";
 
 async function now() {
   return BigInt(await time.latest());
@@ -23,12 +24,14 @@ describe("LiquidityPoolAave", function () {
     ] = await hre.ethers.getSigners();
     await setCode(user2.address, "0x00");
 
-    const AAVE_POOL_PROVIDER = "0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e";
+    const forkNetworkConfig = networkConfig[Network.ETHEREUM];
+
+    const AAVE_POOL_PROVIDER = forkNetworkConfig.AavePool!.AaveAddressesProvider;
     const aavePoolAddressesProvider = await hre.ethers.getContractAt("IAavePoolAddressesProvider", AAVE_POOL_PROVIDER);
     const aavePoolAddress = await aavePoolAddressesProvider.getPool();
     const aavePool = await hre.ethers.getContractAt("IAavePool", aavePoolAddress);
 
-    const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+    const USDC_ADDRESS = forkNetworkConfig.USDC;
     const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;
     if (!USDC_OWNER_ADDRESS) throw new Error("Env variables not configured (USDC_OWNER_ADDRESS missing)");
     const usdc = await hre.ethers.getContractAt("ERC20", USDC_ADDRESS);
@@ -64,6 +67,9 @@ describe("LiquidityPoolAave", function () {
     const nonSupportedToken = await hre.ethers.getContractAt("ERC20", NON_SUPPORTED_TOKEN_ADDRESS);
     const nonSupportedTokenOwner = await hre.ethers.getImpersonatedSigner(NON_SUPPORTED_TOKEN_OWNER_ADDRESS);
 
+    const WETH_ADDRESS = forkNetworkConfig.WrappedNativeToken;
+    const weth = await hre.ethers.getContractAt("IWrappedNativeToken", WETH_ADDRESS);
+
     const USDC_DEC = 10n ** (await usdc.decimals());
     const RPL_DEC = 10n ** (await rpl.decimals());
     const UNI_DEC = 10n ** (await uni.decimals());
@@ -74,7 +80,7 @@ describe("LiquidityPoolAave", function () {
     const defaultLtv = 5n * 10000n / 100n;
     const liquidityPool = (
       await deploy("LiquidityPoolAave", deployer, {},
-        usdc.target, AAVE_POOL_PROVIDER, admin.address, mpc_signer.address, healthFactor, defaultLtv
+        usdc.target, AAVE_POOL_PROVIDER, admin.address, mpc_signer.address, healthFactor, defaultLtv, weth.target
       )
     ) as LiquidityPoolAave;
 
@@ -98,7 +104,7 @@ describe("LiquidityPoolAave", function () {
     return {deployer, admin, user, user2, mpc_signer, usdc, usdcOwner, rpl, rplOwner, uni, uniOwner,
       liquidityPool, mockTarget, mockBorrowSwap, USDC_DEC, RPL_DEC, UNI_DEC, AAVE_POOL_PROVIDER,
       healthFactor, defaultLtv, aavePool, aToken, rplDebtToken, uniDebtToken, usdcDebtToken,
-      nonSupportedToken, nonSupportedTokenOwner, liquidityAdmin, withdrawProfit, pauser};
+      nonSupportedToken, nonSupportedTokenOwner, liquidityAdmin, withdrawProfit, pauser, weth};
   };
 
   describe("Initialization", function () {
@@ -125,11 +131,11 @@ describe("LiquidityPoolAave", function () {
 
     it("Should NOT deploy the contract if token cannot be used as collateral", async function () {
       const {
-        deployer, AAVE_POOL_PROVIDER, liquidityPool, rpl, admin, mpc_signer, healthFactor, defaultLtv
+        deployer, AAVE_POOL_PROVIDER, liquidityPool, rpl, admin, mpc_signer, healthFactor, defaultLtv, weth
       } = await loadFixture(deployAll);
       const startingNonce = await deployer.getNonce();
       await expect(deploy("LiquidityPoolAave", deployer, {nonce: startingNonce},
-        rpl.target, AAVE_POOL_PROVIDER, admin.address, mpc_signer.address, healthFactor, defaultLtv
+        rpl.target, AAVE_POOL_PROVIDER, admin.address, mpc_signer.address, healthFactor, defaultLtv, weth.target
       )).to.be.revertedWithCustomError(liquidityPool, "CollateralNotSupported");
     });
   });
@@ -1371,6 +1377,148 @@ describe("LiquidityPoolAave", function () {
       ))
         .to.be.revertedWithCustomError(liquidityPool, "InvalidLength");
     });
+
+    it("Should allow to receive native tokens", async function () {
+      // Covered in Should wrap native tokens on repayment
+    });
+
+    it("Should wrap native tokens on repayment", async function () {
+      const {
+        liquidityPool, usdc, weth, mpc_signer, user, user2, usdcOwner, liquidityAdmin, USDC_DEC,
+        aavePool,
+      } = await loadFixture(deployAll);
+      const amountCollateral = 10000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
+        .to.emit(liquidityPool, "SuppliedToAave");
+
+      const amountToBorrow = 1n * ETH / 100n;
+
+      const signature = await signBorrow(
+        mpc_signer,
+        liquidityPool.target as string,
+        user.address as string,
+        weth.target as string,
+        amountToBorrow.toString(),
+        user2.address,
+        "0x",
+        31337
+      );
+
+      await liquidityPool.connect(user).borrow(
+        weth.target,
+        amountToBorrow,
+        user2,
+        "0x",
+        0n,
+        2000000000n,
+        signature);
+      expect(await weth.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
+
+      await user.sendTransaction({to: liquidityPool.target, value: amountToBorrow});
+      expect(await getBalance(liquidityPool.target)).to.eq(amountToBorrow);
+
+      const tx = liquidityPool.connect(user).repay([weth.target]);
+      await expect(tx)
+        .to.emit(liquidityPool, "Repaid");
+      await expect(tx)
+        .to.emit(weth, "Deposit")
+        .withArgs(liquidityPool.target, amountToBorrow);
+      expect(await weth.allowance(liquidityPool.target, aavePool.target)).to.eq(0);
+      expect(await weth.balanceOf(liquidityPool.target)).to.be.lessThan(amountToBorrow);
+      expect(await getBalance(liquidityPool.target)).to.eq(0);
+    });
+
+    it("Should not wrap native tokens on repayment if the balance is 0", async function () {
+      const {
+        liquidityPool, usdc, weth, mpc_signer, user, user2, usdcOwner, liquidityAdmin, USDC_DEC,
+        aavePool,
+      } = await loadFixture(deployAll);
+      const amountCollateral = 10000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
+        .to.emit(liquidityPool, "SuppliedToAave");
+
+      const amountToBorrow = 1n * ETH / 100n;
+
+      const signature = await signBorrow(
+        mpc_signer,
+        liquidityPool.target as string,
+        user.address as string,
+        weth.target as string,
+        amountToBorrow.toString(),
+        user2.address,
+        "0x",
+        31337
+      );
+
+      await liquidityPool.connect(user).borrow(
+        weth.target,
+        amountToBorrow,
+        user2,
+        "0x",
+        0n,
+        2000000000n,
+        signature);
+      expect(await weth.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
+
+      expect(await getBalance(liquidityPool.target)).to.eq(0);
+
+      const tx = liquidityPool.connect(user).repay([weth.target]);
+      await expect(tx)
+        .to.emit(liquidityPool, "Repaid");
+      await expect(tx)
+        .to.not.emit(weth, "Deposit");
+      expect(await weth.allowance(liquidityPool.target, aavePool.target)).to.eq(0);
+      expect(await weth.balanceOf(liquidityPool.target)).to.eq(0);
+    });
+
+    it("Should not wrap native tokens on repayment of other tokens", async function () {
+      const {
+        liquidityPool, usdc, uni, mpc_signer, user, user2, usdcOwner, uniOwner, liquidityAdmin, USDC_DEC, UNI_DEC,
+        aavePool, weth,
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC; // $1000
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
+        .to.emit(liquidityPool, "SuppliedToAave");
+
+      const amountToBorrow = 3n * UNI_DEC;
+
+      const signature = await signBorrow(
+        mpc_signer,
+        liquidityPool.target as string,
+        user.address as string,
+        uni.target as string,
+        amountToBorrow.toString(),
+        user2.address,
+        "0x",
+        31337
+      );
+
+      await liquidityPool.connect(user).borrow(
+        uni.target,
+        amountToBorrow,
+        user2,
+        "0x",
+        0n,
+        2000000000n,
+        signature);
+      expect(await uni.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
+
+      await uni.connect(uniOwner).transfer(liquidityPool.target, amountToBorrow);
+      await user.sendTransaction({to: liquidityPool.target, value: amountToBorrow});
+
+      const tx = liquidityPool.connect(user).repay([uni.target]);
+      await expect(tx)
+        .to.emit(liquidityPool, "Repaid");
+      await expect(tx)
+        .to.not.emit(weth, "Deposit");
+      expect(await uni.allowance(liquidityPool.target, aavePool.target)).to.eq(0);
+      expect(await uni.balanceOf(liquidityPool.target)).to.be.lessThan(amountToBorrow);
+      expect(await weth.balanceOf(liquidityPool.target)).to.eq(0);
+      expect(await getBalance(liquidityPool.target)).to.eq(amountToBorrow);
+    });
   });
 
   describe("Roles and admin functions", function () {
@@ -1483,6 +1631,21 @@ describe("LiquidityPoolAave", function () {
       const {liquidityPool, uni, user} = await loadFixture(deployAll);
       await expect(liquidityPool.connect(user).withdrawProfit([uni.target], user.address))
         .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
+    });
+
+    it("Should wrap native tokens on withdraw profit", async function () {
+      const {
+        liquidityPool, uni, UNI_DEC, uniOwner, withdrawProfit, user, weth,
+      } = await loadFixture(deployAll);
+      const amountUni = 1n * UNI_DEC;
+      const amountEth = 1n * ETH;
+      await uni.connect(uniOwner).transfer(liquidityPool.target, amountUni);
+      await user.sendTransaction({to: liquidityPool.target, value: amountEth});
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([uni.target, weth.target], user.address))
+        .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(uni.target, user.address, amountUni);
+      expect(await uni.balanceOf(user.address)).to.eq(amountUni);
+      expect(await weth.balanceOf(user.address)).to.eq(amountEth);
+      expect(await weth.balanceOf(liquidityPool.target)).to.eq(0);
     });
 
     it("Should allow LIQUIDITY_ADMIN_ROLE to deposit collateral", async function () {

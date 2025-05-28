@@ -249,6 +249,7 @@ export async function getHardhatNetworkConfig() {
     },
     AcrossV3SpokePool: await getDeployXAddress("TestAcrossV3SpokePool"),
     USDC: await getDeployXAddress("TestUSDC"),
+    WrappedNativeToken: await getDeployXAddress("TestWETH"),
     IsTest: false,
     Hub: {
       AssetsAdjuster: superAdmin.address,

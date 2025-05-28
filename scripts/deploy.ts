@@ -36,6 +36,7 @@ export async function main() {
   if (!network) {
     console.log("TEST: Using TEST USDC and CCTP");
     await verifier.deployX("TestUSDC", deployer);
+    await verifier.deployX("TestWETH", deployer);
     await verifier.deployX("TestCCTPTokenMessenger", deployer);
     await verifier.deployX("TestCCTPMessageTransmitter", deployer);
     await verifier.deployX("TestAcrossV3SpokePool", deployer);
@@ -51,6 +52,7 @@ export async function main() {
   assert(isAddress(config.RebalanceCaller), "RebalanceCaller must be an address");
   assert(isAddress(config.RepayerCaller), "RepayerCaller must be an address");
   assert(isAddress(config.MpcAddress), "MpcAddress must be an address");
+  assert(isAddress(config.WrappedNativeToken), "WrappedNativeToken must be an address");
 
   if (config.Hub) {
     assert(config.Hub!.Tiers.length > 0, "Empty liquidity mining tiers configuration.");
@@ -95,6 +97,7 @@ export async function main() {
         config.MpcAddress,
         minHealthFactor,
         defaultLTV,
+        config.WrappedNativeToken,
       ],
       LiquidityPoolAaveUSDC,
     )) as LiquidityPoolAave;
@@ -212,7 +215,8 @@ export async function main() {
       config.USDC,
       config.CCTP.TokenMessenger,
       config.CCTP.MessageTransmitter,
-      config.AcrossV3SpokePool
+      config.AcrossV3SpokePool,
+      config.WrappedNativeToken,
     ],
     [
       config.Admin,

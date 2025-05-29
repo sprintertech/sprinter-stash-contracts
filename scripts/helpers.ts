@@ -2,13 +2,12 @@ import hre from "hardhat";
 import {Signer, BaseContract, AddressLike, resolveAddress, ContractTransaction, isAddress} from "ethers";
 import {
   deploy, deployX, getContractAt, getCreateAddress, getDeployXAddressBase,
-  getDeployXAddress,
 } from "../test/helpers";
 import {
   TransparentUpgradeableProxy, ProxyAdmin,
 } from "../typechain-types";
 import {sleep, DEFAULT_PROXY_TYPE, assert} from "./common";
-import {networkConfig, Network, Provider, NetworkConfig, LiquidityPoolUSDC} from "../network.config";
+import {networkConfig, Network, NetworkConfig} from "../network.config";
 
 export async function resolveAddresses(input: any[]): Promise<any[]> {
   return await Promise.all(input.map(async (el) => {
@@ -241,50 +240,26 @@ export async function getHardhatNetworkConfig() {
   const network = Network.BASE;
   const [deployer, opsAdmin, superAdmin, mpc] = await hre.ethers.getSigners();
   process.env.DEPLOYER_ADDRESS = await resolveAddress(deployer);
-  const config: NetworkConfig = {
-    chainId: 31337,
-    CCTP: {
-      TokenMessenger: await getDeployXAddress("TestCCTPTokenMessenger"),
-      MessageTransmitter: await getDeployXAddress("TestCCTPMessageTransmitter"),
-    },
-    AcrossV3SpokePool: await getDeployXAddress("TestAcrossV3SpokePool"),
-    USDC: await getDeployXAddress("TestUSDC"),
-    WrappedNativeToken: await getDeployXAddress("TestWETH"),
-    IsTest: false,
-    Hub: {
-      AssetsAdjuster: superAdmin.address,
-      DepositProfit: opsAdmin.address,
-      AssetsLimitSetter: opsAdmin.address,
-      AssetsLimit: 10_000_000,
-      Tiers: [
-        {period: 7776000n, multiplier: 300000000n},
-        {period: 15552000n, multiplier: 800000000n},
-        {period: 31104000n, multiplier: 1666666667n},
-      ]
-    },
-    Admin: superAdmin.address,
-    WithdrawProfit: opsAdmin.address,
-    Pauser: opsAdmin.address,
-    RebalanceCaller: opsAdmin.address,
-    RepayerCaller: opsAdmin.address,
-    MpcAddress: mpc.address,
-    RebalancerRoutes: {
-      Pools: [LiquidityPoolUSDC],
-      Domains: [Network.ETHEREUM],
-      Providers: [Provider.CCTP],
-    },
-    RepayerRoutes: {
-      Pools: [LiquidityPoolUSDC],
-      Domains: [Network.ETHEREUM],
-      Providers: [Provider.CCTP],
-      SupportsAllTokens: [false],
-    },
-    USDCPool: true,
-    USDCStablecoinPool: true,
-  };
+  const config = networkConfig[network];
+  config.chainId = 31337;
+  assert(config.Hub, "Hub must be in config");
+  config.Hub.AssetsAdjuster = superAdmin.address;
+  config.Hub.DepositProfit = opsAdmin.address;
+  config.Hub.AssetsLimitSetter = opsAdmin.address;
+  config.Admin = superAdmin.address;
+  config.WithdrawProfit = opsAdmin.address;
+  config.Pauser = opsAdmin.address;
+  config.RebalanceCaller = opsAdmin.address;
+  config.RepayerCaller = opsAdmin.address;
+  config.MpcAddress = mpc.address;
+  config.USDCStablecoinPool = true;
 
   console.log("Using config for: hardhat");
   return {
     network, config, opsAdmin, superAdmin, mpc,
   };
+}
+
+export function percentsToBps(input: number[]): bigint[] {
+  return input.map(el => BigInt(el) * 10000n / 100n);
 }

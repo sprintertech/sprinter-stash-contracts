@@ -11,6 +11,7 @@ import {encodeBytes32String, AbiCoder} from "ethers";
 import {
   MockTarget, MockBorrowSwap, LiquidityPool
 } from "../typechain-types";
+import {networkConfig} from "../network.config";
 
 async function now() {
   return BigInt(await time.latest());
@@ -23,19 +24,19 @@ describe("LiquidityPool", function () {
     ] = await hre.ethers.getSigners();
     await setCode(user2.address, "0x00");
 
-    const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+    const USDC_ADDRESS = networkConfig.BASE.USDC;
     const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;
     if (!USDC_OWNER_ADDRESS) throw new Error("Env variables not configured (USDC_OWNER_ADDRESS missing)");
     const usdc = await hre.ethers.getContractAt("ERC20", USDC_ADDRESS);
     const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ADDRESS);
 
-    const RPL_ADDRESS = "0xD33526068D116cE69F19A9ee46F0bd304F21A51f";
+    const RPL_ADDRESS = "0x6Bb7a212910682DCFdbd5BCBb3e28FB4E8da10Ee"; // GHO
     const RPL_OWNER_ADDRESS = process.env.RPL_OWNER_ADDRESS!;
     if (!RPL_OWNER_ADDRESS) throw new Error("Env variables not configured (RPL_OWNER_ADDRESS missing)");
     const rpl = await hre.ethers.getContractAt("ERC20", RPL_ADDRESS);
     const rplOwner = await hre.ethers.getImpersonatedSigner(RPL_OWNER_ADDRESS);
 
-    const UNI_ADDRESS = "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984";
+    const UNI_ADDRESS = "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42"; // EURC
     const UNI_OWNER_ADDRESS = process.env.UNI_OWNER_ADDRESS!;
     if (!UNI_OWNER_ADDRESS) throw new Error("Env variables not configured (UNI_OWNER_ADDRESS missing)");
     const uni = await hre.ethers.getContractAt("ERC20", UNI_ADDRESS);

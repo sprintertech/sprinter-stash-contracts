@@ -299,14 +299,14 @@ const config: HardhatUserConfig = {
       forking: {
         url: isSet(process.env.DRY_RUN)
           ? process.env[`${process.env.DRY_RUN}_RPC`]!
-          : (process.env.FORK_PROVIDER || "https://eth-mainnet.public.blastapi.io"),
+          : (process.env.FORK_PROVIDER || process.env.BASE_RPC || "https://base-mainnet.public.blastapi.io"),
       },
       accounts: isSet(process.env.DRY_RUN)
         ? [{privateKey: process.env.PRIVATE_KEY!, balance: "1000000000000000000"}]
         : undefined,
       chains: isSet(process.env.DRY_RUN) // https://github.com/NomicFoundation/hardhat/issues/5511
         ? {[networkConfig[`${process.env.DRY_RUN}` as Network]!.chainId]: {hardforkHistory: {cancun: 0}}}
-        : undefined,
+        : {[networkConfig.BASE.chainId]: {hardforkHistory: {cancun: 0}}},
     },
   },
   sourcify: {

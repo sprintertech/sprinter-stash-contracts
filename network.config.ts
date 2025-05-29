@@ -3,6 +3,7 @@ import * as AAVEPools from "@bgd-labs/aave-address-book";
 export const LiquidityPoolAaveUSDC: string = "LiquidityPoolAaveUSDC";
 export const LiquidityPoolUSDC: string = "LiquidityPoolUSDC";
 export const LiquidityPoolUSDCStablecoin: string = "LiquidityPoolUSDCStablecoin";
+export const LiquidityPoolAaveUSDCV2: string = "LiquidityPoolAaveUSDC-V2-3c37ddc0";
 
 export enum Network {
   ETHEREUM = "ETHEREUM",
@@ -30,13 +31,13 @@ interface CCTPConfig {
   MessageTransmitter: string;
 };
 
-interface RebalancerRoutesConfig {
+export interface RebalancerRoutesConfig {
   Pools: string[];
   Domains: Network[];
   Providers: Provider[];
 };
 
-interface RepayerRoutesConfig {
+export interface RepayerRoutesConfig {
   Pools: string[];
   Domains: Network[];
   Providers: Provider[];
@@ -114,7 +115,7 @@ export const networkConfig: NetworksConfig = {
     Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-    MpcAddress: "0x1337000000000000000000000000000000000000",
+    MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3Ethereum.POOL_ADDRESSES_PROVIDER,
       minHealthFactor: 300,
@@ -135,7 +136,7 @@ export const networkConfig: NetworksConfig = {
     Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-    MpcAddress: "0x1337000000000000000000000000000000000000",
+    MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3Avalanche.POOL_ADDRESSES_PROVIDER,
       minHealthFactor: 300,
@@ -157,7 +158,7 @@ export const networkConfig: NetworksConfig = {
     Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-    MpcAddress: "0x1337000000000000000000000000000000000000",
+    MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     RebalancerRoutes: {
       Pools: [LiquidityPoolAaveUSDC, LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
       Domains: [Network.BASE, Network.ARBITRUM_ONE, Network.BASE, Network.ARBITRUM_ONE],
@@ -239,7 +240,7 @@ export const networkConfig: NetworksConfig = {
     Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-    MpcAddress: "0x1337000000000000000000000000000000000000",
+    MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     RebalancerRoutes: {
       Pools: [LiquidityPoolAaveUSDC, LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
       Domains: [Network.BASE, Network.OP_MAINNET, Network.BASE, Network.OP_MAINNET],
@@ -321,7 +322,7 @@ export const networkConfig: NetworksConfig = {
     Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-    MpcAddress: "0x1337000000000000000000000000000000000000",
+    MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     Hub: {
       AssetsAdjuster: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
       DepositProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
@@ -348,6 +349,30 @@ export const networkConfig: NetworksConfig = {
       AaveAddressesProvider: AAVEPools.AaveV3Base.POOL_ADDRESSES_PROVIDER,
       minHealthFactor: 300,
       defaultLTV: 0,
+      tokenLTVs: {
+        Tokens: [
+          "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "0x4200000000000000000000000000000000000006",
+          "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+          "0x04c0599ae5a44757c0af6f9ec3b93da8976c150a",
+          "0xc1cba3fcea344f92d9239c08c0568f6f2f0ee452",
+          "0x6bb7a212910682dcfdbd5bcbb3e28fb4e8da10ee",
+          "0x2ae3f1ec7f1f5012cfeab0185bfc7aa3cf0dec22",
+          "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca",
+          "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42",
+        ],
+        LTVs: [
+          100,
+          50,
+          50,
+          50,
+          50,
+          20,
+          50,
+          80,
+          20,
+        ],
+      },
     },
     USDCPool: true,
     Stage: {
@@ -425,7 +450,7 @@ export const networkConfig: NetworksConfig = {
     Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-    MpcAddress: "0x1337000000000000000000000000000000000000",
+    MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3Polygon.POOL_ADDRESSES_PROVIDER,
       minHealthFactor: 300,

@@ -11,6 +11,7 @@ import {encodeBytes32String, AbiCoder, Interface, Contract, solidityPacked} from
 import {
   MockTarget, MockBorrowSwap, LiquidityPoolStablecoin, CensoredTransferFromMulticall
 } from "../typechain-types";
+import {networkConfig} from "../network.config";
 
 async function now() {
   return BigInt(await time.latest());
@@ -23,19 +24,21 @@ describe("LiquidityPoolStablecoin", function () {
     ] = await hre.ethers.getSigners();
     await setCode(user2.address, "0x00");
 
-    const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+    const forkNetworkConfig = networkConfig.BASE;
+
+    const USDC_ADDRESS = forkNetworkConfig.USDC;
     const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;
     if (!USDC_OWNER_ADDRESS) throw new Error("Env variables not configured (USDC_OWNER_ADDRESS missing)");
     const usdc = await hre.ethers.getContractAt("ERC20", USDC_ADDRESS);
     const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ADDRESS);
 
-    const RPL_ADDRESS = "0xD33526068D116cE69F19A9ee46F0bd304F21A51f";
+    const RPL_ADDRESS = "0x6Bb7a212910682DCFdbd5BCBb3e28FB4E8da10Ee"; // GHO
     const RPL_OWNER_ADDRESS = process.env.RPL_OWNER_ADDRESS!;
     if (!RPL_OWNER_ADDRESS) throw new Error("Env variables not configured (RPL_OWNER_ADDRESS missing)");
     const rpl = await hre.ethers.getContractAt("ERC20", RPL_ADDRESS);
     const rplOwner = await hre.ethers.getImpersonatedSigner(RPL_OWNER_ADDRESS);
 
-    const UNI_ADDRESS = "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984";
+    const UNI_ADDRESS = "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42"; // EURC
     const UNI_OWNER_ADDRESS = process.env.UNI_OWNER_ADDRESS!;
     if (!UNI_OWNER_ADDRESS) throw new Error("Env variables not configured (UNI_OWNER_ADDRESS missing)");
     const uni = await hre.ethers.getContractAt("ERC20", UNI_ADDRESS);
@@ -261,7 +264,7 @@ describe("LiquidityPoolStablecoin", function () {
         uni, uniOwner, UNI_DEC, deployer
       } = await loadFixture(deployAll);
 
-      const SWAP_ROUTER_ADDRESS = "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45";
+      const SWAP_ROUTER_ADDRESS = "0x2626664c2603336E57B271c5C0b26F421741e481";
 
       const swapRouterInterface = [
         {
@@ -369,14 +372,13 @@ describe("LiquidityPoolStablecoin", function () {
       );
 
       // Calldata for Uniswap swap
-      const path = solidityPacked(["address", "uint24", "address"], [uni.target, 3000, usdc.target]);
+      const path = solidityPacked(["address", "uint24", "address"], [uni.target, 500, usdc.target]);
       const swapData = await swapRouter.exactInput.populateTransaction([
         path, // path
         liquidityPoolStablecoin.target,  // recipient
         amountToRepay, // amountIn
         amountToBorrow // amountOutMin
-      ]
-      );
+      ]);
 
       const callDataRepay = (await multicall.multicall.populateTransaction(
         [uni.target, uni.target, SWAP_ROUTER_ADDRESS],

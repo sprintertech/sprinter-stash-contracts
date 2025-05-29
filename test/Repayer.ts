@@ -17,7 +17,7 @@ import {
   TestLiquidityPool, Repayer, TestCCTPTokenMessenger, TestCCTPMessageTransmitter,
   TestAcrossV3SpokePool,
 } from "../typechain-types";
-import {networkConfig, Network} from "../network.config";
+import {networkConfig} from "../network.config";
 
 const ALLOWED = true;
 const DISALLOWED = false;
@@ -34,7 +34,7 @@ describe("Repayer", function () {
   const deployAll = async () => {
     const [deployer, admin, repayUser, user] = await hre.ethers.getSigners();
 
-    const forkNetworkConfig = networkConfig[Network.ETHEREUM];
+    const forkNetworkConfig = networkConfig.BASE;
 
     const REPAYER_ROLE = toBytes32("REPAYER_ROLE");
     const DEPOSIT_PROFIT_ROLE = toBytes32("DEPOSIT_PROFIT_ROLE");
@@ -52,7 +52,7 @@ describe("Repayer", function () {
 
     const USDC_DEC = 10n ** (await usdc.decimals());
 
-    const UNI_ADDRESS = "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984";
+    const UNI_ADDRESS = "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42"; // EURC
     const UNI_OWNER_ADDRESS = process.env.UNI_OWNER_ADDRESS!;
     if (!UNI_OWNER_ADDRESS) throw new Error("Env variables not configured (UNI_OWNER_ADDRESS missing)");
     const uni = await hre.ethers.getContractAt("ERC20", UNI_ADDRESS);
@@ -424,22 +424,22 @@ describe("Repayer", function () {
     
     const acrossV3SpokePoolFork = await hre.ethers.getContractAt(
       "V3SpokePoolInterface",
-      networkConfig[Network.ETHEREUM].AcrossV3SpokePool!
+      networkConfig.BASE.AcrossV3SpokePool!
     );
-    const USDC_BASE_ADDRESS = networkConfig[Network.BASE].USDC;
+    const USDC_BASE_ADDRESS = networkConfig.BASE.USDC;
 
     assertAddress(process.env.USDC_OWNER_ADDRESS, "Env variables not configured (USDC_OWNER_ADDRESS missing)");
     const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;
-    const usdc = await hre.ethers.getContractAt("ERC20", networkConfig[Network.ETHEREUM].USDC);
+    const usdc = await hre.ethers.getContractAt("ERC20", networkConfig.BASE.USDC);
     const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ADDRESS);
 
     const repayerImpl2 = (
       await deployX(
         "Repayer",
-        deployer, 
-        "Repayer2", 
+        deployer,
+        "Repayer2",
         {},
-        Domain.ETHEREUM, 
+        Domain.BASE,
         usdc.target,
         cctpTokenMessenger.target,
         cctpMessageTransmitter.target,
@@ -457,7 +457,7 @@ describe("Repayer", function () {
 
     await repayer.connect(admin).setRoute(
       [liquidityPool.target],
-      [Domain.BASE],
+      [Domain.ETHEREUM],
       [Provider.ACROSS],
       [true],
       ALLOWED
@@ -472,13 +472,13 @@ describe("Repayer", function () {
       usdc.target,
       amount,
       liquidityPool.target,
-      Domain.BASE,
+      Domain.ETHEREUM,
       Provider.ACROSS,
       extraData
     );
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")
-      .withArgs(usdc.target, amount, liquidityPool.target, Domain.BASE, Provider.ACROSS);
+      .withArgs(usdc.target, amount, liquidityPool.target, Domain.ETHEREUM, Provider.ACROSS);
     await expect(tx)
       .to.emit(usdc, "Transfer")
       .withArgs(repayer.target, acrossV3SpokePoolFork.target, amount);
@@ -489,7 +489,7 @@ describe("Repayer", function () {
         addressToBytes32(USDC_BASE_ADDRESS),
         amount,
         amount * 998n / 1000n,
-        await repayer.domainChainId(Domain.BASE),
+        await repayer.domainChainId(Domain.ETHEREUM),
         anyValue,
         currentTime - 1n,
         currentTime + 90n,

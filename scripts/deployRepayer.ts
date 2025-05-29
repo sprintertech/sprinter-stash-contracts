@@ -22,7 +22,7 @@ export async function main() {
   ({network, config} = await getNetworkConfig());
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
-    id += "DeployTest";
+    id += "-DeployTest";
   }
 
   assert(isAddress(config.USDC), "USDC must be an address");
@@ -30,6 +30,7 @@ export async function main() {
   assert(isAddress(config.RepayerCaller), "RepayerCaller must be an address");
   assert(isAddress(config.CCTP.TokenMessenger), "CCTP TokenMessenger must be an address");
   assert(isAddress(config.CCTP.MessageTransmitter), "CCTP MessageTransmitter must be an address");
+  assert(isAddress(config.WrappedNativeToken), "WrappedNativeToken must be an address");
 
   if (!config.RepayerRoutes) {
     config.RepayerRoutes = {
@@ -76,7 +77,8 @@ export async function main() {
       config.USDC,
       config.CCTP.TokenMessenger,
       config.CCTP.MessageTransmitter,
-      config.AcrossV3SpokePool
+      config.AcrossV3SpokePool,
+      config.WrappedNativeToken,
     ],
     [
       config.Admin,

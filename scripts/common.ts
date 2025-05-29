@@ -1,4 +1,4 @@
-import {isAddress} from "ethers";
+import {isAddress, getAddress} from "ethers";
 
 export function assert(condition: any, message: string): asserts condition {
   if (!condition) {
@@ -8,6 +8,10 @@ export function assert(condition: any, message: string): asserts condition {
 
 export function assertAddress(address: any, message: string): asserts address {
   assert(isAddress(address), message);
+}
+
+export function sameAddress(a: any, b: any): boolean {
+  return getAddress(a) === getAddress(b);
 }
 
 export function sleep(msec: number): Promise<boolean> {
@@ -49,3 +53,4 @@ export const DEFAULT_PROXY_TYPE = "TransparentUpgradeableProxy";
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 export const ZERO_BYTES32 = "0x0000000000000000000000000000000000000000000000000000000000000000";
 export const DEFAULT_ADMIN_ROLE = ZERO_BYTES32;
+export const ETH = 1000000000000000000n;

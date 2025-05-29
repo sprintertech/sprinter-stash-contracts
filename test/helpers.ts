@@ -186,3 +186,7 @@ export async function signBorrow(
 
   return signer.signTypedData(domain, types, value);
 }
+
+export async function getBalance(addr: AddressLike): Promise<bigint> {
+  return hre.ethers.provider.getBalance(addr);
+}

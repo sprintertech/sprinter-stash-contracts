@@ -9,8 +9,9 @@ contract TestRepayer is Repayer {
         IERC20 assets,
         address cctpTokenMessenger,
         address cctpMessageTransmitter,
-        address acrossSpokePool
-    ) Repayer(localDomain, assets, cctpTokenMessenger, cctpMessageTransmitter, acrossSpokePool) {}
+        address acrossSpokePool,
+        address wrappedNativeToken
+    ) Repayer(localDomain, assets, cctpTokenMessenger, cctpMessageTransmitter, acrossSpokePool, wrappedNativeToken) {}
 
     function domainCCTP(Domain destinationDomain) public pure override returns (uint32) {
         if (destinationDomain == Domain.ETHEREUM_SEPOLIA) {

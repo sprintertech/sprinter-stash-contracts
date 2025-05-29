@@ -3,7 +3,7 @@ dotenv.config();
 import hre from "hardhat";
 import {getVerifier, getHardhatNetworkConfig, getNetworkConfig} from "./helpers";
 import {resolveProxyXAddress, toBytes32} from "../test/helpers";
-import {isSet, assert, DEFAULT_ADMIN_ROLE} from "./common";
+import {isSet, assert, DEFAULT_ADMIN_ROLE, sameAddress} from "./common";
 import {LiquidityPool} from "../typechain-types";
 import {Network, NetworkConfig, LiquidityPoolUSDC} from "../network.config";
 
@@ -25,7 +25,7 @@ export async function main() {
   ({network, config} = await getNetworkConfig());
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
-    id += "DeployTest";
+    id += "-DeployTest";
   }
 
   assert(config.USDCPool, "USDC pool is not configured");
@@ -43,7 +43,7 @@ export async function main() {
   await usdcPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
   await usdcPool!.grantRole(PAUSER_ROLE, config.Pauser);
 
-  if (deployer.address !== config.Admin) {
+  if (!sameAddress(deployer.address, config.Admin)) {
     await usdcPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
     await usdcPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
   }

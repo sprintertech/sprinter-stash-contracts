@@ -174,6 +174,36 @@ export const networkConfig: NetworksConfig = {
       AaveAddressesProvider: AAVEPools.AaveV3Optimism.POOL_ADDRESSES_PROVIDER,
       minHealthFactor: 300,
       defaultLTV: 0,
+      tokenLTVs: {
+        Tokens: [
+          "0x1f32b1c2345538c0c6f582fcb022739c4a194ebb", // wstETH
+          "0x4200000000000000000000000000000000000006", // WETH
+          "0x0b2c639c533813f4aa9d7837caf62653d097ff85", // USDC
+          "0x68f180fcce6836688e9084f035309e29bf0a2095", // WBTC
+          "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58", // USDT
+          "0x4200000000000000000000000000000000000042", // OP
+          "0x8c6f28f2f1a3c87f0f938b96d27520d9751ec8d9", // sUSD
+          "0x9bcef72be871e61ed4fbbc7630889bee758eb81d", // rETH
+          "0x7f5c764cbc14f9669b88837ca1490cca17c31607", // USDC.e
+          "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1", // DAI
+          "0x350a791bfc2c21f9ed5d10980dad2e2638ffa7f6", // LINK
+          "0xc40f949f8a4e094d1b49a23ea9241d289b7b2819", // LUSD
+        ],
+        LTVs: [
+          50,
+          50,
+          100,
+          50,
+          80,
+          50,
+          50,
+          50,
+          80,
+          80,
+          50,
+          50,
+        ],
+      },
     },
     USDCPool: true,
     Stage: {
@@ -221,6 +251,36 @@ export const networkConfig: NetworksConfig = {
         AaveAddressesProvider: AAVEPools.AaveV3Optimism.POOL_ADDRESSES_PROVIDER,
         minHealthFactor: 300,
         defaultLTV: 0,
+        tokenLTVs: {
+          Tokens: [
+            "0x1f32b1c2345538c0c6f582fcb022739c4a194ebb", // wstETH
+            "0x4200000000000000000000000000000000000006", // WETH
+            "0x0b2c639c533813f4aa9d7837caf62653d097ff85", // USDC
+            "0x68f180fcce6836688e9084f035309e29bf0a2095", // WBTC
+            "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58", // USDT
+            "0x4200000000000000000000000000000000000042", // OP
+            "0x8c6f28f2f1a3c87f0f938b96d27520d9751ec8d9", // sUSD
+            "0x9bcef72be871e61ed4fbbc7630889bee758eb81d", // rETH
+            "0x7f5c764cbc14f9669b88837ca1490cca17c31607", // USDC.e
+            "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1", // DAI
+            "0x350a791bfc2c21f9ed5d10980dad2e2638ffa7f6", // LINK
+            "0xc40f949f8a4e094d1b49a23ea9241d289b7b2819", // LUSD
+          ],
+          LTVs: [
+            50,
+            50,
+            100,
+            50,
+            80,
+            50,
+            50,
+            50,
+            80,
+            80,
+            50,
+            50,
+          ],
+        },
       },
       USDCPool: true,
     },
@@ -256,6 +316,40 @@ export const networkConfig: NetworksConfig = {
       AaveAddressesProvider: AAVEPools.AaveV3Arbitrum.POOL_ADDRESSES_PROVIDER,
       minHealthFactor: 300,
       defaultLTV: 0,
+      tokenLTVs: {
+        Tokens: [
+          "0xaf88d065e77c8cc2239327c5edb3a432268e5831", // USDC
+          "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", // WETH
+          "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f", // WBTC
+          "0x35751007a407ca6feffe80b3cb397736d2cf4dbe", // weETH
+          "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9", // USDT0
+          "0x5979d7b546e38e414f7e9822514be443a4800529", // wstETH
+          "0xf97f4df75117a78c1a5a0dbb814af92458539fb4", // LINK
+          "0x912ce59144191c1204e64559fe8253a0e49e6548", // ARB
+          "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1", // DAI
+          "0xec70dcb4a1efa46b8f2d97c310c9c4790ba5ffa8", // rETH
+          "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8", // USDC.e
+          "0x7dff72693f6a4149b17e7c6314655f6a9f7c8b33", // GHO
+          "0x93b346b6bc2548da6a1e7d98e9a421b42541425b", // LUSD
+          "0x17fc002b466eec40dae837fc4be5c67993ddbd6f", // FRAX
+        ],
+        LTVs: [
+          100,
+          50,
+          50,
+          50,
+          80,
+          50,
+          50,
+          50,
+          80,
+          30,
+          80,
+          20,
+          50,
+          20,
+        ],
+      },
     },
     USDCPool: true,
     Stage: {
@@ -303,6 +397,40 @@ export const networkConfig: NetworksConfig = {
         AaveAddressesProvider: AAVEPools.AaveV3Arbitrum.POOL_ADDRESSES_PROVIDER,
         minHealthFactor: 300,
         defaultLTV: 0,
+        tokenLTVs: {
+          Tokens: [
+            "0xaf88d065e77c8cc2239327c5edb3a432268e5831", // USDC
+            "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", // WETH
+            "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f", // WBTC
+            "0x35751007a407ca6feffe80b3cb397736d2cf4dbe", // weETH
+            "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9", // USDT0
+            "0x5979d7b546e38e414f7e9822514be443a4800529", // wstETH
+            "0xf97f4df75117a78c1a5a0dbb814af92458539fb4", // LINK
+            "0x912ce59144191c1204e64559fe8253a0e49e6548", // ARB
+            "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1", // DAI
+            "0xec70dcb4a1efa46b8f2d97c310c9c4790ba5ffa8", // rETH
+            "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8", // USDC.e
+            "0x7dff72693f6a4149b17e7c6314655f6a9f7c8b33", // GHO
+            "0x93b346b6bc2548da6a1e7d98e9a421b42541425b", // LUSD
+            "0x17fc002b466eec40dae837fc4be5c67993ddbd6f", // FRAX
+          ],
+          LTVs: [
+            100,
+            50,
+            50,
+            50,
+            80,
+            50,
+            50,
+            50,
+            80,
+            30,
+            80,
+            20,
+            50,
+            20,
+          ],
+        },
       },
       USDCPool: true,
     },
@@ -351,15 +479,15 @@ export const networkConfig: NetworksConfig = {
       defaultLTV: 0,
       tokenLTVs: {
         Tokens: [
-          "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
-          "0x4200000000000000000000000000000000000006",
-          "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
-          "0x04c0599ae5a44757c0af6f9ec3b93da8976c150a",
-          "0xc1cba3fcea344f92d9239c08c0568f6f2f0ee452",
-          "0x6bb7a212910682dcfdbd5bcbb3e28fb4e8da10ee",
-          "0x2ae3f1ec7f1f5012cfeab0185bfc7aa3cf0dec22",
-          "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca",
-          "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42",
+          "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", // USDC
+          "0x4200000000000000000000000000000000000006", // WETH
+          "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf", // cbBTC
+          "0x04c0599ae5a44757c0af6f9ec3b93da8976c150a", // weETH
+          "0xc1cba3fcea344f92d9239c08c0568f6f2f0ee452", // wstETH
+          "0x6bb7a212910682dcfdbd5bcbb3e28fb4e8da10ee", // GHO
+          "0x2ae3f1ec7f1f5012cfeab0185bfc7aa3cf0dec22", // cbETH
+          "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca", // USDbC
+          "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42", // EURC
         ],
         LTVs: [
           100,
@@ -431,6 +559,30 @@ export const networkConfig: NetworksConfig = {
         AaveAddressesProvider: AAVEPools.AaveV3Base.POOL_ADDRESSES_PROVIDER,
         minHealthFactor: 300,
         defaultLTV: 0,
+        tokenLTVs: {
+          Tokens: [
+            "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", // USDC
+            "0x4200000000000000000000000000000000000006", // WETH
+            "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf", // cbBTC
+            "0x04c0599ae5a44757c0af6f9ec3b93da8976c150a", // weETH
+            "0xc1cba3fcea344f92d9239c08c0568f6f2f0ee452", // wstETH
+            "0x6bb7a212910682dcfdbd5bcbb3e28fb4e8da10ee", // GHO
+            "0x2ae3f1ec7f1f5012cfeab0185bfc7aa3cf0dec22", // cbETH
+            "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca", // USDbC
+            "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42", // EURC
+          ],
+          LTVs: [
+            100,
+            50,
+            50,
+            50,
+            50,
+            20,
+            50,
+            80,
+            20,
+          ],
+        },
       },
       USDCPool: true,
     },

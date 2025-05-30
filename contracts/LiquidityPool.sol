@@ -100,13 +100,13 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         // called after receiving deposit in USDC
         uint256 balance = ASSETS.balanceOf(address(this));
         require(balance >= amount, NotEnoughToDeposit());
-        _deposit(msg.sender, amount);
+        _deposit(_msgSender(), amount);
     }
 
     function depositWithPull(uint256 amount) external override {
         // pulls USDC from the sender
-        ASSETS.safeTransferFrom(msg.sender, address(this), amount);
-        _deposit(msg.sender, amount);
+        ASSETS.safeTransferFrom(_msgSender(), address(this), amount);
+        _deposit(_msgSender(), amount);
     }
 
     /// @notice This function allows an authorized caller to borrow funds from the contract.
@@ -168,10 +168,10 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         bytes calldata signature
     ) external override whenNotPaused() {
         _validateMPCSignatureWithCaller(borrowToken, amount, target, targetCallData, nonce, deadline, signature);
-        _borrow(borrowToken, amount, msg.sender);
+        _borrow(borrowToken, amount, _msgSender());
         // Call the swap function on caller
-        IBorrower(msg.sender).swap(swapInputData.swapData);
-        IERC20(swapInputData.fillToken).safeTransferFrom(msg.sender, address(this), swapInputData.fillAmount);
+        IBorrower(_msgSender()).swap(swapInputData.swapData);
+        IERC20(swapInputData.fillToken).safeTransferFrom(_msgSender(), address(this), swapInputData.fillAmount);
         IERC20(swapInputData.fillToken).forceApprove(target, swapInputData.fillAmount);
         // - Invoke the recipient's address with calldata provided in the MPC signature to complete
         // the operation securely.
@@ -198,7 +198,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         require(deposited >= amount, InsufficientLiquidity());
         totalDeposited = deposited - amount;
         _withdrawLogic(to, amount);
-        emit Withdraw(msg.sender, to, amount);
+        emit Withdraw(_msgSender(), to, amount);
     }
 
     function withdrawProfit(
@@ -237,12 +237,12 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
 
     function pause() external override onlyRole(PAUSER_ROLE) whenNotPaused() {
         paused = true;
-        emit Paused(msg.sender);
+        emit Paused(_msgSender());
     }
 
     function unpause() external override onlyRole(PAUSER_ROLE) whenPaused() {
         paused = false;
-        emit Unpaused(msg.sender);
+        emit Unpaused(_msgSender());
     }
 
     // Internal functions
@@ -264,7 +264,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
     ) internal {
         bytes32 digest = _hashTypedDataV4(keccak256(abi.encode(
             BORROW_TYPEHASH,
-            msg.sender,
+            _msgSender(),
             borrowToken,
             amount,
             target,

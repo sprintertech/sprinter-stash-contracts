@@ -24,6 +24,7 @@ import {ILiquidityHub} from "./interfaces/ILiquidityHub.sol";
 /// 5. Supports deposit with permit if the underlying asset supports permit as well.
 /// 6. Underlying assets are deposited/withdrawn to/from a connected ILiquidityPool contract.
 /// 7. To withdraw/redeem on behalf, owner has to approve spender on the shares contract instead of this one.
+/// 8. The shares token could have greater decimals value than the underlying assets.
 /// @notice Upgradeable.
 /// @author Oleksii Matiiasevych <oleksii@chainsafe.io>
 contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgradeable {
@@ -96,8 +97,13 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         LiquidityHubStorage storage $ = _getStorage();
         uint256 assets = $.totalAssets;
         require(assets > 0, EmptyHub());
-        if (isIncrease) require(amount <= _assetsIncreaseHardLimit(assets), AssetsExceedHardLimit());
-        uint256 newAssets = isIncrease ? assets + amount : assets - amount;
+        uint256 newAssets;
+        if (isIncrease) {
+            require(amount <= _assetsIncreaseHardLimit(assets), AssetsExceedHardLimit());
+            newAssets = assets + amount;
+        } else {
+            newAssets = assets - amount;
+        }
         $.totalAssets = newAssets;
         emit TotalAssetsAdjustment(assets, newAssets);
     }
@@ -173,6 +179,10 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         return _convertToShares(maxDeposit(address(0)), Math.Rounding.Floor);
     }
 
+    // Note, a malicious actor could frontrun the permit() call in separate transaction, which will
+    // make this transaction revert. It is an unlikely possibility because there is no gain in it.
+    // If such frontrun did happen, a user can proceed with a simple deposit() as the allowance would
+    // already be given.
     function depositWithPermit(
         uint256 assets,
         address receiver,

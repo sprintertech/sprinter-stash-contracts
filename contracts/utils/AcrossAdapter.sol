@@ -36,6 +36,9 @@ abstract contract AcrossAdapter is BridgeAdapter {
             uint32 fillDeadline, // Validated in the spoke pool
             uint32 exclusivityDeadline
         ) = abi.decode(extraData, (address, uint256, address, uint32, uint32, uint32));
+        // Note, in case we will start supporting destination tokens with a decimals value different from the source,
+        // then we will need to remove this requirement.
+        // Until then we leave it here as a protective measure on potential offchain component calculation errors.
         require(outputAmount >= (amount * 9980 / 10000), SlippageTooHigh());
         ACROSS_SPOKE_POOL.depositV3(
             address(this),

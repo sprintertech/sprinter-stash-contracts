@@ -4,10 +4,11 @@ import hre from "hardhat";
 import {MaxUint256, isAddress} from "ethers";
 import {toBytes32, resolveProxyXAddress} from "../test/helpers";
 import {
-  getVerifier, deployProxyX, getHardhatNetworkConfig, getNetworkConfig,
+  getVerifier, deployProxyX, getHardhatNetworkConfig, getNetworkConfig, percentsToBps,
 } from "./helpers";
 import {
-  assert, isSet, ProviderSolidity, DomainSolidity, DEFAULT_ADMIN_ROLE, ZERO_ADDRESS
+  assert, isSet, ProviderSolidity, DomainSolidity, DEFAULT_ADMIN_ROLE, ZERO_ADDRESS,
+  sameAddress,
 } from "./common";
 import {
   SprinterUSDCLPShare, LiquidityHub, SprinterLiquidityMining,
@@ -15,7 +16,7 @@ import {
 } from "../typechain-types";
 import {
   Network, Provider, NetworkConfig, LiquidityPoolUSDC,
-  LiquidityPoolAaveUSDC, LiquidityPoolUSDCStablecoin
+  LiquidityPoolAaveUSDC, LiquidityPoolUSDCStablecoin, RebalancerRoutesConfig, RepayerRoutesConfig,
 } from "../network.config";
 
 export async function main() {
@@ -34,11 +35,6 @@ export async function main() {
   console.log("Deploying contracts set");
   ({network, config} = await getNetworkConfig());
   if (!network) {
-    console.log("TEST: Using TEST USDC and CCTP");
-    await verifier.deployX("TestUSDC", deployer);
-    await verifier.deployX("TestCCTPTokenMessenger", deployer);
-    await verifier.deployX("TestCCTPMessageTransmitter", deployer);
-    await verifier.deployX("TestAcrossV3SpokePool", deployer);
     ({network, config} = await getHardhatNetworkConfig());
   }
 
@@ -51,27 +47,35 @@ export async function main() {
   assert(isAddress(config.RebalanceCaller), "RebalanceCaller must be an address");
   assert(isAddress(config.RepayerCaller), "RepayerCaller must be an address");
   assert(isAddress(config.MpcAddress), "MpcAddress must be an address");
+  assert(isAddress(config.WrappedNativeToken), "WrappedNativeToken must be an address");
 
   if (config.Hub) {
-    assert(config.Hub!.Tiers.length > 0, "Empty liquidity mining tiers configuration.");
-    assert(config.Hub!.AssetsLimit <= MaxUint256 / 10n ** 12n, "Assets limit is too high");
+    assert(config.Hub.Tiers.length > 0, "Empty liquidity mining tiers configuration.");
+    assert(config.Hub.AssetsLimit <= MaxUint256 / 10n ** 12n, "Assets limit is too high");
   }
 
-  if (!config.RebalancerRoutes) {
-    config.RebalancerRoutes = {
-      Pools: [],
-      Domains: [],
-      Providers: [],
-    };
+  const rebalancerRoutes: RebalancerRoutesConfig = {
+    Pools: [],
+    Domains: [],
+    Providers: [],
+  };
+  if (config.RebalancerRoutes) {
+    rebalancerRoutes.Pools = rebalancerRoutes.Pools.concat(config.RebalancerRoutes.Pools);
+    rebalancerRoutes.Domains = rebalancerRoutes.Domains.concat(config.RebalancerRoutes.Domains);
+    rebalancerRoutes.Providers = rebalancerRoutes.Providers.concat(config.RebalancerRoutes.Providers);
   }
 
-  if (!config.RepayerRoutes) {
-    config.RepayerRoutes = {
-      Pools: [],
-      Domains: [],
-      Providers: [],
-      SupportsAllTokens: [],
-    };
+  const repayerRoutes: RepayerRoutesConfig = {
+    Pools: [],
+    Domains: [],
+    Providers: [],
+    SupportsAllTokens: [],
+  };
+  if (config.RepayerRoutes) {
+    repayerRoutes.Pools = repayerRoutes.Pools.concat(config.RepayerRoutes.Pools);
+    repayerRoutes.Domains = repayerRoutes.Domains.concat(config.RepayerRoutes.Domains);
+    repayerRoutes.Providers = repayerRoutes.Providers.concat(config.RepayerRoutes.Providers);
+    repayerRoutes.SupportsAllTokens = repayerRoutes.SupportsAllTokens.concat(config.RepayerRoutes.SupportsAllTokens);
   }
 
   if (!config.AcrossV3SpokePool) {
@@ -95,23 +99,27 @@ export async function main() {
         config.MpcAddress,
         minHealthFactor,
         defaultLTV,
+        config.WrappedNativeToken,
       ],
       LiquidityPoolAaveUSDC,
     )) as LiquidityPoolAave;
 
     if (config.AavePool.tokenLTVs) {
-      await aavePool.setBorrowTokenLTVs(config.AavePool.tokenLTVs!.Tokens, config.AavePool.tokenLTVs!.LTVs);
+      await aavePool.setBorrowTokenLTVs(
+        config.AavePool.tokenLTVs.Tokens,
+        percentsToBps(config.AavePool.tokenLTVs.LTVs)
+      );
     }
     console.log(`LiquidityPoolAaveUSDC: ${aavePool.target}`);
 
-    config.RebalancerRoutes.Pools.push(await aavePool.getAddress());
-    config.RebalancerRoutes.Domains.push(network);
-    config.RebalancerRoutes.Providers.push(Provider.LOCAL);
+    rebalancerRoutes.Pools.push(await aavePool.getAddress());
+    rebalancerRoutes.Domains.push(network);
+    rebalancerRoutes.Providers.push(Provider.LOCAL);
 
-    config.RepayerRoutes.Pools.push(await aavePool.getAddress());
-    config.RepayerRoutes.Domains.push(network);
-    config.RepayerRoutes.Providers.push(Provider.LOCAL);
-    config.RepayerRoutes.SupportsAllTokens.push(true);
+    repayerRoutes.Pools.push(await aavePool.getAddress());
+    repayerRoutes.Domains.push(network);
+    repayerRoutes.Providers.push(Provider.LOCAL);
+    repayerRoutes.SupportsAllTokens.push(true);
 
     mainPool = aavePool as LiquidityPool;
   } 
@@ -124,14 +132,14 @@ export async function main() {
     )) as LiquidityPool;
     console.log(`LiquidityPoolUSDC: ${usdcPool.target}`);
 
-    config.RebalancerRoutes.Pools.push(await usdcPool.getAddress());
-    config.RebalancerRoutes.Domains.push(network);
-    config.RebalancerRoutes.Providers.push(Provider.LOCAL);
+    rebalancerRoutes.Pools.push(await usdcPool.getAddress());
+    rebalancerRoutes.Domains.push(network);
+    rebalancerRoutes.Providers.push(Provider.LOCAL);
 
-    config.RepayerRoutes.Pools.push(await usdcPool.getAddress());
-    config.RepayerRoutes.Domains.push(network);
-    config.RepayerRoutes.Providers.push(Provider.LOCAL);
-    config.RepayerRoutes.SupportsAllTokens.push(false);
+    repayerRoutes.Pools.push(await usdcPool.getAddress());
+    repayerRoutes.Domains.push(network);
+    repayerRoutes.Providers.push(Provider.LOCAL);
+    repayerRoutes.SupportsAllTokens.push(false);
 
     if (!config.AavePool) {
       mainPool = usdcPool;
@@ -146,14 +154,14 @@ export async function main() {
     )) as LiquidityPool;
     console.log(`LiquidityPoolUSDCStablecoin: ${usdcStablecoinPool.target}`);
 
-    config.RebalancerRoutes.Pools.push(await usdcStablecoinPool.getAddress());
-    config.RebalancerRoutes.Domains.push(network);
-    config.RebalancerRoutes.Providers.push(Provider.LOCAL);
+    rebalancerRoutes.Pools.push(await usdcStablecoinPool.getAddress());
+    rebalancerRoutes.Domains.push(network);
+    rebalancerRoutes.Providers.push(Provider.LOCAL);
 
-    config.RepayerRoutes.Pools.push(await usdcStablecoinPool.getAddress());
-    config.RepayerRoutes.Domains.push(network);
-    config.RepayerRoutes.Providers.push(Provider.LOCAL);
-    config.RepayerRoutes.SupportsAllTokens.push(false);
+    repayerRoutes.Pools.push(await usdcStablecoinPool.getAddress());
+    repayerRoutes.Domains.push(network);
+    repayerRoutes.Providers.push(Provider.LOCAL);
+    repayerRoutes.SupportsAllTokens.push(false);
 
     if ((!config.AavePool) && (!config.USDCPool)) {
       mainPool = usdcStablecoinPool;
@@ -162,7 +170,7 @@ export async function main() {
 
   const rebalancerVersion = config.IsTest ? "TestRebalancer" : "Rebalancer";
 
-  config.RebalancerRoutes.Pools = await verifier.predictDeployXAddresses(config.RebalancerRoutes!.Pools!, deployer);
+  rebalancerRoutes.Pools = await verifier.predictDeployXAddresses(rebalancerRoutes.Pools, deployer);
 
   const {target: rebalancer, targetAdmin: rebalancerAdmin} = await deployProxyX<Rebalancer>(
     verifier.deployX,
@@ -173,9 +181,9 @@ export async function main() {
     [
       config.Admin,
       config.RebalanceCaller,
-      config.RebalancerRoutes.Pools,
-      config.RebalancerRoutes!.Domains!.map(el => DomainSolidity[el]) || [],
-      config.RebalancerRoutes!.Providers!.map(el => ProviderSolidity[el]) || [],
+      rebalancerRoutes.Pools,
+      rebalancerRoutes.Domains.map(el => DomainSolidity[el]),
+      rebalancerRoutes.Providers.map(el => ProviderSolidity[el]),
     ],
     "Rebalancer",
   );
@@ -200,7 +208,7 @@ export async function main() {
 
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
 
-  config.RepayerRoutes.Pools = await verifier.predictDeployXAddresses(config.RepayerRoutes!.Pools!, deployer);
+  repayerRoutes.Pools = await verifier.predictDeployXAddresses(repayerRoutes.Pools || [], deployer);
 
   const {target: repayer, targetAdmin: repayerAdmin} = await deployProxyX<Repayer>(
     verifier.deployX,
@@ -212,15 +220,16 @@ export async function main() {
       config.USDC,
       config.CCTP.TokenMessenger,
       config.CCTP.MessageTransmitter,
-      config.AcrossV3SpokePool
+      config.AcrossV3SpokePool,
+      config.WrappedNativeToken,
     ],
     [
       config.Admin,
       config.RepayerCaller,
-      config.RepayerRoutes.Pools,
-      config.RepayerRoutes!.Domains!.map(el => DomainSolidity[el]) || [],
-      config.RepayerRoutes!.Providers!.map(el => ProviderSolidity[el]) || [],
-      config.RepayerRoutes!.SupportsAllTokens,
+      repayerRoutes.Pools,
+      repayerRoutes.Domains.map(el => DomainSolidity[el]),
+      repayerRoutes.Providers.map(el => ProviderSolidity[el]),
+      repayerRoutes.SupportsAllTokens,
     ],
     "Repayer",
   );
@@ -277,7 +286,7 @@ export async function main() {
     }));
   }
 
-  if (deployer.address !== config.Admin) {
+  if (!sameAddress(deployer.address, config.Admin)) {
     if (config.AavePool) {
       await aavePool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
       await aavePool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
@@ -313,29 +322,29 @@ export async function main() {
   console.log(`USDC: ${config.USDC}`);
   console.log(`Rebalancer: ${rebalancer.target}`);
   console.log(`RebalancerProxyAdmin: ${rebalancerAdmin.target}`);
-  if (config.RebalancerRoutes) {
+  if (rebalancerRoutes.Pools.length > 0) {
     console.log("RebalancerRoutes:");
     const transposedRoutes = [];
-    for (let i = 0; i < config.RebalancerRoutes.Pools.length; i++) {
+    for (let i = 0; i < rebalancerRoutes.Pools.length; i++) {
       transposedRoutes.push({
-        Pool: config.RebalancerRoutes.Pools[i],
-        Domain: config.RebalancerRoutes.Domains[i],
-        Provider: config.RebalancerRoutes.Providers[i],
+        Pool: rebalancerRoutes.Pools[i],
+        Domain: rebalancerRoutes.Domains[i],
+        Provider: rebalancerRoutes.Providers[i],
       });
     }
     console.table(transposedRoutes);
   }
   console.log(`Repayer: ${repayer.target}`);
   console.log(`RepayerProxyAdmin: ${repayerAdmin.target}`);
-  if (config.RepayerRoutes) {
+  if (repayerRoutes.Pools.length > 0) {
     console.log("RepayerRoutes:");
     const transposedRoutes = [];
-    for (let i = 0; i < config.RepayerRoutes.Pools.length; i++) {
+    for (let i = 0; i < repayerRoutes.Pools.length; i++) {
       transposedRoutes.push({
-        Pool: config.RepayerRoutes.Pools[i],
-        Domain: config.RepayerRoutes.Domains[i],
-        Provider: config.RepayerRoutes.Providers[i],
-        SupportsAllTokens: config.RepayerRoutes.SupportsAllTokens[i],
+        Pool: repayerRoutes.Pools[i],
+        Domain: repayerRoutes.Domains[i],
+        Provider: repayerRoutes.Providers[i],
+        SupportsAllTokens: repayerRoutes.SupportsAllTokens[i],
       });
     }
     console.table(transposedRoutes);

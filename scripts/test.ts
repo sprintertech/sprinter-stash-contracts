@@ -10,6 +10,7 @@ import {main as deployUSDCPool} from "./deployUSDCPool";
 import {main as deployUSDCStablecoinPool} from "./deployUSDCStablecoinPool";
 import {main as deployRepayer} from "./deployRepayer";
 import {main as upgradeLiquidityHub} from "./upgradeLiquidityHub";
+import {main as deployUSDCPoolAave} from "./deployUSDCPoolAave";
 
 async function main() {
   console.log("Test deploy.")
@@ -28,6 +29,8 @@ async function main() {
   await deployRepayer();
   console.log("Test upgradeLiquidityHub.")
   await upgradeLiquidityHub();
+  console.log("Test deployUSDCPoolAave.")
+  await deployUSDCPoolAave();
   console.log("Test deployCensoredMulticall.")
   process.env.DEPLOY_ID = "NEW_ID";
   await deployCensoredMulticall();

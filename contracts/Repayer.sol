@@ -7,6 +7,7 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {ILiquidityPool} from "./interfaces/ILiquidityPool.sol";
 import {IRepayer} from "./interfaces/IRepayer.sol";
+import {IWrappedNativeToken} from "./interfaces/IWrappedNativeToken.sol";
 
 import {CCTPAdapter} from "./utils/CCTPAdapter.sol";
 import {AcrossAdapter} from "./utils/AcrossAdapter.sol";
@@ -25,7 +26,7 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapt
     Domain immutable public DOMAIN;
     IERC20 immutable public ASSETS;
     bytes32 constant public REPAYER_ROLE = "REPAYER_ROLE";
-
+    IWrappedNativeToken immutable public WRAPPED_NATIVE_TOKEN;
 
     /// @custom:storage-location erc7201:sprinter.storage.Repayer
     struct RepayerStorage {
@@ -66,7 +67,8 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapt
         IERC20 assets,
         address cctpTokenMessenger,
         address cctpMessageTransmitter,
-        address acrossSpokePool
+        address acrossSpokePool,
+        address wrappedNativeToken
     )
         CCTPAdapter(cctpTokenMessenger, cctpMessageTransmitter)
         AcrossAdapter(acrossSpokePool)
@@ -78,6 +80,11 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapt
         require(address(assets) != address(0), ZeroAddress());
         DOMAIN = localDomain;
         ASSETS = assets;
+        WRAPPED_NATIVE_TOKEN = IWrappedNativeToken(wrappedNativeToken);
+    }
+
+    receive() external payable {
+        // Allow native token transfers.
     }
 
     function initialize(
@@ -103,6 +110,9 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapt
         _setRoute(pools, domains, providers, poolSupportsAllTokens, isAllowed);
     }
 
+    /// @notice If the selected provider requires native currency payment to cover fees,
+    /// then caller has to include it in the transaction. It is then the responsibility
+    /// of the Adapter to forward the payment and return any change back to the caller.
     function initiateRepay(
         IERC20 token,
         uint256 amount,
@@ -110,8 +120,12 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapt
         Domain destinationDomain,
         Provider provider,
         bytes calldata extraData
-    ) external override onlyRole(REPAYER_ROLE) {
+    ) external payable override onlyRole(REPAYER_ROLE) {
         require(amount > 0, ZeroAmount());
+        if (token == WRAPPED_NATIVE_TOKEN) {
+            uint256 thisBalance = address(this).balance - msg.value;
+            if (thisBalance > 0) WRAPPED_NATIVE_TOKEN.deposit{value: thisBalance}();
+        }
         require(token.balanceOf(address(this)) >= amount, InsufficientBalance());
         require(isRouteAllowed(destinationPool, destinationDomain, provider), RouteDenied());
 

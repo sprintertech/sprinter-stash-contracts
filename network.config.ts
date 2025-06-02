@@ -3,6 +3,7 @@ import * as AAVEPools from "@bgd-labs/aave-address-book";
 export const LiquidityPoolAaveUSDC: string = "LiquidityPoolAaveUSDC";
 export const LiquidityPoolUSDC: string = "LiquidityPoolUSDC";
 export const LiquidityPoolUSDCStablecoin: string = "LiquidityPoolUSDCStablecoin";
+export const LiquidityPoolAaveUSDCV2: string = "LiquidityPoolAaveUSDC-V2-3c37ddc0";
 
 export enum Network {
   ETHEREUM = "ETHEREUM",
@@ -30,13 +31,13 @@ interface CCTPConfig {
   MessageTransmitter: string;
 };
 
-interface RebalancerRoutesConfig {
+export interface RebalancerRoutesConfig {
   Pools: string[];
   Domains: Network[];
   Providers: Provider[];
 };
 
-interface RepayerRoutesConfig {
+export interface RepayerRoutesConfig {
   Pools: string[];
   Domains: Network[];
   Providers: Provider[];
@@ -77,6 +78,7 @@ export interface NetworkConfig {
   CCTP: CCTPConfig;
   AcrossV3SpokePool?: string;
   USDC: string;
+  WrappedNativeToken: string;
   RebalancerRoutes?: RebalancerRoutesConfig;
   RepayerRoutes?: RepayerRoutesConfig;
   IsTest: boolean;
@@ -106,13 +108,14 @@ export const networkConfig: NetworksConfig = {
     },
     AcrossV3SpokePool: "0x5c7BCd6E7De5423a257D81B442095A1a6ced35C5",
     USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    WrappedNativeToken: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
     IsTest: false,
     Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
     WithdrawProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-    MpcAddress: "0x1337000000000000000000000000000000000000",
+    MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3Ethereum.POOL_ADDRESSES_PROVIDER,
       minHealthFactor: 300,
@@ -126,13 +129,14 @@ export const networkConfig: NetworksConfig = {
       MessageTransmitter: "0x8186359af5f57fbb40c6b14a588d2a59c0c29880",
     },
     USDC: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+    WrappedNativeToken: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",
     IsTest: false,
     Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
     WithdrawProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-    MpcAddress: "0x1337000000000000000000000000000000000000",
+    MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3Avalanche.POOL_ADDRESSES_PROVIDER,
       minHealthFactor: 300,
@@ -147,13 +151,14 @@ export const networkConfig: NetworksConfig = {
     },
     AcrossV3SpokePool: "0x6f26Bf09B1C792e3228e5467807a900A503c0281",
     USDC: "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
+    WrappedNativeToken: "0x4200000000000000000000000000000000000006",
     IsTest: false,
     Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
     WithdrawProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-    MpcAddress: "0x1337000000000000000000000000000000000000",
+    MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     RebalancerRoutes: {
       Pools: [LiquidityPoolAaveUSDC, LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
       Domains: [Network.BASE, Network.ARBITRUM_ONE, Network.BASE, Network.ARBITRUM_ONE],
@@ -169,6 +174,36 @@ export const networkConfig: NetworksConfig = {
       AaveAddressesProvider: AAVEPools.AaveV3Optimism.POOL_ADDRESSES_PROVIDER,
       minHealthFactor: 300,
       defaultLTV: 0,
+      tokenLTVs: {
+        Tokens: [
+          "0x1f32b1c2345538c0c6f582fcb022739c4a194ebb", // wstETH
+          "0x4200000000000000000000000000000000000006", // WETH
+          "0x0b2c639c533813f4aa9d7837caf62653d097ff85", // USDC
+          "0x68f180fcce6836688e9084f035309e29bf0a2095", // WBTC
+          "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58", // USDT
+          "0x4200000000000000000000000000000000000042", // OP
+          "0x8c6f28f2f1a3c87f0f938b96d27520d9751ec8d9", // sUSD
+          "0x9bcef72be871e61ed4fbbc7630889bee758eb81d", // rETH
+          "0x7f5c764cbc14f9669b88837ca1490cca17c31607", // USDC.e
+          "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1", // DAI
+          "0x350a791bfc2c21f9ed5d10980dad2e2638ffa7f6", // LINK
+          "0xc40f949f8a4e094d1b49a23ea9241d289b7b2819", // LUSD
+        ],
+        LTVs: [
+          50,
+          50,
+          100,
+          50,
+          80,
+          50,
+          50,
+          50,
+          80,
+          80,
+          50,
+          50,
+        ],
+      },
     },
     USDCPool: true,
     Stage: {
@@ -179,6 +214,7 @@ export const networkConfig: NetworksConfig = {
       },
       AcrossV3SpokePool: "0x6f26Bf09B1C792e3228e5467807a900A503c0281",
       USDC: "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
+      WrappedNativeToken: "0x4200000000000000000000000000000000000006",
       IsTest: false,
       Admin: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
       WithdrawProfit: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
@@ -215,6 +251,36 @@ export const networkConfig: NetworksConfig = {
         AaveAddressesProvider: AAVEPools.AaveV3Optimism.POOL_ADDRESSES_PROVIDER,
         minHealthFactor: 300,
         defaultLTV: 0,
+        tokenLTVs: {
+          Tokens: [
+            "0x1f32b1c2345538c0c6f582fcb022739c4a194ebb", // wstETH
+            "0x4200000000000000000000000000000000000006", // WETH
+            "0x0b2c639c533813f4aa9d7837caf62653d097ff85", // USDC
+            "0x68f180fcce6836688e9084f035309e29bf0a2095", // WBTC
+            "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58", // USDT
+            "0x4200000000000000000000000000000000000042", // OP
+            "0x8c6f28f2f1a3c87f0f938b96d27520d9751ec8d9", // sUSD
+            "0x9bcef72be871e61ed4fbbc7630889bee758eb81d", // rETH
+            "0x7f5c764cbc14f9669b88837ca1490cca17c31607", // USDC.e
+            "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1", // DAI
+            "0x350a791bfc2c21f9ed5d10980dad2e2638ffa7f6", // LINK
+            "0xc40f949f8a4e094d1b49a23ea9241d289b7b2819", // LUSD
+          ],
+          LTVs: [
+            50,
+            50,
+            100,
+            50,
+            80,
+            50,
+            50,
+            50,
+            80,
+            80,
+            50,
+            50,
+          ],
+        },
       },
       USDCPool: true,
     },
@@ -227,13 +293,14 @@ export const networkConfig: NetworksConfig = {
     },
     AcrossV3SpokePool: "0xe35e9842fceaCA96570B734083f4a58e8F7C5f2A",
     USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+    WrappedNativeToken: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
     IsTest: false,
     Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
     WithdrawProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-    MpcAddress: "0x1337000000000000000000000000000000000000",
+    MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     RebalancerRoutes: {
       Pools: [LiquidityPoolAaveUSDC, LiquidityPoolAaveUSDC, LiquidityPoolUSDC, LiquidityPoolUSDC],
       Domains: [Network.BASE, Network.OP_MAINNET, Network.BASE, Network.OP_MAINNET],
@@ -249,6 +316,40 @@ export const networkConfig: NetworksConfig = {
       AaveAddressesProvider: AAVEPools.AaveV3Arbitrum.POOL_ADDRESSES_PROVIDER,
       minHealthFactor: 300,
       defaultLTV: 0,
+      tokenLTVs: {
+        Tokens: [
+          "0xaf88d065e77c8cc2239327c5edb3a432268e5831", // USDC
+          "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", // WETH
+          "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f", // WBTC
+          "0x35751007a407ca6feffe80b3cb397736d2cf4dbe", // weETH
+          "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9", // USDT0
+          "0x5979d7b546e38e414f7e9822514be443a4800529", // wstETH
+          "0xf97f4df75117a78c1a5a0dbb814af92458539fb4", // LINK
+          "0x912ce59144191c1204e64559fe8253a0e49e6548", // ARB
+          "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1", // DAI
+          "0xec70dcb4a1efa46b8f2d97c310c9c4790ba5ffa8", // rETH
+          "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8", // USDC.e
+          "0x7dff72693f6a4149b17e7c6314655f6a9f7c8b33", // GHO
+          "0x93b346b6bc2548da6a1e7d98e9a421b42541425b", // LUSD
+          "0x17fc002b466eec40dae837fc4be5c67993ddbd6f", // FRAX
+        ],
+        LTVs: [
+          100,
+          50,
+          50,
+          50,
+          80,
+          50,
+          50,
+          50,
+          80,
+          30,
+          80,
+          20,
+          50,
+          20,
+        ],
+      },
     },
     USDCPool: true,
     Stage: {
@@ -259,6 +360,7 @@ export const networkConfig: NetworksConfig = {
       },
       AcrossV3SpokePool: "0xe35e9842fceaCA96570B734083f4a58e8F7C5f2A",
       USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      WrappedNativeToken: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
       IsTest: false,
       Admin: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
       WithdrawProfit: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
@@ -295,6 +397,40 @@ export const networkConfig: NetworksConfig = {
         AaveAddressesProvider: AAVEPools.AaveV3Arbitrum.POOL_ADDRESSES_PROVIDER,
         minHealthFactor: 300,
         defaultLTV: 0,
+        tokenLTVs: {
+          Tokens: [
+            "0xaf88d065e77c8cc2239327c5edb3a432268e5831", // USDC
+            "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", // WETH
+            "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f", // WBTC
+            "0x35751007a407ca6feffe80b3cb397736d2cf4dbe", // weETH
+            "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9", // USDT0
+            "0x5979d7b546e38e414f7e9822514be443a4800529", // wstETH
+            "0xf97f4df75117a78c1a5a0dbb814af92458539fb4", // LINK
+            "0x912ce59144191c1204e64559fe8253a0e49e6548", // ARB
+            "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1", // DAI
+            "0xec70dcb4a1efa46b8f2d97c310c9c4790ba5ffa8", // rETH
+            "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8", // USDC.e
+            "0x7dff72693f6a4149b17e7c6314655f6a9f7c8b33", // GHO
+            "0x93b346b6bc2548da6a1e7d98e9a421b42541425b", // LUSD
+            "0x17fc002b466eec40dae837fc4be5c67993ddbd6f", // FRAX
+          ],
+          LTVs: [
+            100,
+            50,
+            50,
+            50,
+            80,
+            50,
+            50,
+            50,
+            80,
+            30,
+            80,
+            20,
+            50,
+            20,
+          ],
+        },
       },
       USDCPool: true,
     },
@@ -307,13 +443,14 @@ export const networkConfig: NetworksConfig = {
     },
     AcrossV3SpokePool: "0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64",
     USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    WrappedNativeToken: "0x4200000000000000000000000000000000000006",
     IsTest: false,
     Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
     WithdrawProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-    MpcAddress: "0x1337000000000000000000000000000000000000",
+    MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     Hub: {
       AssetsAdjuster: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
       DepositProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
@@ -340,6 +477,30 @@ export const networkConfig: NetworksConfig = {
       AaveAddressesProvider: AAVEPools.AaveV3Base.POOL_ADDRESSES_PROVIDER,
       minHealthFactor: 300,
       defaultLTV: 0,
+      tokenLTVs: {
+        Tokens: [
+          "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", // USDC
+          "0x4200000000000000000000000000000000000006", // WETH
+          "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf", // cbBTC
+          "0x04c0599ae5a44757c0af6f9ec3b93da8976c150a", // weETH
+          "0xc1cba3fcea344f92d9239c08c0568f6f2f0ee452", // wstETH
+          "0x6bb7a212910682dcfdbd5bcbb3e28fb4e8da10ee", // GHO
+          "0x2ae3f1ec7f1f5012cfeab0185bfc7aa3cf0dec22", // cbETH
+          "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca", // USDbC
+          "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42", // EURC
+        ],
+        LTVs: [
+          100,
+          50,
+          50,
+          50,
+          50,
+          20,
+          50,
+          80,
+          20,
+        ],
+      },
     },
     USDCPool: true,
     Stage: {
@@ -350,6 +511,7 @@ export const networkConfig: NetworksConfig = {
       },
       AcrossV3SpokePool: "0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64",
       USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      WrappedNativeToken: "0x4200000000000000000000000000000000000006",
       IsTest: false,
       Admin: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
       WithdrawProfit: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
@@ -397,6 +559,30 @@ export const networkConfig: NetworksConfig = {
         AaveAddressesProvider: AAVEPools.AaveV3Base.POOL_ADDRESSES_PROVIDER,
         minHealthFactor: 300,
         defaultLTV: 0,
+        tokenLTVs: {
+          Tokens: [
+            "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", // USDC
+            "0x4200000000000000000000000000000000000006", // WETH
+            "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf", // cbBTC
+            "0x04c0599ae5a44757c0af6f9ec3b93da8976c150a", // weETH
+            "0xc1cba3fcea344f92d9239c08c0568f6f2f0ee452", // wstETH
+            "0x6bb7a212910682dcfdbd5bcbb3e28fb4e8da10ee", // GHO
+            "0x2ae3f1ec7f1f5012cfeab0185bfc7aa3cf0dec22", // cbETH
+            "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca", // USDbC
+            "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42", // EURC
+          ],
+          LTVs: [
+            100,
+            50,
+            50,
+            50,
+            50,
+            20,
+            50,
+            80,
+            20,
+          ],
+        },
       },
       USDCPool: true,
     },
@@ -409,13 +595,14 @@ export const networkConfig: NetworksConfig = {
     },
     AcrossV3SpokePool: "0x9295ee1d8C5b022Be115A2AD3c30C72E34e7F096",
     USDC: "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+    WrappedNativeToken: "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270",
     IsTest: false,
     Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
     WithdrawProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-    MpcAddress: "0x1337000000000000000000000000000000000000",
+    MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3Polygon.POOL_ADDRESSES_PROVIDER,
       minHealthFactor: 300,
@@ -430,6 +617,7 @@ export const networkConfig: NetworksConfig = {
     },
     AcrossV3SpokePool: "0x5ef6C01E11889d86803e0B23e3cB3F9E9d97B662",
     USDC: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+    WrappedNativeToken: "0xC558DBdd856501FCd9aaF1E62eae57A9F0629a3c",
     IsTest: true,
     Admin: "0xcf2d403c75ba3481ae7b190b1cd3246b5afe9120",
     WithdrawProfit: "0xed24c1ca7c8d01c4ba862c6792ad6144f01566f2",
@@ -447,6 +635,7 @@ export const networkConfig: NetworksConfig = {
       MessageTransmitter: "0xa9fb1b3009dcb79e2fe346c16a604b8fa8ae0a79",
     },
     USDC: "0x5425890298aed601595a70ab815c96711a31bc65",
+    WrappedNativeToken: "0xd00ae08403B9bbb9124bB305C09058E32C39A48c",
     IsTest: true,
     Admin: "0xcf2d403c75ba3481ae7b190b1cd3246b5afe9120",
     WithdrawProfit: "0xed24c1ca7c8d01c4ba862c6792ad6144f01566f2",
@@ -468,6 +657,7 @@ export const networkConfig: NetworksConfig = {
     },
     AcrossV3SpokePool: "0x4e8E101924eDE233C13e2D8622DC8aED2872d505",
     USDC: "0x5fd84259d66Cd46123540766Be93DFE6D43130D7",
+    WrappedNativeToken: "0x4200000000000000000000000000000000000006",
     IsTest: true,
     Admin: "0xcf2d403c75ba3481ae7b190b1cd3246b5afe9120",
     WithdrawProfit: "0xed24c1ca7c8d01c4ba862c6792ad6144f01566f2",
@@ -501,6 +691,7 @@ export const networkConfig: NetworksConfig = {
     },
     AcrossV3SpokePool: "0x7E63A5f1a8F0B4d0934B2f2327DAED3F6bb2ee75",
     USDC: "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
+    WrappedNativeToken: "0x1dF462e2712496373A347f8ad10802a5E95f053D",
     IsTest: true,
     Admin: "0xcf2d403c75ba3481ae7b190b1cd3246b5afe9120",
     WithdrawProfit: "0xed24c1ca7c8d01c4ba862c6792ad6144f01566f2",
@@ -534,6 +725,7 @@ export const networkConfig: NetworksConfig = {
     },
     AcrossV3SpokePool: "0x82B564983aE7274c86695917BBf8C99ECb6F0F8F",
     USDC: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    WrappedNativeToken: "0x4200000000000000000000000000000000000006",
     IsTest: true,
     Admin: "0xcf2d403c75ba3481ae7b190b1cd3246b5afe9120",
     WithdrawProfit: "0xed24c1ca7c8d01c4ba862c6792ad6144f01566f2",
@@ -578,6 +770,7 @@ export const networkConfig: NetworksConfig = {
     },
     AcrossV3SpokePool: "0xd08baaE74D6d2eAb1F3320B2E1a53eeb391ce8e5",
     USDC: "0x41e94eb019c0762f9bfcf9fb1e58725bfb0e7582",
+    WrappedNativeToken: "0x0000000000000000000000000000000000000000",
     IsTest: true,
     Admin: "0xcf2d403c75ba3481ae7b190b1cd3246b5afe9120",
     WithdrawProfit: "0xed24c1ca7c8d01c4ba862c6792ad6144f01566f2",

@@ -25,7 +25,7 @@ export async function main() {
   ({network, config} = await getNetworkConfig());
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
-    id += "DeployTest";
+    id += "-DeployTest";
   }
 
   assert(config.USDCStablecoinPool, "USDC stablecoin pool is not configured");

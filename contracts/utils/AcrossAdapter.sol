@@ -11,6 +11,8 @@ abstract contract AcrossAdapter is IRoute, AdapterHelper {
 
     V3SpokePoolInterface immutable public ACROSS_SPOKE_POOL;
 
+    error SlippageTooHigh();
+
     constructor(
         address acrossSpokePool
     ) {

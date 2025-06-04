@@ -811,7 +811,6 @@ describe("Repayer", function () {
 
     const receipt = await hre.ethers.provider.getTransactionReceipt((await tx).hash);
     const events = await repayer.queryFilter(repayer.getEvent("StargateTransfer"), receipt!.blockNumber);
-    const amountOut = events[0].args[1][1];
     const messagingFee = events[0].args[0][2];
     expect(messagingFee[1]).to.eq(0);
     const nativeFee = messagingFee[0];
@@ -824,7 +823,7 @@ describe("Repayer", function () {
         "30101",
         repayer.target,
         amount,
-        amountOut
+        amount * 9980n / 10000n
       );
   });
 
@@ -876,7 +875,6 @@ describe("Repayer", function () {
 
     const receipt = await hre.ethers.provider.getTransactionReceipt((await tx).hash);
     const events = await repayer.queryFilter(repayer.getEvent("StargateTransfer"), receipt!.blockNumber);
-    const amountOut = events[0].args[1][1];
     const messagingFee = events[0].args[0][2];
     expect(messagingFee[1]).to.eq(0);
     const nativeFee = messagingFee[0];
@@ -889,8 +887,13 @@ describe("Repayer", function () {
         "30101",
         repayer.target,
         amount,
-        amountOut
+        anyValue
       );
+    const eventsOft = await stargatePoolUsdc.queryFilter(stargatePoolUsdc.getEvent("OFTSent"), receipt!.blockNumber);
+    console.log(eventsOft);
+    const amountOutMin = amount * 9980n / 10000n;
+    const amountOutSent = eventsOft[0].args[4];
+    expect(amountOutSent).to.be.gte(amountOutMin);
   });
 
   it("Should allow admin to set Stargate pools", async function () {

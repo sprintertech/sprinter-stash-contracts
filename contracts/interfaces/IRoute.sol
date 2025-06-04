@@ -21,7 +21,8 @@ interface IRoute {
     enum Provider {
         LOCAL,
         CCTP,
-        ACROSS
+        ACROSS,
+        STARGATE
     }
 
     enum PoolType {
@@ -32,4 +33,5 @@ interface IRoute {
     error ZeroAddress();
     error ProcessFailed();
     error UnsupportedDomain();
+    error InvalidLength();
 }

@@ -11,6 +11,7 @@ import {IWrappedNativeToken} from "./interfaces/IWrappedNativeToken.sol";
 
 import {CCTPAdapter} from "./utils/CCTPAdapter.sol";
 import {AcrossAdapter} from "./utils/AcrossAdapter.sol";
+import {StargateAdapter} from "./utils/StargateAdapter.sol";
 import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 
 /// @title Performs repayment to Liquidity Pools on same/different chains.
@@ -18,7 +19,7 @@ import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 /// REPAYER_ROLE is needed to finalize/init rebalancing process.
 /// @notice Upgradeable.
 /// @author Tanya Bushenyova <tanya@chainsafe.io>
-contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapter {
+contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapter, StargateAdapter {
     using SafeERC20 for IERC20;
     using BitMaps for BitMaps.BitMap;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -59,7 +60,6 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapt
     error InvalidRoute();
     error InvalidToken();
     error UnsupportedProvider();
-    error InvalidLength();
     error InvalidPoolAssets();
 
     constructor(
@@ -93,11 +93,13 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapt
         address[] memory pools,
         Domain[] memory domains,
         Provider[] memory providers,
-        bool[] memory poolSupportsAllTokens
+        bool[] memory poolSupportsAllTokens,
+        address[] memory stargatePools
     ) external initializer() {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(REPAYER_ROLE, repayer);
         _setRoute(pools, domains, providers, poolSupportsAllTokens, true);
+        _setStargatePools(stargatePools, true);
     }
 
     function setRoute(
@@ -108,6 +110,13 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapt
         bool isAllowed
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setRoute(pools, domains, providers, poolSupportsAllTokens, isAllowed);
+    }
+
+    function setStargatePools(
+        address[] memory pools,
+        bool active
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setStargatePools(pools, active);
     }
 
     /// @notice If the selected provider requires native currency payment to cover fees,
@@ -150,6 +159,9 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapt
         } else
         if (provider == Provider.ACROSS) {
             initiateTransferAcross(token, amount, destinationPool, destinationDomain, extraData);
+        } else
+            if (provider == Provider.STARGATE) {
+            initiateTransferStargate(token, amount, destinationPool, destinationDomain, extraData, _msgSender());
         } else {
             // Unreachable atm, but could become so when more providers are added to enum.
             revert UnsupportedProvider();

@@ -4,8 +4,9 @@ pragma solidity 0.8.28;
 import {ICCTPTokenMessenger, ICCTPMessageTransmitter} from "../interfaces/ICCTP.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IRoute} from ".././interfaces/IRoute.sol";
+import {AdapterHelper} from "./AdapterHelper.sol";
 
-abstract contract CCTPAdapter is IRoute {
+abstract contract CCTPAdapter is IRoute, AdapterHelper {
     using SafeERC20 for IERC20;
 
     ICCTPTokenMessenger immutable public CCTP_TOKEN_MESSENGER;
@@ -75,9 +76,5 @@ abstract contract CCTPAdapter is IRoute {
         } else {
             revert UnsupportedDomain();
         }
-    }
-
-    function _addressToBytes32(address addr) internal pure returns (bytes32) {
-        return bytes32(uint256(uint160(addr)));
     }
 }

@@ -3,14 +3,13 @@ pragma solidity 0.8.28;
 
 import {V3SpokePoolInterface} from ".././interfaces/IAcross.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {BridgeAdapter} from "./BridgeAdapter.sol";
+import {IRoute} from ".././interfaces/IRoute.sol";
+import {AdapterHelper} from "./AdapterHelper.sol";
 
-abstract contract AcrossAdapter is BridgeAdapter {
+abstract contract AcrossAdapter is IRoute, AdapterHelper {
     using SafeERC20 for IERC20;
 
     V3SpokePoolInterface immutable public ACROSS_SPOKE_POOL;
-
-    error SlippageTooHigh();
 
     constructor(
         address acrossSpokePool
@@ -51,5 +50,28 @@ abstract contract AcrossAdapter is BridgeAdapter {
             exclusivityDeadline,
             "" // message
         );
+    }
+
+    function domainChainId(Domain destinationDomain) public pure virtual returns (uint256) {
+        if (destinationDomain == Domain.ETHEREUM) {
+            return 1;
+        } else
+        if (destinationDomain == Domain.AVALANCHE) {
+            return 43114;
+        } else
+        if (destinationDomain == Domain.OP_MAINNET) {
+            return 10;
+        } else
+        if (destinationDomain == Domain.ARBITRUM_ONE) {
+            return 42161;
+        } else
+        if (destinationDomain == Domain.BASE) {
+            return 8453;
+        } else
+        if (destinationDomain == Domain.POLYGON_MAINNET) {
+            return 137;
+        } else {
+            revert UnsupportedDomain();
+        }
     }
 }

@@ -16,25 +16,29 @@ import {
 contract TestStargate is IStargate {
     using SafeERC20 for IERC20;
 
-    address public immutable token;
+    address private immutable TOKEN;
     uint256 public constant NATIVE_FEE = 1e10;
 
     error EtherTransferFailed();
 
     constructor(address _token) {
-        token = _token;
+        TOKEN = _token;
+    }
+
+    function token() external view returns (address) {
+        return TOKEN;
     }
 
     function sendToken(
         SendParam calldata _sendParam,
-        MessagingFee calldata _fee,
-        address _refundAddress
+        MessagingFee calldata,
+        address
     ) external payable returns (
         MessagingReceipt memory msgReceipt,
         OFTReceipt memory oftReceipt,
         Ticket memory ticket
     ) {
-        IERC20(token).safeTransferFrom(msg.sender, address(this), _sendParam.amountLD);
+        IERC20(TOKEN).safeTransferFrom(msg.sender, address(this), _sendParam.amountLD);
         (bool success,) = payable(msg.sender).call{value: msg.value - NATIVE_FEE}("");
         if (!success) revert EtherTransferFailed();
         emit OFTSent(
@@ -60,7 +64,7 @@ contract TestStargate is IStargate {
      */
     function quoteOFT(
         SendParam calldata _sendParam
-    ) external view returns (OFTLimit memory, OFTFeeDetail[] memory oftFeeDetails, OFTReceipt memory) {
+    ) external pure returns (OFTLimit memory, OFTFeeDetail[] memory oftFeeDetails, OFTReceipt memory) {
         OFTFeeDetail[] memory oftDetail = new OFTFeeDetail[](0);
         return (
             OFTLimit(_sendParam.amountLD, _sendParam.amountLD),
@@ -69,8 +73,7 @@ contract TestStargate is IStargate {
         );
     }
 
-    function quoteSend(SendParam calldata _sendParam, bool _payInLzToken
-    ) external view returns (MessagingFee memory) {
+    function quoteSend(SendParam calldata, bool) external pure returns (MessagingFee memory) {
         return MessagingFee(NATIVE_FEE, 0);
     }
 }

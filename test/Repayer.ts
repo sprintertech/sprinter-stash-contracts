@@ -894,7 +894,7 @@ describe("Repayer", function () {
   });
 
   it("Should allow admin to set Stargate pools", async function () {
-    const {deployer, repayer, admin, repayUser, uni} = await loadFixture(deployAll);
+    const {deployer, repayer, admin, uni} = await loadFixture(deployAll);
     
     const stargatePoolUsdcAddress = "0x27a16dc786820B16E5c9028b75B99F6f604b5d26";
     const USDC_BASE_ADDRESS = networkConfig.BASE.USDC;

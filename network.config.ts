@@ -24,6 +24,7 @@ export enum Provider {
   LOCAL = "LOCAL",
   CCTP = "CCTP",
   ACROSS = "ACROSS",
+  EVERCLEAR = "EVERCLEAR",
 };
 
 interface CCTPConfig {
@@ -77,6 +78,7 @@ export interface NetworkConfig {
   chainId: number;
   CCTP: CCTPConfig;
   AcrossV3SpokePool?: string;
+  EverclearFeeAdapter?: string;
   USDC: string;
   WrappedNativeToken: string;
   RebalancerRoutes?: RebalancerRoutesConfig;
@@ -442,6 +444,7 @@ export const networkConfig: NetworksConfig = {
       MessageTransmitter: "0xAD09780d193884d503182aD4588450C416D6F9D4",
     },
     AcrossV3SpokePool: "0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64",
+    EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
     USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
     WrappedNativeToken: "0x4200000000000000000000000000000000000006",
     IsTest: false,
@@ -510,6 +513,7 @@ export const networkConfig: NetworksConfig = {
         MessageTransmitter: "0xAD09780d193884d503182aD4588450C416D6F9D4",
       },
       AcrossV3SpokePool: "0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64",
+      EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
       USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
       WrappedNativeToken: "0x4200000000000000000000000000000000000006",
       IsTest: false,

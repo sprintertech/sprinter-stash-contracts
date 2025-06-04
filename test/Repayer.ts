@@ -63,6 +63,8 @@ describe("Repayer", function () {
     const WETH_ADDRESS = forkNetworkConfig.WrappedNativeToken;
     const weth = await hre.ethers.getContractAt("IWrappedNativeToken", WETH_ADDRESS);
 
+    const everclearFeeAdapter = await hre.ethers.getContractAt("IFeeAdapter", forkNetworkConfig.EverclearFeeAdapter!);
+
     const repayerImpl = (
       await deployX("Repayer", deployer, "Repayer", {},
         Domain.BASE,
@@ -70,6 +72,7 @@ describe("Repayer", function () {
         cctpTokenMessenger.target,
         cctpMessageTransmitter.target,
         acrossV3SpokePool.target,
+        everclearFeeAdapter.target,
         weth.target,
       )
     ) as Repayer;
@@ -95,6 +98,7 @@ describe("Repayer", function () {
       deployer, admin, repayUser, user, usdc,
       USDC_DEC, uni, UNI_DEC, uniOwner, liquidityPool, liquidityPool2, repayer, repayerProxy, repayerAdmin,
       cctpTokenMessenger, cctpMessageTransmitter, REPAYER_ROLE, DEFAULT_ADMIN_ROLE, acrossV3SpokePool, weth,
+      everclearFeeAdapter,
     };
   };
 
@@ -419,7 +423,7 @@ describe("Repayer", function () {
 
   it("Should allow repayer to initiate Across repay with SpokePool on fork", async function () {
     const {deployer, repayer, USDC_DEC, admin, repayUser, repayerAdmin, repayerProxy,
-      liquidityPool, cctpTokenMessenger, cctpMessageTransmitter, weth,
+      liquidityPool, cctpTokenMessenger, cctpMessageTransmitter, weth, everclearFeeAdapter,
     } = await loadFixture(deployAll);
     
     const acrossV3SpokePoolFork = await hre.ethers.getContractAt(
@@ -444,6 +448,7 @@ describe("Repayer", function () {
         cctpTokenMessenger.target,
         cctpMessageTransmitter.target,
         acrossV3SpokePoolFork.target,
+        everclearFeeAdapter.target,
         weth.target,
       )
     ) as Repayer;
@@ -500,7 +505,6 @@ describe("Repayer", function () {
         "0x"
       );
   });
-
 
   it("Should revert Across repay if call to Across reverts", async function () {
     const {repayer, UNI_DEC, admin, repayUser,
@@ -559,6 +563,68 @@ describe("Repayer", function () {
       Provider.ACROSS,
       extraData
     )).to.be.revertedWithCustomError(repayer, "SlippageTooHigh()");
+  });
+
+  it.only("Should allow repayer to initiate Everclear repay on fork", async function () {
+    const {deployer, repayer, USDC_DEC, admin, repayUser,
+      liquidityPool, everclearFeeAdapter,
+    } = await loadFixture(deployAll);
+    
+    const USDC_BASE_ADDRESS = networkConfig.BASE.USDC;
+
+    assertAddress(process.env.USDC_OWNER_ADDRESS, "Env variables not configured (USDC_OWNER_ADDRESS missing)");
+    const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;
+    const usdc = await hre.ethers.getContractAt("ERC20", networkConfig.BASE.USDC);
+    const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ADDRESS);
+
+    await usdc.connect(usdcOwner).transfer(repayer.target, 10n * USDC_DEC);
+
+    await repayer.connect(admin).setRoute(
+      [liquidityPool.target],
+      [Domain.ETHEREUM],
+      [Provider.EVERCLEAR],
+      [true],
+      ALLOWED
+    );
+    const apiTx = everclearFeeAdapter.interface.decodeFunctionData("newIntent", "0x3bd1c75400000000000000000000000000000000000000000000000000000000000001200000000000000000000000007c255279c098fdf6c3116d2becd9978002c09f4b000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda02913000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb480000000000000000000000000000000000000000000000000000000005f5e100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000160000000000000000000000000000000000000000000000000000000000000018000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000068403068000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000412fabb87770d7e604dfd9e97cdfeda560d83063c199ab9440962cf7320611baa80d844edd16b5f4e6de97f69bd573abdc665d67509e15daf1bd39b7930d50948c1c00000000000000000000000000000000000000000000000000000000000000");
+    console.log(apiTx);
+    const amount = 4n * USDC_DEC;
+    const currentTime = await now();
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["bytes32", "uint24", "uint48", "tuple(uint256, uint256, bytes)"],
+      [addressToBytes32(""), 0n, 0n, apiTx[8]]
+    );
+    const tx = repayer.connect(repayUser).initiateRepay(
+      usdc.target,
+      amount,
+      liquidityPool.target,
+      Domain.ETHEREUM,
+      Provider.ACROSS,
+      extraData
+    );
+    await expect(tx)
+      .to.emit(repayer, "InitiateRepay")
+      .withArgs(usdc.target, amount, liquidityPool.target, Domain.ETHEREUM, Provider.ACROSS);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(repayer.target, everclearFeeAdapter.target, amount);
+    await expect(tx)
+      .to.emit(everclearFeeAdapter, "FundsDeposited")
+      .withArgs(
+        addressToBytes32(usdc.target),
+        addressToBytes32(USDC_BASE_ADDRESS),
+        amount,
+        amount * 998n / 1000n,
+        await repayer.domainChainId(Domain.ETHEREUM),
+        anyValue,
+        currentTime - 1n,
+        currentTime + 90n,
+        0n,
+        addressToBytes32(repayer.target),
+        addressToBytes32(liquidityPool.target),
+        addressToBytes32(ZERO_ADDRESS),
+        "0x"
+      );
   });
 
   it("Should allow repayer to initiate repay of a different token", async function () {

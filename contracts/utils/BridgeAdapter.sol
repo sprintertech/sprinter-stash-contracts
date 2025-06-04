@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import {IRoute} from ".././interfaces/IRoute.sol";
 
 abstract contract BridgeAdapter is IRoute {
-    function domainChainId(Domain destinationDomain) public pure virtual returns (uint256) {
+    function domainChainId(Domain destinationDomain) public pure virtual returns (uint32) {
         if (destinationDomain == Domain.ETHEREUM) {
             return 1;
         } else
@@ -25,5 +25,9 @@ abstract contract BridgeAdapter is IRoute {
         } else {
             revert UnsupportedDomain();
         }
+    }
+
+    function _addressToBytes32(address addr) internal pure returns (bytes32) {
+        return bytes32(uint256(uint160(addr)));
     }
 }

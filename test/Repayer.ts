@@ -890,7 +890,6 @@ describe("Repayer", function () {
         anyValue
       );
     const eventsOft = await stargatePoolUsdc.queryFilter(stargatePoolUsdc.getEvent("OFTSent"), receipt!.blockNumber);
-    console.log(eventsOft);
     const amountOutMin = amount * 9980n / 10000n;
     const amountOutSent = eventsOft[0].args[4];
     expect(amountOutSent).to.be.gte(amountOutMin);

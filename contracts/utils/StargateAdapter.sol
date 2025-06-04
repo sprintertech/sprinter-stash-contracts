@@ -7,7 +7,6 @@ import {IRoute} from ".././interfaces/IRoute.sol";
 import {AdapterHelper} from "./AdapterHelper.sol";
 import {ERC7201Helper} from "./ERC7201Helper.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "hardhat/console.sol";
 
 abstract contract StargateAdapter is IRoute, AdapterHelper {
     using SafeERC20 for IERC20;

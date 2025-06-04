@@ -6,7 +6,10 @@ import {getVerifier, deployProxyX, getHardhatNetworkConfig, getNetworkConfig} fr
 import {resolveXAddress} from "../test/helpers";
 import {isSet, assert, ProviderSolidity, DomainSolidity, ZERO_ADDRESS} from "./common";
 import {Repayer} from "../typechain-types";
-import {Network, NetworkConfig, Provider} from "../network.config";
+import {
+  Network, NetworkConfig, Provider, LiquidityPoolUSDC, LiquidityPoolAaveUSDC,
+  LiquidityPoolAaveUSDCV2,
+} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -46,7 +49,12 @@ export async function main() {
   }
 
   if (config.AavePool) {
-    const aavePool = await resolveXAddress("LiquidityPoolAaveUSDC");
+    let aavePool: string;
+    try {
+      aavePool = await resolveXAddress(LiquidityPoolAaveUSDCV2);
+    } catch {
+      aavePool = await resolveXAddress(LiquidityPoolAaveUSDC);
+    }
     console.log(`LiquidityPoolAave: ${aavePool}`);
     config.RepayerRoutes.Pools.push(aavePool);
     config.RepayerRoutes.Domains.push(network);
@@ -55,7 +63,7 @@ export async function main() {
   } 
 
   if (config.USDCPool) {
-    const usdcPool = await resolveXAddress("LiquidityPoolUSDC");
+    const usdcPool = await resolveXAddress(LiquidityPoolUSDC);
     console.log(`LiquidityPool: ${usdcPool}`);
     config.RepayerRoutes.Pools.push(usdcPool);
     config.RepayerRoutes.Domains.push(network);

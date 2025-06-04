@@ -40,7 +40,7 @@ contract SprinterLiquidityMining is LiquidityMining {
         IERC4626 liquidityHub = IERC4626(address(LIQUIDITY_HUB));
         IERC20 asset = IERC20(liquidityHub.asset());
         asset.safeTransferFrom(from, address(this), amount);
-        asset.approve(address(liquidityHub), amount);
+        asset.forceApprove(address(liquidityHub), amount);
         uint256 shares = liquidityHub.deposit(amount, address(this));
         _stake(from, to, shares, tierId);
     }

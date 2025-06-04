@@ -6,6 +6,9 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {IRoute} from ".././interfaces/IRoute.sol";
 import {AdapterHelper} from "./AdapterHelper.sol";
 
+/// @notice The child contract has to be deployed to the same address across chains, otherwise
+/// processTransferCCTP() won't work, as the same address has to call receiveMessage().
+/// Only supports CCTP V1 integration.
 abstract contract CCTPAdapter is IRoute, AdapterHelper {
     using SafeERC20 for IERC20;
 

@@ -73,7 +73,8 @@ interface IEverclear {
    * @param intentId The ID of the intent
    * @param solver The address of the intent solver in bytes32 format
    * @param initiator The address of the intent initiator
-   * @param fee The total fee of the expressed in dbps, represents the solver fee plus the sum of protocol fees for the token
+   * @param fee The total fee of the expressed in dbps, represents the solver
+   *        fee plus the sum of protocol fees for the token
    * @param executionTimestamp The execution timestamp of the intent
    */
   struct FillMessage {
@@ -90,7 +91,8 @@ interface IEverclear {
    * @param amount The amount of the asset
    * @param asset The address of the asset
    * @param recipient The address of the recipient
-   * @param updateVirtualBalance If set to true, the settlement will not be transferred to the recipient in spoke domain and the virtual balance will be increased
+   * @param updateVirtualBalance If set to true, the settlement will not be transferred
+   *        to the recipient in spoke domain and the virtual balance will be increased
    */
   struct Settlement {
     bytes32 intentId;

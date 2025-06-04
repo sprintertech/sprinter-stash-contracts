@@ -4,6 +4,8 @@ pragma solidity 0.8.28;
 import {IRoute} from ".././interfaces/IRoute.sol";
 
 abstract contract BridgeAdapter is IRoute {
+    error SlippageTooHigh();
+
     function domainChainId(Domain destinationDomain) public pure virtual returns (uint32) {
         if (destinationDomain == Domain.ETHEREUM) {
             return 1;

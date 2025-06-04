@@ -10,7 +10,7 @@ import {
 } from "./helpers";
 import {
   ProviderSolidity as Provider, DomainSolidity as Domain, ZERO_ADDRESS,
-  DEFAULT_ADMIN_ROLE, assertAddress, ETH,
+  DEFAULT_ADMIN_ROLE, assertAddress, ETH, ZERO_BYTES32,
 } from "../scripts/common";
 import {
   TestUSDC, TransparentUpgradeableProxy, ProxyAdmin,
@@ -98,7 +98,7 @@ describe("Repayer", function () {
       deployer, admin, repayUser, user, usdc,
       USDC_DEC, uni, UNI_DEC, uniOwner, liquidityPool, liquidityPool2, repayer, repayerProxy, repayerAdmin,
       cctpTokenMessenger, cctpMessageTransmitter, REPAYER_ROLE, DEFAULT_ADMIN_ROLE, acrossV3SpokePool, weth,
-      everclearFeeAdapter,
+      everclearFeeAdapter, forkNetworkConfig,
     };
   };
 
@@ -565,16 +565,14 @@ describe("Repayer", function () {
     )).to.be.revertedWithCustomError(repayer, "SlippageTooHigh()");
   });
 
-  it.only("Should allow repayer to initiate Everclear repay on fork", async function () {
-    const {deployer, repayer, USDC_DEC, admin, repayUser,
-      liquidityPool, everclearFeeAdapter,
+  it("Should allow repayer to initiate Everclear repay on fork", async function () {
+    const {repayer, USDC_DEC, admin, repayUser,
+      liquidityPool, everclearFeeAdapter, forkNetworkConfig,
     } = await loadFixture(deployAll);
     
-    const USDC_BASE_ADDRESS = networkConfig.BASE.USDC;
-
     assertAddress(process.env.USDC_OWNER_ADDRESS, "Env variables not configured (USDC_OWNER_ADDRESS missing)");
     const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;
-    const usdc = await hre.ethers.getContractAt("ERC20", networkConfig.BASE.USDC);
+    const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.USDC);
     const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ADDRESS);
 
     await usdc.connect(usdcOwner).transfer(repayer.target, 10n * USDC_DEC);
@@ -586,45 +584,145 @@ describe("Repayer", function () {
       [true],
       ALLOWED
     );
-    const apiTx = everclearFeeAdapter.interface.decodeFunctionData("newIntent", "0x3bd1c75400000000000000000000000000000000000000000000000000000000000001200000000000000000000000007c255279c098fdf6c3116d2becd9978002c09f4b000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda02913000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb480000000000000000000000000000000000000000000000000000000005f5e100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000160000000000000000000000000000000000000000000000000000000000000018000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000068403068000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000412fabb87770d7e604dfd9e97cdfeda560d83063c199ab9440962cf7320611baa80d844edd16b5f4e6de97f69bd573abdc665d67509e15daf1bd39b7930d50948c1c00000000000000000000000000000000000000000000000000000000000000");
-    console.log(apiTx);
     const amount = 4n * USDC_DEC;
-    const currentTime = await now();
+
+    const apiData = (await (await fetch("https://api.everclear.org/intents", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        origin: forkNetworkConfig.chainId.toString(),
+        destinations: [networkConfig.ETHEREUM.chainId.toString()],
+        to: liquidityPool.target,
+        inputAsset: usdc.target,
+        amount: amount.toString(),
+        callData: "",
+        maxFee: "0"
+      })
+    })).json()).data;
+    const newIntentSelector = "0x3bd1c754";
+    // API returns selector for a variety of newIntent that takes 'address' as resipient.
+    // We are using a V3 version that expects a 'bytes32' instead. Encoding other data remains the same.
+    const apiTx = everclearFeeAdapter.interface.decodeFunctionData("newIntent", newIntentSelector + apiData.substr(10));
+
     const extraData = AbiCoder.defaultAbiCoder().encode(
-      ["bytes32", "uint24", "uint48", "tuple(uint256, uint256, bytes)"],
-      [addressToBytes32(""), 0n, 0n, apiTx[8]]
+      ["bytes32", "uint256", "uint24", "uint48", "tuple(uint256, uint256, bytes)"],
+      [apiTx[3], apiTx[4], apiTx[5], apiTx[6], apiTx[8]]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
       usdc.target,
       amount,
       liquidityPool.target,
       Domain.ETHEREUM,
-      Provider.ACROSS,
+      Provider.EVERCLEAR,
       extraData
     );
+
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")
-      .withArgs(usdc.target, amount, liquidityPool.target, Domain.ETHEREUM, Provider.ACROSS);
+      .withArgs(usdc.target, amount, liquidityPool.target, Domain.ETHEREUM, Provider.EVERCLEAR);
     await expect(tx)
       .to.emit(usdc, "Transfer")
       .withArgs(repayer.target, everclearFeeAdapter.target, amount);
     await expect(tx)
-      .to.emit(everclearFeeAdapter, "FundsDeposited")
-      .withArgs(
-        addressToBytes32(usdc.target),
-        addressToBytes32(USDC_BASE_ADDRESS),
-        amount,
-        amount * 998n / 1000n,
-        await repayer.domainChainId(Domain.ETHEREUM),
-        anyValue,
-        currentTime - 1n,
-        currentTime + 90n,
-        0n,
-        addressToBytes32(repayer.target),
-        addressToBytes32(liquidityPool.target),
-        addressToBytes32(ZERO_ADDRESS),
-        "0x"
-      );
+      .to.emit(everclearFeeAdapter, "IntentWithFeesAdded");
+    expect(await usdc.balanceOf(repayer.target)).to.equal(6n * USDC_DEC);
+  });
+
+  it("Should allow repayer to initiate Everclear repay with other token", async function () {
+    const {deployer, repayer, weth, admin, repayUser,
+      liquidityPool, everclearFeeAdapter, forkNetworkConfig,
+    } = await loadFixture(deployAll);
+
+    await deployer.sendTransaction({to: repayer.target, value: 10n * ETH});
+
+    await repayer.connect(admin).setRoute(
+      [liquidityPool.target],
+      [Domain.ETHEREUM],
+      [Provider.EVERCLEAR],
+      [true],
+      ALLOWED
+    );
+    const amount = 4n * ETH;
+
+    const apiData = (await (await fetch("https://api.everclear.org/intents", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        origin: forkNetworkConfig.chainId.toString(),
+        destinations: [networkConfig.ETHEREUM.chainId.toString()],
+        to: liquidityPool.target,
+        inputAsset: weth.target,
+        amount: amount.toString(),
+        callData: "",
+        maxFee: "200"
+      })
+    })).json()).data;
+    const newIntentSelector = "0x3bd1c754";
+    // API returns selector for a variety of newIntent that takes 'address' as resipient.
+    // We are using a V3 version that expects a 'bytes32' instead. Encoding other data remains the same.
+    const apiTx = everclearFeeAdapter.interface.decodeFunctionData("newIntent", newIntentSelector + apiData.substr(10));
+
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["bytes32", "uint256", "uint24", "uint48", "tuple(uint256, uint256, bytes)"],
+      [apiTx[3], apiTx[4], apiTx[5], apiTx[6], apiTx[8]]
+    );
+    const tx = repayer.connect(repayUser).initiateRepay(
+      weth.target,
+      amount,
+      liquidityPool.target,
+      Domain.ETHEREUM,
+      Provider.EVERCLEAR,
+      extraData
+    );
+
+    await expect(tx)
+      .to.emit(repayer, "InitiateRepay")
+      .withArgs(weth.target, amount, liquidityPool.target, Domain.ETHEREUM, Provider.EVERCLEAR);
+    await expect(tx)
+      .to.emit(weth, "Transfer")
+      .withArgs(repayer.target, everclearFeeAdapter.target, amount);
+    await expect(tx)
+      .to.emit(everclearFeeAdapter, "IntentWithFeesAdded");
+    expect(await weth.balanceOf(repayer.target)).to.equal(6n * ETH);
+  });
+
+  it("Should revert Everclear repay if call to Everclear reverts", async function () {
+    const {repayer, USDC_DEC, admin, repayUser,
+      liquidityPool, forkNetworkConfig,
+    } = await loadFixture(deployAll);
+
+    assertAddress(process.env.USDC_OWNER_ADDRESS, "Env variables not configured (USDC_OWNER_ADDRESS missing)");
+    const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;
+    const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.USDC);
+    const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ADDRESS);
+
+    await usdc.connect(usdcOwner).transfer(repayer.target, 10n * USDC_DEC);
+
+    await repayer.connect(admin).setRoute(
+      [liquidityPool.target],
+      [Domain.ETHEREUM],
+      [Provider.EVERCLEAR],
+      [true],
+      ALLOWED
+    );
+    const amount = 4n * USDC_DEC;
+
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["bytes32", "uint256", "uint24", "uint48", "tuple(uint256, uint256, bytes)"],
+      [ZERO_BYTES32, amount, 0, 0, [0, 0, "0x"]]
+    );
+    await expect(repayer.connect(repayUser).initiateRepay(
+      usdc.target,
+      amount,
+      liquidityPool.target,
+      Domain.ETHEREUM,
+      Provider.EVERCLEAR,
+      extraData
+    )).to.be.reverted;
   });
 
   it("Should allow repayer to initiate repay of a different token", async function () {

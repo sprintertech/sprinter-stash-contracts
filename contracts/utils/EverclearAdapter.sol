@@ -28,10 +28,12 @@ abstract contract EverclearAdapter is BridgeAdapter {
         token.forceApprove(address(EVERCLEAR_FEE_ADAPTER), amount);
         (
             bytes32 outputAsset,
+            uint256 outputAmount,
             uint24 maxFee,
             uint48 ttl,
             IFeeAdapter.FeeParams memory feeParams
-        ) = abi.decode(extraData, (bytes32, uint24, uint48, IFeeAdapter.FeeParams));
+        ) = abi.decode(extraData, (bytes32, uint256, uint24, uint48, IFeeAdapter.FeeParams));
+        require(outputAmount >= (amount * 9980 / 10000), SlippageTooHigh());
         uint32[] memory destinations = new uint32[](1);
         destinations[0] = domainChainId(destinationDomain);
         EVERCLEAR_FEE_ADAPTER.newIntent{value: msg.value}(
@@ -39,7 +41,7 @@ abstract contract EverclearAdapter is BridgeAdapter {
             _addressToBytes32(destinationPool),
             address(token),
             outputAsset,
-            amount,
+            outputAmount,
             maxFee,
             ttl,
             "",

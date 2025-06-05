@@ -13,7 +13,6 @@ import {
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IRoute} from ".././interfaces/IRoute.sol";
 import {AdapterHelper} from "./AdapterHelper.sol";
-import {ERC7201Helper} from "./ERC7201Helper.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 abstract contract StargateAdapter is IRoute, AdapterHelper {

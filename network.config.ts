@@ -109,6 +109,7 @@ export const networkConfig: NetworksConfig = {
       MessageTransmitter: "0x0a992d191deec32afe36203ad87d7d289a738f81",
     },
     AcrossV3SpokePool: "0x5c7BCd6E7De5423a257D81B442095A1a6ced35C5",
+    EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
     USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
     WrappedNativeToken: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
     IsTest: false,
@@ -130,6 +131,7 @@ export const networkConfig: NetworksConfig = {
       TokenMessenger: "0x6b25532e1060ce10cc3b0a99e5683b91bfde6982",
       MessageTransmitter: "0x8186359af5f57fbb40c6b14a588d2a59c0c29880",
     },
+    EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
     USDC: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
     WrappedNativeToken: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",
     IsTest: false,
@@ -152,6 +154,7 @@ export const networkConfig: NetworksConfig = {
       MessageTransmitter: "0x4d41f22c5a0e5c74090899e5a8fb597a8842b3e8",
     },
     AcrossV3SpokePool: "0x6f26Bf09B1C792e3228e5467807a900A503c0281",
+    EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
     USDC: "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
     WrappedNativeToken: "0x4200000000000000000000000000000000000006",
     IsTest: false,
@@ -215,6 +218,7 @@ export const networkConfig: NetworksConfig = {
         MessageTransmitter: "0x4d41f22c5a0e5c74090899e5a8fb597a8842b3e8",
       },
       AcrossV3SpokePool: "0x6f26Bf09B1C792e3228e5467807a900A503c0281",
+      EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
       USDC: "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
       WrappedNativeToken: "0x4200000000000000000000000000000000000006",
       IsTest: false,
@@ -246,7 +250,7 @@ export const networkConfig: NetworksConfig = {
           Network.BASE,
           Network.ARBITRUM_ONE
         ],
-        Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.ACROSS, Provider.ACROSS],
+        Providers: [Provider.EVERCLEAR, Provider.EVERCLEAR, Provider.CCTP, Provider.CCTP, Provider.ACROSS, Provider.ACROSS],
         SupportsAllTokens: [true, true, false, false, true, true],
       },
       AavePool: {
@@ -294,6 +298,7 @@ export const networkConfig: NetworksConfig = {
       MessageTransmitter: "0xC30362313FBBA5cf9163F0bb16a0e01f01A896ca",
     },
     AcrossV3SpokePool: "0xe35e9842fceaCA96570B734083f4a58e8F7C5f2A",
+    EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
     USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
     WrappedNativeToken: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
     IsTest: false,
@@ -361,6 +366,7 @@ export const networkConfig: NetworksConfig = {
         MessageTransmitter: "0xC30362313FBBA5cf9163F0bb16a0e01f01A896ca",
       },
       AcrossV3SpokePool: "0xe35e9842fceaCA96570B734083f4a58e8F7C5f2A",
+      EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
       USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
       WrappedNativeToken: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
       IsTest: false,
@@ -392,7 +398,7 @@ export const networkConfig: NetworksConfig = {
           Network.BASE,
           Network.OP_MAINNET
         ],
-        Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.ACROSS, Provider.ACROSS],
+        Providers: [Provider.EVERCLEAR, Provider.EVERCLEAR, Provider.CCTP, Provider.CCTP, Provider.ACROSS, Provider.ACROSS],
         SupportsAllTokens: [true, true, false, false, true, true],
       },
       AavePool: {
@@ -556,7 +562,7 @@ export const networkConfig: NetworksConfig = {
           Network.OP_MAINNET,
           Network.ARBITRUM_ONE
         ],
-        Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.ACROSS, Provider.ACROSS],
+        Providers: [Provider.EVERCLEAR, Provider.EVERCLEAR, Provider.CCTP, Provider.CCTP, Provider.ACROSS, Provider.ACROSS],
         SupportsAllTokens: [true, true, false, false, true, true],
       },
       AavePool: {
@@ -598,6 +604,7 @@ export const networkConfig: NetworksConfig = {
       MessageTransmitter: "0xF3be9355363857F3e001be68856A2f96b4C39Ba9",
     },
     AcrossV3SpokePool: "0x9295ee1d8C5b022Be115A2AD3c30C72E34e7F096",
+    EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
     USDC: "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
     WrappedNativeToken: "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270",
     IsTest: false,

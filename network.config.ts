@@ -250,7 +250,14 @@ export const networkConfig: NetworksConfig = {
           Network.BASE,
           Network.ARBITRUM_ONE
         ],
-        Providers: [Provider.EVERCLEAR, Provider.EVERCLEAR, Provider.CCTP, Provider.CCTP, Provider.ACROSS, Provider.ACROSS],
+        Providers: [
+          Provider.EVERCLEAR,
+          Provider.EVERCLEAR,
+          Provider.CCTP,
+          Provider.CCTP,
+          Provider.ACROSS,
+          Provider.ACROSS
+        ],
         SupportsAllTokens: [true, true, false, false, true, true],
       },
       AavePool: {
@@ -398,7 +405,14 @@ export const networkConfig: NetworksConfig = {
           Network.BASE,
           Network.OP_MAINNET
         ],
-        Providers: [Provider.EVERCLEAR, Provider.EVERCLEAR, Provider.CCTP, Provider.CCTP, Provider.ACROSS, Provider.ACROSS],
+        Providers: [
+          Provider.EVERCLEAR,
+          Provider.EVERCLEAR,
+          Provider.CCTP,
+          Provider.CCTP,
+          Provider.ACROSS,
+          Provider.ACROSS
+        ],
         SupportsAllTokens: [true, true, false, false, true, true],
       },
       AavePool: {
@@ -562,7 +576,14 @@ export const networkConfig: NetworksConfig = {
           Network.OP_MAINNET,
           Network.ARBITRUM_ONE
         ],
-        Providers: [Provider.EVERCLEAR, Provider.EVERCLEAR, Provider.CCTP, Provider.CCTP, Provider.ACROSS, Provider.ACROSS],
+        Providers: [
+          Provider.EVERCLEAR,
+          Provider.EVERCLEAR,
+          Provider.CCTP,
+          Provider.CCTP,
+          Provider.ACROSS,
+          Provider.ACROSS
+        ],
         SupportsAllTokens: [true, true, false, false, true, true],
       },
       AavePool: {

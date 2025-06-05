@@ -113,3 +113,7 @@ interface IStargate {
         uint256 amountReceivedLD // Amount of tokens received in local decimals.
     );
 }
+
+interface IStargateTreasurer {
+    function stargates(address stargate) external pure returns (bool);
+}

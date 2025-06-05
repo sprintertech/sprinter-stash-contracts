@@ -68,10 +68,12 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapt
         address cctpTokenMessenger,
         address cctpMessageTransmitter,
         address acrossSpokePool,
-        address wrappedNativeToken
+        address wrappedNativeToken,
+        address stargateTreasurer
     )
         CCTPAdapter(cctpTokenMessenger, cctpMessageTransmitter)
         AcrossAdapter(acrossSpokePool)
+        StargateAdapter(stargateTreasurer)
     {
         ERC7201Helper.validateStorageLocation(
             STORAGE_LOCATION,
@@ -93,13 +95,11 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapt
         address[] memory pools,
         Domain[] memory domains,
         Provider[] memory providers,
-        bool[] memory poolSupportsAllTokens,
-        address[] memory stargatePools
+        bool[] memory poolSupportsAllTokens
     ) external initializer() {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(REPAYER_ROLE, repayer);
         _setRoute(pools, domains, providers, poolSupportsAllTokens, true);
-        _setStargatePools(stargatePools, true);
     }
 
     function setRoute(
@@ -110,13 +110,6 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapt
         bool isAllowed
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setRoute(pools, domains, providers, poolSupportsAllTokens, isAllowed);
-    }
-
-    function setStargatePools(
-        address[] memory pools,
-        bool active
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _setStargatePools(pools, active);
     }
 
     /// @notice If the selected provider requires native currency payment to cover fees,

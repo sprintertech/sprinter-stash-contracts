@@ -10,7 +10,8 @@ import {
     OFTReceipt,
     Ticket,
     OFTLimit,
-    OFTFeeDetail
+    OFTFeeDetail,
+    IStargateTreasurer
 } from "../interfaces/IStargate.sol";
 
 contract TestStargate is IStargate {
@@ -75,5 +76,17 @@ contract TestStargate is IStargate {
 
     function quoteSend(SendParam calldata, bool) external pure returns (MessagingFee memory) {
         return MessagingFee(NATIVE_FEE, 0);
+    }
+}
+
+contract MockStargateTreasurerTrue is IStargateTreasurer {
+    function stargates(address) external pure returns (bool) {
+        return true;
+    }
+}
+
+contract MockStargateTreasurerFalse is IStargateTreasurer {
+    function stargates(address) external pure returns (bool) {
+        return false;
     }
 }

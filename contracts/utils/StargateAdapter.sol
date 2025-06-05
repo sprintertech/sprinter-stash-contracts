@@ -1,7 +1,15 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity 0.8.28;
 
-import {IStargate, SendParam, OFTReceipt, MessagingFee, MessagingReceipt, Ticket} from ".././interfaces/IStargate.sol";
+import {
+    IStargate,
+    SendParam,
+    OFTReceipt,
+    MessagingFee,
+    MessagingReceipt,
+    Ticket,
+    IStargateTreasurer
+} from ".././interfaces/IStargate.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IRoute} from ".././interfaces/IRoute.sol";
 import {AdapterHelper} from "./AdapterHelper.sol";
@@ -12,53 +20,22 @@ abstract contract StargateAdapter is IRoute, AdapterHelper {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    error EtherTransferFailed();
-    error PoolNotConfigured();
+    IStargateTreasurer immutable public STARGATE_TREASURER;
 
-    event SetStargatePool(address token, address pool, bool active);
+    error EtherTransferFailed();
+    error PoolInvalid();
+
     event StargateTransfer(
         MessagingReceipt msgReceipt,
         OFTReceipt oftReceipt,
         Ticket ticket
     );
 
-    /// @custom:storage-location erc7201:sprinter.storage.StargateAdapter
-    struct StargateAdapterStorage {
-        mapping(address token => address stargatePool) stargatePools;
-        EnumerableSet.AddressSet supportedTokens;
-    }
-
-    bytes32 private constant STORAGE_LOCATION = 0x69ed53fd7002b77325dfb2dcb94eb7915862ca85fe4da99402d49671ed0bcb00;
-
     constructor(
+        address stargateTreasurer
     ) {
-        ERC7201Helper.validateStorageLocation(
-            STORAGE_LOCATION,
-            "sprinter.storage.StargateAdapter"
-        );
-    }
-
-    function _setStargatePools(
-        address[] memory pools,
-        bool active
-    ) internal {
-        StargateAdapterStorage storage $ = _getStargateStorage();
-        for (uint256 i = 0; i < pools.length; ++i) {
-            address pool = pools[i];
-            require(pool != address(0), ZeroAddress());
-            address token = IStargate(pool).token();
-            require(token != address(0), ZeroAddress());
-
-            if (active) {
-                $.stargatePools[token] = pool;
-                $.supportedTokens.add(token);
-            } else {
-                delete $.stargatePools[token];
-                $.supportedTokens.remove(token);
-            }
-
-            emit SetStargatePool(token, pool, active);
-        }
+        // No check for address(0) to allow deployment on chains where Stargate Treasurer is not available
+        STARGATE_TREASURER = IStargateTreasurer(stargateTreasurer);
     }
 
     function stargateEndpointId(Domain destinationDomain) public pure virtual returns (uint32) {
@@ -89,11 +66,13 @@ abstract contract StargateAdapter is IRoute, AdapterHelper {
         uint256 amount,
         address destinationPool,
         Domain destinationDomain,
-        bytes calldata,
+        bytes calldata extraData,
         address caller
     ) internal {
-        IStargate stargate = IStargate(_getStargateStorage().stargatePools[address(token)]);
-        require(address(stargate) != address(0), PoolNotConfigured());
+        (address stargateAddress) = abi.decode(extraData, (address));
+        require(STARGATE_TREASURER.stargates(stargateAddress), PoolInvalid());
+        IStargate stargate = IStargate(stargateAddress);
+        require(address(token) == stargate.token(), PoolInvalid());
 
         token.forceApprove(address(stargate), amount);
 
@@ -126,29 +105,5 @@ abstract contract StargateAdapter is IRoute, AdapterHelper {
         uint256 refundAmount = msg.value - valueToSend;
         (bool success,) = payable(caller).call{value: refundAmount}("");
         if (!success) revert EtherTransferFailed();
-    }
-
-    function getStargatePools()
-        external view returns (
-            address[] memory tokens,
-            address[] memory pools
-        ) 
-    {
-        StargateAdapterStorage storage $ = _getStargateStorage();
-        uint256 totalPools = $.supportedTokens.length();
-        tokens = new address[](totalPools);
-        pools = new address[](totalPools);
-        for (uint256 p = 0; p < totalPools; p++) {
-            address token = $.supportedTokens.at(p);
-            tokens[p] = token;
-            pools[p] = $.stargatePools[token];
-        }
-        return (tokens, pools);
-    }
-
-    function _getStargateStorage() private pure returns (StargateAdapterStorage storage $) {
-        assembly {
-            $.slot := STORAGE_LOCATION
-        }
     }
 }

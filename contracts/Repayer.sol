@@ -153,7 +153,7 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapt
         if (provider == Provider.ACROSS) {
             initiateTransferAcross(token, amount, destinationPool, destinationDomain, extraData);
         } else
-            if (provider == Provider.STARGATE) {
+        if (provider == Provider.STARGATE) {
             initiateTransferStargate(token, amount, destinationPool, destinationDomain, extraData, _msgSender());
         } else {
             // Unreachable atm, but could become so when more providers are added to enum.

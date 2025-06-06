@@ -33,14 +33,14 @@ contract TestStargate is IStargate {
     function sendToken(
         SendParam calldata _sendParam,
         MessagingFee calldata,
-        address
+        address refundAddress
     ) external payable returns (
         MessagingReceipt memory msgReceipt,
         OFTReceipt memory oftReceipt,
         Ticket memory ticket
     ) {
         IERC20(TOKEN).safeTransferFrom(msg.sender, address(this), _sendParam.amountLD);
-        (bool success,) = payable(msg.sender).call{value: msg.value - NATIVE_FEE}("");
+        (bool success,) = payable(refundAddress).call{value: msg.value - NATIVE_FEE}("");
         if (!success) revert EtherTransferFailed();
         emit OFTSent(
             bytes32(0),
@@ -54,28 +54,6 @@ contract TestStargate is IStargate {
             OFTReceipt(_sendParam.amountLD, _sendParam.amountLD),
             Ticket(0, "0x")
         );
-    }
-
-    /**
-     * @notice Provides a quote for OFT-related operations.
-     * @param _sendParam The parameters for the send operation.
-     * @return limit The OFT limit information.
-     * @return oftFeeDetails The details of OFT fees.
-     * @return receipt The OFT receipt information.
-     */
-    function quoteOFT(
-        SendParam calldata _sendParam
-    ) external pure returns (OFTLimit memory, OFTFeeDetail[] memory oftFeeDetails, OFTReceipt memory) {
-        OFTFeeDetail[] memory oftDetail = new OFTFeeDetail[](0);
-        return (
-            OFTLimit(_sendParam.amountLD, _sendParam.amountLD),
-            oftDetail,
-            OFTReceipt(_sendParam.amountLD, _sendParam.amountLD)
-        );
-    }
-
-    function quoteSend(SendParam calldata, bool) external pure returns (MessagingFee memory) {
-        return MessagingFee(NATIVE_FEE, 0);
     }
 }
 

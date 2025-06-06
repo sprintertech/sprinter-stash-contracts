@@ -13,11 +13,9 @@ import {
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IRoute} from ".././interfaces/IRoute.sol";
 import {AdapterHelper} from "./AdapterHelper.sol";
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 abstract contract StargateAdapter is IRoute, AdapterHelper {
     using SafeERC20 for IERC20;
-    using EnumerableSet for EnumerableSet.AddressSet;
 
     IStargateTreasurer immutable public STARGATE_TREASURER;
 
@@ -68,7 +66,8 @@ abstract contract StargateAdapter is IRoute, AdapterHelper {
         bytes calldata extraData,
         address caller
     ) internal {
-        (address stargateAddress) = abi.decode(extraData, (address));
+        (address stargateAddress, uint256 minAmountOut) = abi.decode(extraData, (address, uint256));
+        require(minAmountOut >= (amount * 9980 / 10000), SlippageTooHigh());
         require(STARGATE_TREASURER.stargates(stargateAddress), PoolInvalid());
         IStargate stargate = IStargate(stargateAddress);
         require(address(token) == stargate.token(), PoolInvalid());
@@ -81,28 +80,20 @@ abstract contract StargateAdapter is IRoute, AdapterHelper {
             dstEid: dstEid,
             to: _addressToBytes32(destinationPool),
             amountLD: amount,
-            minAmountLD: amount,
+            minAmountLD: minAmountOut,
             extraOptions: new bytes(0),
             composeMsg: new bytes(0),
             oftCmd: new bytes(1)
         });
 
-        sendParam.minAmountLD = amount * 9980 / 10000;
-
-        MessagingFee memory messagingFee = stargate.quoteSend(sendParam, false);
-        uint256 valueToSend = messagingFee.nativeFee;
+        MessagingFee memory messagingFee = MessagingFee(msg.value, 0);
 
         (
             MessagingReceipt memory msgReceipt,
             OFTReceipt memory oftReceipt,
             Ticket memory ticket
-        ) = stargate.sendToken{ value: valueToSend }(sendParam, messagingFee, caller);
+        ) = stargate.sendToken{ value: msg.value }(sendParam, messagingFee, caller);
 
         emit StargateTransfer(msgReceipt, oftReceipt, ticket);
-        
-        // return unused fee to the caller
-        uint256 refundAmount = msg.value - valueToSend;
-        (bool success,) = payable(caller).call{value: refundAmount}("");
-        if (!success) revert EtherTransferFailed();
     }
 }

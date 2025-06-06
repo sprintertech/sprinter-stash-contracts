@@ -76,29 +76,6 @@ interface IStargate {
     ) external payable returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt, Ticket memory ticket);
 
     /**
-     * @notice Provides a quote for OFT-related operations.
-     * @param _sendParam The parameters for the send operation.
-     * @return limit The OFT limit information.
-     * @return oftFeeDetails The details of OFT fees.
-     * @return receipt The OFT receipt information.
-     */
-    function quoteOFT(
-        SendParam calldata _sendParam
-    ) external view returns (OFTLimit memory, OFTFeeDetail[] memory oftFeeDetails, OFTReceipt memory);
-
-    /**
-     * @notice Provides a quote for the send() operation.
-     * @param _sendParam The parameters for the send() operation.
-     * @param _payInLzToken Flag indicating whether the caller is paying in the LZ token.
-     * @return fee The calculated LayerZero messaging fee from the send() operation.
-     *
-     * @dev MessagingFee: LayerZero msg fee
-     *  - nativeFee: The native fee.
-     *  - lzTokenFee: The lzToken fee.
-     */
-    function quoteSend(SendParam calldata _sendParam, bool _payInLzToken) external view returns (MessagingFee memory);
-
-    /**
      * @notice Retrieves the address of the token associated with the OFT.
      * @return token The address of the ERC20 token implementation.
      */

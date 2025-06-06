@@ -791,7 +791,11 @@ describe("Repayer", function () {
       ALLOWED
     );
     const amount = 4n * USDC_DEC;
-    const extraData = AbiCoder.defaultAbiCoder().encode(["address"], [testStargate.target]);
+    const minAmount = amount * 999n / 1000n;
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256"],
+      [testStargate.target, minAmount]
+    );
     const tx = repayer.connect(repayUser).initiateRepay(
       usdc.target,
       amount,
@@ -822,7 +826,7 @@ describe("Repayer", function () {
         "30101",
         repayer.target,
         amount,
-        amount * 9980n / 10000n
+        minAmount
       );
   });
 
@@ -867,7 +871,10 @@ describe("Repayer", function () {
       ALLOWED
     );
     const amount = 4n * USDC_DEC;
-    const extraData = AbiCoder.defaultAbiCoder().encode(["address"], [testStargate.target]);
+    const minAmount = amount * 999n / 1000n;
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256"], [testStargate.target, minAmount]
+    );
     await expect(repayer.connect(repayUser).initiateRepay(
       usdc.target,
       amount,
@@ -879,7 +886,45 @@ describe("Repayer", function () {
     )).to.be.revertedWithCustomError(repayer, "PoolInvalid");
   });
 
-  it("Should perform Stargate repay if the pool token doesn't match", async function () {
+  it("Should revert Stargate repay if provided minimal amount is too low", async function () {
+    const {repayer, USDC_DEC, usdc, admin, repayUser, liquidityPool, deployer, cctpTokenMessenger,
+      cctpMessageTransmitter, acrossV3SpokePool, weth, stargateTreasurerFalse, repayerAdmin, repayerProxy,
+    } = await loadFixture(deployAll);
+
+    await usdc.transfer(repayer.target, 10n * USDC_DEC);
+
+    const testStargate = (
+      await deploy("TestStargate", deployer, {}, usdc.target)
+    ) as TestStargate;
+    expect(await testStargate.token()).to.eq(usdc.target);
+
+    await usdc.transfer(repayer.target, 10n * USDC_DEC);
+
+    await repayer.connect(admin).setRoute(
+      [liquidityPool.target],
+      [Domain.ETHEREUM],
+      [Provider.STARGATE],
+      [true],
+      ALLOWED
+    );
+
+    const amount = 4n * USDC_DEC;
+    const minAmount = amount * 997n / 1000n;
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256"], [testStargate.target, minAmount]
+    );
+    await expect(repayer.connect(repayUser).initiateRepay(
+      usdc.target,
+      amount,
+      liquidityPool.target,
+      Domain.ETHEREUM,
+      Provider.STARGATE,
+      extraData,
+      {value: 1n * ETH}
+    )).to.be.revertedWithCustomError(repayer, "SlippageTooHigh");
+  });
+
+  it("Should revert Stargate repay if the pool token doesn't match", async function () {
     const {
       repayer, UNI_DEC, usdc, admin, repayUser, liquidityPool, deployer, uni, uniOwner
     } = await loadFixture(deployAll);
@@ -899,7 +944,10 @@ describe("Repayer", function () {
       ALLOWED
     );
     const amount = 4n * UNI_DEC;
-    const extraData = AbiCoder.defaultAbiCoder().encode(["address"], [testStargate.target]);
+    const minAmount = amount * 999n / 1000n;
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256"], [testStargate.target, minAmount]
+    );
     await expect(repayer.connect(repayUser).initiateRepay(
       uni.target,
       amount,
@@ -961,7 +1009,10 @@ describe("Repayer", function () {
       ALLOWED
     );
     const amount = 4n * USDC_DEC;
-    const extraData = AbiCoder.defaultAbiCoder().encode(["address"], [stargatePoolUsdcAddress]);
+    const minAmount = amount * 999n / 1000n;
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256"], [stargatePoolUsdcAddress, minAmount]
+    );
     const tx = repayer.connect(repayUser).initiateRepay(
       usdc.target,
       amount,
@@ -995,9 +1046,8 @@ describe("Repayer", function () {
         anyValue
       );
     const eventsOft = await stargatePoolUsdc.queryFilter(stargatePoolUsdc.getEvent("OFTSent"), receipt!.blockNumber);
-    const amountOutMin = amount * 9980n / 10000n;
     const amountOutSent = eventsOft[0].args[4];
-    expect(amountOutSent).to.be.gte(amountOutMin);
+    expect(amountOutSent).to.be.gte(minAmount);
   });
 
   it("Should revert if Stargate pool reverts the payment", async function () {
@@ -1021,7 +1071,10 @@ describe("Repayer", function () {
       ALLOWED
     );
     const amount = 4n * USDC_DEC;
-    const extraData = AbiCoder.defaultAbiCoder().encode(["address"], [stargatePoolUsdcAddress]);
+    const minAmount = amount * 999n / 1000n;
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256"], [stargatePoolUsdcAddress, minAmount]
+    );
     // Not enough native fee provided
     await expect(repayer.connect(repayUser).initiateRepay(
       usdc.target,

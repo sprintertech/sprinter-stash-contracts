@@ -9,8 +9,6 @@ import {
     MessagingReceipt,
     OFTReceipt,
     Ticket,
-    OFTLimit,
-    OFTFeeDetail,
     IStargateTreasurer
 } from "../interfaces/IStargate.sol";
 

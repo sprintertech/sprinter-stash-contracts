@@ -887,8 +887,7 @@ describe("Repayer", function () {
   });
 
   it("Should revert Stargate repay if provided minimal amount is too low", async function () {
-    const {repayer, USDC_DEC, usdc, admin, repayUser, liquidityPool, deployer, cctpTokenMessenger,
-      cctpMessageTransmitter, acrossV3SpokePool, weth, stargateTreasurerFalse, repayerAdmin, repayerProxy,
+    const {repayer, USDC_DEC, usdc, admin, repayUser, liquidityPool, deployer
     } = await loadFixture(deployAll);
 
     await usdc.transfer(repayer.target, 10n * USDC_DEC);

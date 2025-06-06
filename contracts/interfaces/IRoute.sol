@@ -21,7 +21,8 @@ interface IRoute {
     enum Provider {
         LOCAL,
         CCTP,
-        ACROSS
+        ACROSS,
+        EVERCLEAR
     }
 
     enum PoolType {

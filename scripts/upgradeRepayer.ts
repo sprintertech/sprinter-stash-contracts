@@ -32,6 +32,9 @@ export async function main() {
   if (!config.AcrossV3SpokePool) {
     config.AcrossV3SpokePool = ZERO_ADDRESS;
   }
+  if (!config.EverclearFeeAdapter) {
+    config.EverclearFeeAdapter = ZERO_ADDRESS;
+  }
 
   const repayerAddress = await getDeployProxyXAddress("Repayer");
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
@@ -47,6 +50,7 @@ export async function main() {
       config.CCTP.TokenMessenger,
       config.CCTP.MessageTransmitter,
       config.AcrossV3SpokePool,
+      config.EverclearFeeAdapter,
       config.WrappedNativeToken,
     ],
     "Repayer",

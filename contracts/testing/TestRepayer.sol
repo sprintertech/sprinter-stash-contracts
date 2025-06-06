@@ -10,8 +10,17 @@ contract TestRepayer is Repayer {
         address cctpTokenMessenger,
         address cctpMessageTransmitter,
         address acrossSpokePool,
+        address everclearFeeAdapter,
         address wrappedNativeToken
-    ) Repayer(localDomain, assets, cctpTokenMessenger, cctpMessageTransmitter, acrossSpokePool, wrappedNativeToken) {}
+    ) Repayer(
+        localDomain,
+        assets,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
+        acrossSpokePool,
+        everclearFeeAdapter,
+        wrappedNativeToken
+    ) {}
 
     function domainCCTP(Domain destinationDomain) public pure override returns (uint32) {
         if (destinationDomain == Domain.ETHEREUM_SEPOLIA) {
@@ -36,7 +45,7 @@ contract TestRepayer is Repayer {
         }
     }
 
-    function domainChainId(Domain destinationDomain) public pure override returns (uint256) {
+    function domainChainId(Domain destinationDomain) public pure override returns (uint32) {
         if (destinationDomain == Domain.ETHEREUM_SEPOLIA) {
             return 11155111;
         } else

@@ -82,6 +82,10 @@ export async function main() {
     config.AcrossV3SpokePool = ZERO_ADDRESS;
   }
 
+  if (!config.EverclearFeeAdapter) {
+    config.EverclearFeeAdapter = ZERO_ADDRESS;
+  }
+
   let mainPool: LiquidityPool;
   let aavePool: LiquidityPoolAave;
   if (config.AavePool) {
@@ -221,6 +225,7 @@ export async function main() {
       config.CCTP.TokenMessenger,
       config.CCTP.MessageTransmitter,
       config.AcrossV3SpokePool,
+      config.EverclearFeeAdapter,
       config.WrappedNativeToken,
     ],
     [

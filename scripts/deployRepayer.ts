@@ -48,6 +48,10 @@ export async function main() {
     config.AcrossV3SpokePool = ZERO_ADDRESS;
   }
 
+  if (!config.EverclearFeeAdapter) {
+    config.EverclearFeeAdapter = ZERO_ADDRESS;
+  }
+
   if (config.AavePool) {
     let aavePool: string;
     try {
@@ -86,6 +90,7 @@ export async function main() {
       config.CCTP.TokenMessenger,
       config.CCTP.MessageTransmitter,
       config.AcrossV3SpokePool,
+      config.EverclearFeeAdapter,
       config.WrappedNativeToken,
     ],
     [

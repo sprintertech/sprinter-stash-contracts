@@ -10,8 +10,6 @@ abstract contract AcrossAdapter is BridgeAdapter {
 
     V3SpokePoolInterface immutable public ACROSS_SPOKE_POOL;
 
-    error SlippageTooHigh();
-
     constructor(
         address acrossSpokePool
     ) {

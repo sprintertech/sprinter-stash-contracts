@@ -16,7 +16,7 @@ import {
 } from "../typechain-types";
 import {
   Network, Provider, NetworkConfig, LiquidityPoolUSDC,
-  LiquidityPoolAaveUSDC, LiquidityPoolUSDCStablecoin, RebalancerRoutesConfig, RepayerRoutesConfig,
+  LiquidityPoolAaveUSDCV2, LiquidityPoolUSDCStablecoin, RebalancerRoutesConfig, RepayerRoutesConfig,
 } from "../network.config";
 
 export async function main() {
@@ -105,7 +105,7 @@ export async function main() {
         defaultLTV,
         config.WrappedNativeToken,
       ],
-      LiquidityPoolAaveUSDC,
+      LiquidityPoolAaveUSDCV2,
     )) as LiquidityPoolAave;
 
     if (config.AavePool.tokenLTVs) {

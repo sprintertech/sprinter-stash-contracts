@@ -1,9 +1,13 @@
 import * as AAVEPools from "@bgd-labs/aave-address-book";
 
+// Upgradeable contracts proxies are deployed once with the contract name suffix in id.
+// Subsequent implementation just use UPGRADE_ID env variable.
+// Immutable contracts are deployed first with the name-derived unique id.
+// Subsequent versions use version suffix plus a git commit from the main branch.
 export const LiquidityPoolAaveUSDC: string = "LiquidityPoolAaveUSDC";
 export const LiquidityPoolUSDC: string = "LiquidityPoolUSDC";
 export const LiquidityPoolUSDCStablecoin: string = "LiquidityPoolUSDCStablecoin";
-export const LiquidityPoolAaveUSDCV2: string = "LiquidityPoolAaveUSDC-V2-3c37ddc0";
+export const LiquidityPoolAaveUSDCV2: string = "LiquidityPoolAaveUSDC-V2-c7d251b";
 
 export enum Network {
   ETHEREUM = "ETHEREUM",

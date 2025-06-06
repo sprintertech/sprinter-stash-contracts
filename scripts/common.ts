@@ -31,6 +31,7 @@ export const ProviderSolidity = {
   LOCAL: 0n,
   CCTP: 1n,
   ACROSS: 2n,
+  STARGATE: 3n,
 };
 
 export const DomainSolidity = {

@@ -48,6 +48,10 @@ export async function main() {
     config.AcrossV3SpokePool = ZERO_ADDRESS;
   }
 
+  if (!config.StargateTreasurer) {
+    config.StargateTreasurer = ZERO_ADDRESS;
+  }
+
   if (config.AavePool) {
     let aavePool: string;
     try {
@@ -87,6 +91,7 @@ export async function main() {
       config.CCTP.MessageTransmitter,
       config.AcrossV3SpokePool,
       config.WrappedNativeToken,
+      config.StargateTreasurer,
     ],
     [
       config.Admin,

@@ -39,7 +39,6 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable, CCTPAdapter {
     error RouteDenied();
     error InvalidRoute();
     error UnsupportedProvider();
-    error InvalidLength();
     error InvalidPoolAssets();
 
     /// @custom:storage-location erc7201:sprinter.storage.Rebalancer

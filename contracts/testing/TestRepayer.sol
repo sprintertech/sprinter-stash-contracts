@@ -10,8 +10,17 @@ contract TestRepayer is Repayer {
         address cctpTokenMessenger,
         address cctpMessageTransmitter,
         address acrossSpokePool,
-        address wrappedNativeToken
-    ) Repayer(localDomain, assets, cctpTokenMessenger, cctpMessageTransmitter, acrossSpokePool, wrappedNativeToken) {}
+        address wrappedNativeToken,
+        address stargateTreasurer
+    ) Repayer(
+        localDomain,
+        assets,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
+        acrossSpokePool,
+        wrappedNativeToken,
+        stargateTreasurer
+    ) {}
 
     function domainCCTP(Domain destinationDomain) public pure override returns (uint32) {
         if (destinationDomain == Domain.ETHEREUM_SEPOLIA) {

@@ -81,6 +81,7 @@ export interface NetworkConfig {
   chainId: number;
   CCTP: CCTPConfig;
   AcrossV3SpokePool?: string;
+  StargateTreasurer?: string;
   USDC: string;
   WrappedNativeToken: string;
   RebalancerRoutes?: RebalancerRoutesConfig;
@@ -111,6 +112,7 @@ export const networkConfig: NetworksConfig = {
       MessageTransmitter: "0x0a992d191deec32afe36203ad87d7d289a738f81",
     },
     AcrossV3SpokePool: "0x5c7BCd6E7De5423a257D81B442095A1a6ced35C5",
+    StargateTreasurer: "0x1041D127b2d4BC700F0F563883bC689502606918",
     USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
     WrappedNativeToken: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
     IsTest: false,
@@ -133,6 +135,7 @@ export const networkConfig: NetworksConfig = {
       MessageTransmitter: "0x8186359af5f57fbb40c6b14a588d2a59c0c29880",
     },
     USDC: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+    StargateTreasurer: "0xC2b638Cb5042c1B3c5d5C969361fB50569840583",
     WrappedNativeToken: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",
     IsTest: false,
     Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
@@ -154,6 +157,7 @@ export const networkConfig: NetworksConfig = {
       MessageTransmitter: "0x4d41f22c5a0e5c74090899e5a8fb597a8842b3e8",
     },
     AcrossV3SpokePool: "0x6f26Bf09B1C792e3228e5467807a900A503c0281",
+    StargateTreasurer: "0x644abb1e17291b4403966119d15Ab081e4a487e9",
     USDC: "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
     WrappedNativeToken: "0x4200000000000000000000000000000000000006",
     IsTest: false,
@@ -217,6 +221,7 @@ export const networkConfig: NetworksConfig = {
         MessageTransmitter: "0x4d41f22c5a0e5c74090899e5a8fb597a8842b3e8",
       },
       AcrossV3SpokePool: "0x6f26Bf09B1C792e3228e5467807a900A503c0281",
+      StargateTreasurer: "0x644abb1e17291b4403966119d15Ab081e4a487e9",
       USDC: "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
       WrappedNativeToken: "0x4200000000000000000000000000000000000006",
       IsTest: false,
@@ -296,6 +301,7 @@ export const networkConfig: NetworksConfig = {
       MessageTransmitter: "0xC30362313FBBA5cf9163F0bb16a0e01f01A896ca",
     },
     AcrossV3SpokePool: "0xe35e9842fceaCA96570B734083f4a58e8F7C5f2A",
+    StargateTreasurer: "0x146c8e409C113ED87C6183f4d25c50251DFfbb3a",
     USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
     WrappedNativeToken: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
     IsTest: false,
@@ -363,6 +369,7 @@ export const networkConfig: NetworksConfig = {
         MessageTransmitter: "0xC30362313FBBA5cf9163F0bb16a0e01f01A896ca",
       },
       AcrossV3SpokePool: "0xe35e9842fceaCA96570B734083f4a58e8F7C5f2A",
+      StargateTreasurer: "0x146c8e409C113ED87C6183f4d25c50251DFfbb3a",
       USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
       WrappedNativeToken: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
       IsTest: false,
@@ -446,6 +453,7 @@ export const networkConfig: NetworksConfig = {
       MessageTransmitter: "0xAD09780d193884d503182aD4588450C416D6F9D4",
     },
     AcrossV3SpokePool: "0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64",
+    StargateTreasurer: "0xd47b03ee6d86Cf251ee7860FB2ACf9f91B9fD4d7",
     USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
     WrappedNativeToken: "0x4200000000000000000000000000000000000006",
     IsTest: false,
@@ -514,6 +522,7 @@ export const networkConfig: NetworksConfig = {
         MessageTransmitter: "0xAD09780d193884d503182aD4588450C416D6F9D4",
       },
       AcrossV3SpokePool: "0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64",
+      StargateTreasurer: "0xd47b03ee6d86Cf251ee7860FB2ACf9f91B9fD4d7",
       USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
       WrappedNativeToken: "0x4200000000000000000000000000000000000006",
       IsTest: false,
@@ -598,6 +607,7 @@ export const networkConfig: NetworksConfig = {
       MessageTransmitter: "0xF3be9355363857F3e001be68856A2f96b4C39Ba9",
     },
     AcrossV3SpokePool: "0x9295ee1d8C5b022Be115A2AD3c30C72E34e7F096",
+    StargateTreasurer: "0x36ed193dc7160D3858EC250e69D12B03Ca087D08",
     USDC: "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
     WrappedNativeToken: "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270",
     IsTest: false,
@@ -620,6 +630,7 @@ export const networkConfig: NetworksConfig = {
       MessageTransmitter: "0x7865fAfC2db2093669d92c0F33AeEF291086BEFD",
     },
     AcrossV3SpokePool: "0x5ef6C01E11889d86803e0B23e3cB3F9E9d97B662",
+    StargateTreasurer: "0x41945d449bd72AE0E237Eade565D8Bde2aa5e969",
     USDC: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
     WrappedNativeToken: "0xC558DBdd856501FCd9aaF1E62eae57A9F0629a3c",
     IsTest: true,
@@ -660,6 +671,7 @@ export const networkConfig: NetworksConfig = {
       MessageTransmitter: "0x7865fAfC2db2093669d92c0F33AeEF291086BEFD",
     },
     AcrossV3SpokePool: "0x4e8E101924eDE233C13e2D8622DC8aED2872d505",
+    StargateTreasurer: "0x7470E97cc02b0D5be6CFFAd3fd8012755db16156",
     USDC: "0x5fd84259d66Cd46123540766Be93DFE6D43130D7",
     WrappedNativeToken: "0x4200000000000000000000000000000000000006",
     IsTest: true,
@@ -694,6 +706,7 @@ export const networkConfig: NetworksConfig = {
       MessageTransmitter: "0xaCF1ceeF35caAc005e15888dDb8A3515C41B4872",
     },
     AcrossV3SpokePool: "0x7E63A5f1a8F0B4d0934B2f2327DAED3F6bb2ee75",
+    StargateTreasurer: "0xd1E255BB6354D237172802646B0d6dDCFC8c509E",
     USDC: "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
     WrappedNativeToken: "0x1dF462e2712496373A347f8ad10802a5E95f053D",
     IsTest: true,

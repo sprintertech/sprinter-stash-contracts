@@ -4,11 +4,12 @@ pragma solidity 0.8.28;
 import {ICCTPTokenMessenger, ICCTPMessageTransmitter} from "../interfaces/ICCTP.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IRoute} from ".././interfaces/IRoute.sol";
+import {AdapterHelper} from "./AdapterHelper.sol";
 
 /// @notice The child contract has to be deployed to the same address across chains, otherwise
 /// processTransferCCTP() won't work, as the same address has to call receiveMessage().
 /// Only supports CCTP V1 integration.
-abstract contract CCTPAdapter is IRoute {
+abstract contract CCTPAdapter is IRoute, AdapterHelper {
     using SafeERC20 for IERC20;
 
     ICCTPTokenMessenger immutable public CCTP_TOKEN_MESSENGER;
@@ -78,9 +79,5 @@ abstract contract CCTPAdapter is IRoute {
         } else {
             revert UnsupportedDomain();
         }
-    }
-
-    function _addressToBytes32(address addr) internal pure returns (bytes32) {
-        return bytes32(uint256(uint160(addr)));
     }
 }

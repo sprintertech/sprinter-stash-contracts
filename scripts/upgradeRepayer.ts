@@ -33,6 +33,10 @@ export async function main() {
     config.AcrossV3SpokePool = ZERO_ADDRESS;
   }
 
+  if (!config.StargateTreasurer) {
+    config.StargateTreasurer = ZERO_ADDRESS;
+  }
+
   const repayerAddress = await getDeployProxyXAddress("Repayer");
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
 
@@ -48,6 +52,7 @@ export async function main() {
       config.CCTP.MessageTransmitter,
       config.AcrossV3SpokePool,
       config.WrappedNativeToken,
+      config.StargateTreasurer,
     ],
     "Repayer",
   );

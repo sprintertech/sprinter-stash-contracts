@@ -16,7 +16,7 @@ import {
 } from "../typechain-types";
 import {
   Network, Provider, NetworkConfig, LiquidityPoolUSDC,
-  LiquidityPoolAaveUSDC, LiquidityPoolUSDCStablecoin, RebalancerRoutesConfig, RepayerRoutesConfig,
+  LiquidityPoolAaveUSDCV2, LiquidityPoolUSDCStablecoin, RebalancerRoutesConfig, RepayerRoutesConfig,
 } from "../network.config";
 
 export async function main() {
@@ -81,7 +81,9 @@ export async function main() {
   if (!config.AcrossV3SpokePool) {
     config.AcrossV3SpokePool = ZERO_ADDRESS;
   }
-
+  if (!config.StargateTreasurer) {
+    config.StargateTreasurer = ZERO_ADDRESS;
+  }
   if (!config.EverclearFeeAdapter) {
     config.EverclearFeeAdapter = ZERO_ADDRESS;
   }
@@ -105,7 +107,7 @@ export async function main() {
         defaultLTV,
         config.WrappedNativeToken,
       ],
-      LiquidityPoolAaveUSDC,
+      LiquidityPoolAaveUSDCV2,
     )) as LiquidityPoolAave;
 
     if (config.AavePool.tokenLTVs) {
@@ -227,6 +229,7 @@ export async function main() {
       config.AcrossV3SpokePool,
       config.EverclearFeeAdapter,
       config.WrappedNativeToken,
+      config.StargateTreasurer,
     ],
     [
       config.Admin,

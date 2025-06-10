@@ -3,9 +3,9 @@ pragma solidity 0.8.28;
 
 import {IFeeAdapter} from ".././interfaces/IEverclear.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {BridgeAdapter} from "./BridgeAdapter.sol";
+import {AdapterHelper} from "./AdapterHelper.sol";
 
-abstract contract EverclearAdapter is BridgeAdapter {
+abstract contract EverclearAdapter is AdapterHelper {
     using SafeERC20 for IERC20;
 
     IFeeAdapter immutable public EVERCLEAR_FEE_ADAPTER;

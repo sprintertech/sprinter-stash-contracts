@@ -1,5 +1,5 @@
 import {
-  loadFixture, setBalance, time
+  loadFixture, setBalance, time, setCode
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {expect} from "chai";
 import hre from "hardhat";
@@ -15,7 +15,7 @@ import {
 import {
   TestUSDC, TransparentUpgradeableProxy, ProxyAdmin,
   TestLiquidityPool, Repayer, TestCCTPTokenMessenger, TestCCTPMessageTransmitter,
-  TestAcrossV3SpokePool,
+  TestAcrossV3SpokePool, TestStargate, MockStargateTreasurerTrue, MockStargateTreasurerFalse
 } from "../typechain-types";
 import {networkConfig} from "../network.config";
 
@@ -33,6 +33,7 @@ function addressToBytes32(address: any) {
 describe("Repayer", function () {
   const deployAll = async () => {
     const [deployer, admin, repayUser, user] = await hre.ethers.getSigners();
+    await setCode(repayUser.address, "0x00");
 
     const forkNetworkConfig = networkConfig.BASE;
 
@@ -49,6 +50,12 @@ describe("Repayer", function () {
     const acrossV3SpokePool = (
       await deploy("TestAcrossV3SpokePool", deployer, {})
     ) as TestAcrossV3SpokePool;
+    const stargateTreasurerTrue = (
+      await deploy("MockStargateTreasurerTrue", deployer, {})
+    ) as MockStargateTreasurerTrue;
+    const stargateTreasurerFalse = (
+      await deploy("MockStargateTreasurerFalse", deployer, {})
+    ) as MockStargateTreasurerFalse;
 
     const USDC_DEC = 10n ** (await usdc.decimals());
 
@@ -74,6 +81,7 @@ describe("Repayer", function () {
         acrossV3SpokePool.target,
         everclearFeeAdapter.target,
         weth.target,
+        stargateTreasurerTrue,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -82,7 +90,7 @@ describe("Repayer", function () {
       [liquidityPool.target, liquidityPool2.target, liquidityPool.target, liquidityPool.target],
       [Domain.BASE, Domain.BASE, Domain.ETHEREUM, Domain.ARBITRUM_ONE],
       [Provider.LOCAL, Provider.LOCAL, Provider.CCTP, Provider.CCTP],
-      [true, false, true, true]
+      [true, false, true, true],
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer", {},
@@ -98,19 +106,21 @@ describe("Repayer", function () {
       deployer, admin, repayUser, user, usdc,
       USDC_DEC, uni, UNI_DEC, uniOwner, liquidityPool, liquidityPool2, repayer, repayerProxy, repayerAdmin,
       cctpTokenMessenger, cctpMessageTransmitter, REPAYER_ROLE, DEFAULT_ADMIN_ROLE, acrossV3SpokePool, weth,
-      everclearFeeAdapter, forkNetworkConfig,
+      stargateTreasurerTrue, stargateTreasurerFalse, everclearFeeAdapter, forkNetworkConfig,
     };
   };
 
   it("Should have default values", async function () {
     const {liquidityPool, liquidityPool2, repayer, usdc, REPAYER_ROLE, DEFAULT_ADMIN_ROLE,
       cctpTokenMessenger, cctpMessageTransmitter, admin, repayUser, deployer, acrossV3SpokePool,
+      stargateTreasurerTrue,
     } = await loadFixture(deployAll);
 
     expect(await repayer.ASSETS()).to.equal(usdc.target);
     expect(await repayer.CCTP_TOKEN_MESSENGER()).to.equal(cctpTokenMessenger.target);
     expect(await repayer.CCTP_MESSAGE_TRANSMITTER()).to.equal(cctpMessageTransmitter.target);
     expect(await repayer.ACROSS_SPOKE_POOL()).to.equal(acrossV3SpokePool.target);
+    expect(await repayer.STARGATE_TREASURER()).to.equal(stargateTreasurerTrue.target);
     expect(await repayer.REPAYER_ROLE()).to.equal(REPAYER_ROLE);
     expect(await repayer.isRouteAllowed(liquidityPool.target, Domain.BASE, Provider.LOCAL)).to.be.true;
     expect(await repayer.isRouteAllowed(liquidityPool2.target, Domain.BASE, Provider.LOCAL)).to.be.true;
@@ -423,7 +433,7 @@ describe("Repayer", function () {
 
   it("Should allow repayer to initiate Across repay with SpokePool on fork", async function () {
     const {deployer, repayer, USDC_DEC, admin, repayUser, repayerAdmin, repayerProxy,
-      liquidityPool, cctpTokenMessenger, cctpMessageTransmitter, weth, everclearFeeAdapter,
+      liquidityPool, cctpTokenMessenger, cctpMessageTransmitter, weth, stargateTreasurerTrue, everclearFeeAdapter,
     } = await loadFixture(deployAll);
     
     const acrossV3SpokePoolFork = await hre.ethers.getContractAt(
@@ -450,6 +460,7 @@ describe("Repayer", function () {
         acrossV3SpokePoolFork.target,
         everclearFeeAdapter.target,
         weth.target,
+        stargateTreasurerTrue,
       )
     ) as Repayer;
 
@@ -575,7 +586,7 @@ describe("Repayer", function () {
     const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.USDC);
     const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ADDRESS);
 
-    await usdc.connect(usdcOwner).transfer(repayer.target, 10n * USDC_DEC);
+    await usdc.connect(usdcOwner).transfer(repayer.target, 100000n * USDC_DEC);
 
     await repayer.connect(admin).setRoute(
       [liquidityPool.target],
@@ -584,7 +595,7 @@ describe("Repayer", function () {
       [true],
       ALLOWED
     );
-    const amount = 4n * USDC_DEC;
+    const amount = 40000n * USDC_DEC;
 
     const apiData = (await (await fetch("https://api.everclear.org/intents", {
       method: "POST",
@@ -627,7 +638,7 @@ describe("Repayer", function () {
       .withArgs(repayer.target, everclearFeeAdapter.target, amount);
     await expect(tx)
       .to.emit(everclearFeeAdapter, "IntentWithFeesAdded");
-    expect(await usdc.balanceOf(repayer.target)).to.equal(6n * USDC_DEC);
+    expect(await usdc.balanceOf(repayer.target)).to.equal(60000n * USDC_DEC);
   });
 
   it("Should allow repayer to initiate Everclear repay with other token", async function () {
@@ -924,6 +935,322 @@ describe("Repayer", function () {
     const extraData = AbiCoder.defaultAbiCoder().encode(["bytes", "bytes"], [message, signature]);
     await expect(repayer.connect(repayUser).processRepay(liquidityPool.target, Provider.CCTP, extraData))
       .to.be.revertedWithCustomError(repayer, "ProcessFailed()");
+  });
+
+  it("Should perform Stargate repay with a mock pool", async function () {
+    const {repayer, USDC_DEC, usdc, admin, repayUser, liquidityPool, deployer} = await loadFixture(deployAll);
+
+    const testStargate = (
+      await deploy("TestStargate", deployer, {}, usdc.target)
+    ) as TestStargate;
+    expect(await testStargate.token()).to.eq(usdc.target);
+
+    await usdc.transfer(repayer.target, 10n * USDC_DEC);
+
+    await repayer.connect(admin).setRoute(
+      [liquidityPool.target],
+      [Domain.ETHEREUM],
+      [Provider.STARGATE],
+      [true],
+      ALLOWED
+    );
+    const amount = 4n * USDC_DEC;
+    const minAmount = amount * 999n / 1000n;
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256"],
+      [testStargate.target, minAmount]
+    );
+    const tx = repayer.connect(repayUser).initiateRepay(
+      usdc.target,
+      amount,
+      liquidityPool.target,
+      Domain.ETHEREUM,
+      Provider.STARGATE,
+      extraData,
+      {value: 1n * ETH}
+    );
+    await expect(tx)
+      .to.emit(repayer, "InitiateRepay")
+      .withArgs(usdc.target, amount, liquidityPool.target, Domain.ETHEREUM, Provider.STARGATE);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(repayer.target, testStargate.target, amount);
+
+    const receipt = await hre.ethers.provider.getTransactionReceipt((await tx).hash);
+    const events = await repayer.queryFilter(repayer.getEvent("StargateTransfer"), receipt!.blockNumber);
+    const messagingFee = events[0].args[0][2];
+    expect(messagingFee[1]).to.eq(0);
+    const nativeFee = messagingFee[0];
+    await expect(tx).to.changeEtherBalance(repayUser, -nativeFee);
+
+    await expect(tx)
+      .to.emit(testStargate, "OFTSent")
+      .withArgs(
+        anyValue,
+        "30101",
+        repayer.target,
+        amount,
+        minAmount
+      );
+  });
+
+  it("Should revert Stargate repay if the pool is not registered", async function () {
+    const {repayer, USDC_DEC, usdc, admin, repayUser, liquidityPool, deployer, cctpTokenMessenger,
+      cctpMessageTransmitter, acrossV3SpokePool, weth, stargateTreasurerFalse, repayerAdmin, repayerProxy,
+      everclearFeeAdapter,
+    } = await loadFixture(deployAll);
+
+    await usdc.transfer(repayer.target, 10n * USDC_DEC);
+
+    const testStargate = (
+      await deploy("TestStargate", deployer, {}, usdc.target)
+    ) as TestStargate;
+    expect(await testStargate.token()).to.eq(usdc.target);
+
+    const repayerImpl2 = (
+      await deployX(
+        "Repayer",
+        deployer,
+        "Repayer2",
+        {},
+        Domain.BASE,
+        usdc.target,
+        cctpTokenMessenger.target,
+        cctpMessageTransmitter.target,
+        acrossV3SpokePool.target,
+        everclearFeeAdapter.target,
+        weth.target,
+        stargateTreasurerFalse,
+      )
+    ) as Repayer;
+
+    expect(await repayerAdmin.connect(admin).upgradeAndCall(repayerProxy, repayerImpl2, "0x"))
+      .to.emit(repayerProxy, "Upgraded");
+    expect(await repayer.STARGATE_TREASURER())
+      .to.equal(stargateTreasurerFalse.target);
+
+    await repayer.connect(admin).setRoute(
+      [liquidityPool.target],
+      [Domain.ETHEREUM],
+      [Provider.STARGATE],
+      [true],
+      ALLOWED
+    );
+    const amount = 4n * USDC_DEC;
+    const minAmount = amount * 999n / 1000n;
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256"], [testStargate.target, minAmount]
+    );
+    await expect(repayer.connect(repayUser).initiateRepay(
+      usdc.target,
+      amount,
+      liquidityPool.target,
+      Domain.ETHEREUM,
+      Provider.STARGATE,
+      extraData,
+      {value: 1n * ETH}
+    )).to.be.revertedWithCustomError(repayer, "PoolInvalid");
+  });
+
+  it("Should revert Stargate repay if provided minimal amount is too low", async function () {
+    const {repayer, USDC_DEC, usdc, admin, repayUser, liquidityPool, deployer
+    } = await loadFixture(deployAll);
+
+    await usdc.transfer(repayer.target, 10n * USDC_DEC);
+
+    const testStargate = (
+      await deploy("TestStargate", deployer, {}, usdc.target)
+    ) as TestStargate;
+    expect(await testStargate.token()).to.eq(usdc.target);
+
+    await usdc.transfer(repayer.target, 10n * USDC_DEC);
+
+    await repayer.connect(admin).setRoute(
+      [liquidityPool.target],
+      [Domain.ETHEREUM],
+      [Provider.STARGATE],
+      [true],
+      ALLOWED
+    );
+
+    const amount = 4n * USDC_DEC;
+    const minAmount = amount * 997n / 1000n;
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256"], [testStargate.target, minAmount]
+    );
+    await expect(repayer.connect(repayUser).initiateRepay(
+      usdc.target,
+      amount,
+      liquidityPool.target,
+      Domain.ETHEREUM,
+      Provider.STARGATE,
+      extraData,
+      {value: 1n * ETH}
+    )).to.be.revertedWithCustomError(repayer, "SlippageTooHigh");
+  });
+
+  it("Should revert Stargate repay if the pool token doesn't match", async function () {
+    const {
+      repayer, UNI_DEC, usdc, admin, repayUser, liquidityPool, deployer, uni, uniOwner
+    } = await loadFixture(deployAll);
+
+    const testStargate = (
+      await deploy("TestStargate", deployer, {}, usdc.target)
+    ) as TestStargate;
+    expect(await testStargate.token()).to.eq(usdc.target);
+
+    await uni.connect(uniOwner).transfer(repayer.target, 10n * UNI_DEC);
+
+    await repayer.connect(admin).setRoute(
+      [liquidityPool.target],
+      [Domain.ETHEREUM],
+      [Provider.STARGATE],
+      [true],
+      ALLOWED
+    );
+    const amount = 4n * UNI_DEC;
+    const minAmount = amount * 999n / 1000n;
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256"], [testStargate.target, minAmount]
+    );
+    await expect(repayer.connect(repayUser).initiateRepay(
+      uni.target,
+      amount,
+      liquidityPool.target,
+      Domain.ETHEREUM,
+      Provider.STARGATE,
+      extraData,
+      {value: 1n * ETH}
+    )).to.be.revertedWithCustomError(repayer, "PoolInvalid");
+  });
+
+  it("Should allow repayer to initiate Stargate repay on fork and refund unspent fee", async function () {
+    const {
+      repayer, USDC_DEC, admin, repayUser, liquidityPool, deployer, cctpTokenMessenger, cctpMessageTransmitter,
+      acrossV3SpokePool, weth, repayerAdmin, repayerProxy, everclearFeeAdapter,
+    } = await loadFixture(deployAll);
+    
+    const stargatePoolUsdcAddress = "0x27a16dc786820B16E5c9028b75B99F6f604b5d26";
+    const stargateTreasurer = "0xd47b03ee6d86Cf251ee7860FB2ACf9f91B9fD4d7";
+    const stargatePoolUsdc = await hre.ethers.getContractAt(
+      "IStargate",
+      stargatePoolUsdcAddress
+    );
+    const USDC_BASE_ADDRESS = networkConfig.BASE.USDC;
+
+    assertAddress(process.env.USDC_OWNER_ADDRESS, "Env variables not configured (USDC_OWNER_ADDRESS missing)");
+    const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;
+    const usdc = await hre.ethers.getContractAt("ERC20", USDC_BASE_ADDRESS);
+    const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ADDRESS);
+
+    const repayerImpl2 = (
+      await deployX(
+        "Repayer",
+        deployer,
+        "Repayer2",
+        {},
+        Domain.BASE,
+        usdc.target,
+        cctpTokenMessenger.target,
+        cctpMessageTransmitter.target,
+        acrossV3SpokePool.target,
+        everclearFeeAdapter.target,
+        weth.target,
+        stargateTreasurer,
+      )
+    ) as Repayer;
+
+    expect(await repayerAdmin.connect(admin).upgradeAndCall(repayerProxy, repayerImpl2, "0x"))
+      .to.emit(repayerProxy, "Upgraded");
+    expect(await repayer.STARGATE_TREASURER())
+      .to.equal(stargateTreasurer);
+
+    await usdc.connect(usdcOwner).transfer(repayer.target, 10n * USDC_DEC);
+
+    await repayer.connect(admin).setRoute(
+      [liquidityPool.target],
+      [Domain.ETHEREUM],
+      [Provider.STARGATE],
+      [true],
+      ALLOWED
+    );
+    const amount = 4n * USDC_DEC;
+    const minAmount = amount * 999n / 1000n;
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256"], [stargatePoolUsdcAddress, minAmount]
+    );
+    const tx = repayer.connect(repayUser).initiateRepay(
+      usdc.target,
+      amount,
+      liquidityPool.target,
+      Domain.ETHEREUM,
+      Provider.STARGATE,
+      extraData,
+      {value: 1n * ETH}
+    );
+    await expect(tx)
+      .to.emit(repayer, "InitiateRepay")
+      .withArgs(usdc.target, amount, liquidityPool.target, Domain.ETHEREUM, Provider.STARGATE);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(repayer.target, stargatePoolUsdcAddress, amount);
+
+    const receipt = await hre.ethers.provider.getTransactionReceipt((await tx).hash);
+    const events = await repayer.queryFilter(repayer.getEvent("StargateTransfer"), receipt!.blockNumber);
+    const messagingFee = events[0].args[0][2];
+    expect(messagingFee[1]).to.eq(0);
+    const nativeFee = messagingFee[0];
+    await expect(tx).to.changeEtherBalance(repayUser, -nativeFee);
+
+    await expect(tx)
+      .to.emit(stargatePoolUsdc, "OFTSent")
+      .withArgs(
+        anyValue,
+        "30101",
+        repayer.target,
+        amount,
+        anyValue
+      );
+    const eventsOft = await stargatePoolUsdc.queryFilter(stargatePoolUsdc.getEvent("OFTSent"), receipt!.blockNumber);
+    const amountOutSent = eventsOft[0].args[4];
+    expect(amountOutSent).to.be.gte(minAmount);
+  });
+
+  it("Should revert if Stargate pool reverts the payment", async function () {
+    const {repayer, USDC_DEC, admin, repayUser, liquidityPool} = await loadFixture(deployAll);
+    
+    const stargatePoolUsdcAddress = "0x27a16dc786820B16E5c9028b75B99F6f604b5d26";
+    const USDC_BASE_ADDRESS = networkConfig.BASE.USDC;
+
+    assertAddress(process.env.USDC_OWNER_ADDRESS, "Env variables not configured (USDC_OWNER_ADDRESS missing)");
+    const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;
+    const usdc = await hre.ethers.getContractAt("ERC20", USDC_BASE_ADDRESS);
+    const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ADDRESS);
+
+    await usdc.connect(usdcOwner).transfer(repayer.target, 10n * USDC_DEC);
+
+    await repayer.connect(admin).setRoute(
+      [liquidityPool.target],
+      [Domain.ETHEREUM],
+      [Provider.STARGATE],
+      [true],
+      ALLOWED
+    );
+    const amount = 4n * USDC_DEC;
+    const minAmount = amount * 999n / 1000n;
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256"], [stargatePoolUsdcAddress, minAmount]
+    );
+    // Not enough native fee provided
+    await expect(repayer.connect(repayUser).initiateRepay(
+      usdc.target,
+      amount,
+      liquidityPool.target,
+      Domain.ETHEREUM,
+      Provider.STARGATE,
+      extraData,
+      {value: 1n * USDC_DEC}
+    )).to.be.reverted;
   });
 
   it("Should allow to receive native tokens", async function () {

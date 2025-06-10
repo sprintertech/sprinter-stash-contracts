@@ -31,7 +31,8 @@ export const ProviderSolidity = {
   LOCAL: 0n,
   CCTP: 1n,
   ACROSS: 2n,
-  EVERCLEAR: 3n,
+  STARGATE: 3n,
+  EVERCLEAR: 4n,
 };
 
 export const DomainSolidity = {

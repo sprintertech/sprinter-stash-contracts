@@ -11,6 +11,7 @@ import {IWrappedNativeToken} from "./interfaces/IWrappedNativeToken.sol";
 
 import {CCTPAdapter} from "./utils/CCTPAdapter.sol";
 import {AcrossAdapter} from "./utils/AcrossAdapter.sol";
+import {StargateAdapter} from "./utils/StargateAdapter.sol";
 import {EverclearAdapter} from "./utils/EverclearAdapter.sol";
 import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 
@@ -19,7 +20,7 @@ import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 /// REPAYER_ROLE is needed to finalize/init rebalancing process.
 /// @notice Upgradeable.
 /// @author Tanya Bushenyova <tanya@chainsafe.io>
-contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapter, EverclearAdapter {
+contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapter, StargateAdapter, EverclearAdapter {
     using SafeERC20 for IERC20;
     using BitMaps for BitMaps.BitMap;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -60,7 +61,6 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapt
     error InvalidRoute();
     error InvalidToken();
     error UnsupportedProvider();
-    error InvalidLength();
     error InvalidPoolAssets();
 
     constructor(
@@ -70,10 +70,12 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapt
         address cctpMessageTransmitter,
         address acrossSpokePool,
         address everclearFeeAdapter,
-        address wrappedNativeToken
+        address wrappedNativeToken,
+        address stargateTreasurer
     )
         CCTPAdapter(cctpTokenMessenger, cctpMessageTransmitter)
         AcrossAdapter(acrossSpokePool)
+        StargateAdapter(stargateTreasurer)
         EverclearAdapter(everclearFeeAdapter)
     {
         ERC7201Helper.validateStorageLocation(
@@ -156,6 +158,9 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapt
         } else
         if (provider == Provider.EVERCLEAR) {
             initiateTransferEverclear(token, amount, destinationPool, destinationDomain, extraData);
+        } else
+        if (provider == Provider.STARGATE) {
+            initiateTransferStargate(token, amount, destinationPool, destinationDomain, extraData, _msgSender());
         } else {
             // Unreachable atm, but could become so when more providers are added to enum.
             revert UnsupportedProvider();

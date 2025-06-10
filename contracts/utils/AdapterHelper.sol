@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {IRoute} from ".././interfaces/IRoute.sol";
 
-abstract contract BridgeAdapter is IRoute {
+abstract contract AdapterHelper is IRoute {
     error SlippageTooHigh();
 
     function domainChainId(Domain destinationDomain) public pure virtual returns (uint32) {

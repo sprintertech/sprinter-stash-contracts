@@ -36,6 +36,10 @@ export async function main() {
     config.EverclearFeeAdapter = ZERO_ADDRESS;
   }
 
+  if (!config.StargateTreasurer) {
+    config.StargateTreasurer = ZERO_ADDRESS;
+  }
+
   const repayerAddress = await getDeployProxyXAddress("Repayer");
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
 
@@ -52,6 +56,7 @@ export async function main() {
       config.AcrossV3SpokePool,
       config.EverclearFeeAdapter,
       config.WrappedNativeToken,
+      config.StargateTreasurer,
     ],
     "Repayer",
   );

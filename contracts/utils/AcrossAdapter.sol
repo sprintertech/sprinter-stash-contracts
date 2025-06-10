@@ -3,9 +3,9 @@ pragma solidity 0.8.28;
 
 import {V3SpokePoolInterface} from ".././interfaces/IAcross.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {BridgeAdapter} from "./BridgeAdapter.sol";
+import {AdapterHelper} from "./AdapterHelper.sol";
 
-abstract contract AcrossAdapter is BridgeAdapter {
+abstract contract AcrossAdapter is AdapterHelper {
     using SafeERC20 for IERC20;
 
     V3SpokePoolInterface immutable public ACROSS_SPOKE_POOL;

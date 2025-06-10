@@ -22,6 +22,7 @@ interface IRoute {
         LOCAL,
         CCTP,
         ACROSS,
+        STARGATE,
         EVERCLEAR
     }
 
@@ -33,4 +34,5 @@ interface IRoute {
     error ZeroAddress();
     error ProcessFailed();
     error UnsupportedDomain();
+    error InvalidLength();
 }

@@ -10,7 +10,7 @@ import {
 } from "./helpers";
 import {
   ProviderSolidity as Provider, DomainSolidity as Domain, ZERO_ADDRESS,
-  DEFAULT_ADMIN_ROLE, assertAddress, ETH,
+  DEFAULT_ADMIN_ROLE, assertAddress, ETH, ZERO_BYTES32,
 } from "../scripts/common";
 import {
   TestUSDC, TransparentUpgradeableProxy, ProxyAdmin,
@@ -70,6 +70,8 @@ describe("Repayer", function () {
     const WETH_ADDRESS = forkNetworkConfig.WrappedNativeToken;
     const weth = await hre.ethers.getContractAt("IWrappedNativeToken", WETH_ADDRESS);
 
+    const everclearFeeAdapter = await hre.ethers.getContractAt("IFeeAdapter", forkNetworkConfig.EverclearFeeAdapter!);
+
     const repayerImpl = (
       await deployX("Repayer", deployer, "Repayer", {},
         Domain.BASE,
@@ -77,6 +79,7 @@ describe("Repayer", function () {
         cctpTokenMessenger.target,
         cctpMessageTransmitter.target,
         acrossV3SpokePool.target,
+        everclearFeeAdapter.target,
         weth.target,
         stargateTreasurerTrue,
       )
@@ -103,7 +106,7 @@ describe("Repayer", function () {
       deployer, admin, repayUser, user, usdc,
       USDC_DEC, eurc, EURC_DEC, eurcOwner, liquidityPool, liquidityPool2, repayer, repayerProxy, repayerAdmin,
       cctpTokenMessenger, cctpMessageTransmitter, REPAYER_ROLE, DEFAULT_ADMIN_ROLE, acrossV3SpokePool, weth,
-      stargateTreasurerTrue, stargateTreasurerFalse
+      stargateTreasurerTrue, stargateTreasurerFalse, everclearFeeAdapter, forkNetworkConfig,
     };
   };
 
@@ -430,7 +433,7 @@ describe("Repayer", function () {
 
   it("Should allow repayer to initiate Across repay with SpokePool on fork", async function () {
     const {deployer, repayer, USDC_DEC, admin, repayUser, repayerAdmin, repayerProxy,
-      liquidityPool, cctpTokenMessenger, cctpMessageTransmitter, weth, stargateTreasurerTrue,
+      liquidityPool, cctpTokenMessenger, cctpMessageTransmitter, weth, stargateTreasurerTrue, everclearFeeAdapter,
     } = await loadFixture(deployAll);
     
     const acrossV3SpokePoolFork = await hre.ethers.getContractAt(
@@ -455,6 +458,7 @@ describe("Repayer", function () {
         cctpTokenMessenger.target,
         cctpMessageTransmitter.target,
         acrossV3SpokePoolFork.target,
+        everclearFeeAdapter.target,
         weth.target,
         stargateTreasurerTrue,
       )
@@ -570,6 +574,166 @@ describe("Repayer", function () {
       Provider.ACROSS,
       extraData
     )).to.be.revertedWithCustomError(repayer, "SlippageTooHigh()");
+  });
+
+  it("Should allow repayer to initiate Everclear repay on fork", async function () {
+    const {repayer, USDC_DEC, admin, repayUser,
+      liquidityPool, everclearFeeAdapter, forkNetworkConfig,
+    } = await loadFixture(deployAll);
+    
+    assertAddress(process.env.USDC_OWNER_ADDRESS, "Env variables not configured (USDC_OWNER_ADDRESS missing)");
+    const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;
+    const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.USDC);
+    const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ADDRESS);
+
+    await usdc.connect(usdcOwner).transfer(repayer.target, 100000n * USDC_DEC);
+
+    await repayer.connect(admin).setRoute(
+      [liquidityPool.target],
+      [Domain.ETHEREUM],
+      [Provider.EVERCLEAR],
+      [true],
+      ALLOWED
+    );
+    const amount = 40000n * USDC_DEC;
+
+    const apiData = (await (await fetch("https://api.everclear.org/intents", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        origin: forkNetworkConfig.chainId.toString(),
+        destinations: [networkConfig.ETHEREUM.chainId.toString()],
+        to: liquidityPool.target,
+        inputAsset: usdc.target,
+        amount: amount.toString(),
+        callData: "",
+        maxFee: "0"
+      })
+    })).json()).data;
+    const newIntentSelector = "0x3bd1c754";
+    // API returns selector for a variety of newIntent that takes 'address' as resipient.
+    // We are using a V3 version that expects a 'bytes32' instead. Encoding other data remains the same.
+    const apiTx = everclearFeeAdapter.interface.decodeFunctionData("newIntent", newIntentSelector + apiData.substr(10));
+
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["bytes32", "uint256", "uint24", "uint48", "tuple(uint256, uint256, bytes)"],
+      [apiTx[3], apiTx[4], apiTx[5], apiTx[6], apiTx[8]]
+    );
+    const tx = repayer.connect(repayUser).initiateRepay(
+      usdc.target,
+      amount,
+      liquidityPool.target,
+      Domain.ETHEREUM,
+      Provider.EVERCLEAR,
+      extraData
+    );
+
+    await expect(tx)
+      .to.emit(repayer, "InitiateRepay")
+      .withArgs(usdc.target, amount, liquidityPool.target, Domain.ETHEREUM, Provider.EVERCLEAR);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(repayer.target, everclearFeeAdapter.target, amount);
+    await expect(tx)
+      .to.emit(everclearFeeAdapter, "IntentWithFeesAdded");
+    expect(await usdc.balanceOf(repayer.target)).to.equal(60000n * USDC_DEC);
+  });
+
+  it("Should allow repayer to initiate Everclear repay with other token", async function () {
+    const {deployer, repayer, weth, admin, repayUser,
+      liquidityPool, everclearFeeAdapter, forkNetworkConfig,
+    } = await loadFixture(deployAll);
+
+    await deployer.sendTransaction({to: repayer.target, value: 10n * ETH});
+
+    await repayer.connect(admin).setRoute(
+      [liquidityPool.target],
+      [Domain.ETHEREUM],
+      [Provider.EVERCLEAR],
+      [true],
+      ALLOWED
+    );
+    const amount = 4n * ETH;
+
+    const apiData = (await (await fetch("https://api.everclear.org/intents", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        origin: forkNetworkConfig.chainId.toString(),
+        destinations: [networkConfig.ETHEREUM.chainId.toString()],
+        to: liquidityPool.target,
+        inputAsset: weth.target,
+        amount: amount.toString(),
+        callData: "",
+        maxFee: "200"
+      })
+    })).json()).data;
+    const newIntentSelector = "0x3bd1c754";
+    // API returns selector for a variety of newIntent that takes 'address' as resipient.
+    // We are using a V3 version that expects a 'bytes32' instead. Encoding other data remains the same.
+    const apiTx = everclearFeeAdapter.interface.decodeFunctionData("newIntent", newIntentSelector + apiData.substr(10));
+
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["bytes32", "uint256", "uint24", "uint48", "tuple(uint256, uint256, bytes)"],
+      [apiTx[3], apiTx[4], apiTx[5], apiTx[6], apiTx[8]]
+    );
+    const tx = repayer.connect(repayUser).initiateRepay(
+      weth.target,
+      amount,
+      liquidityPool.target,
+      Domain.ETHEREUM,
+      Provider.EVERCLEAR,
+      extraData
+    );
+
+    await expect(tx)
+      .to.emit(repayer, "InitiateRepay")
+      .withArgs(weth.target, amount, liquidityPool.target, Domain.ETHEREUM, Provider.EVERCLEAR);
+    await expect(tx)
+      .to.emit(weth, "Transfer")
+      .withArgs(repayer.target, everclearFeeAdapter.target, amount);
+    await expect(tx)
+      .to.emit(everclearFeeAdapter, "IntentWithFeesAdded");
+    expect(await weth.balanceOf(repayer.target)).to.equal(6n * ETH);
+  });
+
+  it("Should revert Everclear repay if call to Everclear reverts", async function () {
+    const {repayer, USDC_DEC, admin, repayUser,
+      liquidityPool, forkNetworkConfig,
+    } = await loadFixture(deployAll);
+
+    assertAddress(process.env.USDC_OWNER_ADDRESS, "Env variables not configured (USDC_OWNER_ADDRESS missing)");
+    const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;
+    const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.USDC);
+    const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ADDRESS);
+
+    await usdc.connect(usdcOwner).transfer(repayer.target, 10n * USDC_DEC);
+
+    await repayer.connect(admin).setRoute(
+      [liquidityPool.target],
+      [Domain.ETHEREUM],
+      [Provider.EVERCLEAR],
+      [true],
+      ALLOWED
+    );
+    const amount = 4n * USDC_DEC;
+
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["bytes32", "uint256", "uint24", "uint48", "tuple(uint256, uint256, bytes)"],
+      [ZERO_BYTES32, amount, 0, 0, [0, 0, "0x"]]
+    );
+    await expect(repayer.connect(repayUser).initiateRepay(
+      usdc.target,
+      amount,
+      liquidityPool.target,
+      Domain.ETHEREUM,
+      Provider.EVERCLEAR,
+      extraData
+    )).to.be.reverted;
   });
 
   it("Should allow repayer to initiate repay of a different token", async function () {
@@ -833,6 +997,7 @@ describe("Repayer", function () {
   it("Should revert Stargate repay if the pool is not registered", async function () {
     const {repayer, USDC_DEC, usdc, admin, repayUser, liquidityPool, deployer, cctpTokenMessenger,
       cctpMessageTransmitter, acrossV3SpokePool, weth, stargateTreasurerFalse, repayerAdmin, repayerProxy,
+      everclearFeeAdapter,
     } = await loadFixture(deployAll);
 
     await usdc.transfer(repayer.target, 10n * USDC_DEC);
@@ -853,6 +1018,7 @@ describe("Repayer", function () {
         cctpTokenMessenger.target,
         cctpMessageTransmitter.target,
         acrossV3SpokePool.target,
+        everclearFeeAdapter.target,
         weth.target,
         stargateTreasurerFalse,
       )
@@ -961,7 +1127,7 @@ describe("Repayer", function () {
   it("Should allow repayer to initiate Stargate repay on fork and refund unspent fee", async function () {
     const {
       repayer, USDC_DEC, admin, repayUser, liquidityPool, deployer, cctpTokenMessenger, cctpMessageTransmitter,
-      acrossV3SpokePool, weth, repayerAdmin, repayerProxy,
+      acrossV3SpokePool, weth, repayerAdmin, repayerProxy, everclearFeeAdapter,
     } = await loadFixture(deployAll);
     
     const stargatePoolUsdcAddress = "0x27a16dc786820B16E5c9028b75B99F6f604b5d26";
@@ -988,6 +1154,7 @@ describe("Repayer", function () {
         cctpTokenMessenger.target,
         cctpMessageTransmitter.target,
         acrossV3SpokePool.target,
+        everclearFeeAdapter.target,
         weth.target,
         stargateTreasurer,
       )

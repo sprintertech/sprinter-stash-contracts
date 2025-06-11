@@ -11,10 +11,9 @@ import {
     IStargateTreasurer
 } from ".././interfaces/IStargate.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IRoute} from ".././interfaces/IRoute.sol";
 import {AdapterHelper} from "./AdapterHelper.sol";
 
-abstract contract StargateAdapter is IRoute, AdapterHelper {
+abstract contract StargateAdapter is AdapterHelper {
     using SafeERC20 for IERC20;
 
     IStargateTreasurer immutable public STARGATE_TREASURER;

@@ -12,6 +12,7 @@ import {IWrappedNativeToken} from "./interfaces/IWrappedNativeToken.sol";
 import {CCTPAdapter} from "./utils/CCTPAdapter.sol";
 import {AcrossAdapter} from "./utils/AcrossAdapter.sol";
 import {StargateAdapter} from "./utils/StargateAdapter.sol";
+import {EverclearAdapter} from "./utils/EverclearAdapter.sol";
 import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 
 /// @title Performs repayment to Liquidity Pools on same/different chains.
@@ -19,7 +20,7 @@ import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 /// REPAYER_ROLE is needed to finalize/init rebalancing process.
 /// @notice Upgradeable.
 /// @author Tanya Bushenyova <tanya@chainsafe.io>
-contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapter, StargateAdapter {
+contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapter, StargateAdapter, EverclearAdapter {
     using SafeERC20 for IERC20;
     using BitMaps for BitMaps.BitMap;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -68,12 +69,14 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapt
         address cctpTokenMessenger,
         address cctpMessageTransmitter,
         address acrossSpokePool,
+        address everclearFeeAdapter,
         address wrappedNativeToken,
         address stargateTreasurer
     )
         CCTPAdapter(cctpTokenMessenger, cctpMessageTransmitter)
         AcrossAdapter(acrossSpokePool)
         StargateAdapter(stargateTreasurer)
+        EverclearAdapter(everclearFeeAdapter)
     {
         ERC7201Helper.validateStorageLocation(
             STORAGE_LOCATION,
@@ -152,6 +155,9 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapt
         } else
         if (provider == Provider.ACROSS) {
             initiateTransferAcross(token, amount, destinationPool, destinationDomain, extraData);
+        } else
+        if (provider == Provider.EVERCLEAR) {
+            initiateTransferEverclear(token, amount, destinationPool, destinationDomain, extraData);
         } else
         if (provider == Provider.STARGATE) {
             initiateTransferStargate(token, amount, destinationPool, destinationDomain, extraData, _msgSender());

@@ -28,6 +28,7 @@ export enum Provider {
   LOCAL = "LOCAL",
   CCTP = "CCTP",
   ACROSS = "ACROSS",
+  EVERCLEAR = "EVERCLEAR",
 };
 
 interface CCTPConfig {
@@ -82,6 +83,7 @@ export interface NetworkConfig {
   CCTP: CCTPConfig;
   AcrossV3SpokePool?: string;
   StargateTreasurer?: string;
+  EverclearFeeAdapter?: string;
   USDC: string;
   WrappedNativeToken: string;
   RebalancerRoutes?: RebalancerRoutesConfig;
@@ -113,6 +115,7 @@ export const networkConfig: NetworksConfig = {
     },
     AcrossV3SpokePool: "0x5c7BCd6E7De5423a257D81B442095A1a6ced35C5",
     StargateTreasurer: "0x1041D127b2d4BC700F0F563883bC689502606918",
+    EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
     USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
     WrappedNativeToken: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
     IsTest: false,
@@ -134,8 +137,9 @@ export const networkConfig: NetworksConfig = {
       TokenMessenger: "0x6b25532e1060ce10cc3b0a99e5683b91bfde6982",
       MessageTransmitter: "0x8186359af5f57fbb40c6b14a588d2a59c0c29880",
     },
-    USDC: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
     StargateTreasurer: "0xC2b638Cb5042c1B3c5d5C969361fB50569840583",
+    EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
+    USDC: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
     WrappedNativeToken: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",
     IsTest: false,
     Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
@@ -158,6 +162,7 @@ export const networkConfig: NetworksConfig = {
     },
     AcrossV3SpokePool: "0x6f26Bf09B1C792e3228e5467807a900A503c0281",
     StargateTreasurer: "0x644abb1e17291b4403966119d15Ab081e4a487e9",
+    EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
     USDC: "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
     WrappedNativeToken: "0x4200000000000000000000000000000000000006",
     IsTest: false,
@@ -222,6 +227,7 @@ export const networkConfig: NetworksConfig = {
       },
       AcrossV3SpokePool: "0x6f26Bf09B1C792e3228e5467807a900A503c0281",
       StargateTreasurer: "0x644abb1e17291b4403966119d15Ab081e4a487e9",
+      EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
       USDC: "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
       WrappedNativeToken: "0x4200000000000000000000000000000000000006",
       IsTest: false,
@@ -253,7 +259,14 @@ export const networkConfig: NetworksConfig = {
           Network.BASE,
           Network.ARBITRUM_ONE
         ],
-        Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.ACROSS, Provider.ACROSS],
+        Providers: [
+          Provider.EVERCLEAR,
+          Provider.EVERCLEAR,
+          Provider.CCTP,
+          Provider.CCTP,
+          Provider.ACROSS,
+          Provider.ACROSS
+        ],
         SupportsAllTokens: [true, true, false, false, true, true],
       },
       AavePool: {
@@ -302,6 +315,7 @@ export const networkConfig: NetworksConfig = {
     },
     AcrossV3SpokePool: "0xe35e9842fceaCA96570B734083f4a58e8F7C5f2A",
     StargateTreasurer: "0x146c8e409C113ED87C6183f4d25c50251DFfbb3a",
+    EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
     USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
     WrappedNativeToken: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
     IsTest: false,
@@ -370,6 +384,7 @@ export const networkConfig: NetworksConfig = {
       },
       AcrossV3SpokePool: "0xe35e9842fceaCA96570B734083f4a58e8F7C5f2A",
       StargateTreasurer: "0x146c8e409C113ED87C6183f4d25c50251DFfbb3a",
+      EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
       USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
       WrappedNativeToken: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
       IsTest: false,
@@ -401,7 +416,14 @@ export const networkConfig: NetworksConfig = {
           Network.BASE,
           Network.OP_MAINNET
         ],
-        Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.ACROSS, Provider.ACROSS],
+        Providers: [
+          Provider.EVERCLEAR,
+          Provider.EVERCLEAR,
+          Provider.CCTP,
+          Provider.CCTP,
+          Provider.ACROSS,
+          Provider.ACROSS
+        ],
         SupportsAllTokens: [true, true, false, false, true, true],
       },
       AavePool: {
@@ -454,6 +476,7 @@ export const networkConfig: NetworksConfig = {
     },
     AcrossV3SpokePool: "0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64",
     StargateTreasurer: "0xd47b03ee6d86Cf251ee7860FB2ACf9f91B9fD4d7",
+    EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
     USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
     WrappedNativeToken: "0x4200000000000000000000000000000000000006",
     IsTest: false,
@@ -523,6 +546,7 @@ export const networkConfig: NetworksConfig = {
       },
       AcrossV3SpokePool: "0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64",
       StargateTreasurer: "0xd47b03ee6d86Cf251ee7860FB2ACf9f91B9fD4d7",
+      EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
       USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
       WrappedNativeToken: "0x4200000000000000000000000000000000000006",
       IsTest: false,
@@ -565,7 +589,14 @@ export const networkConfig: NetworksConfig = {
           Network.OP_MAINNET,
           Network.ARBITRUM_ONE
         ],
-        Providers: [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.ACROSS, Provider.ACROSS],
+        Providers: [
+          Provider.EVERCLEAR,
+          Provider.EVERCLEAR,
+          Provider.CCTP,
+          Provider.CCTP,
+          Provider.ACROSS,
+          Provider.ACROSS
+        ],
         SupportsAllTokens: [true, true, false, false, true, true],
       },
       AavePool: {
@@ -608,6 +639,7 @@ export const networkConfig: NetworksConfig = {
     },
     AcrossV3SpokePool: "0x9295ee1d8C5b022Be115A2AD3c30C72E34e7F096",
     StargateTreasurer: "0x36ed193dc7160D3858EC250e69D12B03Ca087D08",
+    EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
     USDC: "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
     WrappedNativeToken: "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270",
     IsTest: false,

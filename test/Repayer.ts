@@ -59,13 +59,13 @@ describe("Repayer", function () {
 
     const USDC_DEC = 10n ** (await usdc.decimals());
 
-    const UNI_ADDRESS = "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42"; // EURC
-    const UNI_OWNER_ADDRESS = process.env.UNI_OWNER_ADDRESS!;
-    if (!UNI_OWNER_ADDRESS) throw new Error("Env variables not configured (UNI_OWNER_ADDRESS missing)");
-    const uni = await hre.ethers.getContractAt("ERC20", UNI_ADDRESS);
-    const uniOwner = await hre.ethers.getImpersonatedSigner(UNI_OWNER_ADDRESS);
-    await setBalance(UNI_OWNER_ADDRESS, 10n ** 18n);
-    const UNI_DEC = 10n ** (await uni.decimals());
+    const EURC_ADDRESS = "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42"; 
+    const EURC_OWNER_ADDRESS = process.env.EURC_OWNER_ADDRESS!;
+    if (!EURC_OWNER_ADDRESS) throw new Error("Env variables not configured (EURC_OWNER_ADDRESS missing)");
+    const eurc = await hre.ethers.getContractAt("ERC20", EURC_ADDRESS);
+    const eurcOwner = await hre.ethers.getImpersonatedSigner(EURC_OWNER_ADDRESS);
+    await setBalance(EURC_OWNER_ADDRESS, 10n ** 18n);
+    const EURC_DEC = 10n ** (await eurc.decimals());
 
     const WETH_ADDRESS = forkNetworkConfig.WrappedNativeToken;
     const weth = await hre.ethers.getContractAt("IWrappedNativeToken", WETH_ADDRESS);
@@ -101,7 +101,7 @@ describe("Repayer", function () {
 
     return {
       deployer, admin, repayUser, user, usdc,
-      USDC_DEC, uni, UNI_DEC, uniOwner, liquidityPool, liquidityPool2, repayer, repayerProxy, repayerAdmin,
+      USDC_DEC, eurc, EURC_DEC, eurcOwner, liquidityPool, liquidityPool2, repayer, repayerProxy, repayerAdmin,
       cctpTokenMessenger, cctpMessageTransmitter, REPAYER_ROLE, DEFAULT_ADMIN_ROLE, acrossV3SpokePool, weth,
       stargateTreasurerTrue, stargateTreasurerFalse
     };
@@ -322,7 +322,7 @@ describe("Repayer", function () {
 
   it("Should allow repayer to initiate Across repay", async function () {
     const {repayer, usdc, USDC_DEC, admin, repayUser,
-      liquidityPool, acrossV3SpokePool, uni, user,
+      liquidityPool, acrossV3SpokePool, eurc, user,
     } = await loadFixture(deployAll);
 
     await usdc.transfer(repayer.target, 10n * USDC_DEC);
@@ -337,7 +337,7 @@ describe("Repayer", function () {
     const amount = 4n * USDC_DEC;
     const extraData = AbiCoder.defaultAbiCoder().encode(
       ["address", "uint256", "address", "uint32", "uint32", "uint32"],
-      [uni.target, amount + 1n, user.address, 1n, 2n, 3n]
+      [eurc.target, amount + 1n, user.address, 1n, 2n, 3n]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
       usdc.target,
@@ -357,7 +357,7 @@ describe("Repayer", function () {
       .to.emit(acrossV3SpokePool, "FundsDeposited")
       .withArgs(
         addressToBytes32(usdc.target),
-        addressToBytes32(uni.target),
+        addressToBytes32(eurc.target),
         amount,
         amount + 1n,
         1n,
@@ -375,11 +375,11 @@ describe("Repayer", function () {
   });
 
   it("Should allow repayer to initiate Across repay with a different token", async function () {
-    const {repayer, UNI_DEC, admin, repayUser,
-      liquidityPool, acrossV3SpokePool, uni, user, uniOwner,
+    const {repayer, EURC_DEC, admin, repayUser,
+      liquidityPool, acrossV3SpokePool, eurc, user, eurcOwner,
     } = await loadFixture(deployAll);
 
-    await uni.connect(uniOwner).transfer(repayer.target, 10n * UNI_DEC);
+    await eurc.connect(eurcOwner).transfer(repayer.target, 10n * EURC_DEC);
 
     await repayer.connect(admin).setRoute(
       [liquidityPool.target],
@@ -388,13 +388,13 @@ describe("Repayer", function () {
       [true],
       ALLOWED
     );
-    const amount = 4n * UNI_DEC;
+    const amount = 4n * EURC_DEC;
     const extraData = AbiCoder.defaultAbiCoder().encode(
       ["address", "uint256", "address", "uint32", "uint32", "uint32"],
       [ZERO_ADDRESS, amount * 998n / 1000n, user.address, 1n, 2n, 3n]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      uni.target,
+      eurc.target,
       amount,
       liquidityPool.target,
       Domain.ETHEREUM,
@@ -403,14 +403,14 @@ describe("Repayer", function () {
     );
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")
-      .withArgs(uni.target, amount, liquidityPool.target, Domain.ETHEREUM, Provider.ACROSS);
+      .withArgs(eurc.target, amount, liquidityPool.target, Domain.ETHEREUM, Provider.ACROSS);
     await expect(tx)
-      .to.emit(uni, "Transfer")
+      .to.emit(eurc, "Transfer")
       .withArgs(repayer.target, acrossV3SpokePool.target, amount);
     await expect(tx)
       .to.emit(acrossV3SpokePool, "FundsDeposited")
       .withArgs(
-        addressToBytes32(uni.target),
+        addressToBytes32(eurc.target),
         addressToBytes32(ZERO_ADDRESS),
         amount,
         amount * 998n / 1000n,
@@ -425,7 +425,7 @@ describe("Repayer", function () {
         "0x"
       );
 
-    expect(await uni.balanceOf(repayer.target)).to.equal(6n * UNI_DEC);
+    expect(await eurc.balanceOf(repayer.target)).to.equal(6n * EURC_DEC);
   });
 
   it("Should allow repayer to initiate Across repay with SpokePool on fork", async function () {
@@ -514,11 +514,11 @@ describe("Repayer", function () {
   });
 
   it("Should revert Across repay if call to Across reverts", async function () {
-    const {repayer, UNI_DEC, admin, repayUser,
-      liquidityPool, acrossV3SpokePool, uni, user, uniOwner,
+    const {repayer, EURC_DEC, admin, repayUser,
+      liquidityPool, acrossV3SpokePool, eurc, user, eurcOwner,
     } = await loadFixture(deployAll);
 
-    await uni.connect(uniOwner).transfer(repayer.target, 10n * UNI_DEC);
+    await eurc.connect(eurcOwner).transfer(repayer.target, 10n * EURC_DEC);
 
     await repayer.connect(admin).setRoute(
       [liquidityPool.target],
@@ -527,14 +527,14 @@ describe("Repayer", function () {
       [true],
       ALLOWED
     );
-    const amount = 4n * UNI_DEC;
+    const amount = 4n * EURC_DEC;
     const fillDeadlineError = 0n;
     const extraData = AbiCoder.defaultAbiCoder().encode(
       ["address", "uint256", "address", "uint32", "uint32", "uint32"],
       [ZERO_ADDRESS, amount, user.address, 1n, fillDeadlineError, 3n]
     );
     await expect(repayer.connect(repayUser).initiateRepay(
-      uni.target,
+      eurc.target,
       amount,
       liquidityPool.target,
       Domain.ETHEREUM,
@@ -544,11 +544,11 @@ describe("Repayer", function () {
   });
 
   it("Should revert Across repay if slippage is above 0.20%", async function () {
-    const {repayer, UNI_DEC, admin, repayUser,
-      liquidityPool, uni, user, uniOwner,
+    const {repayer, EURC_DEC, admin, repayUser,
+      liquidityPool, eurc, user, eurcOwner,
     } = await loadFixture(deployAll);
 
-    await uni.connect(uniOwner).transfer(repayer.target, 10n * UNI_DEC);
+    await eurc.connect(eurcOwner).transfer(repayer.target, 10n * EURC_DEC);
 
     await repayer.connect(admin).setRoute(
       [liquidityPool.target],
@@ -557,13 +557,13 @@ describe("Repayer", function () {
       [true],
       ALLOWED
     );
-    const amount = 4n * UNI_DEC;
+    const amount = 4n * EURC_DEC;
     const extraData = AbiCoder.defaultAbiCoder().encode(
       ["address", "uint256", "address", "uint32", "uint32", "uint32"],
       [ZERO_ADDRESS, amount * 998n / 1000n - 1n, user.address, 1n, 2n, 3n]
     );
     await expect(repayer.connect(repayUser).initiateRepay(
-      uni.target,
+      eurc.target,
       amount,
       liquidityPool.target,
       Domain.ETHEREUM,
@@ -573,13 +573,13 @@ describe("Repayer", function () {
   });
 
   it("Should allow repayer to initiate repay of a different token", async function () {
-    const {repayer, uni, UNI_DEC, uniOwner, repayUser, liquidityPool
+    const {repayer, eurc, EURC_DEC, eurcOwner, repayUser, liquidityPool
     } = await loadFixture(deployAll);
 
-    await uni.connect(uniOwner).transfer(repayer.target, 10n * UNI_DEC);
+    await eurc.connect(eurcOwner).transfer(repayer.target, 10n * EURC_DEC);
     const tx = repayer.connect(repayUser).initiateRepay(
-      uni.target,
-      4n * UNI_DEC,
+      eurc.target,
+      4n * EURC_DEC,
       liquidityPool.target,
       Domain.BASE,
       Provider.LOCAL,
@@ -587,13 +587,13 @@ describe("Repayer", function () {
     );
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")
-      .withArgs(uni.target, 4n * UNI_DEC, liquidityPool.target, Domain.BASE, Provider.LOCAL);
+      .withArgs(eurc.target, 4n * EURC_DEC, liquidityPool.target, Domain.BASE, Provider.LOCAL);
     await expect(tx)
-      .to.emit(uni, "Transfer")
-      .withArgs(repayer.target, liquidityPool.target, 4n * UNI_DEC);
+      .to.emit(eurc, "Transfer")
+      .withArgs(repayer.target, liquidityPool.target, 4n * EURC_DEC);
 
-    expect(await uni.balanceOf(repayer.target)).to.equal(6n * UNI_DEC);
-    expect(await uni.balanceOf(liquidityPool.target)).to.equal(4n * UNI_DEC);
+    expect(await eurc.balanceOf(repayer.target)).to.equal(6n * EURC_DEC);
+    expect(await eurc.balanceOf(liquidityPool.target)).to.equal(4n * EURC_DEC);
   });
 
   it("Should allow repayer to initiate repay to local pool", async function () {
@@ -686,12 +686,12 @@ describe("Repayer", function () {
   });
 
   it("Should not allow repayer to initiate repay with other token if the pool doesn't support it", async function () {
-    const {repayer, repayUser, uni, UNI_DEC, uniOwner, liquidityPool2} = await loadFixture(deployAll);
+    const {repayer, repayUser, eurc, EURC_DEC, eurcOwner, liquidityPool2} = await loadFixture(deployAll);
 
-    await uni.connect(uniOwner).transfer(repayer.target, 10n * UNI_DEC);
+    await eurc.connect(eurcOwner).transfer(repayer.target, 10n * EURC_DEC);
     await expect(repayer.connect(repayUser).initiateRepay(
-      uni.target,
-      4n * UNI_DEC,
+      eurc.target,
+      4n * EURC_DEC,
       liquidityPool2.target,
       Domain.BASE,
       Provider.LOCAL,
@@ -700,12 +700,12 @@ describe("Repayer", function () {
   });
 
   it("Should not allow repayer to initiate repay with other token if the provider is CCTP", async function () {
-    const {repayer, repayUser, uni, UNI_DEC, uniOwner, liquidityPool} = await loadFixture(deployAll);
+    const {repayer, repayUser, eurc, EURC_DEC, eurcOwner, liquidityPool} = await loadFixture(deployAll);
 
-    await uni.connect(uniOwner).transfer(repayer.target, 10n * UNI_DEC);
+    await eurc.connect(eurcOwner).transfer(repayer.target, 10n * EURC_DEC);
     await expect(repayer.connect(repayUser).initiateRepay(
-      uni.target,
-      4n * UNI_DEC,
+      eurc.target,
+      4n * EURC_DEC,
       liquidityPool.target,
       Domain.ETHEREUM,
       Provider.CCTP,
@@ -925,7 +925,7 @@ describe("Repayer", function () {
 
   it("Should revert Stargate repay if the pool token doesn't match", async function () {
     const {
-      repayer, UNI_DEC, usdc, admin, repayUser, liquidityPool, deployer, uni, uniOwner
+      repayer, EURC_DEC, usdc, admin, repayUser, liquidityPool, deployer, eurc, eurcOwner
     } = await loadFixture(deployAll);
 
     const testStargate = (
@@ -933,7 +933,7 @@ describe("Repayer", function () {
     ) as TestStargate;
     expect(await testStargate.token()).to.eq(usdc.target);
 
-    await uni.connect(uniOwner).transfer(repayer.target, 10n * UNI_DEC);
+    await eurc.connect(eurcOwner).transfer(repayer.target, 10n * EURC_DEC);
 
     await repayer.connect(admin).setRoute(
       [liquidityPool.target],
@@ -942,13 +942,13 @@ describe("Repayer", function () {
       [true],
       ALLOWED
     );
-    const amount = 4n * UNI_DEC;
+    const amount = 4n * EURC_DEC;
     const minAmount = amount * 999n / 1000n;
     const extraData = AbiCoder.defaultAbiCoder().encode(
       ["address", "uint256"], [testStargate.target, minAmount]
     );
     await expect(repayer.connect(repayUser).initiateRepay(
-      uni.target,
+      eurc.target,
       amount,
       liquidityPool.target,
       Domain.ETHEREUM,
@@ -1164,16 +1164,16 @@ describe("Repayer", function () {
   });
 
   it("Should not wrap native tokens on initiate repay of other tokens", async function () {
-    const {repayer, uni, UNI_DEC, uniOwner, repayUser, liquidityPool, weth,
+    const {repayer, eurc, EURC_DEC, eurcOwner, repayUser, liquidityPool, weth,
     } = await loadFixture(deployAll);
 
     const nativeAmount = 10n * ETH;
 
     await repayUser.sendTransaction({to: repayer.target, value: nativeAmount});
-    await uni.connect(uniOwner).transfer(repayer.target, 10n * UNI_DEC);
+    await eurc.connect(eurcOwner).transfer(repayer.target, 10n * EURC_DEC);
     const tx = repayer.connect(repayUser).initiateRepay(
-      uni.target,
-      4n * UNI_DEC,
+      eurc.target,
+      4n * EURC_DEC,
       liquidityPool.target,
       Domain.BASE,
       Provider.LOCAL,
@@ -1181,15 +1181,15 @@ describe("Repayer", function () {
     );
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")
-      .withArgs(uni.target, 4n * UNI_DEC, liquidityPool.target, Domain.BASE, Provider.LOCAL);
+      .withArgs(eurc.target, 4n * EURC_DEC, liquidityPool.target, Domain.BASE, Provider.LOCAL);
     await expect(tx)
-      .to.emit(uni, "Transfer")
-      .withArgs(repayer.target, liquidityPool.target, 4n * UNI_DEC);
+      .to.emit(eurc, "Transfer")
+      .withArgs(repayer.target, liquidityPool.target, 4n * EURC_DEC);
     await expect(tx)
       .to.not.emit(weth, "Deposit");
 
-    expect(await uni.balanceOf(repayer.target)).to.equal(6n * UNI_DEC);
-    expect(await uni.balanceOf(liquidityPool.target)).to.equal(4n * UNI_DEC);
+    expect(await eurc.balanceOf(repayer.target)).to.equal(6n * EURC_DEC);
+    expect(await eurc.balanceOf(liquidityPool.target)).to.equal(4n * EURC_DEC);
     expect(await weth.balanceOf(repayer.target)).to.equal(0);
     expect(await weth.balanceOf(liquidityPool.target)).to.equal(0);
     expect(await getBalance(repayer.target)).to.equal(nativeAmount);

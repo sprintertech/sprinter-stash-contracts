@@ -32,22 +32,22 @@ describe("LiquidityPoolStablecoin", function () {
     const usdc = await hre.ethers.getContractAt("ERC20", USDC_ADDRESS);
     const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ADDRESS);
 
-    const RPL_ADDRESS = "0x6Bb7a212910682DCFdbd5BCBb3e28FB4E8da10Ee"; // GHO
-    const RPL_OWNER_ADDRESS = process.env.RPL_OWNER_ADDRESS!;
-    if (!RPL_OWNER_ADDRESS) throw new Error("Env variables not configured (RPL_OWNER_ADDRESS missing)");
-    const rpl = await hre.ethers.getContractAt("ERC20", RPL_ADDRESS);
-    const rplOwner = await hre.ethers.getImpersonatedSigner(RPL_OWNER_ADDRESS);
+    const GHO_ADDRESS = "0x6Bb7a212910682DCFdbd5BCBb3e28FB4E8da10Ee"; 
+    const GHO_OWNER_ADDRESS = process.env.GHO_OWNER_ADDRESS!;
+    if (!GHO_OWNER_ADDRESS) throw new Error("Env variables not configured (GHO_OWNER_ADDRESS missing)");
+    const gho = await hre.ethers.getContractAt("ERC20", GHO_ADDRESS);
+    const ghoOwner = await hre.ethers.getImpersonatedSigner(GHO_OWNER_ADDRESS);
 
-    const UNI_ADDRESS = "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42"; // EURC
-    const UNI_OWNER_ADDRESS = process.env.UNI_OWNER_ADDRESS!;
-    if (!UNI_OWNER_ADDRESS) throw new Error("Env variables not configured (UNI_OWNER_ADDRESS missing)");
-    const uni = await hre.ethers.getContractAt("ERC20", UNI_ADDRESS);
-    const uniOwner = await hre.ethers.getImpersonatedSigner(UNI_OWNER_ADDRESS);
-    await setBalance(UNI_OWNER_ADDRESS, 10n ** 18n);
+    const EURC_ADDRESS = "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42"; 
+    const EURC_OWNER_ADDRESS = process.env.EURC_OWNER_ADDRESS!;
+    if (!EURC_OWNER_ADDRESS) throw new Error("Env variables not configured (EURC_OWNER_ADDRESS missing)");
+    const eurc = await hre.ethers.getContractAt("ERC20", EURC_ADDRESS);
+    const eurcOwner = await hre.ethers.getImpersonatedSigner(EURC_OWNER_ADDRESS);
+    await setBalance(EURC_OWNER_ADDRESS, 10n ** 18n);
 
     const USDC_DEC = 10n ** (await usdc.decimals());
-    const RPL_DEC = 10n ** (await rpl.decimals());
-    const UNI_DEC = 10n ** (await uni.decimals());
+    const GHO_DEC = 10n ** (await gho.decimals());
+    const EURC_DEC = 10n ** (await eurc.decimals());
 
     const liquidityPoolStablecoin = (
       await deploy("LiquidityPoolStablecoin", deployer, {},
@@ -72,8 +72,8 @@ describe("LiquidityPoolStablecoin", function () {
     const PAUSER_ROLE = encodeBytes32String("PAUSER_ROLE");
     await liquidityPoolStablecoin.connect(admin).grantRole(PAUSER_ROLE, pauser.address);
 
-    return {deployer, admin, user, user2, mpc_signer, usdc, usdcOwner, rpl, rplOwner, uni, uniOwner,
-      liquidityPoolStablecoin, mockTarget, mockBorrowSwap, USDC_DEC, RPL_DEC, UNI_DEC,
+    return {deployer, admin, user, user2, mpc_signer, usdc, usdcOwner, gho, ghoOwner, eurc, eurcOwner,
+      liquidityPoolStablecoin, mockTarget, mockBorrowSwap, USDC_DEC, GHO_DEC, EURC_DEC,
       liquidityAdmin, withdrawProfit, pauser};
   };
 
@@ -169,22 +169,22 @@ describe("LiquidityPoolStablecoin", function () {
 
     it("Should borrow a different token", async function () {
       const {
-        liquidityPoolStablecoin, mockTarget, uni, UNI_DEC, uniOwner, user, mpc_signer
+        liquidityPoolStablecoin, mockTarget, eurc, EURC_DEC, eurcOwner, user, mpc_signer
       } = await loadFixture(deployAll);
-      const amountUni = 1000n * UNI_DEC; // $1000
-      await uni.connect(uniOwner).transfer(liquidityPoolStablecoin.target, amountUni);
+      const amountUni = 1000n * EURC_DEC; // $1000
+      await eurc.connect(eurcOwner).transfer(liquidityPoolStablecoin.target, amountUni);
 
-      const amountToBorrow = 3n * UNI_DEC;
+      const amountToBorrow = 3n * EURC_DEC;
 
       const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
 
-      const callData = await mockTarget.fulfill.populateTransaction(uni.target, amountToBorrow, additionalData);
+      const callData = await mockTarget.fulfill.populateTransaction(eurc.target, amountToBorrow, additionalData);
 
       const signature = await signBorrow(
         mpc_signer,
         liquidityPoolStablecoin.target as string,
         user.address,
-        uni.target as string,
+        eurc.target as string,
         amountToBorrow.toString(),
         mockTarget.target as string,
         callData.data,
@@ -192,7 +192,7 @@ describe("LiquidityPoolStablecoin", function () {
       );
 
       await expect(liquidityPoolStablecoin.connect(user).borrow(
-        uni.target,
+        eurc.target,
         amountToBorrow,
         mockTarget.target,
         callData.data,
@@ -200,15 +200,15 @@ describe("LiquidityPoolStablecoin", function () {
         2000000000n,
         signature))
       .to.emit(mockTarget, "DataReceived").withArgs(additionalData);  
-      expect(await uni.balanceOf(liquidityPoolStablecoin.target)).to.be.lessThan(amountUni);
-      expect(await uni.balanceOf(mockTarget.target)).to.eq(amountToBorrow);
+      expect(await eurc.balanceOf(liquidityPoolStablecoin.target)).to.be.lessThan(amountUni);
+      expect(await eurc.balanceOf(mockTarget.target)).to.eq(amountToBorrow);
     });
   
     it("Should borrow a token with swap", async function () {
-      // USDC is borrowed and swapped to UNI
+      // USDC is borrowed and swapped to EURC
       const {
         liquidityPoolStablecoin, mockTarget, mockBorrowSwap, usdc, USDC_DEC,
-        user, mpc_signer, usdcOwner, uni, UNI_DEC, uniOwner, liquidityAdmin
+        user, mpc_signer, usdcOwner, eurc, EURC_DEC, eurcOwner, liquidityAdmin
       } = await loadFixture(deployAll);
       const amountLiquidity = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPoolStablecoin.target, amountLiquidity);
@@ -216,15 +216,15 @@ describe("LiquidityPoolStablecoin", function () {
         .to.emit(liquidityPoolStablecoin, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
 
       const amountToBorrow = 3n * USDC_DEC;
-      const fillAmount = 2n * UNI_DEC;
-      await uni.connect(uniOwner).approve(mockBorrowSwap.target, fillAmount);
+      const fillAmount = 2n * EURC_DEC;
+      await eurc.connect(eurcOwner).approve(mockBorrowSwap.target, fillAmount);
 
       const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
 
-      const callData = await mockTarget.fulfill.populateTransaction(uni.target, fillAmount, additionalData);
+      const callData = await mockTarget.fulfill.populateTransaction(eurc.target, fillAmount, additionalData);
       const swapData = AbiCoder.defaultAbiCoder().encode(
             ["address", "uint256", "address", "address", "uint256"],
-            [usdc.target, amountToBorrow, uni.target, uniOwner.address, fillAmount]
+            [usdc.target, amountToBorrow, eurc.target, eurcOwner.address, fillAmount]
           );
 
       const signature = await signBorrow(
@@ -241,7 +241,7 @@ describe("LiquidityPoolStablecoin", function () {
       const borrowCalldata = await liquidityPoolStablecoin.borrowAndSwap.populateTransaction(
         usdc.target,
         amountToBorrow,
-        {fillToken: uni.target, fillAmount, swapData},
+        {fillToken: eurc.target, fillAmount, swapData},
         mockTarget.target,
         callData.data,
         0n,
@@ -254,14 +254,14 @@ describe("LiquidityPoolStablecoin", function () {
         .and.to.emit(mockTarget, "DataReceived").withArgs(additionalData);  
       expect(await usdc.balanceOf(liquidityPoolStablecoin.target)).to.be.lessThan(amountLiquidity);
       expect(await usdc.balanceOf(mockBorrowSwap.target)).to.eq(amountToBorrow);
-      expect(await uni.balanceOf(liquidityPoolStablecoin.target)).to.eq(0);
-      expect(await uni.balanceOf(mockTarget.target)).to.eq(fillAmount);
+      expect(await eurc.balanceOf(liquidityPoolStablecoin.target)).to.eq(0);
+      expect(await eurc.balanceOf(mockTarget.target)).to.eq(fillAmount);
     });
 
     it("Should allow repaying using borrow() and swapping externally", async function () {
       const {
         liquidityPoolStablecoin, mockTarget, usdc, USDC_DEC, user, mpc_signer, usdcOwner, liquidityAdmin,
-        uni, uniOwner, UNI_DEC, deployer
+        eurc, eurcOwner, EURC_DEC, deployer
       } = await loadFixture(deployAll);
 
       const SWAP_ROUTER_ADDRESS = "0x2626664c2603336E57B271c5C0b26F421741e481";
@@ -352,27 +352,27 @@ describe("LiquidityPoolStablecoin", function () {
       expect(await liquidityPoolStablecoin.totalDeposited()).to.eq(amountLiquidity);
       expect(await usdc.balanceOf(mockTarget.target)).to.eq(amountToBorrow);
 
-      // UNI is returned to the pool
-      const amountToRepay = 5n * UNI_DEC;
-      await uni.connect(uniOwner).transfer(liquidityPoolStablecoin.target, amountToRepay);
+      // EURC is returned to the pool
+      const amountToRepay = 5n * EURC_DEC;
+      await eurc.connect(eurcOwner).transfer(liquidityPoolStablecoin.target, amountToRepay);
 
-      // UNI is borrowed and swapped to USDC with Uniswap
+      // EURC is borrowed and swapped to USDC with Uniswap
 
-      // Calldata for transferring uni from pool to msg.sender
-      const uniTransferFromData = await uni.transferFrom.populateTransaction(
+      // Calldata for transferring eurc from pool to msg.sender
+      const eurcTransferFromData = await eurc.transferFrom.populateTransaction(
         liquidityPoolStablecoin.target,
         multicall.target,
         amountToRepay
       );
       
-      // Calldata for approving uni to swap router
-      const uniApproveToSwapRouterData = await uni.approve.populateTransaction(
+      // Calldata for approving eurc to swap router
+      const eurcApproveToSwapRouterData = await eurc.approve.populateTransaction(
         SWAP_ROUTER_ADDRESS,
         amountToRepay
       );
 
       // Calldata for Uniswap swap
-      const path = solidityPacked(["address", "uint24", "address"], [uni.target, 500, usdc.target]);
+      const path = solidityPacked(["address", "uint24", "address"], [eurc.target, 500, usdc.target]);
       const swapData = await swapRouter.exactInput.populateTransaction([
         path, // path
         liquidityPoolStablecoin.target,  // recipient
@@ -381,15 +381,15 @@ describe("LiquidityPoolStablecoin", function () {
       ]);
 
       const callDataRepay = (await multicall.multicall.populateTransaction(
-        [uni.target, uni.target, SWAP_ROUTER_ADDRESS],
-        [uniTransferFromData.data, uniApproveToSwapRouterData.data, swapData.data]
+        [eurc.target, eurc.target, SWAP_ROUTER_ADDRESS],
+        [eurcTransferFromData.data, eurcApproveToSwapRouterData.data, swapData.data]
       )).data;
 
       const signatureSwap = await signBorrow(
         mpc_signer,
         liquidityPoolStablecoin.target as string,
         user.address as string,
-        uni.target as string,
+        eurc.target as string,
         amountToRepay.toString(),
         multicall.target as string,
         callDataRepay,
@@ -398,14 +398,14 @@ describe("LiquidityPoolStablecoin", function () {
       );
 
       await expect(liquidityPoolStablecoin.connect(user).borrow(
-        uni.target,
+        eurc.target,
         amountToRepay,
         multicall.target,
         callDataRepay,
         1n,
         2000000000n,
         signatureSwap))
-      .to.emit(uni, "Transfer");
+      .to.emit(eurc, "Transfer");
       expect(await usdc.balanceOf(liquidityPoolStablecoin.target)).to.be.greaterThanOrEqual(amountLiquidity);
     });
 
@@ -441,18 +441,18 @@ describe("LiquidityPoolStablecoin", function () {
 
     it("Should withdraw profit for multiple tokens from the pool", async function () {
       const {
-        liquidityPoolStablecoin, uni, rpl, UNI_DEC, uniOwner, rplOwner, withdrawProfit, user
+        liquidityPoolStablecoin, eurc, gho, EURC_DEC, eurcOwner, ghoOwner, withdrawProfit, user
       } = await loadFixture(deployAll);
-      const amountUni = 1n * UNI_DEC;
-      const amountRpl = 1n * UNI_DEC;
-      await uni.connect(uniOwner).transfer(liquidityPoolStablecoin.target, amountUni);
-      await rpl.connect(rplOwner).transfer(liquidityPoolStablecoin.target, amountRpl);
+      const amountUni = 1n * EURC_DEC;
+      const amountRpl = 1n * EURC_DEC;
+      await eurc.connect(eurcOwner).transfer(liquidityPoolStablecoin.target, amountUni);
+      await gho.connect(ghoOwner).transfer(liquidityPoolStablecoin.target, amountRpl);
       await expect(liquidityPoolStablecoin.connect(withdrawProfit)
-        .withdrawProfit([uni.target, rpl.target], user.address))
-        .to.emit(liquidityPoolStablecoin, "ProfitWithdrawn").withArgs(uni.target, user.address, amountUni)
-        .and.to.emit(liquidityPoolStablecoin, "ProfitWithdrawn").withArgs(rpl.target, user.address, amountRpl);
-      expect(await uni.balanceOf(user.address)).to.eq(amountUni);
-      expect(await rpl.balanceOf(user.address)).to.eq(amountRpl);
+        .withdrawProfit([eurc.target, gho.target], user.address))
+        .to.emit(liquidityPoolStablecoin, "ProfitWithdrawn").withArgs(eurc.target, user.address, amountUni)
+        .and.to.emit(liquidityPoolStablecoin, "ProfitWithdrawn").withArgs(gho.target, user.address, amountRpl);
+      expect(await eurc.balanceOf(user.address)).to.eq(amountUni);
+      expect(await gho.balanceOf(user.address)).to.eq(amountRpl);
     });
 
     it("Should withdraw liquidity as profit from the pool", async function () {
@@ -715,10 +715,10 @@ describe("LiquidityPoolStablecoin", function () {
     });
 
     it("Should NOT borrow and swap if MPC signature is wrong (caller is wrong)", async function () {
-      // USDC is borrowed and swapped to UNI
+      // USDC is borrowed and swapped to EURC
       const {
         liquidityPoolStablecoin, mockTarget, mockBorrowSwap, usdc, USDC_DEC,
-        user, mpc_signer, usdcOwner, uni, UNI_DEC, uniOwner, liquidityAdmin
+        user, mpc_signer, usdcOwner, eurc, EURC_DEC, eurcOwner, liquidityAdmin
       } = await loadFixture(deployAll);
       const amountLiquidity = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPoolStablecoin.target, amountLiquidity);
@@ -726,15 +726,15 @@ describe("LiquidityPoolStablecoin", function () {
         .to.emit(liquidityPoolStablecoin, "Deposit");
 
       const amountToBorrow = 3n * USDC_DEC;
-      const fillAmount = 2n * UNI_DEC;
-      await uni.connect(uniOwner).approve(mockBorrowSwap.target, fillAmount);
+      const fillAmount = 2n * EURC_DEC;
+      await eurc.connect(eurcOwner).approve(mockBorrowSwap.target, fillAmount);
 
       const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
 
-      const callData = await mockTarget.fulfill.populateTransaction(uni.target, fillAmount, additionalData);
+      const callData = await mockTarget.fulfill.populateTransaction(eurc.target, fillAmount, additionalData);
       const swapData = AbiCoder.defaultAbiCoder().encode(
             ["address", "uint256", "address", "address", "uint256"],
-            [usdc.target, amountToBorrow, uni.target, uniOwner.address, fillAmount]
+            [usdc.target, amountToBorrow, eurc.target, eurcOwner.address, fillAmount]
           );
 
       // user address is signed instead of mockBorrowSwap address
@@ -752,7 +752,7 @@ describe("LiquidityPoolStablecoin", function () {
       const borrowCalldata = await liquidityPoolStablecoin.borrowAndSwap.populateTransaction(
         usdc.target,
         amountToBorrow,
-        {fillToken: uni.target, fillAmount, swapData},
+        {fillToken: eurc.target, fillAmount, swapData},
         mockTarget.target,
         callData.data,
         0n,
@@ -765,10 +765,10 @@ describe("LiquidityPoolStablecoin", function () {
     });
 
     it("Should NOT borrow and swap if the swap fails", async function () {
-      // USDC is borrowed and swapped to UNI
+      // USDC is borrowed and swapped to EURC
       const {
         liquidityPoolStablecoin, mockTarget, mockBorrowSwap, usdc, USDC_DEC,
-        user, mpc_signer, usdcOwner, uni, UNI_DEC, uniOwner, liquidityAdmin
+        user, mpc_signer, usdcOwner, eurc, EURC_DEC, eurcOwner, liquidityAdmin
       } = await loadFixture(deployAll);
       const amountLiquidity = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPoolStablecoin.target, amountLiquidity);
@@ -776,14 +776,14 @@ describe("LiquidityPoolStablecoin", function () {
         .to.emit(liquidityPoolStablecoin, "Deposit");
 
       const amountToBorrow = 3n * USDC_DEC;
-      const fillAmount = 2n * UNI_DEC;
+      const fillAmount = 2n * EURC_DEC;
 
       const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
 
-      const callData = await mockTarget.fulfill.populateTransaction(uni.target, fillAmount, additionalData);
+      const callData = await mockTarget.fulfill.populateTransaction(eurc.target, fillAmount, additionalData);
       const swapData = AbiCoder.defaultAbiCoder().encode(
             ["address", "uint256", "address", "address", "uint256"],
-            [usdc.target, amountToBorrow, uni.target, uniOwner.address, fillAmount]
+            [usdc.target, amountToBorrow, eurc.target, eurcOwner.address, fillAmount]
           );
 
       const signature = await signBorrow(
@@ -800,7 +800,7 @@ describe("LiquidityPoolStablecoin", function () {
       const borrowCalldata = await liquidityPoolStablecoin.borrowAndSwap.populateTransaction(
         usdc.target,
         amountToBorrow,
-        {fillToken: uni.target, fillAmount, swapData},
+        {fillToken: eurc.target, fillAmount, swapData},
         mockTarget.target,
         callData.data,
         0n,
@@ -808,29 +808,29 @@ describe("LiquidityPoolStablecoin", function () {
         signature
       );
 
-      // No UNI tokens (fillToken) will be available for swap
+      // No EURC tokens (fillToken) will be available for swap
       await expect(mockBorrowSwap.connect(user).callBorrow(liquidityPoolStablecoin.target, borrowCalldata.data))
       .to.be.reverted;
     });
 
     it("Should NOT borrow a different token if not enough in the pool", async function () {
       const {
-        liquidityPoolStablecoin, mockTarget, uni, UNI_DEC, uniOwner, user, mpc_signer
+        liquidityPoolStablecoin, mockTarget, eurc, EURC_DEC, eurcOwner, user, mpc_signer
       } = await loadFixture(deployAll);
-      const amountUni = 1n * UNI_DEC; // $1000
-      await uni.connect(uniOwner).transfer(liquidityPoolStablecoin.target, amountUni);
+      const amountUni = 1n * EURC_DEC; // $1000
+      await eurc.connect(eurcOwner).transfer(liquidityPoolStablecoin.target, amountUni);
 
-      const amountToBorrow = 3n * UNI_DEC;
+      const amountToBorrow = 3n * EURC_DEC;
 
       const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
 
-      const callData = await mockTarget.fulfill.populateTransaction(uni.target, amountToBorrow, additionalData);
+      const callData = await mockTarget.fulfill.populateTransaction(eurc.target, amountToBorrow, additionalData);
 
       const signature = await signBorrow(
         mpc_signer,
         liquidityPoolStablecoin.target as string,
         user.address,
-        uni.target as string,
+        eurc.target as string,
         amountToBorrow.toString(),
         mockTarget.target as string,
         callData.data,
@@ -838,7 +838,7 @@ describe("LiquidityPoolStablecoin", function () {
       );
 
       await expect(liquidityPoolStablecoin.connect(user).borrow(
-        uni.target,
+        eurc.target,
         amountToBorrow,
         mockTarget.target,
         callData.data,
@@ -873,13 +873,13 @@ describe("LiquidityPoolStablecoin", function () {
 
     it("Should NOT withdraw profit if repayment was insufficient", async function () {
       const {
-        liquidityPoolStablecoin, uni, rpl, usdc, UNI_DEC, USDC_DEC, uniOwner, rplOwner, usdcOwner,
+        liquidityPoolStablecoin, eurc, gho, usdc, EURC_DEC, USDC_DEC, eurcOwner, ghoOwner, usdcOwner,
         liquidityAdmin, withdrawProfit, user, mockTarget, mpc_signer
       } = await loadFixture(deployAll);
-      const amountUni = 1n * UNI_DEC;
-      const amountRpl = 1n * UNI_DEC;
-      await uni.connect(uniOwner).transfer(liquidityPoolStablecoin.target, amountUni);
-      await rpl.connect(rplOwner).transfer(liquidityPoolStablecoin.target, amountRpl);
+      const amountUni = 1n * EURC_DEC;
+      const amountRpl = 1n * EURC_DEC;
+      await eurc.connect(eurcOwner).transfer(liquidityPoolStablecoin.target, amountUni);
+      await gho.connect(ghoOwner).transfer(liquidityPoolStablecoin.target, amountRpl);
 
       const amountLiquidity = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPoolStablecoin.target, amountLiquidity);
@@ -917,7 +917,7 @@ describe("LiquidityPoolStablecoin", function () {
       expect(await usdc.balanceOf(mockTarget.target)).to.eq(amountToBorrow);
 
       await expect(liquidityPoolStablecoin.connect(withdrawProfit)
-        .withdrawProfit([uni.target, rpl.target], user.address))
+        .withdrawProfit([eurc.target, gho.target], user.address))
         .to.be.revertedWithCustomError(liquidityPoolStablecoin, "WithdrawProfitDenied");
       await expect(liquidityPoolStablecoin.connect(withdrawProfit).withdrawProfit([usdc.target], user.address))
         .to.be.revertedWithCustomError(liquidityPoolStablecoin, "WithdrawProfitDenied");
@@ -997,18 +997,18 @@ describe("LiquidityPoolStablecoin", function () {
 
     it("Should allow WITHDRAW_PROFIT_ROLE to withdraw profit", async function () {
       const {
-        liquidityPoolStablecoin, uni, UNI_DEC, uniOwner, withdrawProfit, user
+        liquidityPoolStablecoin, eurc, EURC_DEC, eurcOwner, withdrawProfit, user
       } = await loadFixture(deployAll);
-      const amountUni = 1n * UNI_DEC;
-      await uni.connect(uniOwner).transfer(liquidityPoolStablecoin.target, amountUni);
-      await expect(liquidityPoolStablecoin.connect(withdrawProfit).withdrawProfit([uni.target], user.address))
-        .to.emit(liquidityPoolStablecoin, "ProfitWithdrawn").withArgs(uni.target, user.address, amountUni);
-      expect(await uni.balanceOf(user.address)).to.eq(amountUni);
+      const amountUni = 1n * EURC_DEC;
+      await eurc.connect(eurcOwner).transfer(liquidityPoolStablecoin.target, amountUni);
+      await expect(liquidityPoolStablecoin.connect(withdrawProfit).withdrawProfit([eurc.target], user.address))
+        .to.emit(liquidityPoolStablecoin, "ProfitWithdrawn").withArgs(eurc.target, user.address, amountUni);
+      expect(await eurc.balanceOf(user.address)).to.eq(amountUni);
     });
 
     it("Should NOT allow others to withdraw profit", async function () {
-      const {liquidityPoolStablecoin, uni, user} = await loadFixture(deployAll);
-      await expect(liquidityPoolStablecoin.connect(user).withdrawProfit([uni.target], user.address))
+      const {liquidityPoolStablecoin, eurc, user} = await loadFixture(deployAll);
+      await expect(liquidityPoolStablecoin.connect(user).withdrawProfit([eurc.target], user.address))
         .to.be.revertedWithCustomError(liquidityPoolStablecoin, "AccessControlUnauthorizedAccount");
     });
 

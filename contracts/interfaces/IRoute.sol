@@ -23,7 +23,8 @@ interface IRoute {
         CCTP,
         ACROSS,
         STARGATE,
-        EVERCLEAR
+        EVERCLEAR,
+        OPTIMISM
     }
 
     enum PoolType {

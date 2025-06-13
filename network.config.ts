@@ -84,6 +84,7 @@ export interface NetworkConfig {
   AcrossV3SpokePool?: string;
   StargateTreasurer?: string;
   EverclearFeeAdapter?: string;
+  OptimismStandardBridge?: string;
   USDC: string;
   WrappedNativeToken: string;
   RebalancerRoutes?: RebalancerRoutesConfig;
@@ -116,6 +117,7 @@ export const networkConfig: NetworksConfig = {
     AcrossV3SpokePool: "0x5c7BCd6E7De5423a257D81B442095A1a6ced35C5",
     StargateTreasurer: "0x1041D127b2d4BC700F0F563883bC689502606918",
     EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
+    OptimismStandardBridge: "0x99C9fc46f92E8a1c0deC1b1747d010903E884bE1",
     USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
     WrappedNativeToken: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
     IsTest: false,
@@ -163,7 +165,8 @@ export const networkConfig: NetworksConfig = {
     AcrossV3SpokePool: "0x6f26Bf09B1C792e3228e5467807a900A503c0281",
     StargateTreasurer: "0x644abb1e17291b4403966119d15Ab081e4a487e9",
     EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
-    USDC: "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
+    OptimismStandardBridge: "0x4200000000000000000000000000000000000010",
+    USDC: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
     WrappedNativeToken: "0x4200000000000000000000000000000000000006",
     IsTest: false,
     Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",

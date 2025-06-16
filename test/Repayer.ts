@@ -1270,7 +1270,7 @@ describe("Repayer", function () {
     expect(await repayer.STARGATE_TREASURER())
       .to.equal(stargateTreasurer);
 
-    await usdc.connect(usdcOwner).transfer(repayer.target, 10n * USDC_DEC);
+    await usdc.connect(usdcOwner).transfer(repayer.target, 10000n * USDC_DEC);
 
     await repayer.connect(admin).setRoute(
       [liquidityPool.target],
@@ -1279,8 +1279,8 @@ describe("Repayer", function () {
       [true],
       ALLOWED
     );
-    const amount = 4n * USDC_DEC;
-    const minAmount = amount * 9985n / 10000n;
+    const amount = 4000n * USDC_DEC;
+    const minAmount = amount * 999n / 1000n;
     const extraData = AbiCoder.defaultAbiCoder().encode(
       ["address", "uint256"], [stargatePoolUsdcAddress, minAmount]
     );

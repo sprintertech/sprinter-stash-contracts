@@ -28,6 +28,6 @@ jobs:
       - name: Hardhat Tests
         run: npm run test
       - name: Hardhat Fork Tests
-        run: npm run test-ethereum
+        run: npm run test:ethereum
       - name: Script Tests
         run: npm run test:scripts

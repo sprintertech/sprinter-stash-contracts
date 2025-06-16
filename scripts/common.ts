@@ -33,7 +33,7 @@ export const ProviderSolidity = {
   ACROSS: 2n,
   STARGATE: 3n,
   EVERCLEAR: 4n,
-  OPTIMISM: 5n,
+  OPTIMISM_STANDARD_BRIDGE: 5n,
 };
 
 export const DomainSolidity = {

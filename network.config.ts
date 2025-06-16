@@ -29,6 +29,7 @@ export enum Provider {
   CCTP = "CCTP",
   ACROSS = "ACROSS",
   EVERCLEAR = "EVERCLEAR",
+  OPTIMISM_STANDARD_BRIDGE = "OPTIMISM_STANDARD_BRIDGE",
 };
 
 interface CCTPConfig {

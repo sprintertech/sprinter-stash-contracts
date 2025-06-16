@@ -24,7 +24,7 @@ interface IRoute {
         ACROSS,
         STARGATE,
         EVERCLEAR,
-        OPTIMISM
+        OPTIMISM_STANDARD_BRIDGE
     }
 
     enum PoolType {

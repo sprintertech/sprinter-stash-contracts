@@ -5,7 +5,7 @@ import {IOptimismStandardBridge} from ".././interfaces/IOptimism.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {AdapterHelper} from "./AdapterHelper.sol";
 
-abstract contract OptimismAdapter is AdapterHelper {
+abstract contract OptimismStandardBridgeAdapter is AdapterHelper {
     using SafeERC20 for IERC20;
 
     IOptimismStandardBridge immutable public OPTIMISM_STANDARD_BRIDGE;
@@ -17,13 +17,19 @@ abstract contract OptimismAdapter is AdapterHelper {
         OPTIMISM_STANDARD_BRIDGE = IOptimismStandardBridge(optimismStandardBridge);
     }
 
-    function initiateTransferOptimism(
+    function initiateTransferOptimismStandardBridge(
         IERC20 token,
         uint256 amount,
         address destinationPool,
-        Domain,
-        bytes calldata extraData
+        Domain destinationDomain,
+        bytes calldata extraData,
+        Domain localDomain
     ) internal {
+        require(
+            (localDomain == Domain.OP_MAINNET && destinationDomain == Domain.ETHEREUM) ||
+            (localDomain == Domain.ETHEREUM && destinationDomain == Domain.OP_MAINNET),
+            UnsupportedDomain()
+        );
         require(address(OPTIMISM_STANDARD_BRIDGE) != address(0), ZeroAddress());
         token.forceApprove(address(OPTIMISM_STANDARD_BRIDGE), amount);
         (

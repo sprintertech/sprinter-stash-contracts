@@ -13,7 +13,7 @@ import {CCTPAdapter} from "./utils/CCTPAdapter.sol";
 import {AcrossAdapter} from "./utils/AcrossAdapter.sol";
 import {StargateAdapter} from "./utils/StargateAdapter.sol";
 import {EverclearAdapter} from "./utils/EverclearAdapter.sol";
-import {OptimismAdapter} from "./utils/OptimismAdapter.sol";
+import {OptimismStandardBridgeAdapter} from "./utils/OptimismStandardBridgeAdapter.sol";
 import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 
 /// @title Performs repayment to Liquidity Pools on same/different chains.
@@ -21,7 +21,15 @@ import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 /// REPAYER_ROLE is needed to finalize/init rebalancing process.
 /// @notice Upgradeable.
 /// @author Tanya Bushenyova <tanya@chainsafe.io>
-contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapter, StargateAdapter, EverclearAdapter, OptimismAdapter {
+contract Repayer is
+    IRepayer,
+    AccessControlUpgradeable,
+    CCTPAdapter,
+    AcrossAdapter,
+    StargateAdapter,
+    EverclearAdapter,
+    OptimismStandardBridgeAdapter
+{
     using SafeERC20 for IERC20;
     using BitMaps for BitMaps.BitMap;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -79,7 +87,7 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapt
         AcrossAdapter(acrossSpokePool)
         StargateAdapter(stargateTreasurer)
         EverclearAdapter(everclearFeeAdapter)
-        OptimismAdapter(optimismBridge)
+        OptimismStandardBridgeAdapter(optimismBridge)
     {
         ERC7201Helper.validateStorageLocation(
             STORAGE_LOCATION,
@@ -154,7 +162,7 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapt
         } else
         if (provider == Provider.CCTP) {
             require(token == ASSETS, InvalidToken());
-            initiateTransferCCTP(ASSETS, amount, destinationPool, destinationDomain);
+            initiateTransferCCTP(token, amount, destinationPool, destinationDomain);
         } else
         if (provider == Provider.ACROSS) {
             initiateTransferAcross(token, amount, destinationPool, destinationDomain, extraData);
@@ -165,10 +173,10 @@ contract Repayer is IRepayer, AccessControlUpgradeable, CCTPAdapter, AcrossAdapt
         if (provider == Provider.STARGATE) {
             initiateTransferStargate(token, amount, destinationPool, destinationDomain, extraData, _msgSender());
         } else
-        if (provider == Provider.OPTIMISM) {
-            require((DOMAIN == Domain.OP_MAINNET && destinationDomain == Domain.ETHEREUM)
-                || (DOMAIN == Domain.ETHEREUM && destinationDomain == Domain.OP_MAINNET), UnsupportedDomain());
-            initiateTransferOptimism(token, amount, destinationPool, destinationDomain, extraData);
+        if (provider == Provider.OPTIMISM_STANDARD_BRIDGE) {
+            initiateTransferOptimismStandardBridge(
+                token, amount, destinationPool, destinationDomain, extraData, DOMAIN
+            );
         } else {
             // Unreachable atm, but could become so when more providers are added to enum.
             revert UnsupportedProvider();

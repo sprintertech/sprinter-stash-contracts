@@ -297,8 +297,8 @@ const config: HardhatUserConfig = {
     },
     hardhat: {
       forking: {
-        url: isSet(process.env.DRY_RUN)
-          ? process.env[`${process.env.DRY_RUN}_RPC`]!
+        url: isSet(process.env.DRY_RUN) || isSet(process.env.FORK_TEST)
+          ? process.env[`${process.env.DRY_RUN || process.env.FORK_TEST}_RPC`]!
           : (process.env.FORK_PROVIDER || process.env.BASE_RPC || "https://base-mainnet.public.blastapi.io"),
       },
       accounts: isSet(process.env.DRY_RUN)

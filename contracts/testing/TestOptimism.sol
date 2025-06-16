@@ -5,17 +5,19 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {IOptimismStandardBridge} from "../interfaces/IOptimism.sol";
 
 contract TestOptimismStandardBridge is IOptimismStandardBridge {
+    error OptimismBridgeWrongRemoteToken();
+
     function bridgeERC20To(
         address _localToken,
         address _remoteToken,
         address _to,
         uint256 _amount,
-        uint32 _minGasLimit,
+        uint32 /*_minGasLimit*/,
         bytes calldata _extraData
     ) external override {
         require(
             _localToken != _remoteToken,
-            "StandardBridge: wrong remote token for Optimism Mintable ERC20 local token"
+            OptimismBridgeWrongRemoteToken()
         ); // To simulate revert.
         SafeERC20.safeTransferFrom(IERC20(_localToken), msg.sender, address(this), _amount);
         emit ERC20BridgeInitiated(
@@ -26,9 +28,5 @@ contract TestOptimismStandardBridge is IOptimismStandardBridge {
             _amount,
             _extraData
         );
-    }
-
-    function toBytes32(address _address) internal pure returns (bytes32) {
-        return bytes32(uint256(uint160(_address)));
     }
 }

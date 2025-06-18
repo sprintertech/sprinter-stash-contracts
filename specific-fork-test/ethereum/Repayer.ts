@@ -5,11 +5,11 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {AbiCoder} from "ethers";
 import {
-  getCreateAddress, getContractAt, deploy, deployX, toBytes32,
+  getCreateAddress, getContractAt, deploy, deployX, toBytes32, getBalance,
 } from "../../test/helpers";
 import {
   ProviderSolidity as Provider, DomainSolidity as Domain,
-  DEFAULT_ADMIN_ROLE, assertAddress,
+  DEFAULT_ADMIN_ROLE, assertAddress, ETH, ZERO_ADDRESS,
 } from "../../scripts/common";
 import {
   TransparentUpgradeableProxy, ProxyAdmin,
@@ -138,5 +138,38 @@ describe("Repayer", function () {
         amount,
         "0x"
       );
+  });
+
+  it("Should allow repayer to initiate native token Optimism repay on fork", async function () {
+    const {repayer, repayUser, liquidityPool, optimismStandardBridge} = await loadFixture(deployAll);
+
+    const amount = 4n * ETH;
+    await repayUser.sendTransaction({to: repayer.target, value: amount});
+
+    const minGasLimit = 100000n;
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["uint32"],
+      [minGasLimit]
+    );
+    const tx = repayer.connect(repayUser).initiateRepay(
+      ZERO_ADDRESS,
+      amount,
+      liquidityPool.target,
+      Domain.OP_MAINNET,
+      Provider.OPTIMISM_STANDARD_BRIDGE,
+      extraData
+    );
+    await expect(tx)
+      .to.emit(repayer, "InitiateRepay")
+      .withArgs(ZERO_ADDRESS, amount, liquidityPool.target, Domain.OP_MAINNET, Provider.OPTIMISM_STANDARD_BRIDGE);
+    await expect(tx)
+      .to.emit(optimismStandardBridge, "ETHBridgeInitiated")
+      .withArgs(
+        repayer.target,
+        liquidityPool.target,
+        amount,
+        "0x"
+      );
+    expect(await getBalance(repayer.target)).to.equal(0n);
   });
 });

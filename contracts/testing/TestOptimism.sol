@@ -6,6 +6,7 @@ import {IOptimismStandardBridge} from "../interfaces/IOptimism.sol";
 
 contract TestOptimismStandardBridge is IOptimismStandardBridge {
     error OptimismBridgeWrongRemoteToken();
+    error OptimismBridgeWrongMinGasLimit();
 
     function bridgeERC20To(
         address _localToken,
@@ -28,5 +29,13 @@ contract TestOptimismStandardBridge is IOptimismStandardBridge {
             _amount,
             _extraData
         );
+    }
+
+    function bridgeETHTo(address _to, uint32 _minGasLimit, bytes calldata _extraData) external payable override {
+        require(
+            _minGasLimit > 0,
+            OptimismBridgeWrongMinGasLimit()
+        ); // To simulate revert.
+        emit ETHBridgeInitiated(address(this), _to, msg.value, _extraData);
     }
 }

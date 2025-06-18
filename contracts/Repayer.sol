@@ -15,6 +15,7 @@ import {StargateAdapter} from "./utils/StargateAdapter.sol";
 import {EverclearAdapter} from "./utils/EverclearAdapter.sol";
 import {OptimismStandardBridgeAdapter} from "./utils/OptimismStandardBridgeAdapter.sol";
 import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
+import {NATIVE_TOKEN} from "./utils/Constants.sol";
 
 /// @title Performs repayment to Liquidity Pools on same/different chains.
 /// Routes, which is a destination pool/domain and a bridging provider, have to be approved by admin.
@@ -139,10 +140,24 @@ contract Repayer is
     ) external payable override onlyRole(REPAYER_ROLE) {
         require(amount > 0, ZeroAmount());
         if (token == WRAPPED_NATIVE_TOKEN) {
+            uint256 wrappedBalance = WRAPPED_NATIVE_TOKEN.balanceOf(address(this));
+            if (wrappedBalance < amount) {
+                uint256 thisBalance = address(this).balance - msg.value;
+                uint256 missingAmount = amount - wrappedBalance;
+                require(thisBalance >= missingAmount, InsufficientBalance());
+                WRAPPED_NATIVE_TOKEN.deposit{value: missingAmount}();
+            }
+        } else
+        if (token == NATIVE_TOKEN) {
             uint256 thisBalance = address(this).balance - msg.value;
-            if (thisBalance > 0) WRAPPED_NATIVE_TOKEN.deposit{value: thisBalance}();
+            if (thisBalance < amount) {
+                uint256 missingAmount = amount - thisBalance;
+                require(WRAPPED_NATIVE_TOKEN.balanceOf(address(this)) >= missingAmount, InsufficientBalance());
+                WRAPPED_NATIVE_TOKEN.withdraw(missingAmount);
+            }
+        } else {
+            require(token.balanceOf(address(this)) >= amount, InsufficientBalance());
         }
-        require(token.balanceOf(address(this)) >= amount, InsufficientBalance());
         require(isRouteAllowed(destinationPool, destinationDomain, provider), RouteDenied());
 
         emit InitiateRepay(token, amount, destinationPool, destinationDomain, provider);

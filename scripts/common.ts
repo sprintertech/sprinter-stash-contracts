@@ -1,4 +1,5 @@
 import {isAddress, getAddress} from "ethers";
+import {Network} from "../network.config";
 
 export function assert(condition: any, message: string): asserts condition {
   if (!condition) {
@@ -48,6 +49,15 @@ export const DomainSolidity = {
   ARBITRUM_SEPOLIA: 9n,
   BASE_SEPOLIA: 10n,
   POLYGON_AMOY: 11n,
+};
+
+export const CCTPDomain: { [n: number]: Network } = {
+  0: Network.ETHEREUM,
+  1: Network.AVALANCHE,
+  2: Network.OP_MAINNET,
+  3: Network.ARBITRUM_ONE,
+  6: Network.BASE,
+  7: Network.POLYGON_MAINNET,
 };
 
 export const DEFAULT_PROXY_TYPE = "TransparentUpgradeableProxy";

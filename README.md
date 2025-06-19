@@ -98,7 +98,7 @@ By CCTP V1 docs it says that attestation could be produced 9-19 minutes after in
 [{"inputs":[{"internalType":"address","name":"destinationPool","type":"address"},
 {"internalType":"enum IRoute.Provider","name":"provider","type":"uint8"},
 {"internalType":"bytes","name":"extraData","type":"bytes"}],
-"name":"processRebalance","outputs":[],"stateMutability":"nonpayable","type":"function"}]`
+"name":"processRebalance","outputs":[],"stateMutability":"nonpayable","type":"function"}]
 ```
 6. Fill in transaction details:
     * Destination Pool: 0x7C255279c098fdF6c3116D2BecD9978002c09f4b (AaveUSDC pool).

@@ -52,9 +52,15 @@ Manual Rebalance transaction creation through Safe UI:
 2. Click New Transaction -> Transaction Builder (URL is like: https://app.safe.global/apps/open?safe=base:0x83B8D2eAda788943c3e80892f37f9c102271C1D6&appUrl=https%3A%2F%2Fapps-portal.safe.global%2Ftx-builder)
 3. Enter Rebalancer address from deployments config: 0xA85Cf46c150db2600b1D03E437bedD5513869888
 4. Enter initiateRebalance ABI:
-
-    `[{"inputs":[{"internalType":"uint256","name":"amount","type":"uint256"},{"internalType":"address","name":"sourcePool","type":"address"},{"internalType":"address","name":"destinationPool","type":"address"},{"internalType":"enum IRoute.Domain","name":"destinationDomain","type":"uint8"},{"internalType":"enum IRoute.Provider","name":"provider","type":"uint8"},{"internalType":"bytes","name":"extraData","type":"bytes"}],"name":"initiateRebalance","outputs":[],"stateMutability":"nonpayable","type":"function"}]`
-
+```
+[{"inputs":[{"internalType":"uint256","name":"amount","type":"uint256"},
+{"internalType":"address","name":"sourcePool","type":"address"},
+{"internalType":"address","name":"destinationPool","type":"address"},
+{"internalType":"enum IRoute.Domain","name":"destinationDomain","type":"uint8"},
+{"internalType":"enum IRoute.Provider","name":"provider","type":"uint8"},
+{"internalType":"bytes","name":"extraData","type":"bytes"}],
+"name":"initiateRebalance","outputs":[],"stateMutability":"nonpayable","type":"function"}]
+```
 5. Fill in transaction details (Base -> Base):
     * Amount: 100000000000 (100,000,000000 USDC with 6 decimals).
     * Source Pool: 0x7C255279c098fdF6c3116D2BecD9978002c09f4b (AaveUSDC pool).
@@ -88,9 +94,12 @@ By CCTP V1 docs it says that attestation could be produced 9-19 minutes after in
 3. Click New Transaction -> Transaction Builder.
 4. Enter Rebalancer address from deployments config: 0xA85Cf46c150db2600b1D03E437bedD5513869888
 5. Enter processRebalance ABI:
-
-    `[{"inputs":[{"internalType":"address","name":"destinationPool","type":"address"},{"internalType":"enum IRoute.Provider","name":"provider","type":"uint8"},{"internalType":"bytes","name":"extraData","type":"bytes"}],"name":"processRebalance","outputs":[],"stateMutability":"nonpayable","type":"function"}]`
-
+```
+[{"inputs":[{"internalType":"address","name":"destinationPool","type":"address"},
+{"internalType":"enum IRoute.Provider","name":"provider","type":"uint8"},
+{"internalType":"bytes","name":"extraData","type":"bytes"}],
+"name":"processRebalance","outputs":[],"stateMutability":"nonpayable","type":"function"}]`
+```
 6. Fill in transaction details:
     * Destination Pool: 0x7C255279c098fdF6c3116D2BecD9978002c09f4b (AaveUSDC pool).
     * Provider: 1 (CCTP, Reference: https://github.com/sprintertech/sprinter-stash-contracts/blob/main/scripts/common.ts#L30).

@@ -141,18 +141,18 @@ describe("Repayer", function () {
   });
 
   it("Should allow repayer to initiate native token Optimism repay on fork", async function () {
-    const {repayer, repayUser, liquidityPool, optimismStandardBridge} = await loadFixture(deployAll);
+    const {repayer, repayUser, liquidityPool, optimismStandardBridge, weth} = await loadFixture(deployAll);
 
     const amount = 4n * ETH;
     await repayUser.sendTransaction({to: repayer.target, value: amount});
 
     const minGasLimit = 100000n;
     const extraData = AbiCoder.defaultAbiCoder().encode(
-      ["uint32"],
-      [minGasLimit]
+      ["address", "uint32"],
+      [ZERO_ADDRESS, minGasLimit]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      ZERO_ADDRESS,
+      weth.target,
       amount,
       liquidityPool.target,
       Domain.OP_MAINNET,
@@ -161,7 +161,7 @@ describe("Repayer", function () {
     );
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")
-      .withArgs(ZERO_ADDRESS, amount, liquidityPool.target, Domain.OP_MAINNET, Provider.OPTIMISM_STANDARD_BRIDGE);
+      .withArgs(weth.target, amount, liquidityPool.target, Domain.OP_MAINNET, Provider.OPTIMISM_STANDARD_BRIDGE);
     await expect(tx)
       .to.emit(optimismStandardBridge, "ETHBridgeInitiated")
       .withArgs(
@@ -171,5 +171,6 @@ describe("Repayer", function () {
         "0x"
       );
     expect(await getBalance(repayer.target)).to.equal(0n);
+    expect(await weth.balanceOf(repayer.target)).to.equal(0n);
   });
 });

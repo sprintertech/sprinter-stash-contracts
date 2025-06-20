@@ -7,7 +7,10 @@ import {
   TransparentUpgradeableProxy, ProxyAdmin,
 } from "../typechain-types";
 import {sleep, DEFAULT_PROXY_TYPE, assert} from "./common";
-import {networkConfig, Network, NetworkConfig} from "../network.config";
+import {
+  networkConfig, Network, NetworkConfig, StandaloneRepayerEnv, StandaloneRepayerConfig,
+  repayerConfig,
+} from "../network.config";
 
 export async function resolveAddresses(input: any[]): Promise<any[]> {
   return await Promise.all(input.map(async (el) => {
@@ -257,6 +260,41 @@ export async function getHardhatNetworkConfig() {
   console.log("Using config for: hardhat");
   return {
     network, config, opsAdmin, superAdmin, mpc,
+  };
+}
+
+export async function getStandaloneRepayerConfig(repayerEnv: StandaloneRepayerEnv) {
+  let network: Network;
+  let config: StandaloneRepayerConfig;
+  let message = `Using config for: ${repayerEnv}, `;
+  if (hre.network.name === "hardhat" && repayerConfig[process.env.DRY_RUN as Network]) {
+    message += "dry run, ";
+    network = process.env.DRY_RUN as Network;
+    config = repayerConfig[network]![repayerEnv]!;
+  } else if (repayerConfig[hre.network.name as Network]) {
+    network = hre.network.name as Network;
+    config = repayerConfig[network]![repayerEnv]!;
+  }
+  if (config! && network!) {
+    console.log(`${message}${network}`);
+  }
+  return {network: network!, config: config!};
+}
+
+export async function getHardhatStandaloneRepayerConfig(repayerEnv: StandaloneRepayerEnv) {
+  assert(hre.network.name === "hardhat", "Only for Hardhat network");
+  const network = Network.BASE;
+  const [deployer, opsAdmin, superAdmin] = await hre.ethers.getSigners();
+  process.env.DEPLOYER_ADDRESS = await resolveAddress(deployer);
+  const config = repayerConfig[network]![repayerEnv];
+  assert(config, `No config for repayer env ${repayerEnv}`);
+  config.chainId = 31337;
+  config.Admin = superAdmin.address;
+  config.RepayerCallers = [opsAdmin.address];
+
+  console.log(`Using config for: ${repayerEnv}, hardhat`);
+  return {
+    network, config, opsAdmin, superAdmin,
   };
 }
 

@@ -46,3 +46,24 @@ RepayerRoutes:
 │ 6       │ '0x2D24c6c58bBCe4BC09aE6ac559F697D97665d05D' │ 'ARBITRUM_ONE' │ 'LOCAL'  │ true              │
 │ 7       │ '0xfe22Dff2Dc00E80e3127BCac393aC4e0672570F0' │ 'ARBITRUM_ONE' │ 'LOCAL'  │ false             │
 └─────────┴──────────────────────────────────────────────┴────────────────┴──────────┴───────────────────┘
+
+Deployment ID: MVP
+Deploying Standalone Repayer
+Using config for: RhinestoneStage, ARBITRUM_ONE
+Repayer: 0xE8bD636B7883ad28f37347574aC9eed0af597B8A
+RepayerProxyAdmin: 0x03F2a7D4F5915700DC6e23EaABD680aDB625d15e
+Repayer callers: 0x6D2C6B7B16f95B123dD3F536DCb96CB9B65d2aa3, 0xc1d6EEa5ce163d7D9f1952Db220830Aae16Cb607
+RepayerRoutes:
+┌─────────┬──────────────────────────────────────────────┬────────────────┬─────────────┬───────────────────┐
+│ (index) │ Pool                                         │ Domain         │ Provider    │ SupportsAllTokens │
+├─────────┼──────────────────────────────────────────────┼────────────────┼─────────────┼───────────────────┤
+│ 0       │ '0xa21007B5BC5E2B488063752d1BE43C0f3f376743' │ 'ARBITRUM_ONE' │ 'LOCAL'     │ true              │
+│ 1       │ '0xa21007B5BC5E2B488063752d1BE43C0f3f376743' │ 'BASE'         │ 'CCTP'      │ false             │
+│ 2       │ '0xa21007B5BC5E2B488063752d1BE43C0f3f376743' │ 'BASE'         │ 'ACROSS'    │ true              │
+│ 3       │ '0xa21007B5BC5E2B488063752d1BE43C0f3f376743' │ 'BASE'         │ 'STARGATE'  │ true              │
+│ 4       │ '0xa21007B5BC5E2B488063752d1BE43C0f3f376743' │ 'BASE'         │ 'EVERCLEAR' │ true              │
+│ 5       │ '0xa21007B5BC5E2B488063752d1BE43C0f3f376743' │ 'OP_MAINNET'   │ 'CCTP'      │ false             │
+│ 6       │ '0xa21007B5BC5E2B488063752d1BE43C0f3f376743' │ 'OP_MAINNET'   │ 'ACROSS'    │ true              │
+│ 7       │ '0xa21007B5BC5E2B488063752d1BE43C0f3f376743' │ 'OP_MAINNET'   │ 'STARGATE'  │ true              │
+│ 8       │ '0xa21007B5BC5E2B488063752d1BE43C0f3f376743' │ 'OP_MAINNET'   │ 'EVERCLEAR' │ true              │
+└─────────┴──────────────────────────────────────────────┴────────────────┴─────────────┴───────────────────┘

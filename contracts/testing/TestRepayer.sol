@@ -12,7 +12,8 @@ contract TestRepayer is Repayer {
         address acrossSpokePool,
         address everclearFeeAdapter,
         address wrappedNativeToken,
-        address stargateTreasurer
+        address stargateTreasurer,
+        address optimismBridge
     ) Repayer(
         localDomain,
         assets,
@@ -21,7 +22,8 @@ contract TestRepayer is Repayer {
         acrossSpokePool,
         everclearFeeAdapter,
         wrappedNativeToken,
-        stargateTreasurer
+        stargateTreasurer,
+        optimismBridge
     ) {}
 
     function domainCCTP(Domain destinationDomain) public pure override returns (uint32) {

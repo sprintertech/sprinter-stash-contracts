@@ -33,7 +33,7 @@ async function main() {
   console.log("Test deployUSDCPoolAave.")
   await deployUSDCPoolAave();
   console.log("Test deployStandaloneRepayer.")
-  process.env.STANDALONE_REPAYER_ENV = "RhinestoneStage";
+  process.env.STANDALONE_REPAYER_ENV = "SparkStage";
   await deployStandaloneRepayer();
   console.log("Test deployCensoredMulticall.")
   process.env.DEPLOY_ID = "NEW_ID";

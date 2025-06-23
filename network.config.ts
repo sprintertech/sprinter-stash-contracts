@@ -29,6 +29,7 @@ export enum Provider {
   CCTP = "CCTP",
   ACROSS = "ACROSS",
   EVERCLEAR = "EVERCLEAR",
+  STARGATE = "STARGATE",
 };
 
 interface CCTPConfig {
@@ -827,5 +828,192 @@ export const networkConfig: NetworksConfig = {
     RebalanceCaller: "0x20ad9b208767e98dba19346f88b2686f00dbcf58",
     RepayerCaller: "0x20ad9b208767e98dba19346f88b2686f00dbcf58",
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
+  },
+};
+
+export enum StandaloneRepayerEnv {
+  SparkStage = "SparkStage",
+};
+
+export interface StandaloneRepayerConfig {
+  chainId: number;
+  CCTP: CCTPConfig;
+  AcrossV3SpokePool?: string;
+  StargateTreasurer?: string;
+  EverclearFeeAdapter?: string;
+  OptimismStandardBridge?: string;
+  USDC: string;
+  WrappedNativeToken: string;
+  RepayerRoutes: RepayerRoutesConfig;
+  IsTest: boolean;
+  Admin: string;
+  RepayerCallers: string[];
+};
+
+type StandaloneRepayersConfig = {
+  [key in Network]?: {
+    [key in StandaloneRepayerEnv]?: StandaloneRepayerConfig;
+  };
+};
+
+export const repayerConfig: StandaloneRepayersConfig = {
+  BASE: {
+    SparkStage: {
+      chainId: 8453,
+      CCTP: {
+        TokenMessenger: "0x1682Ae6375C4E4A97e4B583BC394c861A46D8962",
+        MessageTransmitter: "0xAD09780d193884d503182aD4588450C416D6F9D4",
+      },
+      AcrossV3SpokePool: "0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64",
+      StargateTreasurer: "0xd47b03ee6d86Cf251ee7860FB2ACf9f91B9fD4d7",
+      EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
+      USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      WrappedNativeToken: "0x4200000000000000000000000000000000000006",
+      RepayerRoutes: {
+        Pools: [
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+        ],
+        Domains: [
+          Network.BASE,
+          Network.ARBITRUM_ONE,
+          Network.ARBITRUM_ONE,
+          Network.ARBITRUM_ONE,
+          Network.ARBITRUM_ONE,
+          Network.OP_MAINNET,
+          Network.OP_MAINNET,
+          Network.OP_MAINNET,
+          Network.OP_MAINNET,
+        ],
+        Providers: [
+          Provider.LOCAL,
+          Provider.CCTP,
+          Provider.ACROSS,
+          Provider.STARGATE,
+          Provider.EVERCLEAR,
+          Provider.CCTP,
+          Provider.ACROSS,
+          Provider.STARGATE,
+          Provider.EVERCLEAR,
+        ],
+        SupportsAllTokens: [true, false, true, true, true, false, true, true, true],
+      },
+      IsTest: false,
+      Admin: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      RepayerCallers: ["0x6D2C6B7B16f95B123dD3F536DCb96CB9B65d2aa3", "0xc1d6EEa5ce163d7D9f1952Db220830Aae16Cb607"],
+    },
+  },
+  ARBITRUM_ONE: {
+    SparkStage: {
+      chainId: 42161,
+      CCTP: {
+        TokenMessenger: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
+        MessageTransmitter: "0xC30362313FBBA5cf9163F0bb16a0e01f01A896ca",
+      },
+      AcrossV3SpokePool: "0xe35e9842fceaCA96570B734083f4a58e8F7C5f2A",
+      StargateTreasurer: "0x146c8e409C113ED87C6183f4d25c50251DFfbb3a",
+      EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
+      USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      WrappedNativeToken: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+      RepayerRoutes: {
+        Pools: [
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+        ],
+        Domains: [
+          Network.ARBITRUM_ONE,
+          Network.BASE,
+          Network.BASE,
+          Network.BASE,
+          Network.BASE,
+          Network.OP_MAINNET,
+          Network.OP_MAINNET,
+          Network.OP_MAINNET,
+          Network.OP_MAINNET,
+        ],
+        Providers: [
+          Provider.LOCAL,
+          Provider.CCTP,
+          Provider.ACROSS,
+          Provider.STARGATE,
+          Provider.EVERCLEAR,
+          Provider.CCTP,
+          Provider.ACROSS,
+          Provider.STARGATE,
+          Provider.EVERCLEAR,
+        ],
+        SupportsAllTokens: [true, false, true, true, true, false, true, true, true],
+      },
+      IsTest: false,
+      Admin: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      RepayerCallers: ["0x6D2C6B7B16f95B123dD3F536DCb96CB9B65d2aa3", "0xc1d6EEa5ce163d7D9f1952Db220830Aae16Cb607"],
+    },
+  },
+  OP_MAINNET: {
+    SparkStage: {
+      chainId: 10,
+      CCTP: {
+        TokenMessenger: "0x2B4069517957735bE00ceE0fadAE88a26365528f",
+        MessageTransmitter: "0x4d41f22c5a0e5c74090899e5a8fb597a8842b3e8",
+      },
+      AcrossV3SpokePool: "0x6f26Bf09B1C792e3228e5467807a900A503c0281",
+      StargateTreasurer: "0x644abb1e17291b4403966119d15Ab081e4a487e9",
+      EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
+      USDC: "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
+      WrappedNativeToken: "0x4200000000000000000000000000000000000006",
+      RepayerRoutes: {
+        Pools: [
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+          "0xa21007B5BC5E2B488063752d1BE43C0f3f376743",
+        ],
+        Domains: [
+          Network.OP_MAINNET,
+          Network.ARBITRUM_ONE,
+          Network.ARBITRUM_ONE,
+          Network.ARBITRUM_ONE,
+          Network.ARBITRUM_ONE,
+          Network.BASE,
+          Network.BASE,
+          Network.BASE,
+          Network.BASE,
+        ],
+        Providers: [
+          Provider.LOCAL,
+          Provider.CCTP,
+          Provider.ACROSS,
+          Provider.STARGATE,
+          Provider.EVERCLEAR,
+          Provider.CCTP,
+          Provider.ACROSS,
+          Provider.STARGATE,
+          Provider.EVERCLEAR,
+        ],
+        SupportsAllTokens: [true, false, true, true, true, false, true, true, true],
+      },
+      IsTest: false,
+      Admin: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      RepayerCallers: ["0x6D2C6B7B16f95B123dD3F536DCb96CB9B65d2aa3", "0xc1d6EEa5ce163d7D9f1952Db220830Aae16Cb607"],
+    },
   },
 };

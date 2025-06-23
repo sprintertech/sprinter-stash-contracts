@@ -67,9 +67,9 @@ RepayerRoutes:
 
 Deployment ID: MVP
 Deploying Standalone Repayer
-Using config for: RhinestoneStage, BASE
-Repayer: 0xE8bD636B7883ad28f37347574aC9eed0af597B8A
-RepayerProxyAdmin: 0x03F2a7D4F5915700DC6e23EaABD680aDB625d15e
+Using config for: SparkStage, BASE
+Repayer: 0x4c1545A73e2d586625e92482E706Eaa400613eb9
+RepayerProxyAdmin: 0x0d54E83bA5651d99f6675c6De0171Cb11C3025c8
 Repayer callers: 0x6D2C6B7B16f95B123dD3F536DCb96CB9B65d2aa3, 0xc1d6EEa5ce163d7D9f1952Db220830Aae16Cb607
 RepayerRoutes:
 ┌─────────┬──────────────────────────────────────────────┬────────────────┬─────────────┬───────────────────┐

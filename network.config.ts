@@ -832,7 +832,7 @@ export const networkConfig: NetworksConfig = {
 };
 
 export enum StandaloneRepayerEnv {
-  RhinestoneStage = "RhinestoneStage",
+  SparkStage = "SparkStage",
 };
 
 export interface StandaloneRepayerConfig {
@@ -858,7 +858,7 @@ type StandaloneRepayersConfig = {
 
 export const repayerConfig: StandaloneRepayersConfig = {
   BASE: {
-    RhinestoneStage: {
+    SparkStage: {
       chainId: 8453,
       CCTP: {
         TokenMessenger: "0x1682Ae6375C4E4A97e4B583BC394c861A46D8962",
@@ -911,7 +911,7 @@ export const repayerConfig: StandaloneRepayersConfig = {
     },
   },
   ARBITRUM_ONE: {
-    RhinestoneStage: {
+    SparkStage: {
       chainId: 42161,
       CCTP: {
         TokenMessenger: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
@@ -964,7 +964,7 @@ export const repayerConfig: StandaloneRepayersConfig = {
     },
   },
   OP_MAINNET: {
-    RhinestoneStage: {
+    SparkStage: {
       chainId: 10,
       CCTP: {
         TokenMessenger: "0x2B4069517957735bE00ceE0fadAE88a26365528f",

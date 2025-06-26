@@ -1,12 +1,12 @@
 import {HardhatUserConfig, task, types} from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import {networkConfig, Network, Provider} from "./network.config";
-import {TypedDataDomain} from "ethers";
+import {TypedDataDomain, AbiCoder, toNumber, dataSlice} from "ethers";
 import {
   LiquidityPoolAave, Rebalancer, Repayer
 } from "./typechain-types";
 import {
-  assert, isSet, ProviderSolidity, DomainSolidity,
+  assert, isSet, ProviderSolidity, DomainSolidity, CCTPDomain,
 } from "./scripts/common";
 import "hardhat-ignore-warnings";
 
@@ -236,6 +236,59 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
   console.log(`nonce: ${nonce}`);
   console.log(`deadline: ${deadline}`);
   console.log(`signature: ${sig}`);
+});
+
+interface CCTPMessage {
+  attestation: string,
+  message: string,
+  eventNonce: string,
+};
+
+interface CCTPResponseSuccess {
+  messages: CCTPMessage[],
+};
+
+task("cctp-get-process-data", "Get burn attestation from CCTP Api to mint USDC on destination")
+.addParam("txhash", "Hash of the initiate transaction")
+.addOptionalParam("adapter", "Rebalancer or Repayer address", "0xA85Cf46c150db2600b1D03E437bedD5513869888")
+.setAction(async ({txhash, adapter}: {txhash: string, adapter: string}, hre) => {
+  const {resolveProxyXAddress} = await loadTestHelpers();
+  assert(txhash.length > 0, "Valid txhash should be provided.");
+
+  const cctpAdapter = await hre.ethers.getContractAt("CCTPAdapter", await resolveProxyXAddress(adapter));
+  const cctpDomain = await cctpAdapter.domainCCTP(DomainSolidity[hre.network.name as Network]);
+
+  const url = `https://iris-api.circle.com/v1/messages/${cctpDomain}/${txhash}`;
+  const options = {method: "GET", headers: {"Content-Type": "application/json"}};
+  const result = await (await fetch(url, options)).json();
+
+  if (result.error) {
+    console.error(result.error);
+    return;
+  }
+
+  const success = result as CCTPResponseSuccess;
+
+  assert(success.messages, `Messages are missing in CCTP response: ${success}`);
+
+  if (!success.messages[0].attestation.startsWith("0x")) {
+    console.error("Attestation is not ready:", success.messages[0].attestation);
+    return;
+  }
+
+  const extraDatas = success.messages.map(el => {
+    const destinationCCTP = toNumber(dataSlice(el.message, 8, 12));
+    const destination = CCTPDomain[destinationCCTP];
+    assert(destination, `Unknown CCTP domain ${destinationCCTP}`);
+    return {
+      destination,
+      extraData: AbiCoder.defaultAbiCoder().encode(["bytes", "bytes"], [el.message, el.attestation]),
+    };
+  });
+
+  const count = extraDatas.length;
+  console.log(count, `message${count > 1 ? "s" : ""} found.`);
+  console.log(extraDatas);
 });
 
 const accounts: string[] = isSet(process.env.PRIVATE_KEY) ? [process.env.PRIVATE_KEY || ""] : [];

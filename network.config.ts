@@ -29,11 +29,8 @@ export enum Provider {
   CCTP = "CCTP",
   ACROSS = "ACROSS",
   EVERCLEAR = "EVERCLEAR",
-<<<<<<< feat-optimism-repayer
-  OPTIMISM_STANDARD_BRIDGE = "OPTIMISM_STANDARD_BRIDGE",
-=======
   STARGATE = "STARGATE",
->>>>>>> main
+  OPTIMISM_STANDARD_BRIDGE = "OPTIMISM_STANDARD_BRIDGE",
 };
 
 interface CCTPConfig {

@@ -184,9 +184,9 @@ describe("LiquidityPool", function () {
 
       const callData = await mockTarget.fulfill.populateTransaction(eurc.target, fillAmount, additionalData);
       const swapData = AbiCoder.defaultAbiCoder().encode(
-            ["address", "uint256", "address", "address", "uint256"],
-            [usdc.target, amountToBorrow, eurc.target, eurcOwner.address, fillAmount]
-          );
+        ["address"],
+        [eurcOwner.address]
+      );
 
       const signature = await signBorrow(
         mpc_signer,
@@ -540,9 +540,9 @@ describe("LiquidityPool", function () {
 
       const callData = await mockTarget.fulfill.populateTransaction(eurc.target, fillAmount, additionalData);
       const swapData = AbiCoder.defaultAbiCoder().encode(
-            ["address", "uint256", "address", "address", "uint256"],
-            [usdc.target, amountToBorrow, eurc.target, eurcOwner.address, fillAmount]
-          );
+        ["address"],
+        [eurcOwner.address]
+      );
 
       // user address is signed instead of mockBorrowSwap address
       const signature = await signBorrow(
@@ -589,9 +589,9 @@ describe("LiquidityPool", function () {
 
       const callData = await mockTarget.fulfill.populateTransaction(eurc.target, fillAmount, additionalData);
       const swapData = AbiCoder.defaultAbiCoder().encode(
-            ["address", "uint256", "address", "address", "uint256"],
-            [usdc.target, amountToBorrow, eurc.target, eurcOwner.address, fillAmount]
-          );
+        ["address"],
+        [eurcOwner.address]
+      );
 
       const signature = await signBorrow(
         mpc_signer,

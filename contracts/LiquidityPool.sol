@@ -160,7 +160,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
     function borrowAndSwap(
         address borrowToken,
         uint256 amount,
-        SwapParams calldata swapInputData,
+        SwapParams calldata swap,
         address target,
         bytes calldata targetCallData,
         uint256 nonce,
@@ -170,9 +170,9 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         _validateMPCSignatureWithCaller(borrowToken, amount, target, targetCallData, nonce, deadline, signature);
         _borrow(borrowToken, amount, _msgSender());
         // Call the swap function on caller
-        IBorrower(_msgSender()).swap(swapInputData.swapData);
-        IERC20(swapInputData.fillToken).safeTransferFrom(_msgSender(), address(this), swapInputData.fillAmount);
-        IERC20(swapInputData.fillToken).forceApprove(target, swapInputData.fillAmount);
+        IBorrower(_msgSender()).swap(borrowToken, amount, swap.fillToken, swap.fillAmount, swap.swapData);
+        IERC20(swap.fillToken).safeTransferFrom(_msgSender(), address(this), swap.fillAmount);
+        IERC20(swap.fillToken).forceApprove(target, swap.fillAmount);
         // - Invoke the recipient's address with calldata provided in the MPC signature to complete
         // the operation securely.
         (bool success,) = target.call(targetCallData);

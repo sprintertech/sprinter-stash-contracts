@@ -131,6 +131,10 @@ contract LiquidityPoolAave is LiquidityPool {
     function _checkTokenLTV(address borrowToken) private view {
         uint256 ltv = borrowTokenLTV[borrowToken];
         if (ltv == 0) ltv = defaultLTV;
+        if (ltv >= MULTIPLIER) {
+            // No limit on borrowing this token.
+            return;
+        }
 
         uint256 totalCollateral = ATOKEN.balanceOf(address(this));
         require(totalCollateral > 0, NoCollateral());

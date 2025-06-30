@@ -35,9 +35,11 @@ export async function main() {
   if (!config.EverclearFeeAdapter) {
     config.EverclearFeeAdapter = ZERO_ADDRESS;
   }
-
   if (!config.StargateTreasurer) {
     config.StargateTreasurer = ZERO_ADDRESS;
+  }
+  if (!config.OptimismStandardBridge) {
+    config.OptimismStandardBridge = ZERO_ADDRESS;
   }
 
   const repayerAddress = await getDeployProxyXAddress("Repayer");
@@ -57,6 +59,7 @@ export async function main() {
       config.EverclearFeeAdapter,
       config.WrappedNativeToken,
       config.StargateTreasurer,
+      config.OptimismStandardBridge,
     ],
     "Repayer",
   );

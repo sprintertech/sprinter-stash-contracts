@@ -87,6 +87,9 @@ export async function main() {
   if (!config.EverclearFeeAdapter) {
     config.EverclearFeeAdapter = ZERO_ADDRESS;
   }
+  if (!config.OptimismStandardBridge) {
+    config.OptimismStandardBridge = ZERO_ADDRESS;
+  }
 
   let mainPool: LiquidityPool;
   let aavePool: LiquidityPoolAave;
@@ -230,6 +233,7 @@ export async function main() {
       config.EverclearFeeAdapter,
       config.WrappedNativeToken,
       config.StargateTreasurer,
+      config.OptimismStandardBridge,
     ],
     [
       config.Admin,

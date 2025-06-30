@@ -59,6 +59,9 @@ export async function main() {
   if (!config.EverclearFeeAdapter) {
     config.EverclearFeeAdapter = ZERO_ADDRESS;
   }
+  if (!config.OptimismStandardBridge) {
+    config.OptimismStandardBridge = ZERO_ADDRESS;
+  }
 
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
 
@@ -78,6 +81,7 @@ export async function main() {
       config.EverclearFeeAdapter,
       config.WrappedNativeToken,
       config.StargateTreasurer,
+      config.OptimismStandardBridge,
     ],
     [
       deployer.address,

@@ -15,7 +15,8 @@ import {
 import {
   TestUSDC, TransparentUpgradeableProxy, ProxyAdmin,
   TestLiquidityPool, Repayer, TestCCTPTokenMessenger, TestCCTPMessageTransmitter,
-  TestAcrossV3SpokePool, TestStargate, MockStargateTreasurerTrue, MockStargateTreasurerFalse
+  TestAcrossV3SpokePool, TestStargate, MockStargateTreasurerTrue, MockStargateTreasurerFalse,
+  TestOptimismStandardBridge, IWrappedNativeToken
 } from "../typechain-types";
 import {networkConfig} from "../network.config";
 
@@ -38,7 +39,6 @@ describe("Repayer", function () {
     const forkNetworkConfig = networkConfig.BASE;
 
     const REPAYER_ROLE = toBytes32("REPAYER_ROLE");
-    const DEPOSIT_PROFIT_ROLE = toBytes32("DEPOSIT_PROFIT_ROLE");
 
     const usdc = (await deploy("TestUSDC", deployer, {})) as TestUSDC;
     const liquidityPool = (await deploy("TestLiquidityPool", deployer, {}, usdc, deployer)) as TestLiquidityPool;
@@ -56,6 +56,9 @@ describe("Repayer", function () {
     const stargateTreasurerFalse = (
       await deploy("MockStargateTreasurerFalse", deployer, {})
     ) as MockStargateTreasurerFalse;
+    const optimismBridge = (
+      await deploy("TestOptimismStandardBridge", deployer, {})
+    ) as TestOptimismStandardBridge;
 
     const USDC_DEC = 10n ** (await usdc.decimals());
 
@@ -82,6 +85,7 @@ describe("Repayer", function () {
         everclearFeeAdapter.target,
         weth.target,
         stargateTreasurerTrue,
+        optimismBridge.target,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -100,20 +104,18 @@ describe("Repayer", function () {
     const repayerProxyAdminAddress = await getCreateAddress(repayerProxy, 1);
     const repayerAdmin = (await getContractAt("ProxyAdmin", repayerProxyAdminAddress, admin)) as ProxyAdmin;
 
-    await liquidityPool.grantRole(DEPOSIT_PROFIT_ROLE, repayer.target);
-
     return {
       deployer, admin, repayUser, user, usdc,
       USDC_DEC, eurc, EURC_DEC, eurcOwner, liquidityPool, liquidityPool2, repayer, repayerProxy, repayerAdmin,
       cctpTokenMessenger, cctpMessageTransmitter, REPAYER_ROLE, DEFAULT_ADMIN_ROLE, acrossV3SpokePool, weth,
-      stargateTreasurerTrue, stargateTreasurerFalse, everclearFeeAdapter, forkNetworkConfig,
+      stargateTreasurerTrue, stargateTreasurerFalse, everclearFeeAdapter, forkNetworkConfig, optimismBridge,
     };
   };
 
   it("Should have default values", async function () {
     const {liquidityPool, liquidityPool2, repayer, usdc, REPAYER_ROLE, DEFAULT_ADMIN_ROLE,
       cctpTokenMessenger, cctpMessageTransmitter, admin, repayUser, deployer, acrossV3SpokePool,
-      stargateTreasurerTrue,
+      stargateTreasurerTrue, optimismBridge,
     } = await loadFixture(deployAll);
 
     expect(await repayer.ASSETS()).to.equal(usdc.target);
@@ -121,6 +123,7 @@ describe("Repayer", function () {
     expect(await repayer.CCTP_MESSAGE_TRANSMITTER()).to.equal(cctpMessageTransmitter.target);
     expect(await repayer.ACROSS_SPOKE_POOL()).to.equal(acrossV3SpokePool.target);
     expect(await repayer.STARGATE_TREASURER()).to.equal(stargateTreasurerTrue.target);
+    expect(await repayer.OPTIMISM_STANDARD_BRIDGE()).to.equal(optimismBridge.target);
     expect(await repayer.REPAYER_ROLE()).to.equal(REPAYER_ROLE);
     expect(await repayer.isRouteAllowed(liquidityPool.target, Domain.BASE, Provider.LOCAL)).to.be.true;
     expect(await repayer.isRouteAllowed(liquidityPool2.target, Domain.BASE, Provider.LOCAL)).to.be.true;
@@ -434,6 +437,7 @@ describe("Repayer", function () {
   it("Should allow repayer to initiate Across repay with SpokePool on fork", async function () {
     const {deployer, repayer, USDC_DEC, admin, repayUser, repayerAdmin, repayerProxy,
       liquidityPool, cctpTokenMessenger, cctpMessageTransmitter, weth, stargateTreasurerTrue, everclearFeeAdapter,
+      optimismBridge,
     } = await loadFixture(deployAll);
     
     const acrossV3SpokePoolFork = await hre.ethers.getContractAt(
@@ -461,6 +465,7 @@ describe("Repayer", function () {
         everclearFeeAdapter.target,
         weth.target,
         stargateTreasurerTrue,
+        optimismBridge,
       )
     ) as Repayer;
 
@@ -699,6 +704,7 @@ describe("Repayer", function () {
     await expect(tx)
       .to.emit(everclearFeeAdapter, "IntentWithFeesAdded");
     expect(await weth.balanceOf(repayer.target)).to.equal(6n * ETH);
+    expect(await getBalance(repayer.target)).to.equal(0n);
   });
 
   it("Should revert Everclear repay if call to Everclear reverts", async function () {
@@ -734,6 +740,146 @@ describe("Repayer", function () {
       Provider.EVERCLEAR,
       extraData
     )).to.be.reverted;
+  });
+
+  it("Should allow repayer to initiate Optimism repay with mock bridge", async function () {
+    const {
+      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+      acrossV3SpokePool, everclearFeeAdapter, weth, stargateTreasurerTrue, admin, deployer,
+    } = await loadFixture(deployAll);
+
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "Repayer2", {},
+        Domain.ETHEREUM,
+        usdc.target,
+        cctpTokenMessenger.target,
+        cctpMessageTransmitter.target,
+        acrossV3SpokePool.target,
+        everclearFeeAdapter.target,
+        weth.target,
+        stargateTreasurerTrue,
+        optimismBridge.target,
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin.address,
+      repayUser.address,
+      [liquidityPool.target, liquidityPool.target],
+      [Domain.ETHEREUM, Domain.OP_MAINNET],
+      [Provider.LOCAL, Provider.OPTIMISM_STANDARD_BRIDGE],
+      [true, true],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
+      repayerImpl.target, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy.target, deployer)) as Repayer;
+
+    await usdc.transfer(repayer.target, 10n * USDC_DEC);
+
+    const amount = 4n * USDC_DEC;
+    const outputToken = networkConfig.OP_MAINNET.USDC;
+    const minGasLimit = 100000n;
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint32"],
+      [outputToken, minGasLimit]
+    );
+    const tx = repayer.connect(repayUser).initiateRepay(
+      usdc.target,
+      amount,
+      liquidityPool.target,
+      Domain.OP_MAINNET,
+      Provider.OPTIMISM_STANDARD_BRIDGE,
+      extraData
+    );
+    await expect(tx)
+      .to.emit(repayer, "InitiateRepay")
+      .withArgs(usdc.target, amount, liquidityPool.target, Domain.OP_MAINNET, Provider.OPTIMISM_STANDARD_BRIDGE);
+  });
+
+  it("Should revert Optimism repay if call to Optimism reverts", async function () {
+    const {
+      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+      acrossV3SpokePool, everclearFeeAdapter, weth, stargateTreasurerTrue, admin, deployer,
+    } = await loadFixture(deployAll);
+
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "Repayer2", {},
+        Domain.ETHEREUM,
+        usdc.target,
+        cctpTokenMessenger.target,
+        cctpMessageTransmitter.target,
+        acrossV3SpokePool.target,
+        everclearFeeAdapter.target,
+        weth.target,
+        stargateTreasurerTrue,
+        optimismBridge.target,
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin.address,
+      repayUser.address,
+      [liquidityPool.target, liquidityPool.target],
+      [Domain.ETHEREUM, Domain.OP_MAINNET],
+      [Provider.LOCAL, Provider.OPTIMISM_STANDARD_BRIDGE],
+      [true, true],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
+      repayerImpl.target, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy.target, deployer)) as Repayer;
+
+    await usdc.transfer(repayer.target, 10n * USDC_DEC);
+
+    const amount = 4n * USDC_DEC;
+    const outputToken = usdc.target;
+    const minGasLimit = 100000n;
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint32"],
+      [outputToken, minGasLimit]
+    );
+    const tx = repayer.connect(repayUser).initiateRepay(
+      usdc.target,
+      amount,
+      liquidityPool.target,
+      Domain.OP_MAINNET,
+      Provider.OPTIMISM_STANDARD_BRIDGE,
+      extraData
+    );
+    await expect(tx)
+      .to.be.revertedWithCustomError(optimismBridge, "OptimismBridgeWrongRemoteToken");
+  });
+
+  it("Should NOT allow repayer to initiate Optimism repay on invalid route", async function () {
+    const {repayer, USDC_DEC, usdc, admin, repayUser, liquidityPool} = await loadFixture(deployAll);
+
+    await usdc.transfer(repayer.target, 10n * USDC_DEC);
+
+    await repayer.connect(admin).setRoute(
+      [liquidityPool.target],
+      [Domain.ETHEREUM],
+      [Provider.OPTIMISM_STANDARD_BRIDGE],
+      [true],
+      ALLOWED
+    );
+    const amount = 4n * USDC_DEC;
+    const outputToken = usdc.target;
+    const minGasLimit = 100000n;
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint32"],
+      [outputToken, minGasLimit]
+    );
+    const tx = repayer.connect(repayUser).initiateRepay(
+      usdc.target,
+      amount,
+      liquidityPool.target,
+      Domain.ETHEREUM,
+      Provider.OPTIMISM_STANDARD_BRIDGE,
+      extraData
+    );
+    await expect(tx)
+      .to.be.revertedWithCustomError(repayer, "UnsupportedDomain");
   });
 
   it("Should allow repayer to initiate repay of a different token", async function () {
@@ -997,7 +1143,7 @@ describe("Repayer", function () {
   it("Should revert Stargate repay if the pool is not registered", async function () {
     const {repayer, USDC_DEC, usdc, admin, repayUser, liquidityPool, deployer, cctpTokenMessenger,
       cctpMessageTransmitter, acrossV3SpokePool, weth, stargateTreasurerFalse, repayerAdmin, repayerProxy,
-      everclearFeeAdapter,
+      everclearFeeAdapter, optimismBridge,
     } = await loadFixture(deployAll);
 
     await usdc.transfer(repayer.target, 10n * USDC_DEC);
@@ -1021,6 +1167,7 @@ describe("Repayer", function () {
         everclearFeeAdapter.target,
         weth.target,
         stargateTreasurerFalse,
+        optimismBridge,
       )
     ) as Repayer;
 
@@ -1127,7 +1274,7 @@ describe("Repayer", function () {
   it("Should allow repayer to initiate Stargate repay on fork and refund unspent fee", async function () {
     const {
       repayer, USDC_DEC, admin, repayUser, liquidityPool, deployer, cctpTokenMessenger, cctpMessageTransmitter,
-      acrossV3SpokePool, weth, repayerAdmin, repayerProxy, everclearFeeAdapter,
+      acrossV3SpokePool, weth, repayerAdmin, repayerProxy, everclearFeeAdapter, optimismBridge,
     } = await loadFixture(deployAll);
     
     const stargatePoolUsdcAddress = "0x27a16dc786820B16E5c9028b75B99F6f604b5d26";
@@ -1157,6 +1304,7 @@ describe("Repayer", function () {
         everclearFeeAdapter.target,
         weth.target,
         stargateTreasurer,
+        optimismBridge,
       )
     ) as Repayer;
 
@@ -1165,7 +1313,7 @@ describe("Repayer", function () {
     expect(await repayer.STARGATE_TREASURER())
       .to.equal(stargateTreasurer);
 
-    await usdc.connect(usdcOwner).transfer(repayer.target, 10000n * USDC_DEC);
+    await usdc.connect(usdcOwner).transfer(repayer.target, 100000n * USDC_DEC);
 
     await repayer.connect(admin).setRoute(
       [liquidityPool.target],
@@ -1174,8 +1322,8 @@ describe("Repayer", function () {
       [true],
       ALLOWED
     );
-    const amount = 4000n * USDC_DEC;
-    const minAmount = amount * 999n / 1000n;
+    const amount = 40000n * USDC_DEC;
+    const minAmount = amount * 998n / 1000n;
     const extraData = AbiCoder.defaultAbiCoder().encode(
       ["address", "uint256"], [stargatePoolUsdcAddress, minAmount]
     );
@@ -1261,7 +1409,7 @@ describe("Repayer", function () {
       // Covered in Should not wrap native tokens on initiate repay that were sent in as msg.value
   });
 
-  it("Should wrap native tokens on initiate repay", async function () {
+  it("Should wrap all native tokens on initiate repay", async function () {
     const {repayer, repayUser, liquidityPool, weth
     } = await loadFixture(deployAll);
 
@@ -1289,7 +1437,80 @@ describe("Repayer", function () {
 
     expect(await weth.balanceOf(repayer.target)).to.equal(6n * ETH);
     expect(await weth.balanceOf(liquidityPool.target)).to.equal(4n * ETH);
-    expect(await getBalance(repayer.target)).to.equal(0);
+    expect(await getBalance(repayer.target)).to.equal(0n);
+  });
+
+  it("Should unwrap enough native tokens on initiate repay", async function () {
+    const {
+      repayer, repayUser, liquidityPool, optimismBridge, usdc, cctpTokenMessenger,
+      cctpMessageTransmitter, repayerAdmin, admin, repayerProxy, deployer,
+    } = await loadFixture(deployAll);
+
+    const wrappedAmount = 10n * ETH;
+    const nativeAmount = 1n * ETH;
+    const repayAmount = 4n * ETH;
+
+    const weth = (await deploy("TestWETH", deployer)) as IWrappedNativeToken;
+
+    await repayUser.sendTransaction({to: repayer.target, value: nativeAmount});
+    await weth.connect(repayUser).deposit({value: wrappedAmount});
+    await weth.connect(repayUser).transfer(repayer.target, wrappedAmount);
+
+    const repayerImpl2 = (
+      await deployX(
+        "Repayer",
+        deployer,
+        "Repayer2",
+        {},
+        Domain.ETHEREUM,
+        usdc.target,
+        cctpTokenMessenger.target,
+        cctpMessageTransmitter.target,
+        ZERO_ADDRESS,
+        ZERO_ADDRESS,
+        weth.target,
+        ZERO_ADDRESS,
+        optimismBridge,
+      )
+    ) as Repayer;
+
+    expect(await repayerAdmin.connect(admin).upgradeAndCall(repayerProxy, repayerImpl2, "0x"))
+      .to.emit(repayerProxy, "Upgraded");
+
+    await repayer.connect(admin).setRoute(
+      [liquidityPool.target],
+      [Domain.OP_MAINNET],
+      [Provider.OPTIMISM_STANDARD_BRIDGE],
+      [true],
+      ALLOWED
+    );
+
+    const minGasLimit = 100000n;
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint32"],
+      [ZERO_ADDRESS, minGasLimit]
+    );
+    const tx = repayer.connect(repayUser).initiateRepay(
+      weth.target,
+      repayAmount,
+      liquidityPool.target,
+      Domain.OP_MAINNET,
+      Provider.OPTIMISM_STANDARD_BRIDGE,
+      extraData
+    );
+    await expect(tx)
+      .to.emit(repayer, "InitiateRepay")
+      .withArgs(weth.target, repayAmount, liquidityPool.target, Domain.OP_MAINNET, Provider.OPTIMISM_STANDARD_BRIDGE);
+    await expect(tx)
+      .to.emit(weth, "Deposit")
+      .withArgs(repayer.target, 1n * ETH);
+    await expect(tx)
+      .to.emit(weth, "Withdrawal")
+      .withArgs(repayer.target, repayAmount);
+
+    expect(await weth.balanceOf(repayer.target)).to.equal(7n * ETH);
+    expect(await getBalance(repayer.target)).to.equal(0n);
+    expect(await getBalance(optimismBridge.target)).to.equal(repayAmount);
   });
 
   it("Should not wrap native tokens on initiate repay if the balance is 0", async function () {
@@ -1299,15 +1520,8 @@ describe("Repayer", function () {
     const nativeAmount = 10n * ETH;
     const repayAmount = 4n * ETH;
 
-    await repayUser.sendTransaction({to: repayer.target, value: nativeAmount});
-    await repayer.connect(repayUser).initiateRepay(
-      weth.target,
-      repayAmount,
-      liquidityPool.target,
-      Domain.BASE,
-      Provider.LOCAL,
-      "0x"
-    );
+    await weth.connect(repayUser).deposit({value: nativeAmount});
+    await weth.connect(repayUser).transfer(repayer.target, nativeAmount);
     const tx = repayer.connect(repayUser).initiateRepay(
       weth.target,
       repayAmount,
@@ -1325,8 +1539,8 @@ describe("Repayer", function () {
     await expect(tx)
       .to.not.emit(weth, "Deposit");
 
-    expect(await weth.balanceOf(repayer.target)).to.equal(2n * ETH);
-    expect(await weth.balanceOf(liquidityPool.target)).to.equal(8n * ETH);
+    expect(await weth.balanceOf(repayer.target)).to.equal(6n * ETH);
+    expect(await weth.balanceOf(liquidityPool.target)).to.equal(4n * ETH);
     expect(await getBalance(repayer.target)).to.equal(0);
   });
 
@@ -1391,7 +1605,7 @@ describe("Repayer", function () {
       .withArgs(repayer.target, nativeAmount);
 
     expect(await weth.balanceOf(repayer.target)).to.equal(6n * ETH);
-    expect(await weth.balanceOf(liquidityPool.target)).to.equal(4n * ETH);
+    expect(await weth.balanceOf(liquidityPool.target)).to.equal(repayAmount);
     expect(await getBalance(repayer.target)).to.equal(extraAmount);
   });
 

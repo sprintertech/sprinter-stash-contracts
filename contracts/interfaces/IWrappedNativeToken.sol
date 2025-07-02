@@ -7,4 +7,5 @@ interface IWrappedNativeToken is IERC20 {
     event Deposit(address indexed to, uint256 amount);
 
     function deposit() external payable;
+    function withdraw(uint256 amount) external;
 }

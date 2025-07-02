@@ -320,9 +320,9 @@ describe("LiquidityPoolAave", function () {
 
       const callData = await mockTarget.fulfill.populateTransaction(eurc.target, fillAmount, additionalData);
       const swapData = AbiCoder.defaultAbiCoder().encode(
-            ["address", "uint256", "address", "address", "uint256"],
-            [gho.target, amountToBorrow, eurc.target, eurcOwner.address, fillAmount]
-          );
+        ["address"],
+        [eurcOwner.address]
+      );
 
       const signature = await signBorrow(
         mpc_signer,
@@ -938,6 +938,214 @@ describe("LiquidityPoolAave", function () {
       .to.be.revertedWithCustomError(liquidityPool, "HealthFactorTooLow");
     });
 
+    it("Should skip ltv check if set to 100%", async function () {
+      const {
+        liquidityPool, admin, usdc, eurc, mpc_signer, user, user2, usdcOwner, USDC_DEC, EURC_DEC, liquidityAdmin
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC; // $1000
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
+
+      const amountToBorrow = 1n * EURC_DEC;
+
+      const signature1 = await signBorrow(
+        mpc_signer,
+        liquidityPool.target as string,
+        user.address as string,
+        eurc.target as string,
+        amountToBorrow.toString(),
+        user2.address,
+        "0x",
+        31337,
+        0n,
+      );
+      const signature2 = await signBorrow(
+        mpc_signer,
+        liquidityPool.target as string,
+        user.address as string,
+        eurc.target as string,
+        amountToBorrow.toString(),
+        user2.address,
+        "0x",
+        31337,
+        1n,
+      );
+      const signature3 = await signBorrow(
+        mpc_signer,
+        liquidityPool.target as string,
+        user.address as string,
+        eurc.target as string,
+        amountToBorrow.toString(),
+        user2.address,
+        "0x",
+        31337,
+        2n,
+      );
+      const signature4 = await signBorrow(
+        mpc_signer,
+        liquidityPool.target as string,
+        user.address as string,
+        eurc.target as string,
+        amountToBorrow.toString(),
+        user2.address,
+        "0x",
+        31337,
+        3n,
+      );
+
+      await liquidityPool.connect(admin).setBorrowTokenLTVs([eurc.target], [9999n]);
+      // Storage warmup.
+      await liquidityPool.connect(user).borrow(
+        eurc.target,
+        amountToBorrow,
+        user2,
+        "0x",
+        0n,
+        2000000000n,
+        signature1
+      );
+
+      const txWithLTVCheck = await (await liquidityPool.connect(user).borrow(
+        eurc.target,
+        amountToBorrow,
+        user2,
+        "0x",
+        1n,
+        2000000000n,
+        signature2
+      )).wait();
+      await liquidityPool.connect(admin).setBorrowTokenLTVs([eurc.target], [10000n]);
+      const txWithoutLTVCheck = await (await liquidityPool.connect(user).borrow(
+        eurc.target,
+        amountToBorrow,
+        user2,
+        "0x",
+        2n,
+        2000000000n,
+        signature3
+      )).wait();
+      await liquidityPool.connect(admin).setBorrowTokenLTVs([eurc.target], [11000n]);
+      const txWithoutLTVCheck2 = await (await liquidityPool.connect(user).borrow(
+        eurc.target,
+        amountToBorrow,
+        user2,
+        "0x",
+        3n,
+        2000000000n,
+        signature4
+      )).wait();
+
+      expect(txWithoutLTVCheck!.gasUsed).to.be.lessThan(txWithLTVCheck!.gasUsed);
+      expect(txWithoutLTVCheck!.gasUsed).to.eq(txWithoutLTVCheck2!.gasUsed);
+      console.log(txWithLTVCheck);
+      console.log(txWithoutLTVCheck);
+      console.log(txWithoutLTVCheck2);
+    });
+
+    it("Should skip ltv check if default set to 100%", async function () {
+      const {
+        liquidityPool, admin, usdc, eurc, mpc_signer, user, user2, usdcOwner, USDC_DEC, EURC_DEC, liquidityAdmin
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC; // $1000
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
+
+      const amountToBorrow = 1n * EURC_DEC;
+
+      const signature1 = await signBorrow(
+        mpc_signer,
+        liquidityPool.target as string,
+        user.address as string,
+        eurc.target as string,
+        amountToBorrow.toString(),
+        user2.address,
+        "0x",
+        31337,
+        0n,
+      );
+      const signature2 = await signBorrow(
+        mpc_signer,
+        liquidityPool.target as string,
+        user.address as string,
+        eurc.target as string,
+        amountToBorrow.toString(),
+        user2.address,
+        "0x",
+        31337,
+        1n,
+      );
+      const signature3 = await signBorrow(
+        mpc_signer,
+        liquidityPool.target as string,
+        user.address as string,
+        eurc.target as string,
+        amountToBorrow.toString(),
+        user2.address,
+        "0x",
+        31337,
+        2n,
+      );
+      const signature4 = await signBorrow(
+        mpc_signer,
+        liquidityPool.target as string,
+        user.address as string,
+        eurc.target as string,
+        amountToBorrow.toString(),
+        user2.address,
+        "0x",
+        31337,
+        3n,
+      );
+
+      await liquidityPool.connect(admin).setDefaultLTV(9999n);
+      // Storage warmup.
+      await liquidityPool.connect(user).borrow(
+        eurc.target,
+        amountToBorrow,
+        user2,
+        "0x",
+        0n,
+        2000000000n,
+        signature1
+      );
+
+      const txWithLTVCheck = await (await liquidityPool.connect(user).borrow(
+        eurc.target,
+        amountToBorrow,
+        user2,
+        "0x",
+        1n,
+        2000000000n,
+        signature2
+      )).wait();
+      await liquidityPool.connect(admin).setDefaultLTV(10000n);
+      const txWithoutLTVCheck = await (await liquidityPool.connect(user).borrow(
+        eurc.target,
+        amountToBorrow,
+        user2,
+        "0x",
+        2n,
+        2000000000n,
+        signature3
+      )).wait();
+      await liquidityPool.connect(admin).setDefaultLTV(11000n);
+      const txWithoutLTVCheck2 = await (await liquidityPool.connect(user).borrow(
+        eurc.target,
+        amountToBorrow,
+        user2,
+        "0x",
+        3n,
+        2000000000n,
+        signature4
+      )).wait();
+
+      expect(txWithoutLTVCheck!.gasUsed).to.be.lessThan(txWithLTVCheck!.gasUsed);
+      expect(txWithoutLTVCheck!.gasUsed).to.eq(txWithoutLTVCheck2!.gasUsed);
+      console.log(txWithLTVCheck);
+      console.log(txWithoutLTVCheck);
+      console.log(txWithoutLTVCheck2);
+    });
+
     it("Should NOT borrow if target call fails", async function () {
       const {
         liquidityPool, mockTarget, usdc, USDC_DEC, gho, GHO_DEC, user, mpc_signer, usdcOwner, liquidityAdmin
@@ -1074,9 +1282,9 @@ describe("LiquidityPoolAave", function () {
 
       const callData = await mockTarget.fulfill.populateTransaction(eurc.target, fillAmount, additionalData);
       const swapData = AbiCoder.defaultAbiCoder().encode(
-            ["address", "uint256", "address", "address", "uint256"],
-            [gho.target, amountToBorrow, eurc.target, eurcOwner.address, fillAmount]
-          );
+        ["address"],
+        [eurcOwner.address]
+      );
 
       // user address is signed instead of mockBorrowSwap address
       const signature = await signBorrow(
@@ -1123,9 +1331,9 @@ describe("LiquidityPoolAave", function () {
 
       const callData = await mockTarget.fulfill.populateTransaction(eurc.target, fillAmount, additionalData);
       const swapData = AbiCoder.defaultAbiCoder().encode(
-            ["address", "uint256", "address", "address", "uint256"],
-            [gho.target, amountToBorrow, eurc.target, eurcOwner.address, fillAmount]
-          );
+        ["address"],
+        [eurcOwner.address]
+      );
 
       const signature = await signBorrow(
         mpc_signer,

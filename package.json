@@ -65,7 +65,7 @@
     "dry:deploy-repayer-arbitrumone": "DRY_RUN=ARBITRUM_ONE VERIFY=false ts-node --files ./scripts/deployRepayer.ts",
     "dry:deploy-repayer-opmainnet": "DRY_RUN=OP_MAINNET VERIFY=false ts-node --files ./scripts/deployRepayer.ts",
     "dry:deploy-repayer-polygon": "DRY_RUN=POLYGON_MAINNET VERIFY=false ts-node --files ./scripts/deployRepayer.ts",
-    "dry:deploy-repayer-unichain": "DRY_RUN=UNICHAIN VERIFY=false ts-node --files ./scripts/deployRepayer.ts",
+    "dry:deploy-repayer-unichain": "__EDR_UNSAFE_SKIP_UNSUPPORTED_TRANSACTION_TYPES=true DRY_RUN=UNICHAIN VERIFY=false ts-node --files ./scripts/deployRepayer.ts",
     "dry:deploy-repayer-ethereum": "DRY_RUN=ETHEREUM VERIFY=false ts-node --files ./scripts/deployRepayer.ts",
     "dry:deploy-repayer-base-stage": "DRY_RUN=BASE DEPLOY_TYPE=STAGE VERIFY=false ts-node --files ./scripts/deployRepayer.ts",
     "dry:deploy-repayer-arbitrumone-stage": "DRY_RUN=ARBITRUM_ONE DEPLOY_TYPE=STAGE VERIFY=false ts-node --files ./scripts/deployRepayer.ts",

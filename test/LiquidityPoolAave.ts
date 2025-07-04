@@ -1037,9 +1037,6 @@ describe("LiquidityPoolAave", function () {
 
       expect(txWithoutLTVCheck!.gasUsed).to.be.lessThan(txWithLTVCheck!.gasUsed);
       expect(txWithoutLTVCheck!.gasUsed).to.eq(txWithoutLTVCheck2!.gasUsed);
-      console.log(txWithLTVCheck);
-      console.log(txWithoutLTVCheck);
-      console.log(txWithoutLTVCheck2);
     });
 
     it("Should skip ltv check if default set to 100%", async function () {

@@ -376,18 +376,7 @@ const config: HardhatUserConfig = {
     enabled: false,
   },
   etherscan: {
-    apiKey: {
-      baseSepolia: process.env.ETHERSCAN_BASE_SEPOLIA || "",
-      sepolia: process.env.ETHERSCAN_ETHEREUM_SEPOLIA || "",
-      arbitrumSepolia: process.env.ETHERSCAN_ARBITRUM_SEPOLIA || "",
-      opSepolia: process.env.ETHERSCAN_OP_SEPOLIA || "",
-      base: process.env.ETHERSCAN_BASE || "",
-      mainnet: process.env.ETHERSCAN_ETHEREUM || "",
-      arbitrumOne: process.env.ETHERSCAN_ARBITRUM_ONE || "",
-      optimisticEthereum: process.env.ETHERSCAN_OP_MAINNET || "",
-      polygon: process.env.ETHERSCAN_POLYGON_MAINNET || "",
-      unichain: "anything",
-    },
+    apiKey: process.env.ETHERSCAN_API_KEY || "",
     customChains: [
       {
         network: "opSepolia",
@@ -401,8 +390,8 @@ const config: HardhatUserConfig = {
         network: "unichain",
         chainId: networkConfig.UNICHAIN.chainId,
         urls: {
-          apiURL: "https://unichain.blockscout.com/api",
-          browserURL: "https://unichain.blockscout.com"
+          apiURL: "https://uniscan.xyz/api",
+          browserURL: "https://uniscan.xyz"
         },
       },
     ],

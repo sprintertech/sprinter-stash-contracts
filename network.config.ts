@@ -192,11 +192,11 @@ export const networkConfig: NetworksConfig = {
         false,
       ],
     },
-    AavePool: {
-      AaveAddressesProvider: AAVEPools.AaveV3Ethereum.POOL_ADDRESSES_PROVIDER,
-      minHealthFactor: 300,
-      defaultLTV: 0,
-    },
+    // AavePool: {
+    //   AaveAddressesProvider: AAVEPools.AaveV3Ethereum.POOL_ADDRESSES_PROVIDER,
+    //   minHealthFactor: 300,
+    //   defaultLTV: 0,
+    // },
   },
   AVALANCHE: {
     chainId: 43114,
@@ -883,11 +883,11 @@ export const networkConfig: NetworksConfig = {
         false,
       ],
     },
-    AavePool: {
-      AaveAddressesProvider: AAVEPools.AaveV3Polygon.POOL_ADDRESSES_PROVIDER,
-      minHealthFactor: 300,
-      defaultLTV: 0,
-    },
+    // AavePool: {
+    //   AaveAddressesProvider: AAVEPools.AaveV3Polygon.POOL_ADDRESSES_PROVIDER,
+    //   minHealthFactor: 300,
+    //   defaultLTV: 0,
+    // },
   },
   UNICHAIN: {
     chainId: 130,

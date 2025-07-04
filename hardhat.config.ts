@@ -348,6 +348,16 @@ const config: HardhatUserConfig = {
       url: process.env.OP_MAINNET_RPC || "https://optimism-mainnet.public.blastapi.io",
       accounts,
     },
+    [Network.POLYGON_MAINNET]: {
+      chainId: networkConfig.POLYGON_MAINNET.chainId,
+      url: process.env.POLYGON_MAINNET_RPC || "https://polygon-bor-rpc.publicnode.com",
+      accounts,
+    },
+    [Network.UNICHAIN]: {
+      chainId: networkConfig.UNICHAIN.chainId,
+      url: process.env.UNICHAIN_RPC || "https://mainnet.unichain.org",
+      accounts,
+    },
     hardhat: {
       forking: {
         url: isSet(process.env.DRY_RUN) || isSet(process.env.FORK_TEST)
@@ -375,6 +385,8 @@ const config: HardhatUserConfig = {
       mainnet: process.env.ETHERSCAN_ETHEREUM || "",
       arbitrumOne: process.env.ETHERSCAN_ARBITRUM_ONE || "",
       optimisticEthereum: process.env.ETHERSCAN_OP_MAINNET || "",
+      polygon: process.env.ETHERSCAN_POLYGON_MAINNET || "",
+      unichain: "anything",
     },
     customChains: [
       {
@@ -383,6 +395,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api-sepolia-optimism.etherscan.io/api",
           browserURL: "https://sepolia-optimism.etherscan.io"
+        },
+      },
+      {
+        network: "unichain",
+        chainId: networkConfig.UNICHAIN.chainId,
+        urls: {
+          apiURL: "https://unichain.blockscout.com/api",
+          browserURL: "https://unichain.blockscout.com"
         },
       },
     ],

@@ -1,0 +1,22 @@
+Deployment ID: MVP
+Deploying Repayer
+Using config for: POLYGON_MAINNET
+Repayer: 0x36364Acc7B9c67692CA215af09A41CBd10439511
+RepayerProxyAdmin: 0x2B5D04eF6b3279bCdA4B219b02FAF627dA1664CB
+RepayerRoutes:
+┌─────────┬──────────────────────────────────────────────┬────────────────┬─────────────┬───────────────────┐
+│ (index) │ Pool                                         │ Domain         │ Provider    │ SupportsAllTokens │
+├─────────┼──────────────────────────────────────────────┼────────────────┼─────────────┼───────────────────┤
+│ 0       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'ARBITRUM_ONE' │ 'CCTP'      │ true              │
+│ 1       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'BASE'         │ 'CCTP'      │ true              │
+│ 2       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'OP_MAINNET'   │ 'CCTP'      │ true              │
+│ 3       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'ARBITRUM_ONE' │ 'ACROSS'    │ true              │
+│ 4       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'BASE'         │ 'ACROSS'    │ true              │
+│ 5       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'OP_MAINNET'   │ 'ACROSS'    │ true              │
+│ 6       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'ARBITRUM_ONE' │ 'EVERCLEAR' │ true              │
+│ 7       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'BASE'         │ 'EVERCLEAR' │ true              │
+│ 8       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'OP_MAINNET'   │ 'EVERCLEAR' │ true              │
+│ 9       │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'ARBITRUM_ONE' │ 'CCTP'      │ false             │
+│ 10      │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'BASE'         │ 'CCTP'      │ false             │
+│ 11      │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'OP_MAINNET'   │ 'CCTP'      │ false             │
+└─────────┴──────────────────────────────────────────────┴────────────────┴─────────────┴───────────────────┘

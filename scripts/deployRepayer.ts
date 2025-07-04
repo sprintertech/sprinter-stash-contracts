@@ -8,7 +8,7 @@ import {isSet, assert, ProviderSolidity, DomainSolidity, ZERO_ADDRESS} from "./c
 import {Repayer} from "../typechain-types";
 import {
   Network, NetworkConfig, Provider, LiquidityPoolUSDC, LiquidityPoolAaveUSDC,
-  LiquidityPoolAaveUSDCV2,
+  LiquidityPoolAaveUSDCV2, LiquidityPoolUSDCStablecoin
 } from "../network.config";
 
 export async function main() {
@@ -69,7 +69,7 @@ export async function main() {
     config.RepayerRoutes.Domains.push(network);
     config.RepayerRoutes.Providers.push(Provider.LOCAL);
     config.RepayerRoutes.SupportsAllTokens.push(true);
-  } 
+  }
 
   if (config.USDCPool) {
     const usdcPool = await resolveXAddress(LiquidityPoolUSDC);
@@ -78,6 +78,15 @@ export async function main() {
     config.RepayerRoutes.Domains.push(network);
     config.RepayerRoutes.Providers.push(Provider.LOCAL);
     config.RepayerRoutes.SupportsAllTokens.push(false);
+  }
+
+  if (config.USDCStablecoinPool) {
+    const usdcStablecoinPool = await resolveXAddress(LiquidityPoolUSDCStablecoin);
+    console.log(`LiquidityPoolStablecoin: ${usdcStablecoinPool}`);
+    config.RepayerRoutes.Pools.push(usdcStablecoinPool);
+    config.RepayerRoutes.Domains.push(network);
+    config.RepayerRoutes.Providers.push(Provider.LOCAL);
+    config.RepayerRoutes.SupportsAllTokens.push(true);
   }
 
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";

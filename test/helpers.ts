@@ -124,7 +124,7 @@ export async function deployX(
     dataSlice(keccak256(toUtf8Bytes(id)), 0, 11),
   ]);
   const deployTx = await (await createX["deployCreate3(bytes32,bytes)"](salt, deployCode, txParams)).wait();
-  const deployedTo = (deployTx!.logs[deployTx!.logs.length - 1] as EventLog).args[0];
+  const deployedTo = (deployTx!.logs.filter(el => el.address == createX.target).pop() as EventLog).args[0];
   const instance = await getContractAt(contractName, deployedTo, signer);
   return instance;
 }

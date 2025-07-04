@@ -52,6 +52,9 @@ abstract contract StargateAdapter is AdapterHelper {
         } else
         if (destinationDomain == Domain.POLYGON_MAINNET) {
             return 30109;
+        } else
+        if (destinationDomain == Domain.UNICHAIN) {
+            return 30320;
         } else {
             revert UnsupportedDomain();
         }

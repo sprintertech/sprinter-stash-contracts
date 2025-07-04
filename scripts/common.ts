@@ -50,6 +50,7 @@ export const DomainSolidity = {
   ARBITRUM_SEPOLIA: 9n,
   BASE_SEPOLIA: 10n,
   POLYGON_AMOY: 11n,
+  UNICHAIN: 12n,
 };
 
 export const CCTPDomain: { [n: number]: Network } = {
@@ -59,6 +60,7 @@ export const CCTPDomain: { [n: number]: Network } = {
   3: Network.ARBITRUM_ONE,
   6: Network.BASE,
   7: Network.POLYGON_MAINNET,
+  10: Network.UNICHAIN,
 };
 
 export const DEFAULT_PROXY_TYPE = "TransparentUpgradeableProxy";

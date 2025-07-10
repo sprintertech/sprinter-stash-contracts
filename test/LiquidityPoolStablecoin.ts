@@ -116,6 +116,7 @@ describe("LiquidityPoolStablecoin", function () {
       await expect(liquidityPoolStablecoin.connect(liquidityAdmin).deposit(amount))
         .to.emit(liquidityPoolStablecoin, "Deposit").withArgs(liquidityAdmin, amount);
       expect(await liquidityPoolStablecoin.totalDeposited()).to.eq(amount);
+      expect(await liquidityPoolStablecoin.balance(usdc.target)).to.eq(amount);
     });
 
     it("Should deposit to the pool with pulling funds", async function () {
@@ -125,6 +126,7 @@ describe("LiquidityPoolStablecoin", function () {
       await expect(liquidityPoolStablecoin.connect(usdcOwner).depositWithPull(amount))
         .to.emit(liquidityPoolStablecoin, "Deposit").withArgs(usdcOwner, amount);
       expect(await liquidityPoolStablecoin.totalDeposited()).to.eq(amount);
+      expect(await liquidityPoolStablecoin.balance(usdc.target)).to.eq(amount);
     });
 
     it("Should borrow a token with contract call", async function () {
@@ -162,17 +164,18 @@ describe("LiquidityPoolStablecoin", function () {
         2000000000n,
         signature))
       .to.emit(mockTarget, "DataReceived").withArgs(additionalData);  
-      expect(await usdc.balanceOf(liquidityPoolStablecoin.target)).to.be.lessThan(amountLiquidity);
+      expect(await usdc.balanceOf(liquidityPoolStablecoin.target)).to.eq(amountLiquidity - amountToBorrow);
       expect(await liquidityPoolStablecoin.totalDeposited()).to.eq(amountLiquidity);
       expect(await usdc.balanceOf(mockTarget.target)).to.eq(amountToBorrow);
+      expect(await liquidityPoolStablecoin.balance(usdc.target)).to.eq(amountLiquidity - amountToBorrow);
     });
 
     it("Should borrow a different token", async function () {
       const {
-        liquidityPoolStablecoin, mockTarget, eurc, EURC_DEC, eurcOwner, user, mpc_signer
+        liquidityPoolStablecoin, mockTarget, eurc, EURC_DEC, usdc, eurcOwner, user, mpc_signer
       } = await loadFixture(deployAll);
-      const amountUni = 1000n * EURC_DEC; // $1000
-      await eurc.connect(eurcOwner).transfer(liquidityPoolStablecoin.target, amountUni);
+      const amountEURC = 1000n * EURC_DEC; // $1000
+      await eurc.connect(eurcOwner).transfer(liquidityPoolStablecoin.target, amountEURC);
 
       const amountToBorrow = 3n * EURC_DEC;
 
@@ -200,8 +203,10 @@ describe("LiquidityPoolStablecoin", function () {
         2000000000n,
         signature))
       .to.emit(mockTarget, "DataReceived").withArgs(additionalData);  
-      expect(await eurc.balanceOf(liquidityPoolStablecoin.target)).to.be.lessThan(amountUni);
+      expect(await eurc.balanceOf(liquidityPoolStablecoin.target)).to.eq(amountEURC - amountToBorrow);
       expect(await eurc.balanceOf(mockTarget.target)).to.eq(amountToBorrow);
+      expect(await liquidityPoolStablecoin.balance(usdc.target)).to.eq(0);
+      expect(await liquidityPoolStablecoin.balance(eurc.target)).to.eq(amountEURC - amountToBorrow);
     });
   
     it("Should borrow a token with swap", async function () {
@@ -252,10 +257,11 @@ describe("LiquidityPoolStablecoin", function () {
       await expect(mockBorrowSwap.connect(user).callBorrow(liquidityPoolStablecoin.target, borrowCalldata.data))
         .to.emit(mockBorrowSwap, "Swapped").withArgs(swapData) 
         .and.to.emit(mockTarget, "DataReceived").withArgs(additionalData);  
-      expect(await usdc.balanceOf(liquidityPoolStablecoin.target)).to.be.lessThan(amountLiquidity);
+      expect(await usdc.balanceOf(liquidityPoolStablecoin.target)).to.eq(amountLiquidity - amountToBorrow);
       expect(await usdc.balanceOf(mockBorrowSwap.target)).to.eq(amountToBorrow);
       expect(await eurc.balanceOf(liquidityPoolStablecoin.target)).to.eq(0);
       expect(await eurc.balanceOf(mockTarget.target)).to.eq(fillAmount);
+      expect(await liquidityPoolStablecoin.balance(usdc.target)).to.eq(amountLiquidity - amountToBorrow);
     });
 
     it("Should allow repaying using borrow() and swapping externally", async function () {
@@ -348,13 +354,15 @@ describe("LiquidityPoolStablecoin", function () {
         2000000000n,
         signature))
       .to.emit(mockTarget, "DataReceived").withArgs(additionalData);  
-      expect(await usdc.balanceOf(liquidityPoolStablecoin.target)).to.be.lessThan(amountLiquidity);
+      expect(await usdc.balanceOf(liquidityPoolStablecoin.target)).to.eq(amountLiquidity - amountToBorrow);
       expect(await liquidityPoolStablecoin.totalDeposited()).to.eq(amountLiquidity);
       expect(await usdc.balanceOf(mockTarget.target)).to.eq(amountToBorrow);
+      expect(await liquidityPoolStablecoin.balance(usdc.target)).to.eq(amountLiquidity - amountToBorrow);
 
       // EURC is returned to the pool
       const amountToRepay = 5n * EURC_DEC;
       await eurc.connect(eurcOwner).transfer(liquidityPoolStablecoin.target, amountToRepay);
+      expect(await liquidityPoolStablecoin.balance(eurc.target)).to.eq(amountToRepay);
 
       // EURC is borrowed and swapped to USDC with Uniswap
 
@@ -407,6 +415,8 @@ describe("LiquidityPoolStablecoin", function () {
         signatureSwap))
       .to.emit(eurc, "Transfer");
       expect(await usdc.balanceOf(liquidityPoolStablecoin.target)).to.be.greaterThanOrEqual(amountLiquidity);
+      expect(await liquidityPoolStablecoin.balance(usdc.target)).to.be.greaterThanOrEqual(amountLiquidity);
+      expect(await liquidityPoolStablecoin.balance(eurc.target)).to.eq(0);
     });
 
     it("Should deposit when the contract is paused", async function () {
@@ -420,6 +430,7 @@ describe("LiquidityPoolStablecoin", function () {
       await usdc.connect(usdcOwner).approve(liquidityPoolStablecoin.target, amountLiquidity);
       await expect(liquidityPoolStablecoin.connect(usdcOwner).depositWithPull(amountLiquidity))
         .to.emit(liquidityPoolStablecoin, "Deposit").withArgs(usdcOwner, amountLiquidity);
+      expect(await liquidityPoolStablecoin.balance(usdc.target)).to.eq(amountLiquidity * 2n);
     });
 
     it("Should withdraw liquidity", async function () {
@@ -437,22 +448,27 @@ describe("LiquidityPoolStablecoin", function () {
       expect(await usdc.balanceOf(user.address)).to.eq(amount);
       expect(await usdc.balanceOf(liquidityPoolStablecoin.target)).to.eq(0);
       expect(await liquidityPoolStablecoin.totalDeposited()).to.eq(0);
+      expect(await liquidityPoolStablecoin.balance(usdc.target)).to.eq(0);
     });
 
     it("Should withdraw profit for multiple tokens from the pool", async function () {
       const {
         liquidityPoolStablecoin, eurc, gho, EURC_DEC, eurcOwner, ghoOwner, withdrawProfit, user
       } = await loadFixture(deployAll);
-      const amountUni = 1n * EURC_DEC;
-      const amountRpl = 1n * EURC_DEC;
-      await eurc.connect(eurcOwner).transfer(liquidityPoolStablecoin.target, amountUni);
-      await gho.connect(ghoOwner).transfer(liquidityPoolStablecoin.target, amountRpl);
+      const amountEURC = 1n * EURC_DEC;
+      const amountGHO = 1n * EURC_DEC;
+      await eurc.connect(eurcOwner).transfer(liquidityPoolStablecoin.target, amountEURC);
+      await gho.connect(ghoOwner).transfer(liquidityPoolStablecoin.target, amountGHO);
+      expect(await liquidityPoolStablecoin.balance(eurc.target)).to.eq(amountEURC);
+      expect(await liquidityPoolStablecoin.balance(gho.target)).to.eq(amountGHO);
       await expect(liquidityPoolStablecoin.connect(withdrawProfit)
         .withdrawProfit([eurc.target, gho.target], user.address))
-        .to.emit(liquidityPoolStablecoin, "ProfitWithdrawn").withArgs(eurc.target, user.address, amountUni)
-        .and.to.emit(liquidityPoolStablecoin, "ProfitWithdrawn").withArgs(gho.target, user.address, amountRpl);
-      expect(await eurc.balanceOf(user.address)).to.eq(amountUni);
-      expect(await gho.balanceOf(user.address)).to.eq(amountRpl);
+        .to.emit(liquidityPoolStablecoin, "ProfitWithdrawn").withArgs(eurc.target, user.address, amountEURC)
+        .and.to.emit(liquidityPoolStablecoin, "ProfitWithdrawn").withArgs(gho.target, user.address, amountGHO);
+      expect(await eurc.balanceOf(user.address)).to.eq(amountEURC);
+      expect(await gho.balanceOf(user.address)).to.eq(amountGHO);
+      expect(await liquidityPoolStablecoin.balance(eurc.target)).to.eq(0);
+      expect(await liquidityPoolStablecoin.balance(gho.target)).to.eq(0);
     });
 
     it("Should withdraw liquidity as profit from the pool", async function () {
@@ -466,10 +482,12 @@ describe("LiquidityPoolStablecoin", function () {
       const amountProfit = 2n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPoolStablecoin.target, amountProfit);
       expect(await liquidityPoolStablecoin.totalDeposited()).to.eq(amountLiquidity);
+      expect(await liquidityPoolStablecoin.balance(usdc.target)).to.eq(amountLiquidity + amountProfit);
       await expect(liquidityPoolStablecoin.connect(withdrawProfit).withdrawProfit([usdc.target], user.address))
         .to.emit(liquidityPoolStablecoin, "ProfitWithdrawn").withArgs(usdc.target, user.address, amountProfit);
       expect(await usdc.balanceOf(user.address)).to.eq(amountProfit);
       expect(await usdc.balanceOf(liquidityPoolStablecoin.target)).to.eq(amountLiquidity);
+      expect(await liquidityPoolStablecoin.balance(usdc.target)).to.eq(amountLiquidity);
       expect(await liquidityPoolStablecoin.totalDeposited()).to.eq(amountLiquidity);
     });
 
@@ -480,12 +498,22 @@ describe("LiquidityPoolStablecoin", function () {
       await expect(liquidityPoolStablecoin.connect(withdrawProfit).withdrawProfit([usdc.target], user.address))
         .to.emit(liquidityPoolStablecoin, "ProfitWithdrawn").withArgs(usdc.target, user.address, amount);
       expect(await usdc.balanceOf(user.address)).to.eq(amount);
+      expect(await liquidityPoolStablecoin.balance(usdc.target)).to.eq(0);
     });
 
     it("Should NOT deposit if no collateral on contract", async function () {
       const {liquidityPoolStablecoin, liquidityAdmin} = await loadFixture(deployAll);
       await expect(liquidityPoolStablecoin.connect(liquidityAdmin).deposit(10))
         .to.be.revertedWithCustomError(liquidityPoolStablecoin, "NotEnoughToDeposit");
+    });
+
+    it("Should return balance for other tokens", async function () {
+      const {
+        liquidityPoolStablecoin, eurc, EURC_DEC, eurcOwner
+      } = await loadFixture(deployAll);
+      const amountLiquidity = 1000n * EURC_DEC;
+      await eurc.connect(eurcOwner).transfer(liquidityPoolStablecoin.target, amountLiquidity);
+      expect(await liquidityPoolStablecoin.balance(eurc.target)).to.eq(amountLiquidity);
     });
 
     it("Should NOT borrow if MPC signature is wrong", async function () {
@@ -817,8 +845,8 @@ describe("LiquidityPoolStablecoin", function () {
       const {
         liquidityPoolStablecoin, mockTarget, eurc, EURC_DEC, eurcOwner, user, mpc_signer
       } = await loadFixture(deployAll);
-      const amountUni = 1n * EURC_DEC; // $1000
-      await eurc.connect(eurcOwner).transfer(liquidityPoolStablecoin.target, amountUni);
+      const amountEURC = 1n * EURC_DEC; // $1000
+      await eurc.connect(eurcOwner).transfer(liquidityPoolStablecoin.target, amountEURC);
 
       const amountToBorrow = 3n * EURC_DEC;
 
@@ -876,10 +904,10 @@ describe("LiquidityPoolStablecoin", function () {
         liquidityPoolStablecoin, eurc, gho, usdc, EURC_DEC, USDC_DEC, eurcOwner, ghoOwner, usdcOwner,
         liquidityAdmin, withdrawProfit, user, mockTarget, mpc_signer
       } = await loadFixture(deployAll);
-      const amountUni = 1n * EURC_DEC;
-      const amountRpl = 1n * EURC_DEC;
-      await eurc.connect(eurcOwner).transfer(liquidityPoolStablecoin.target, amountUni);
-      await gho.connect(ghoOwner).transfer(liquidityPoolStablecoin.target, amountRpl);
+      const amountEURC = 1n * EURC_DEC;
+      const amountGHO = 1n * EURC_DEC;
+      await eurc.connect(eurcOwner).transfer(liquidityPoolStablecoin.target, amountEURC);
+      await gho.connect(ghoOwner).transfer(liquidityPoolStablecoin.target, amountGHO);
 
       const amountLiquidity = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPoolStablecoin.target, amountLiquidity);
@@ -999,11 +1027,11 @@ describe("LiquidityPoolStablecoin", function () {
       const {
         liquidityPoolStablecoin, eurc, EURC_DEC, eurcOwner, withdrawProfit, user
       } = await loadFixture(deployAll);
-      const amountUni = 1n * EURC_DEC;
-      await eurc.connect(eurcOwner).transfer(liquidityPoolStablecoin.target, amountUni);
+      const amountEURC = 1n * EURC_DEC;
+      await eurc.connect(eurcOwner).transfer(liquidityPoolStablecoin.target, amountEURC);
       await expect(liquidityPoolStablecoin.connect(withdrawProfit).withdrawProfit([eurc.target], user.address))
-        .to.emit(liquidityPoolStablecoin, "ProfitWithdrawn").withArgs(eurc.target, user.address, amountUni);
-      expect(await eurc.balanceOf(user.address)).to.eq(amountUni);
+        .to.emit(liquidityPoolStablecoin, "ProfitWithdrawn").withArgs(eurc.target, user.address, amountEURC);
+      expect(await eurc.balanceOf(user.address)).to.eq(amountEURC);
     });
 
     it("Should NOT allow others to withdraw profit", async function () {

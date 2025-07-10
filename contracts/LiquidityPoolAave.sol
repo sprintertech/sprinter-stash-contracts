@@ -128,7 +128,7 @@ contract LiquidityPoolAave is LiquidityPool {
         emit HealthFactorSet(oldHealthFactor, minHealthFactor_);
     }
 
-    function _checkTokenLTV(address borrowToken) private view {
+    function _checkTokenLTV(uint256 totalCollateralBase, address borrowToken) private view {
         uint256 ltv = borrowTokenLTV[borrowToken];
         if (ltv == 0) ltv = defaultLTV;
         if (ltv >= MULTIPLIER) {
@@ -136,29 +136,23 @@ contract LiquidityPoolAave is LiquidityPool {
             return;
         }
 
-        uint256 totalCollateral = ATOKEN.balanceOf(address(this));
-        require(totalCollateral > 0, NoCollateral());
+        require(totalCollateralBase > 0, NoCollateral());
 
         AaveDataTypes.ReserveData memory borrowTokenData = AAVE_POOL.getReserveData(borrowToken);
         uint256 totalBorrowed = IERC20(borrowTokenData.variableDebtTokenAddress).balanceOf(address(this));
 
         IAaveOracle oracle = IAaveOracle(AAVE_POOL_PROVIDER.getPriceOracle());
-        address[] memory assets = new address[](2);
+        address[] memory assets = new address[](1);
         assets[0] = borrowToken;
-        assets[1] = address(ASSETS);
 
         uint256[] memory prices = oracle.getAssetsPrices(assets);
 
-        uint256 collateralDecimals = ASSETS_DECIMALS;
         uint256 borrowDecimals = IERC20Metadata(borrowToken).decimals();
-
-        uint256 collateralUnit = 10 ** collateralDecimals;
         uint256 borrowUnit = 10 ** borrowDecimals;
 
-        uint256 totalBorrowPrice = totalBorrowed * prices[0];
-        uint256 collateralPrice = totalCollateral * prices[1];
+        uint256 totalBorrowBase = totalBorrowed * prices[0] / borrowUnit;
 
-        uint256 currentLtv = totalBorrowPrice * MULTIPLIER * collateralUnit / (collateralPrice * borrowUnit);
+        uint256 currentLtv = totalBorrowBase * MULTIPLIER / totalCollateralBase;
         require(currentLtv <= ltv, TokenLtvExceeded());
     }
 
@@ -179,11 +173,11 @@ contract LiquidityPoolAave is LiquidityPool {
         );
 
         // - Check health factor for user after borrow (can be read from aave, getUserAccountData)
-        (,,,,,uint256 currentHealthFactor) = AAVE_POOL.getUserAccountData(address(this));
+        (uint256 totalCollateralBase,,,,, uint256 currentHealthFactor) = AAVE_POOL.getUserAccountData(address(this));
         require(currentHealthFactor / (1e18 / MULTIPLIER) >= minHealthFactor, HealthFactorTooLow());
 
         // check ltv for token
-        _checkTokenLTV(borrowToken);
+        _checkTokenLTV(totalCollateralBase, borrowToken);
     }
 
     function _withdrawLogic(address to, uint256 amount) internal override {
@@ -244,5 +238,75 @@ contract LiquidityPoolAave is LiquidityPool {
         if (token == address(WRAPPED_NATIVE_TOKEN) && address(this).balance > 0) {
             WRAPPED_NATIVE_TOKEN.deposit{value: address(this).balance}();
         }
+    }
+
+    // @notice Only takes into account LTV, without HF.
+    function _calculateMaximumTokenBorrowBase(
+        uint256 totalCollateralBase,
+        address borrowToken
+    ) internal view returns (uint256, uint256 tokenUnit, uint256 tokenPrice) {
+        uint256 ltv = borrowTokenLTV[borrowToken];
+        if (ltv == 0) ltv = defaultLTV;
+        if (ltv > MULTIPLIER) {
+            ltv = MULTIPLIER;
+        }
+
+        uint256 totalAvailableBorrowsBase = totalCollateralBase * ltv / MULTIPLIER;
+
+        AaveDataTypes.ReserveData memory borrowTokenData = AAVE_POOL.getReserveData(borrowToken);
+        uint256 debt = IERC20(borrowTokenData.variableDebtTokenAddress).balanceOf(address(this));
+
+        IAaveOracle oracle = IAaveOracle(AAVE_POOL_PROVIDER.getPriceOracle());
+        address[] memory assets = new address[](1);
+        assets[0] = borrowToken;
+
+        tokenPrice = oracle.getAssetsPrices(assets)[0];
+
+        uint256 borrowDecimals = IERC20Metadata(borrowToken).decimals();
+        tokenUnit = 10 ** borrowDecimals;
+
+        uint256 debtBase = debt * tokenPrice / tokenUnit;
+
+        uint256 result = totalAvailableBorrowsBase <= debtBase ? 0 : totalAvailableBorrowsBase - debtBase;
+
+        return (result, tokenUnit, tokenPrice);
+    }
+
+    function _calculateAvailableBorrowsBase(
+        uint256 totalCollateralBase,
+        uint256 totalDebtBase,
+        uint256 ltv,
+        uint256 minHF
+    ) internal pure returns (uint256) {
+        if (minHF < MULTIPLIER) {
+            minHF = MULTIPLIER;
+        }
+        uint256 totalAvailableBorrowsBase = totalCollateralBase * ltv / minHF;
+
+        if (totalAvailableBorrowsBase <= totalDebtBase) {
+          return 0;
+        }
+
+        totalAvailableBorrowsBase = totalAvailableBorrowsBase - totalDebtBase;
+        return totalAvailableBorrowsBase;
+    }
+
+    function balance(IERC20 token) external view override returns (uint256) {
+        address reserveAToken = AAVE_POOL.getReserveAToken(address(token));
+        if (reserveAToken == address(0)) {
+            return 0;
+        }
+        (uint256 totalCollateralBase, uint256 totalDebtBase,,, uint256 ltv,) =
+            AAVE_POOL.getUserAccountData(address(this));
+        uint256 maxBorrowsByMinHealthFactor = _calculateAvailableBorrowsBase(
+            totalCollateralBase, totalDebtBase, ltv, minHealthFactor
+        );
+        (uint256 maxBorrowByTokenLTV, uint256 tokenUnit, uint256 tokenPrice) =
+            _calculateMaximumTokenBorrowBase(totalCollateralBase, address(token));
+        uint256 maxBorrowByAaveLiqudity = token.balanceOf(reserveAToken);
+
+        uint256 availableTokenBorrowBase = Math.min(maxBorrowsByMinHealthFactor, maxBorrowByTokenLTV);
+
+        return Math.min(availableTokenBorrowBase * tokenUnit / tokenPrice, maxBorrowByAaveLiqudity);
     }
 }

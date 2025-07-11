@@ -114,6 +114,7 @@ describe("LiquidityPool", function () {
       await expect(liquidityPoolBase.connect(liquidityAdmin).deposit(amount))
         .to.emit(liquidityPoolBase, "Deposit").withArgs(liquidityAdmin, amount);
       expect(await liquidityPoolBase.totalDeposited()).to.eq(amount);
+      expect(await liquidityPoolBase.balance(usdc.target)).to.eq(amount);
     });
 
     it("Should deposit to the pool with pulling funds", async function () {
@@ -123,6 +124,7 @@ describe("LiquidityPool", function () {
       await expect(liquidityPoolBase.connect(usdcOwner).depositWithPull(amount))
         .to.emit(liquidityPoolBase, "Deposit").withArgs(usdcOwner, amount);
       expect(await liquidityPoolBase.totalDeposited()).to.eq(amount);
+      expect(await liquidityPoolBase.balance(usdc.target)).to.eq(amount);
     });
 
     it("Should borrow a token with contract call", async function () {
@@ -159,10 +161,11 @@ describe("LiquidityPool", function () {
         0n,
         2000000000n,
         signature))
-      .to.emit(mockTarget, "DataReceived").withArgs(additionalData);  
-      expect(await usdc.balanceOf(liquidityPoolBase.target)).to.be.lessThan(amountLiquidity);
+      .to.emit(mockTarget, "DataReceived").withArgs(additionalData);
+      expect(await usdc.balanceOf(liquidityPoolBase.target)).to.eq(amountLiquidity - amountToBorrow);
       expect(await liquidityPoolBase.totalDeposited()).to.eq(amountLiquidity);
       expect(await usdc.balanceOf(mockTarget.target)).to.eq(amountToBorrow);
+      expect(await liquidityPoolBase.balance(usdc.target)).to.eq(amountLiquidity - amountToBorrow);
     });
   
     it("Should borrow a token with swap", async function () {
@@ -213,10 +216,11 @@ describe("LiquidityPool", function () {
       await expect(mockBorrowSwap.connect(user).callBorrow(liquidityPoolBase.target, borrowCalldata.data))
         .to.emit(mockBorrowSwap, "Swapped").withArgs(swapData) 
         .and.to.emit(mockTarget, "DataReceived").withArgs(additionalData);  
-      expect(await usdc.balanceOf(liquidityPoolBase.target)).to.be.lessThan(amountLiquidity);
+      expect(await usdc.balanceOf(liquidityPoolBase.target)).to.eq(amountLiquidity - amountToBorrow);
       expect(await usdc.balanceOf(mockBorrowSwap.target)).to.eq(amountToBorrow);
       expect(await eurc.balanceOf(liquidityPoolBase.target)).to.eq(0);
       expect(await eurc.balanceOf(mockTarget.target)).to.eq(fillAmount);
+      expect(await liquidityPoolBase.balance(usdc.target)).to.eq(amountLiquidity - amountToBorrow);
     });
 
     it("Should deposit when the contract is paused", async function () {
@@ -230,6 +234,7 @@ describe("LiquidityPool", function () {
       await usdc.connect(usdcOwner).approve(liquidityPoolBase.target, amountLiquidity);
       await expect(liquidityPoolBase.connect(usdcOwner).depositWithPull(amountLiquidity))
         .to.emit(liquidityPoolBase, "Deposit").withArgs(usdcOwner, amountLiquidity);
+      expect(await liquidityPoolBase.balance(usdc.target)).to.eq(amountLiquidity + amountLiquidity);
     });
 
     it("Should withdraw liquidity", async function () {
@@ -247,6 +252,7 @@ describe("LiquidityPool", function () {
       expect(await usdc.balanceOf(user.address)).to.eq(amount);
       expect(await usdc.balanceOf(liquidityPoolBase.target)).to.eq(0);
       expect(await liquidityPoolBase.totalDeposited()).to.eq(0);
+      expect(await liquidityPoolBase.balance(usdc.target)).to.eq(0);
     });
 
     it("Should withdraw profit for multiple tokens from the pool", async function () {
@@ -274,12 +280,14 @@ describe("LiquidityPool", function () {
         .to.emit(liquidityPoolBase, "Deposit");
       const amountProfit = 2n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPoolBase.target, amountProfit);
+      expect(await liquidityPoolBase.balance(usdc.target)).to.eq(amountLiquidity + amountProfit);
       expect(await liquidityPoolBase.totalDeposited()).to.eq(amountLiquidity);
       await expect(liquidityPoolBase.connect(withdrawProfit).withdrawProfit([usdc.target], user.address))
         .to.emit(liquidityPoolBase, "ProfitWithdrawn").withArgs(usdc.target, user.address, amountProfit);
       expect(await usdc.balanceOf(user.address)).to.eq(amountProfit);
       expect(await usdc.balanceOf(liquidityPoolBase.target)).to.eq(amountLiquidity);
       expect(await liquidityPoolBase.totalDeposited()).to.eq(amountLiquidity);
+      expect(await liquidityPoolBase.balance(usdc.target)).to.eq(amountLiquidity);
     });
 
     it("Should withdraw all available balance as profit ", async function () {
@@ -289,12 +297,52 @@ describe("LiquidityPool", function () {
       await expect(liquidityPoolBase.connect(withdrawProfit).withdrawProfit([usdc.target], user.address))
         .to.emit(liquidityPoolBase, "ProfitWithdrawn").withArgs(usdc.target, user.address, amount);
       expect(await usdc.balanceOf(user.address)).to.eq(amount);
+      expect(await liquidityPoolBase.balance(usdc.target)).to.eq(0);
     });
 
     it("Should NOT deposit if no collateral on contract", async function () {
       const {liquidityPoolBase, liquidityAdmin} = await loadFixture(deployAll);
       await expect(liquidityPoolBase.connect(liquidityAdmin).deposit(10))
         .to.be.revertedWithCustomError(liquidityPoolBase, "NotEnoughToDeposit");
+    });
+
+    it("Should return 0 for balance of other tokens", async function () {
+      const {
+        liquidityPoolBase, eurc, EURC_DEC, eurcOwner
+      } = await loadFixture(deployAll);
+      const amountLiquidity = 1000n * EURC_DEC;
+      await eurc.connect(eurcOwner).transfer(liquidityPoolBase.target, amountLiquidity);
+      expect(await liquidityPoolBase.balance(eurc.target)).to.eq(0);
+    });
+
+    it("Should NOT borrow other tokens", async function () {
+      const {
+        liquidityPoolBase, eurc, EURC_DEC, user, mpc_signer, user2, eurcOwner
+      } = await loadFixture(deployAll);
+      const amountLiquidity = 1000n * EURC_DEC;
+      await eurc.connect(eurcOwner).transfer(liquidityPoolBase.target, amountLiquidity);
+
+      const amountToBorrow = 2n * EURC_DEC;
+      const signature = await signBorrow(
+        mpc_signer,
+        liquidityPoolBase.target as string,
+        user.address as string,
+        eurc.target as string,
+        amountToBorrow.toString(),
+        user2.address,
+        "0x",
+        31337
+      );
+
+      await expect(liquidityPoolBase.connect(user).borrow(
+        eurc.target,
+        amountToBorrow,
+        user2,
+        "0x",
+        0n,
+        2000000000n,
+        signature))
+      .to.be.revertedWithCustomError(liquidityPoolBase, "InvalidBorrowToken");
     });
 
     it("Should NOT borrow if MPC signature is wrong", async function () {
@@ -761,6 +809,7 @@ describe("LiquidityPool", function () {
 
       expect(await usdc.balanceOf(user.address)).to.be.eq(amount);
       expect(await liquidityPoolBase.totalDeposited()).to.be.eq(0);
+      expect(await liquidityPoolBase.balance(usdc.target)).to.eq(0);
     });
 
     it("Should NOT allow others to withdraw liquidity", async function () {

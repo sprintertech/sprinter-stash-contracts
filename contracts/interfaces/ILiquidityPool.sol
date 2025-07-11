@@ -55,4 +55,6 @@ interface ILiquidityPool {
     function unpause() external;
 
     function ASSETS() external returns (IERC20);
+
+    function balance(IERC20 token) external view returns (uint256);
 }

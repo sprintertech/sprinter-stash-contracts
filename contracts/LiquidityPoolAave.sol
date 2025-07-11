@@ -178,12 +178,14 @@ contract LiquidityPoolAave is LiquidityPool {
             address(this)
         );
 
+        // check ltv for token
+        _checkTokenLTV(borrowToken);
+    }
+
+    function _afterBorrowLogic(address /*target*/) internal view override {
         // - Check health factor for user after borrow (can be read from aave, getUserAccountData)
         (,,,,,uint256 currentHealthFactor) = AAVE_POOL.getUserAccountData(address(this));
         require(currentHealthFactor / (1e18 / MULTIPLIER) >= minHealthFactor, HealthFactorTooLow());
-
-        // check ltv for token
-        _checkTokenLTV(borrowToken);
     }
 
     function _withdrawLogic(address to, uint256 amount) internal override {

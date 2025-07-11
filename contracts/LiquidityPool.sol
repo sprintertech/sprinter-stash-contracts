@@ -9,6 +9,7 @@ import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ILiquidityPool} from "./interfaces/ILiquidityPool.sol";
 import {IBorrower} from "./interfaces/IBorrower.sol";
+import {HelperLib} from "./utils/HelperLib.sol";
 
 /// @title Liquidity pool contract holds the liquidity asset and allows solvers to borrow
 /// the asset from the pool and to perform an external function call upon providing the MPC signature.
@@ -30,6 +31,18 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
             "address caller,"
             "address borrowToken,"
             "uint256 amount,"
+            "address target,"
+            "bytes targetCallData,"
+            "uint256 nonce,"
+            "uint256 deadline"
+        ")"
+    );
+
+    bytes32 private constant BORROW_MANY_TYPEHASH = keccak256(
+        "BorrowMany("
+            "address caller,"
+            "address[] borrowTokens,"
+            "uint256[] amounts,"
             "address target,"
             "bytes targetCallData,"
             "uint256 nonce,"
@@ -75,6 +88,11 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
 
     modifier whenNotPaused() {
         require(!paused, EnforcedPause());
+        _;
+    }
+
+    modifier whenBorrowNotPaused() {
+        require(!borrowPaused, BorrowingIsPaused());
         _;
     }
 
@@ -125,14 +143,28 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         uint256 nonce,
         uint256 deadline,
         bytes calldata signature
-    ) external override whenNotPaused() {
+    ) external override whenNotPaused() whenBorrowNotPaused() {
         // - Validate MPC signature
         _validateMPCSignatureWithCaller(borrowToken, amount, target, targetCallData, nonce, deadline, signature);
         _borrow(borrowToken, amount, target);
-        // - Invoke the recipient's address with calldata provided in the MPC signature to complete
-        // the operation securely.
-        (bool success,) = target.call(targetCallData);
-        require(success, TargetCallFailed());
+        _afterBorrowLogic(target);
+        _finalizeBorrow(target, targetCallData);
+    }
+
+    function borrowMany(
+        address[] calldata borrowTokens,
+        uint256[] calldata amounts,
+        address target,
+        bytes calldata targetCallData,
+        uint256 nonce,
+        uint256 deadline,
+        bytes calldata signature
+    ) external override whenNotPaused() whenBorrowNotPaused() {
+        // - Validate MPC signature
+        _validateMPCSignatureWithCaller(borrowTokens, amounts, target, targetCallData, nonce, deadline, signature);
+        _borrowMany(borrowTokens, amounts, target);
+        _afterBorrowLogic(target);
+        _finalizeBorrow(target, targetCallData);
     }
 
     /// @notice This function allows an authorized caller to perform borrowing with swap by the solver
@@ -166,17 +198,31 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         uint256 nonce,
         uint256 deadline,
         bytes calldata signature
-    ) external override whenNotPaused() {
+    ) external override whenNotPaused() whenBorrowNotPaused() {
         _validateMPCSignatureWithCaller(borrowToken, amount, target, targetCallData, nonce, deadline, signature);
         _borrow(borrowToken, amount, _msgSender());
+        _afterBorrowLogic(target);
         // Call the swap function on caller
         IBorrower(_msgSender()).swap(borrowToken, amount, swap.fillToken, swap.fillAmount, swap.swapData);
-        IERC20(swap.fillToken).safeTransferFrom(_msgSender(), address(this), swap.fillAmount);
-        IERC20(swap.fillToken).forceApprove(target, swap.fillAmount);
-        // - Invoke the recipient's address with calldata provided in the MPC signature to complete
-        // the operation securely.
-        (bool success,) = target.call(targetCallData);
-        require(success, TargetCallFailed());
+        _finalizeSwap(swap, target, targetCallData);
+    }
+
+    function borrowAndSwapMany(
+        address[] calldata borrowTokens,
+        uint256[] calldata amounts,
+        SwapParams calldata swap,
+        address target,
+        bytes calldata targetCallData,
+        uint256 nonce,
+        uint256 deadline,
+        bytes calldata signature
+    ) external override whenNotPaused()  whenBorrowNotPaused() {
+        _validateMPCSignatureWithCaller(borrowTokens, amounts, target, targetCallData, nonce, deadline, signature);
+        _borrowMany(borrowTokens, amounts, _msgSender());
+        _afterBorrowLogic(target);
+        // Call the swap function on caller
+        IBorrower(_msgSender()).swapMany(borrowTokens, amounts, swap.fillToken, swap.fillAmount, swap.swapData);
+        _finalizeSwap(swap, target, targetCallData);
     }
 
     function repay(address[] calldata) external virtual override {
@@ -253,6 +299,26 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         emit Deposit(caller, amount);
     }
 
+    function _borrowMany(address[] calldata tokens, uint256[] calldata amounts, address target) private {
+        uint256 length = HelperLib.validatePositiveLength(tokens.length, amounts.length);
+        for (uint256 i = 0; i < length; ++i) {
+            _borrow(tokens[i], amounts[i], target);
+        }
+    }
+
+    function _finalizeSwap(SwapParams calldata swap, address target, bytes calldata targetCallData) private {
+        IERC20(swap.fillToken).safeTransferFrom(_msgSender(), address(this), swap.fillAmount);
+        IERC20(swap.fillToken).forceApprove(target, swap.fillAmount);
+        _finalizeBorrow(target, targetCallData);
+    }
+
+    function _finalizeBorrow(address target, bytes calldata targetCallData) private {
+        // - Invoke the recipient's address with calldata provided in the MPC signature to complete
+        // the operation securely.
+        (bool success,) = target.call(targetCallData);
+        require(success, TargetCallFailed());
+    }
+
     function _validateMPCSignatureWithCaller(
         address borrowToken,
         uint256 amount,
@@ -275,6 +341,28 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         _validateSig(digest, nonce, deadline, signature);
     }
 
+    function _validateMPCSignatureWithCaller(
+        address[] calldata borrowTokens,
+        uint256[] calldata amounts,
+        address target,
+        bytes calldata targetCallData,
+        uint256 nonce,
+        uint256 deadline,
+        bytes calldata signature
+    ) internal {
+        bytes32 digest = _hashTypedDataV4(keccak256(abi.encode(
+            BORROW_MANY_TYPEHASH,
+            _msgSender(),
+            keccak256(abi.encodePacked(borrowTokens)),
+            keccak256(abi.encodePacked(amounts)),
+            target,
+            keccak256(targetCallData),
+            nonce,
+            deadline
+        )));
+        _validateSig(digest, nonce, deadline, signature);
+    }
+
     function _validateSig(bytes32 digest, uint256 nonce, uint256 deadline, bytes calldata signature) internal {
         address signer = digest.recover(signature);
         require(signer == mpcAddress, InvalidSignature());
@@ -284,7 +372,6 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
     }
 
     function _borrow(address borrowToken, uint256 amount, address target) internal {
-        require(!borrowPaused, BorrowingIsPaused());
         _borrowLogic(borrowToken, amount, target);
         IERC20(borrowToken).forceApprove(target, amount);
     }
@@ -295,6 +382,10 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
 
     function _borrowLogic(address borrowToken, uint256 /*amount*/, address /*target*/) internal virtual {
         require(borrowToken == address(ASSETS), InvalidBorrowToken());
+    }
+
+    function _afterBorrowLogic(address /*target*/) internal virtual {
+        return;
     }
 
     function _withdrawLogic(address to, uint256 amount) internal virtual {

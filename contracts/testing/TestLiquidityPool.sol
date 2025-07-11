@@ -42,9 +42,34 @@ contract TestLiquidityPool is ILiquidityPool, AccessControl {
         return;
     }
 
+    function borrowMany(
+        address[] calldata,
+        uint256[] calldata,
+        address,
+        bytes calldata,
+        uint256,
+        uint256,
+        bytes calldata
+    ) external pure override {
+        return;
+    }
+
     function borrowAndSwap(
         address,
         uint256,
+        SwapParams calldata,
+        address,
+        bytes calldata,
+        uint256,
+        uint256,
+        bytes calldata
+    ) external pure override {
+        return;
+    }
+
+    function borrowAndSwapMany(
+        address[] calldata,
+        uint256[] calldata,
         SwapParams calldata,
         address,
         bytes calldata,

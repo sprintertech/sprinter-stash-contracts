@@ -4,7 +4,7 @@ import {
 import {expect} from "chai";
 import hre from "hardhat";
 import {
-  deploy, signBorrow, getBalance,
+  deploy, signBorrow, getBalance, signBorrowMany,
 } from "./helpers";
 import {ZERO_ADDRESS, ETH} from "../scripts/common";
 import {encodeBytes32String, AbiCoder} from "ethers";
@@ -194,6 +194,40 @@ describe("LiquidityPoolAave", function () {
       expect(await gho.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
     });
 
+    it("Should borrow many tokens", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, gho, GHO_DEC, user, user2, mpc_signer, usdcOwner, liquidityAdmin
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
+
+      const amountToBorrow = 2n * GHO_DEC;
+      const amountToBorrow2 = 3n * USDC_DEC;
+
+      const signature = await signBorrowMany(
+        mpc_signer,
+        liquidityPool,
+        user,
+        [gho, usdc],
+        [amountToBorrow, amountToBorrow2],
+        user2,
+        "0x",
+        31337
+      );
+
+      await liquidityPool.connect(user).borrowMany(
+        [gho, usdc],
+        [amountToBorrow, amountToBorrow2],
+        user2,
+        "0x",
+        0n,
+        2000000000n,
+        signature);
+      expect(await gho.balanceOf(liquidityPool)).to.eq(amountToBorrow);
+      expect(await usdc.balanceOf(liquidityPool)).to.eq(amountToBorrow2);
+    });
+
     it("Should calculate token ltv if decimals of token and collateral are different", async function () {
       const {
         liquidityPool, usdc, eurc, mpc_signer, user, user2, usdcOwner, liquidityAdmin, USDC_DEC, EURC_DEC
@@ -353,6 +387,62 @@ describe("LiquidityPoolAave", function () {
       expect(await gho.balanceOf(mockBorrowSwap.target)).to.eq(amountToBorrow);
       expect(await eurc.balanceOf(liquidityPool.target)).to.eq(0);
       expect(await eurc.balanceOf(mockTarget.target)).to.eq(fillAmount);
+    });
+
+    it("Should borrow many tokens with swap", async function () {
+      // GHO is borrowed and swapped to EURC
+      const {
+        liquidityPool, mockTarget, mockBorrowSwap, usdc, USDC_DEC, gho, GHO_DEC,
+        user, mpc_signer, usdcOwner, eurc, EURC_DEC, eurcOwner, liquidityAdmin
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC; // $1000
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
+
+      const amountToBorrow = 3n * GHO_DEC;
+      const amountToBorrow2 = 2n * USDC_DEC;
+      const fillAmount = 2n * EURC_DEC;
+      await eurc.connect(eurcOwner).approve(mockBorrowSwap, fillAmount);
+
+      const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
+
+      const callData = await mockTarget.fulfill.populateTransaction(eurc, fillAmount, additionalData);
+      const swapData = AbiCoder.defaultAbiCoder().encode(
+        ["address"],
+        [eurcOwner.address]
+      );
+
+      const signature = await signBorrowMany(
+        mpc_signer,
+        liquidityPool,
+        mockBorrowSwap,
+        [gho, usdc],
+        [amountToBorrow, amountToBorrow2],
+        mockTarget,
+        callData.data,
+        31337
+      );
+
+      const borrowCalldata = await liquidityPool.borrowAndSwapMany.populateTransaction(
+        [gho, usdc],
+        [amountToBorrow, amountToBorrow2],
+        {fillToken: eurc, fillAmount, swapData},
+        mockTarget,
+        callData.data,
+        0n,
+        2000000000n,
+        signature
+      );
+
+      await expect(mockBorrowSwap.connect(user).callBorrow(liquidityPool, borrowCalldata.data))
+        .to.emit(mockBorrowSwap, "Swapped").withArgs(swapData)
+        .and.to.emit(mockTarget, "DataReceived").withArgs(additionalData);
+      expect(await gho.balanceOf(liquidityPool)).to.eq(0);
+      expect(await gho.balanceOf(mockBorrowSwap)).to.eq(amountToBorrow);
+      expect(await eurc.balanceOf(liquidityPool)).to.eq(0);
+      expect(await eurc.balanceOf(mockTarget)).to.eq(fillAmount);
+      expect(await usdc.balanceOf(liquidityPool)).to.eq(0);
+      expect(await usdc.balanceOf(mockBorrowSwap)).to.eq(amountToBorrow2);
     });
 
     it("Should repay a debt", async function () {
@@ -902,6 +992,61 @@ describe("LiquidityPoolAave", function () {
       .to.be.revertedWithCustomError(liquidityPool, "TokenLtvExceeded");
     });
 
+    it("Should NOT borrow many if token ltv is exceeded", async function () {
+      const {
+        liquidityPool, usdc, eurc, gho, GHO_DEC, mpc_signer, user, user2, usdcOwner,
+        USDC_DEC, EURC_DEC, liquidityAdmin,
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC; // $1000
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
+
+      const amountToBorrow = 3n * EURC_DEC;
+      const amountToBorrow2 = 60n * GHO_DEC;
+
+      let signature = await signBorrowMany(
+        mpc_signer,
+        liquidityPool,
+        user,
+        [eurc, gho],
+        [amountToBorrow, amountToBorrow2],
+        user2,
+        "0x",
+        31337
+      );
+
+      await expect(liquidityPool.connect(user).borrowMany(
+        [eurc, gho],
+        [amountToBorrow, amountToBorrow2],
+        user2,
+        "0x",
+        0n,
+        2000000000n,
+        signature))
+      .to.be.revertedWithCustomError(liquidityPool, "TokenLtvExceeded");
+
+      signature = await signBorrowMany(
+        mpc_signer,
+        liquidityPool,
+        user,
+        [gho, eurc],
+        [amountToBorrow2, amountToBorrow],
+        user2,
+        "0x",
+        31337
+      );
+
+      await expect(liquidityPool.connect(user).borrowMany(
+        [gho, eurc],
+        [amountToBorrow2, amountToBorrow],
+        user2,
+        "0x",
+        0n,
+        2000000000n,
+        signature))
+      .to.be.revertedWithCustomError(liquidityPool, "TokenLtvExceeded");
+    });
+
     it("Should NOT borrow if health factor is too low", async function () {
       const {
         liquidityPool, admin, usdc, eurc, mpc_signer, user, user2, usdcOwner, USDC_DEC, EURC_DEC, liquidityAdmin
@@ -930,6 +1075,43 @@ describe("LiquidityPoolAave", function () {
       await expect(liquidityPool.connect(user).borrow(
         eurc.target,
         amountToBorrow,
+        user2,
+        "0x",
+        0n,
+        2000000000n,
+        signature2))
+      .to.be.revertedWithCustomError(liquidityPool, "HealthFactorTooLow");
+    });
+
+    it("Should NOT borrow many if health factor is too low", async function () {
+      const {
+        liquidityPool, admin, usdc, eurc, gho, mpc_signer, user, user2, usdcOwner,
+        USDC_DEC, EURC_DEC, GHO_DEC, liquidityAdmin,
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
+
+      await expect(liquidityPool.connect(admin).setMinHealthFactor(5000n * 10000n / 100n))
+        .to.emit(liquidityPool, "HealthFactorSet");
+
+      const amountToBorrow = 2n * EURC_DEC;
+      const amountToBorrow2 = 20n * GHO_DEC;
+
+      const signature2 = await signBorrowMany(
+        mpc_signer,
+        liquidityPool,
+        user.address,
+        [eurc, gho],
+        [amountToBorrow, amountToBorrow2],
+        user2,
+        "0x",
+        31337
+      );
+
+      await expect(liquidityPool.connect(user).borrowMany(
+        [eurc, gho],
+        [amountToBorrow, amountToBorrow2],
         user2,
         "0x",
         0n,
@@ -1138,9 +1320,6 @@ describe("LiquidityPoolAave", function () {
 
       expect(txWithoutLTVCheck!.gasUsed).to.be.lessThan(txWithLTVCheck!.gasUsed);
       expect(txWithoutLTVCheck!.gasUsed).to.eq(txWithoutLTVCheck2!.gasUsed);
-      console.log(txWithLTVCheck);
-      console.log(txWithoutLTVCheck);
-      console.log(txWithoutLTVCheck2);
     });
 
     it("Should NOT borrow if target call fails", async function () {
@@ -1357,6 +1536,294 @@ describe("LiquidityPoolAave", function () {
       // No EURC tokens (fillToken) will be available for swap
       await expect(mockBorrowSwap.connect(user).callBorrow(liquidityPool.target, borrowCalldata.data))
       .to.be.reverted;
+    });
+
+    it("Should NOT borrow many if target call fails", async function () {
+      const {
+        liquidityPool, mockTarget, usdc, USDC_DEC, gho, GHO_DEC, user, mpc_signer, usdcOwner, liquidityAdmin
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
+
+      const amountToBorrow = 2n * GHO_DEC;
+      const amountToBorrow2 = 3n * USDC_DEC;
+
+      const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
+
+      const callData = await mockTarget.fulfill.populateTransaction(gho, amountToBorrow, additionalData);
+
+      const signature = await signBorrowMany(
+        mpc_signer,
+        liquidityPool,
+        user,
+        [gho, usdc],
+        [amountToBorrow, amountToBorrow2],
+        gho,
+        callData.data,
+        31337
+      );
+
+      await expect(liquidityPool.connect(user).borrowMany(
+        [gho, usdc],
+        [amountToBorrow, amountToBorrow2],
+        gho,
+        callData.data,
+        0n,
+        2000000000n,
+        signature))
+      .to.be.revertedWithCustomError(liquidityPool, "TargetCallFailed");
+    });
+
+    it("Should NOT borrow many if borrowing is paused", async function () {
+      const {liquidityPool, user, user2, withdrawProfit, mpc_signer, eurc, EURC_DEC} = await loadFixture(deployAll);
+
+      // Pause borrowing
+      await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())
+        .to.emit(liquidityPool, "BorrowPaused");
+
+      const amountToBorrow = 2n * EURC_DEC;
+      const signature = await signBorrowMany(
+        mpc_signer,
+        liquidityPool,
+        user,
+        [eurc],
+        [amountToBorrow],
+        user2,
+        "0x",
+        31337
+      );
+
+      await expect(liquidityPool.connect(user).borrowMany(
+        [eurc],
+        [amountToBorrow],
+        user2,
+        "0x",
+        0n,
+        2000000000n,
+        signature))
+      .to.be.revertedWithCustomError(liquidityPool, "BorrowingIsPaused");
+    });
+
+    it("Should NOT borrow many if the contract is paused", async function () {
+      const {liquidityPool, gho, user, user2, pauser} = await loadFixture(deployAll);
+
+      // Pause the contract
+      await expect(liquidityPool.connect(pauser).pause())
+        .to.emit(liquidityPool, "Paused");
+
+      await expect(liquidityPool.connect(user).borrowMany(
+        [gho],
+        [1n],
+        user2,
+        "0x",
+        0n,
+        2000000000n,
+        "0x"))
+      .to.be.revertedWithCustomError(liquidityPool, "EnforcedPause");
+    });
+
+    it("Should NOT borrow many if MPC signature is wrong (caller is wrong)", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, user, user2, usdcOwner, liquidityAdmin, mpc_signer, gho,
+      } = await loadFixture(deployAll);
+      const amountLiquidity = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountLiquidity);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity);
+
+      const amountToBorrow = 2n * USDC_DEC;
+      const signature = await signBorrowMany(
+        mpc_signer,
+        liquidityPool,
+        user,
+        [gho],
+        [amountToBorrow],
+        user2,
+        "0x",
+        31337
+      );
+
+      await expect(liquidityPool.connect(user2).borrowMany(
+        [gho],
+        [amountToBorrow],
+        user2,
+        "0x",
+        0n,
+        2000000000n,
+        signature))
+      .to.be.revertedWithCustomError(liquidityPool, "InvalidSignature");
+    });
+
+    it("Should NOT borrow and swap many if MPC signature is wrong (caller is wrong)", async function () {
+      // GHO is borrowed and swapped to EURC
+      const {
+        liquidityPool, mockTarget, mockBorrowSwap, usdc, USDC_DEC, gho, GHO_DEC,
+        user, mpc_signer, usdcOwner, eurc, EURC_DEC, eurcOwner, liquidityAdmin
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
+
+      const amountToBorrow = 3n * GHO_DEC;
+      const amountToBorrow2 = 2n * USDC_DEC;
+      const fillAmount = 2n * EURC_DEC;
+      await eurc.connect(eurcOwner).approve(mockBorrowSwap, fillAmount);
+
+      const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
+
+      const callData = await mockTarget.fulfill.populateTransaction(eurc, fillAmount, additionalData);
+      const swapData = AbiCoder.defaultAbiCoder().encode(
+        ["address"],
+        [eurcOwner.address]
+      );
+
+      // user address is signed instead of mockBorrowSwap address
+      const signature = await signBorrowMany(
+        mpc_signer,
+        liquidityPool,
+        user,
+        [gho, usdc],
+        [amountToBorrow, amountToBorrow2],
+        mockTarget,
+        callData.data,
+        31337
+      );
+
+      const borrowCalldata = await liquidityPool.borrowAndSwapMany.populateTransaction(
+        [gho, usdc],
+        [amountToBorrow, amountToBorrow2],
+        {fillToken: eurc, fillAmount, swapData},
+        mockTarget,
+        callData.data,
+        0n,
+        2000000000n,
+        signature
+      );
+
+      await expect(mockBorrowSwap.connect(user).callBorrow(liquidityPool, borrowCalldata.data))
+        .to.be.reverted;
+    });
+
+    it("Should NOT borrow and swap many if the swap fails", async function () {
+      // GHO is borrowed and swapped to EURC
+      const {
+        liquidityPool, mockTarget, mockBorrowSwap, usdc, USDC_DEC, gho, GHO_DEC,
+        user, mpc_signer, usdcOwner, eurc, EURC_DEC, eurcOwner, liquidityAdmin
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
+
+      const amountToBorrow = 3n * GHO_DEC;
+      const amountToBorrow2 = 2n * USDC_DEC;
+      const fillAmount = 2n * EURC_DEC;
+
+      const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
+
+      const callData = await mockTarget.fulfill.populateTransaction(eurc, fillAmount, additionalData);
+      const swapData = AbiCoder.defaultAbiCoder().encode(
+        ["address"],
+        [eurcOwner.address]
+      );
+
+      const signature = await signBorrowMany(
+        mpc_signer,
+        liquidityPool,
+        mockBorrowSwap,
+        [gho, usdc],
+        [amountToBorrow, amountToBorrow2],
+        mockTarget,
+        callData.data,
+        31337
+      );
+
+      const borrowCalldata = await liquidityPool.borrowAndSwapMany.populateTransaction(
+        [gho, usdc],
+        [amountToBorrow, amountToBorrow2],
+        {fillToken: eurc, fillAmount, swapData},
+        mockTarget,
+        callData.data,
+        0n,
+        2000000000n,
+        signature
+      );
+
+      // No EURC tokens (fillToken) will be available for swap
+      await expect(mockBorrowSwap.connect(user).callBorrow(liquidityPool, borrowCalldata.data))
+      .to.be.reverted;
+    });
+
+    it("Should NOT borrow many if tokens and amounts have diff or zero length", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, gho, mpc_signer, user, user2, usdcOwner, liquidityAdmin
+      } = await loadFixture(deployAll);
+      const amountLiquidity = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountLiquidity);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity);
+
+      const amountToBorrow = 2n * USDC_DEC;
+      let signature = await signBorrowMany(
+        mpc_signer,
+        liquidityPool,
+        user,
+        [gho],
+        [amountToBorrow, amountToBorrow],
+        user2,
+        "0x",
+        31337
+      );
+
+      await expect(liquidityPool.connect(user).borrowMany(
+        [gho],
+        [amountToBorrow, amountToBorrow],
+        user2,
+        "0x",
+        0n,
+        2000000000n,
+        signature))
+      .to.be.revertedWithCustomError(liquidityPool, "InvalidLength");
+
+      signature = await signBorrowMany(
+        mpc_signer,
+        liquidityPool,
+        user,
+        [gho, gho],
+        [amountToBorrow],
+        user2,
+        "0x",
+        31337
+      );
+
+      await expect(liquidityPool.connect(user).borrowMany(
+        [gho, gho],
+        [amountToBorrow],
+        user2,
+        "0x",
+        0n,
+        2000000000n,
+        signature))
+      .to.be.revertedWithCustomError(liquidityPool, "InvalidLength");
+
+      signature = await signBorrowMany(
+        mpc_signer,
+        liquidityPool,
+        user,
+        [],
+        [],
+        user2,
+        "0x",
+        31337
+      );
+
+      await expect(liquidityPool.connect(user).borrowMany(
+        [],
+        [],
+        user2,
+        "0x",
+        0n,
+        2000000000n,
+        signature))
+      .to.be.revertedWithCustomError(liquidityPool, "InvalidLength");
     });
 
     it("Should NOT repay if all tokens don't have debt or balance", async function () {

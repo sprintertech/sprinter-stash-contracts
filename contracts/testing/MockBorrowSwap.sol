@@ -30,4 +30,20 @@ contract MockBorrowSwap is IBorrower {
         IERC20(fillToken).forceApprove(msg.sender, fillAmount);
         emit Swapped(swapData);
     }
+
+    function swapMany(
+        address[] calldata borrowTokens,
+        uint256[] calldata borrowAmounts,
+        address fillToken,
+        uint256 fillAmount,
+        bytes calldata swapData
+    ) external override {
+        (address from) = abi.decode(swapData, (address));
+        for (uint256 i = 0; i < borrowTokens.length; ++i) {
+            IERC20(borrowTokens[i]).safeTransferFrom(msg.sender, address(this), borrowAmounts[i]);
+        }
+        IERC20(fillToken).safeTransferFrom(from, address(this), fillAmount);
+        IERC20(fillToken).forceApprove(msg.sender, fillAmount);
+        emit Swapped(swapData);
+    }
 }

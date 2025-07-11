@@ -8,6 +8,10 @@ import {ICreateX} from "../typechain-types";
 import dotenv from "dotenv";
 dotenv.config();
 
+async function resolveAddresses(input: AddressLike[]): Promise<string[]> {
+  return await Promise.all(input.map(el => resolveAddress(el)));
+}
+
 export async function getCreateAddress(from: AddressLike, nonce: number): Promise<string> {
   return hre.ethers.getCreateAddress({from: await resolveAddress(from), nonce});
 }
@@ -179,6 +183,53 @@ export async function signBorrow(
     borrowToken,
     amount,
     target,
+    targetCallData,
+    nonce,
+    deadline,
+  };
+
+  return signer.signTypedData(domain, types, value);
+}
+
+export async function signBorrowMany(
+  signer: Signer,
+  verifyingContract: AddressLike,
+  caller: AddressLike,
+  borrowTokens: AddressLike[],
+  amounts: bigint[],
+  target: AddressLike,
+  targetCallData: string,
+  chainId: number = 1,
+  nonce: bigint = 0n,
+  deadline: bigint = 2000000000n
+) {
+  const name = "LiquidityPool";
+  const version = "1.0.0";
+
+  const domain: TypedDataDomain = {
+    name,
+    version,
+    chainId,
+    verifyingContract: await resolveAddress(verifyingContract)
+  };
+
+  const types = {
+    BorrowMany: [
+      {name: "caller", type: "address"},
+      {name: "borrowTokens", type: "address[]"},
+      {name: "amounts", type: "uint256[]"},
+      {name: "target", type: "address"},
+      {name: "targetCallData", type: "bytes"},
+      {name: "nonce", type: "uint256"},
+      {name: "deadline", type: "uint256"},
+    ],
+  };
+
+  const value = {
+    caller: await resolveAddress(caller),
+    borrowTokens: await resolveAddresses(borrowTokens),
+    amounts,
+    target: await resolveAddress(target),
     targetCallData,
     nonce,
     deadline,

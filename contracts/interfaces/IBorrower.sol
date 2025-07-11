@@ -9,4 +9,12 @@ interface IBorrower {
         uint256 fillAmount,
         bytes calldata data
     ) external;
+
+    function swapMany(
+        address[] calldata borrowTokens,
+        uint256[] calldata borrowAmounts,
+        address fillToken,
+        uint256 fillAmount,
+        bytes calldata data
+    ) external;
 }

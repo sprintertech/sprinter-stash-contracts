@@ -14,7 +14,7 @@ import {
 
 export async function resolveAddresses(input: any[]): Promise<any[]> {
   return await Promise.all(input.map(async (el) => {
-    // Resolving all Addressable into string addresses.
+    // Resolving all Addressable into string addresses or ids.
     try {
       return await resolveAddress(el);
     } catch {

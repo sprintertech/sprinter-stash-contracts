@@ -145,14 +145,12 @@ contract LiquidityPoolAave is LiquidityPool {
         address[] memory assets = new address[](1);
         assets[0] = borrowToken;
 
-        uint256[] memory prices = oracle.getAssetsPrices(assets);
+        uint256 price = oracle.getAssetsPrices(assets)[0];
 
         uint256 borrowDecimals = IERC20Metadata(borrowToken).decimals();
         uint256 borrowUnit = 10 ** borrowDecimals;
 
-        uint256 totalBorrowBase = totalBorrowed * prices[0] / borrowUnit;
-
-        uint256 currentLtv = totalBorrowBase * MULTIPLIER / totalCollateralBase;
+        uint256 currentLtv = totalBorrowed * price * MULTIPLIER / (totalCollateralBase * borrowUnit);
         require(currentLtv <= ltv, TokenLtvExceeded());
     }
 
@@ -272,6 +270,7 @@ contract LiquidityPoolAave is LiquidityPool {
         return (result, tokenUnit, tokenPrice);
     }
 
+    // @notice Only takes into account minimalHealthFactor, on top of the Aave config LTV.
     function _calculateAvailableBorrowsBase(
         uint256 totalCollateralBase,
         uint256 totalDebtBase,

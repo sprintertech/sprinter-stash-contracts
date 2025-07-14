@@ -142,6 +142,7 @@ contract LiquidityPoolAave is LiquidityPool {
         uint256 totalBorrowed = IERC20(borrowTokenData.variableDebtTokenAddress).balanceOf(address(this));
 
         IAaveOracle oracle = IAaveOracle(AAVE_POOL_PROVIDER.getPriceOracle());
+        // Oracle accepts a list of tokens to get prices, so we need to make a list.
         address[] memory assets = new address[](1);
         assets[0] = borrowToken;
         uint256 price = oracle.getAssetsPrices(assets)[0];
@@ -256,9 +257,9 @@ contract LiquidityPoolAave is LiquidityPool {
         uint256 debt = IERC20(borrowTokenData.variableDebtTokenAddress).balanceOf(address(this));
 
         IAaveOracle oracle = IAaveOracle(AAVE_POOL_PROVIDER.getPriceOracle());
+        // Oracle accepts a list of tokens to get prices, so we need to make a list.
         address[] memory assets = new address[](1);
         assets[0] = borrowToken;
-
         tokenPrice = oracle.getAssetsPrices(assets)[0];
 
         uint256 borrowDecimals = IERC20Metadata(borrowToken).decimals();

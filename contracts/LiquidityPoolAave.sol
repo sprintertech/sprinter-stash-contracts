@@ -141,11 +141,7 @@ contract LiquidityPoolAave is LiquidityPool {
         AaveDataTypes.ReserveData memory borrowTokenData = AAVE_POOL.getReserveData(borrowToken);
         uint256 totalBorrowed = IERC20(borrowTokenData.variableDebtTokenAddress).balanceOf(address(this));
 
-        IAaveOracle oracle = IAaveOracle(AAVE_POOL_PROVIDER.getPriceOracle());
-        // Oracle accepts a list of tokens to get prices, so we need to make a list.
-        address[] memory assets = new address[](1);
-        assets[0] = borrowToken;
-        uint256 price = oracle.getAssetsPrices(assets)[0];
+        uint256 price = IAaveOracle(AAVE_POOL_PROVIDER.getPriceOracle()).getAssetPrice(borrowToken);
 
         uint256 borrowDecimals = IERC20Metadata(borrowToken).decimals();
         uint256 borrowUnit = 10 ** borrowDecimals;
@@ -256,11 +252,7 @@ contract LiquidityPoolAave is LiquidityPool {
         AaveDataTypes.ReserveData memory borrowTokenData = AAVE_POOL.getReserveData(borrowToken);
         uint256 debt = IERC20(borrowTokenData.variableDebtTokenAddress).balanceOf(address(this));
 
-        IAaveOracle oracle = IAaveOracle(AAVE_POOL_PROVIDER.getPriceOracle());
-        // Oracle accepts a list of tokens to get prices, so we need to make a list.
-        address[] memory assets = new address[](1);
-        assets[0] = borrowToken;
-        tokenPrice = oracle.getAssetsPrices(assets)[0];
+        tokenPrice = IAaveOracle(AAVE_POOL_PROVIDER.getPriceOracle()).getAssetPrice(borrowToken);
 
         uint256 borrowDecimals = IERC20Metadata(borrowToken).decimals();
         tokenUnit = 10 ** borrowDecimals;
@@ -297,6 +289,8 @@ contract LiquidityPoolAave is LiquidityPool {
         if (reserveAToken == address(0)) {
             return 0;
         }
+        uint256 maxBorrowByAaveReserves = token.balanceOf(reserveAToken);
+
         (uint256 totalCollateralBase, uint256 totalDebtBase,,, uint256 ltv,) =
             AAVE_POOL.getUserAccountData(address(this));
         uint256 maxBorrowsByMinHealthFactor = _calculateAvailableBorrowsBase(
@@ -304,10 +298,9 @@ contract LiquidityPoolAave is LiquidityPool {
         );
         (uint256 maxBorrowByTokenLTV, uint256 tokenUnit, uint256 tokenPrice) =
             _calculateMaximumTokenBorrowBase(totalCollateralBase, address(token));
-        uint256 maxBorrowByAaveLiqudity = token.balanceOf(reserveAToken);
 
         uint256 availableTokenBorrowBase = Math.min(maxBorrowsByMinHealthFactor, maxBorrowByTokenLTV);
 
-        return Math.min(availableTokenBorrowBase * tokenUnit / tokenPrice, maxBorrowByAaveLiqudity);
+        return Math.min(availableTokenBorrowBase * tokenUnit / tokenPrice, maxBorrowByAaveReserves);
     }
 }

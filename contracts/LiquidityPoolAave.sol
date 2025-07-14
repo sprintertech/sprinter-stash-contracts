@@ -144,12 +144,13 @@ contract LiquidityPoolAave is LiquidityPool {
         IAaveOracle oracle = IAaveOracle(AAVE_POOL_PROVIDER.getPriceOracle());
         address[] memory assets = new address[](1);
         assets[0] = borrowToken;
-
         uint256 price = oracle.getAssetsPrices(assets)[0];
 
         uint256 borrowDecimals = IERC20Metadata(borrowToken).decimals();
         uint256 borrowUnit = 10 ** borrowDecimals;
 
+        // (totalBorrowedBase) * MULTIPLIER / totalCollateralBase =
+        // = (totalBorrowed * price / borrowUnit) * MULTIPLIER / totalCollateralBase
         uint256 currentLtv = totalBorrowed * price * MULTIPLIER / (totalCollateralBase * borrowUnit);
         require(currentLtv <= ltv, TokenLtvExceeded());
     }

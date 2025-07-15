@@ -85,4 +85,8 @@ contract TestLiquidityPool is ILiquidityPool, AccessControl {
     function unpause() external pure override {
         return;
     }
+
+    function balance(IERC20 token) external view override returns (uint256) {
+        return token.balanceOf(address(this));
+    }
 }

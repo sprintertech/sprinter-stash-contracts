@@ -98,8 +98,8 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
 
     function deposit(uint256 amount) external override onlyRole(LIQUIDITY_ADMIN_ROLE) {
         // called after receiving deposit in USDC
-        uint256 balance = ASSETS.balanceOf(address(this));
-        require(balance >= amount, NotEnoughToDeposit());
+        uint256 newBalance = ASSETS.balanceOf(address(this));
+        require(newBalance >= amount, NotEnoughToDeposit());
         _deposit(_msgSender(), amount);
     }
 
@@ -313,6 +313,11 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
     }
 
     // View functions
+
+    function balance(IERC20 token) external view override virtual returns (uint256) {
+        if (token != ASSETS) return 0;
+        return ASSETS.balanceOf(address(this));
+    }
 
     function timeNow() internal view returns (uint32) {
         return uint32(block.timestamp);

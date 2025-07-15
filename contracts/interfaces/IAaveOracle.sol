@@ -13,4 +13,6 @@ interface IAaveOracle {
    * @return The prices of the given assets
    */
   function getAssetsPrices(address[] calldata assets) external view returns (uint256[] memory);
+
+  function getAssetPrice(address asset) external view returns (uint256);
 }

@@ -116,8 +116,8 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
 
     function deposit(uint256 amount) external override onlyRole(LIQUIDITY_ADMIN_ROLE) {
         // called after receiving deposit in USDC
-        uint256 balance = ASSETS.balanceOf(address(this));
-        require(balance >= amount, NotEnoughToDeposit());
+        uint256 newBalance = ASSETS.balanceOf(address(this));
+        require(newBalance >= amount, NotEnoughToDeposit());
         _deposit(_msgSender(), amount);
     }
 
@@ -147,7 +147,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         // - Validate MPC signature
         _validateMPCSignatureWithCaller(borrowToken, amount, target, targetCallData, nonce, deadline, signature);
         _borrow(borrowToken, amount, target);
-        _afterBorrowLogic(target);
+        _afterBorrowLogic(borrowToken, target);
         _finalizeBorrow(target, targetCallData);
     }
 
@@ -163,7 +163,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         // - Validate MPC signature
         _validateMPCSignatureWithCaller(borrowTokens, amounts, target, targetCallData, nonce, deadline, signature);
         _borrowMany(borrowTokens, amounts, target);
-        _afterBorrowLogic(target);
+        _afterBorrowManyLogic(borrowTokens, target);
         _finalizeBorrow(target, targetCallData);
     }
 
@@ -201,7 +201,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
     ) external override whenNotPaused() whenBorrowNotPaused() {
         _validateMPCSignatureWithCaller(borrowToken, amount, target, targetCallData, nonce, deadline, signature);
         _borrow(borrowToken, amount, _msgSender());
-        _afterBorrowLogic(target);
+        _afterBorrowLogic(borrowToken, target);
         // Call the swap function on caller
         IBorrower(_msgSender()).swap(borrowToken, amount, swap.fillToken, swap.fillAmount, swap.swapData);
         _finalizeSwap(swap, target, targetCallData);
@@ -219,7 +219,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
     ) external override whenNotPaused()  whenBorrowNotPaused() {
         _validateMPCSignatureWithCaller(borrowTokens, amounts, target, targetCallData, nonce, deadline, signature);
         _borrowMany(borrowTokens, amounts, _msgSender());
-        _afterBorrowLogic(target);
+        _afterBorrowManyLogic(borrowTokens, target);
         // Call the swap function on caller
         IBorrower(_msgSender()).swapMany(borrowTokens, amounts, swap.fillToken, swap.fillAmount, swap.swapData);
         _finalizeSwap(swap, target, targetCallData);
@@ -384,7 +384,11 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         require(borrowToken == address(ASSETS), InvalidBorrowToken());
     }
 
-    function _afterBorrowLogic(address /*target*/) internal virtual {
+    function _afterBorrowLogic(address /*borrowToken*/, address /*target*/) internal virtual {
+        return;
+    }
+
+    function _afterBorrowManyLogic(address[] calldata /*borrowTokens*/, address /*target*/) internal virtual {
         return;
     }
 
@@ -404,6 +408,11 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
     }
 
     // View functions
+
+    function balance(IERC20 token) external view override virtual returns (uint256) {
+        if (token != ASSETS) return 0;
+        return ASSETS.balanceOf(address(this));
+    }
 
     function timeNow() internal view returns (uint32) {
         return uint32(block.timestamp);

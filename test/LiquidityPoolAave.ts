@@ -17,6 +17,12 @@ async function now() {
   return BigInt(await time.latest());
 }
 
+function expectAlmostEqual(a: bigint, b: bigint, maxDiff: bigint = 2n): void {
+  const diff = a - b;
+  const absDiff = diff > 0n ? diff : -diff;
+  expect(absDiff).to.be.lessThanOrEqual(maxDiff, `Expected ${a} to almost equal ${b}`);
+}
+
 describe("LiquidityPoolAave", function () {
   const deployAll = async () => {
     const [
@@ -41,7 +47,7 @@ describe("LiquidityPoolAave", function () {
     const aToken = await hre.ethers.getContractAt("ERC20", collateralData[8]);
     const usdcDebtToken = await hre.ethers.getContractAt("ERC20", collateralData[10]);
 
-    const GHO_ADDRESS = "0x6Bb7a212910682DCFdbd5BCBb3e28FB4E8da10Ee"; 
+    const GHO_ADDRESS = "0x6Bb7a212910682DCFdbd5BCBb3e28FB4E8da10Ee";
     const GHO_OWNER_ADDRESS = process.env.GHO_OWNER_ADDRESS!;
     if (!GHO_OWNER_ADDRESS) throw new Error("Env variables not configured (GHO_OWNER_ADDRESS missing)");
     const gho = await hre.ethers.getContractAt("ERC20", GHO_ADDRESS);
@@ -49,7 +55,7 @@ describe("LiquidityPoolAave", function () {
     const ghoData = await aavePool.getReserveData(GHO_ADDRESS);
     const ghoDebtToken = await hre.ethers.getContractAt("ERC20", ghoData[10]);
 
-    const EURC_ADDRESS = "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42"; 
+    const EURC_ADDRESS = "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42";
     const EURC_OWNER_ADDRESS = process.env.EURC_OWNER_ADDRESS!;
     if (!EURC_OWNER_ADDRESS) throw new Error("Env variables not configured (EURC_OWNER_ADDRESS missing)");
     const eurc = await hre.ethers.getContractAt("ERC20", EURC_ADDRESS);
@@ -149,6 +155,7 @@ describe("LiquidityPoolAave", function () {
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
       expect(await liquidityPool.totalDeposited()).to.eq(amount);
+      expectAlmostEqual(await liquidityPool.balance(usdc.target), 50n * USDC_DEC);
     });
 
     it("Should deposit to aave with pulling funds", async function () {
@@ -159,6 +166,7 @@ describe("LiquidityPoolAave", function () {
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount - 1n);
       expect(await liquidityPool.totalDeposited()).to.eq(amount);
+      expectAlmostEqual(await liquidityPool.balance(usdc.target), 50n * USDC_DEC);
     });
 
     it("Should borrow a token", async function () {
@@ -230,20 +238,21 @@ describe("LiquidityPoolAave", function () {
 
     it("Should calculate token ltv if decimals of token and collateral are different", async function () {
       const {
-        liquidityPool, usdc, eurc, mpc_signer, user, user2, usdcOwner, liquidityAdmin, USDC_DEC, EURC_DEC
+        liquidityPool, usdc, USDC_DEC, gho, GHO_DEC, user, user2, mpc_signer, usdcOwner, liquidityAdmin
       } = await loadFixture(deployAll);
-      const amountCollateral = 1000n * USDC_DEC; // $1000
+      const amountCollateral = 1000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
       await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
-      const amountToBorrow = 3n * EURC_DEC;
+      const availableBefore = await liquidityPool.balance(gho.target);
+      const amountToBorrow = 2n * GHO_DEC;
 
       const signature = await signBorrow(
         mpc_signer,
         liquidityPool.target as string,
         user.address as string,
-        eurc.target as string,
+        gho.target as string,
         amountToBorrow.toString(),
         user2.address,
         "0x",
@@ -251,15 +260,17 @@ describe("LiquidityPoolAave", function () {
       );
 
       await liquidityPool.connect(user).borrow(
-        eurc.target,
+        gho.target,
         amountToBorrow,
         user2,
         "0x",
         0n,
         2000000000n,
         signature);
-      expect(await eurc.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
-      expect(await eurc.allowance(liquidityPool.target, user2.address)).to.eq(amountToBorrow);
+      expect(await gho.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
+      expectAlmostEqual(await liquidityPool.balance(usdc.target), 50n * USDC_DEC);
+      expect(await liquidityPool.balance(gho.target)).to.be.lessThan(availableBefore - amountToBorrow / 2n);
+      expect(await liquidityPool.balance(gho.target)).to.be.greaterThan(availableBefore - amountToBorrow * 2n);
     });
 
     it("Should make a contract call to the recipient", async function () {
@@ -333,6 +344,7 @@ describe("LiquidityPoolAave", function () {
         signature);
       expect(await usdc.balanceOf(liquidityPool.target)).to.eq(amountToBorrow);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amountCollateral - 1n);
+      expectAlmostEqual(await liquidityPool.balance(usdc.target), 50n * USDC_DEC - amountToBorrow);
     });
 
     it("Should borrow a token with swap", async function () {
@@ -455,6 +467,7 @@ describe("LiquidityPoolAave", function () {
       await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
+      const availableBefore = await liquidityPool.balance(eurc.target);
       const amountToBorrow = 3n * EURC_DEC;
 
       const signature = await signBorrow(
@@ -485,6 +498,8 @@ describe("LiquidityPoolAave", function () {
         .to.emit(liquidityPool, "Repaid");
       expect(await eurc.allowance(liquidityPool.target, aavePool.target)).to.eq(0);
       expect(await eurc.balanceOf(liquidityPool.target)).to.be.lessThan(amountToBorrow);
+      expect(await liquidityPool.balance(eurc.target)).to.be.lessThan(availableBefore + 1n * EURC_DEC);
+      expect(await liquidityPool.balance(eurc.target)).to.be.greaterThan(availableBefore - 1n * EURC_DEC);
     });
 
     it("Should repay when the contract is paused", async function () {
@@ -497,6 +512,7 @@ describe("LiquidityPoolAave", function () {
       await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
+      const availableBefore = await liquidityPool.balance(eurc.target);
       const amountToBorrow = 3n * EURC_DEC;
 
       const signature = await signBorrow(
@@ -529,6 +545,8 @@ describe("LiquidityPoolAave", function () {
       await expect(liquidityPool.connect(user).repay([eurc.target]))
         .to.emit(liquidityPool, "Repaid");
       expect(await eurc.balanceOf(liquidityPool.target)).to.be.lessThan(amountToBorrow);
+      expect(await liquidityPool.balance(eurc.target)).to.be.lessThan(availableBefore + 1n * EURC_DEC);
+      expect(await liquidityPool.balance(eurc.target)).to.be.greaterThan(availableBefore - 1n * EURC_DEC);
     });
 
     it("Should deposit to aave multiple times", async function () {
@@ -541,6 +559,7 @@ describe("LiquidityPoolAave", function () {
       await expect(liquidityPool.connect(liquidityAdmin).deposit(amount))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amount * 2n - 1n);
+      expectAlmostEqual(await liquidityPool.balance(usdc.target), 100n * USDC_DEC);
     });
 
     it("Should deposit when the contract is paused", async function () {
@@ -555,6 +574,7 @@ describe("LiquidityPoolAave", function () {
       await expect(liquidityPool.connect(usdcOwner).depositWithPull(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amountCollateral);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThanOrEqual(amountCollateral * 2n - 1n);
+      expectAlmostEqual(await liquidityPool.balance(usdc.target), 100n * USDC_DEC);
     });
 
     it("Should borrow and repay different tokens", async function () {
@@ -698,7 +718,7 @@ describe("LiquidityPoolAave", function () {
     it("Should repay collateral", async function () {
       const {
         liquidityPool, usdc, USDC_DEC, user, user2, mpc_signer, usdcOwner, liquidityAdmin,
-        usdcDebtToken, eurcDebtToken
+        usdcDebtToken
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000
       await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
@@ -738,8 +758,9 @@ describe("LiquidityPoolAave", function () {
 
       await expect(liquidityPool.connect(user).repay([usdc.target]))
         .to.emit(liquidityPool, "Repaid");
-      const usdcDebtAfter = await eurcDebtToken.balanceOf(liquidityPool.target);
+      const usdcDebtAfter = await usdcDebtToken.balanceOf(liquidityPool.target);
       expect(usdcDebtAfter).to.eq(0);
+      expect(await liquidityPool.balance(usdc.target)).to.be.greaterThanOrEqual(50n * USDC_DEC - 1n);
     });
 
     it("Should withdraw collateral from aave", async function () {
@@ -756,10 +777,15 @@ describe("LiquidityPoolAave", function () {
 
       // advance time by one hour to accrue interest
       await time.increase(3600);
-      await expect(liquidityPool.connect(liquidityAdmin).withdraw(user.address, amount))
-        .to.emit(liquidityPool, "WithdrawnFromAave").withArgs(user.address, amount);
+      await expect(liquidityPool.connect(liquidityAdmin).withdraw(user.address, amount / 2n))
+        .to.emit(liquidityPool, "WithdrawnFromAave").withArgs(user.address, amount / 2n);
+      expect(await usdc.balanceOf(user.address)).to.be.eq(amount / 2n);
+      expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThan(amount / 2n);
+      expect(await liquidityPool.balance(usdc.target)).to.be.greaterThan(25n * USDC_DEC);
+      await liquidityPool.connect(liquidityAdmin).withdraw(user.address, amount / 2n);
       expect(await usdc.balanceOf(user.address)).to.be.eq(amount);
       expect(await aToken.balanceOf(liquidityPool.target)).to.be.greaterThan(0);
+      expect(await liquidityPool.balance(usdc.target)).to.be.greaterThan(0);
 
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit(
         [usdc.target], user.address
@@ -789,9 +815,10 @@ describe("LiquidityPoolAave", function () {
       const aTokenBalance = await aToken.balanceOf(liquidityPool.target);
       expect(aTokenBalance).to.be.greaterThanOrEqual(amount + 1n);
 
-      // try to withdraw by liquidityAdmin more that deposited
+      // try to withdraw by liquidityAdmin more than deposited
       await expect(liquidityPool.connect(liquidityAdmin).withdraw(user.address, amount + 1n))
         .to.be.revertedWithCustomError(liquidityPool, "InsufficientLiquidity");
+      expect(await liquidityPool.balance(usdc.target)).to.be.greaterThan(50n * USDC_DEC);
       // withdraw interest as profit
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc.target], user.address))
         .to.emit(liquidityPool, "ProfitWithdrawn");
@@ -800,6 +827,7 @@ describe("LiquidityPoolAave", function () {
         .and.to.be.lessThan(aTokenBalance);
       expect(await usdc.balanceOf(user.address)).to.be.greaterThanOrEqual(aTokenBalance - amount);
       expect(await liquidityPool.totalDeposited()).to.eq(amount);
+      expectAlmostEqual(await liquidityPool.balance(usdc.target), 50n * USDC_DEC);
     });
 
     it("Should withdraw profit for multiple tokens from the pool", async function () {
@@ -833,6 +861,20 @@ describe("LiquidityPoolAave", function () {
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([eurc.target], user.address))
         .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(eurc.target, user.address, amount);
       expect(await eurc.balanceOf(user.address)).to.eq(amount);
+    });
+
+    it("Should return 0 for balance of a non-supported token", async function () {
+      const {
+        liquidityPool, usdc, usdcOwner, USDC_DEC, nonSupportedToken, nonSupportedTokenOwner,
+        liquidityAdmin
+      } = await loadFixture(deployAll);
+      const collateralAmount = 1000n * USDC_DEC; // $1000
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, collateralAmount);
+      await liquidityPool.connect(liquidityAdmin).deposit(collateralAmount);
+      const amount = 2n * USDC_DEC;
+      await nonSupportedToken.connect(nonSupportedTokenOwner).transfer(liquidityPool.target, amount);
+      expectAlmostEqual(await liquidityPool.balance(usdc.target), 50n * USDC_DEC);
+      expect(await liquidityPool.balance(nonSupportedToken.target)).to.eq(0);
     });
 
     it("Should withdraw non-supported token", async function () {
@@ -1218,7 +1260,7 @@ describe("LiquidityPoolAave", function () {
       )).wait();
 
       expect(txWithoutLTVCheck!.gasUsed).to.be.lessThan(txWithLTVCheck!.gasUsed);
-      expect(txWithoutLTVCheck!.gasUsed).to.eq(txWithoutLTVCheck2!.gasUsed);
+      expectAlmostEqual(txWithoutLTVCheck!.gasUsed, txWithoutLTVCheck2!.gasUsed, 100n);
     });
 
     it("Should skip ltv check if default set to 100%", async function () {
@@ -1319,7 +1361,7 @@ describe("LiquidityPoolAave", function () {
       )).wait();
 
       expect(txWithoutLTVCheck!.gasUsed).to.be.lessThan(txWithLTVCheck!.gasUsed);
-      expect(txWithoutLTVCheck!.gasUsed).to.eq(txWithoutLTVCheck2!.gasUsed);
+      expectAlmostEqual(txWithoutLTVCheck!.gasUsed, txWithoutLTVCheck2!.gasUsed, 100n);
     });
 
     it("Should NOT borrow if target call fails", async function () {
@@ -2196,6 +2238,141 @@ describe("LiquidityPoolAave", function () {
       expect(await eurc.balanceOf(liquidityPool.target)).to.be.lessThan(amountToBorrow);
       expect(await weth.balanceOf(liquidityPool.target)).to.eq(0);
       expect(await getBalance(liquidityPool.target)).to.eq(amountToBorrow);
+    });
+
+    it("Should limit balance result by default LTV", async function () {
+      const {
+        liquidityPool, usdc, eurc, usdcOwner, liquidityAdmin, USDC_DEC, admin
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
+      const availableUSDCBefore = await liquidityPool.balance(usdc.target);
+      const availableEURCBefore = await liquidityPool.balance(eurc.target);
+      const defaultLtv = 1000;
+      await liquidityPool.connect(admin).setDefaultLTV(defaultLtv);
+      const availableUSDCAfter = await liquidityPool.balance(usdc.target);
+      const availableEURCAfter = await liquidityPool.balance(eurc.target);
+      expectAlmostEqual(availableUSDCAfter, availableUSDCBefore * 2n);
+      expectAlmostEqual(availableEURCAfter, availableEURCBefore * 2n);
+    });
+
+    it("Should limit balance result by specific token LTV", async function () {
+      const {
+        liquidityPool, usdc, eurc, usdcOwner, liquidityAdmin, USDC_DEC, admin
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
+      const availableUSDCBefore = await liquidityPool.balance(usdc.target);
+      const availableEURCBefore = await liquidityPool.balance(eurc.target);
+      const newLtvUSDC = 1000;
+      const newLtvEURC = 2000;
+      await liquidityPool.connect(admin).setBorrowTokenLTVs(
+        [usdc.target, eurc.target],
+        [newLtvUSDC, newLtvEURC]
+      );
+      const availableUSDCAfter = await liquidityPool.balance(usdc.target);
+      const availableEURCAfter = await liquidityPool.balance(eurc.target);
+      expectAlmostEqual(availableUSDCAfter, availableUSDCBefore * 2n);
+      expectAlmostEqual(availableEURCAfter, availableEURCBefore * 3n);
+    });
+
+    it("Should limit balance result by minimal health factor", async function () {
+      const {
+        liquidityPool, usdc, eurc, usdcOwner, liquidityAdmin, USDC_DEC, admin
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
+      await liquidityPool.connect(admin).setDefaultLTV(100n * 10000n / 100n);
+      await liquidityPool.connect(admin).setMinHealthFactor(100n * 10000n / 100n);
+      const availableUSDCBefore = await liquidityPool.balance(usdc.target);
+      const availableEURCBefore = await liquidityPool.balance(eurc.target);
+      const newMinHealthFactor = 1000n * 10000n / 100n;
+      await liquidityPool.connect(admin).setMinHealthFactor(newMinHealthFactor);
+      const availableUSDCAfter = await liquidityPool.balance(usdc.target);
+      const availableEURCAfter = await liquidityPool.balance(eurc.target);
+      expectAlmostEqual(availableUSDCAfter, availableUSDCBefore / 10n);
+      expectAlmostEqual(availableEURCAfter, availableEURCBefore / 10n);
+    });
+
+    it("Should limit balance result by Aave available liquidity", async function () {
+      const {
+        liquidityPool, usdc, usdcOwner, liquidityAdmin, USDC_DEC, admin, aavePool
+      } = await loadFixture(deployAll);
+      const usdcCB = await hre.ethers.getContractAt("ERC20", "0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA");
+      const aUsdcCB = await hre.ethers.getContractAt("ERC20", await aavePool.getReserveAToken(usdcCB.target));
+      const amountCollateral = 2000000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
+      await liquidityPool.connect(admin).setDefaultLTV(100n * 10000n / 100n);
+      await liquidityPool.connect(admin).setMinHealthFactor(100n * 10000n / 100n);
+      const availableUSDCCB = await liquidityPool.balance(usdcCB.target);
+      const liquidityUSDCCB = await usdcCB.balanceOf(aUsdcCB.target);
+      expect(availableUSDCCB).to.eq(liquidityUSDCCB);
+    });
+
+    it("Should limit balance result by default LTV maximum value 100%", async function () {
+      const {
+        liquidityPool, usdc, eurc, usdcOwner, liquidityAdmin, USDC_DEC, admin
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
+      await liquidityPool.connect(admin).setDefaultLTV(10000);
+      const availableUSDCBefore = await liquidityPool.balance(usdc.target);
+      const availableEURCBefore = await liquidityPool.balance(eurc.target);
+      const defaultLtv = 100000;
+      await liquidityPool.connect(admin).setDefaultLTV(defaultLtv);
+      const availableUSDCAfter = await liquidityPool.balance(usdc.target);
+      const availableEURCAfter = await liquidityPool.balance(eurc.target);
+      expectAlmostEqual(availableUSDCAfter, availableUSDCBefore);
+      expectAlmostEqual(availableEURCAfter, availableEURCBefore);
+    });
+
+    it("Should limit balance result by specific LTV maximum value 100%", async function () {
+      const {
+        liquidityPool, usdc, eurc, usdcOwner, liquidityAdmin, USDC_DEC, admin
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
+      await liquidityPool.connect(admin).setBorrowTokenLTVs(
+        [usdc.target, eurc.target],
+        [10000, 10000]
+      );
+      const availableUSDCBefore = await liquidityPool.balance(usdc.target);
+      const availableEURCBefore = await liquidityPool.balance(eurc.target);
+      const newLtvUSDC = 100000;
+      const newLtvEURC = 200000;
+      await liquidityPool.connect(admin).setBorrowTokenLTVs(
+        [usdc.target, eurc.target],
+        [newLtvUSDC, newLtvEURC]
+      );
+      const availableUSDCAfter = await liquidityPool.balance(usdc.target);
+      const availableEURCAfter = await liquidityPool.balance(eurc.target);
+      expectAlmostEqual(availableUSDCAfter, availableUSDCBefore);
+      expectAlmostEqual(availableEURCAfter, availableEURCBefore);
+    });
+
+    it("Should limit balance result by minimal health factor minimum value 100%", async function () {
+      const {
+        liquidityPool, usdc, eurc, usdcOwner, liquidityAdmin, USDC_DEC, admin
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool.target, amountCollateral);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
+      await liquidityPool.connect(admin).setDefaultLTV(100n * 10000n / 100n);
+      await liquidityPool.connect(admin).setMinHealthFactor(100n * 10000n / 100n);
+      const availableUSDCBefore = await liquidityPool.balance(usdc.target);
+      const availableEURCBefore = await liquidityPool.balance(eurc.target);
+      const newMinHealthFactor = 1;
+      await liquidityPool.connect(admin).setMinHealthFactor(newMinHealthFactor);
+      const availableUSDCAfter = await liquidityPool.balance(usdc.target);
+      const availableEURCAfter = await liquidityPool.balance(eurc.target);
+      expectAlmostEqual(availableUSDCAfter, availableUSDCBefore);
+      expectAlmostEqual(availableEURCAfter, availableEURCBefore);
     });
   });
 

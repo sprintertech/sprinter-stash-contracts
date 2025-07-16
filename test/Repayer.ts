@@ -62,7 +62,7 @@ describe("Repayer", function () {
 
     const USDC_DEC = 10n ** (await usdc.decimals());
 
-    const EURC_ADDRESS = "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42"; 
+    const EURC_ADDRESS = "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42";
     const EURC_OWNER_ADDRESS = process.env.EURC_OWNER_ADDRESS!;
     if (!EURC_OWNER_ADDRESS) throw new Error("Env variables not configured (EURC_OWNER_ADDRESS missing)");
     const eurc = await hre.ethers.getContractAt("ERC20", EURC_ADDRESS);
@@ -439,7 +439,7 @@ describe("Repayer", function () {
       liquidityPool, cctpTokenMessenger, cctpMessageTransmitter, weth, stargateTreasurerTrue, everclearFeeAdapter,
       optimismBridge,
     } = await loadFixture(deployAll);
-    
+
     const acrossV3SpokePoolFork = await hre.ethers.getContractAt(
       "V3SpokePoolInterface",
       networkConfig.BASE.AcrossV3SpokePool!
@@ -585,7 +585,7 @@ describe("Repayer", function () {
     const {repayer, USDC_DEC, admin, repayUser,
       liquidityPool, everclearFeeAdapter, forkNetworkConfig,
     } = await loadFixture(deployAll);
-    
+
     assertAddress(process.env.USDC_OWNER_ADDRESS, "Env variables not configured (USDC_OWNER_ADDRESS missing)");
     const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;
     const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.USDC);
@@ -1276,7 +1276,7 @@ describe("Repayer", function () {
       repayer, USDC_DEC, admin, repayUser, liquidityPool, deployer, cctpTokenMessenger, cctpMessageTransmitter,
       acrossV3SpokePool, weth, repayerAdmin, repayerProxy, everclearFeeAdapter, optimismBridge,
     } = await loadFixture(deployAll);
-    
+
     const stargatePoolUsdcAddress = "0x27a16dc786820B16E5c9028b75B99F6f604b5d26";
     const stargateTreasurer = "0xd47b03ee6d86Cf251ee7860FB2ACf9f91B9fD4d7";
     const stargatePoolUsdc = await hre.ethers.getContractAt(
@@ -1366,7 +1366,7 @@ describe("Repayer", function () {
 
   it("Should revert if Stargate pool reverts the payment", async function () {
     const {repayer, USDC_DEC, admin, repayUser, liquidityPool} = await loadFixture(deployAll);
-    
+
     const stargatePoolUsdcAddress = "0x27a16dc786820B16E5c9028b75B99F6f604b5d26";
     const USDC_BASE_ADDRESS = networkConfig.BASE.USDC;
 

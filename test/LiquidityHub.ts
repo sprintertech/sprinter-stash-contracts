@@ -317,7 +317,7 @@ describe("LiquidityHub", function () {
     expect(await liquidityHub.totalAssets()).to.equal(1n);
     expect(await usdc.balanceOf(user.address)).to.equal(0n);
   });
- 
+
   it("Burning shares when shares.decimals > assets.decimals should be impractical", async function () {
     const {lpToken, liquidityHub, usdc, deployer, user, USDC, LP, liquidityPool} = await loadFixture(deployAll);
 
@@ -733,7 +733,7 @@ describe("LiquidityHub", function () {
     expect(await liquidityHub.totalSupply()).to.equal(2n * LP / USDC);
 
     await liquidityHub.connect(admin).adjustTotalAssets(1n, false);
-    
+
     const maxMint = (getBigInt(MaxUint256) * USDC / LP - 3n) * LP / USDC;
     expect(await liquidityHub.maxMint(ZERO_ADDRESS))
       .to.eq(maxMint);
@@ -742,7 +742,7 @@ describe("LiquidityHub", function () {
     await liquidityHub.connect(admin).adjustTotalAssets(hardLimit, true);
     expect(await liquidityHub.totalAssets()).to.eq(hardLimit + 1n);
     expect(await liquidityHub.totalSupply()).to.eq(2n * LP / USDC);
-  
+
     expect(await liquidityHub.maxMint(ZERO_ADDRESS))
       .to.eq(2n * LP / USDC); // (hardLimit + 1n) * (2n * LP / USDC) / (hardLimit + 1n) = 1 * (2n * LP / USDC)
 
@@ -765,12 +765,12 @@ describe("LiquidityHub", function () {
     await liquidityHub.connect(admin).adjustTotalAssets(1n, true);
 
     const hardLimit = getBigInt(MaxUint256) / (LP / USDC) - 2n;
-    
+
     expect(await liquidityHub.maxDeposit(ZERO_ADDRESS))
       .to.eq(hardLimit);
 
     await liquidityHub.connect(admin).adjustTotalAssets(hardLimit, true);
-  
+
     expect(await liquidityHub.maxDeposit(ZERO_ADDRESS))
       .to.eq(0);
 

@@ -16,7 +16,7 @@ import {
 } from "../typechain-types";
 import {
   Network, Provider, NetworkConfig, LiquidityPoolUSDC,
-  LiquidityPoolAaveUSDCV2, LiquidityPoolUSDCStablecoin, RebalancerRoutesConfig, RepayerRoutesConfig,
+  LiquidityPoolAaveUSDCV2, LiquidityPoolUSDCStablecoin,
 } from "../network.config";
 
 export async function main() {
@@ -54,28 +54,40 @@ export async function main() {
     assert(config.Hub.AssetsLimit <= MaxUint256 / 10n ** 12n, "Assets limit is too high");
   }
 
-  const rebalancerRoutes: RebalancerRoutesConfig = {
+  const rebalancerRoutes: {Pools: string[], Domains: Network[], Providers: Provider[]} = {
     Pools: [],
     Domains: [],
     Providers: [],
   };
   if (config.RebalancerRoutes) {
-    rebalancerRoutes.Pools = rebalancerRoutes.Pools.concat(config.RebalancerRoutes.Pools);
-    rebalancerRoutes.Domains = rebalancerRoutes.Domains.concat(config.RebalancerRoutes.Domains);
-    rebalancerRoutes.Providers = rebalancerRoutes.Providers.concat(config.RebalancerRoutes.Providers);
+    for (const [pool, domainProviders] of Object.entries(config.RebalancerRoutes)) {
+      for (const [domain, providers] of Object.entries(domainProviders)) {
+        for (const provider of providers) {
+          rebalancerRoutes.Pools.push(pool);
+          rebalancerRoutes.Domains.push(domain as Network);
+          rebalancerRoutes.Providers.push(provider);
+        }
+      }
+    }
   }
 
-  const repayerRoutes: RepayerRoutesConfig = {
+  const repayerRoutes: {Pools: string[], Domains: Network[], Providers: Provider[], SupportsAllTokens: boolean[]} = {
     Pools: [],
     Domains: [],
     Providers: [],
     SupportsAllTokens: [],
   };
   if (config.RepayerRoutes) {
-    repayerRoutes.Pools = repayerRoutes.Pools.concat(config.RepayerRoutes.Pools);
-    repayerRoutes.Domains = repayerRoutes.Domains.concat(config.RepayerRoutes.Domains);
-    repayerRoutes.Providers = repayerRoutes.Providers.concat(config.RepayerRoutes.Providers);
-    repayerRoutes.SupportsAllTokens = repayerRoutes.SupportsAllTokens.concat(config.RepayerRoutes.SupportsAllTokens);
+    for (const [pool, domainProviders] of Object.entries(config.RepayerRoutes)) {
+      for (const [domain, providers] of Object.entries(domainProviders.Domains)) {
+        for (const provider of providers) {
+          repayerRoutes.Pools.push(pool);
+          repayerRoutes.Domains.push(domain as Network);
+          repayerRoutes.Providers.push(provider);
+          repayerRoutes.SupportsAllTokens.push(domainProviders.SupportsAllTokens);
+        }
+      }
+    }
   }
 
   if (!config.AcrossV3SpokePool) {
@@ -114,9 +126,15 @@ export async function main() {
     )) as LiquidityPoolAave;
 
     if (config.AavePool.tokenLTVs) {
+      const tokens: string[] = [];
+      const LTVs: number[] = [];
+      for (const [token, ltv] of Object.entries(config.AavePool.tokenLTVs)) {
+        tokens.push(token);
+        LTVs.push(ltv);
+      }
       await aavePool.setBorrowTokenLTVs(
-        config.AavePool.tokenLTVs.Tokens,
-        percentsToBps(config.AavePool.tokenLTVs.LTVs)
+        tokens,
+        percentsToBps(LTVs),
       );
     }
     console.log(`LiquidityPoolAaveUSDC: ${aavePool.target}`);
@@ -170,7 +188,7 @@ export async function main() {
     repayerRoutes.Pools.push(await usdcStablecoinPool.getAddress());
     repayerRoutes.Domains.push(network);
     repayerRoutes.Providers.push(Provider.LOCAL);
-    repayerRoutes.SupportsAllTokens.push(false);
+    repayerRoutes.SupportsAllTokens.push(true);
 
     if ((!config.AavePool) && (!config.USDCPool)) {
       mainPool = usdcStablecoinPool;

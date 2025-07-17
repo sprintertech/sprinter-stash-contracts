@@ -35,13 +35,24 @@ export async function main() {
   assert(isAddress(config.CCTP.MessageTransmitter), "CCTP MessageTransmitter must be an address");
   assert(isAddress(config.WrappedNativeToken), "WrappedNativeToken must be an address");
 
-  if (!config.RepayerRoutes) {
-    config.RepayerRoutes = {
-      Pools: [],
-      Domains: [],
-      Providers: [],
-      SupportsAllTokens: [],
-    };
+  const repayerRoutes: {Pools: string[], Domains: Network[], Providers: Provider[], SupportsAllTokens: boolean[]} = {
+    Pools: [],
+    Domains: [],
+    Providers: [],
+    SupportsAllTokens: [],
+  };
+
+  if (config.RepayerRoutes) {
+    for (const [pool, domainProviders] of Object.entries(config.RepayerRoutes)) {
+      for (const [domain, providers] of Object.entries(domainProviders.Domains)) {
+        for (const provider of providers) {
+          repayerRoutes.Pools.push(pool);
+          repayerRoutes.Domains.push(domain as Network);
+          repayerRoutes.Providers.push(provider);
+          repayerRoutes.SupportsAllTokens.push(domainProviders.SupportsAllTokens);
+        }
+      }
+    }
   }
 
   if (!config.AcrossV3SpokePool) {
@@ -65,33 +76,33 @@ export async function main() {
       aavePool = await resolveXAddress(LiquidityPoolAaveUSDC);
     }
     console.log(`LiquidityPoolAave: ${aavePool}`);
-    config.RepayerRoutes.Pools.push(aavePool);
-    config.RepayerRoutes.Domains.push(network);
-    config.RepayerRoutes.Providers.push(Provider.LOCAL);
-    config.RepayerRoutes.SupportsAllTokens.push(true);
+    repayerRoutes.Pools.push(aavePool);
+    repayerRoutes.Domains.push(network);
+    repayerRoutes.Providers.push(Provider.LOCAL);
+    repayerRoutes.SupportsAllTokens.push(true);
   }
 
   if (config.USDCPool) {
     const usdcPool = await resolveXAddress(LiquidityPoolUSDC);
     console.log(`LiquidityPool: ${usdcPool}`);
-    config.RepayerRoutes.Pools.push(usdcPool);
-    config.RepayerRoutes.Domains.push(network);
-    config.RepayerRoutes.Providers.push(Provider.LOCAL);
-    config.RepayerRoutes.SupportsAllTokens.push(false);
+    repayerRoutes.Pools.push(usdcPool);
+    repayerRoutes.Domains.push(network);
+    repayerRoutes.Providers.push(Provider.LOCAL);
+    repayerRoutes.SupportsAllTokens.push(false);
   }
 
   if (config.USDCStablecoinPool) {
     const usdcStablecoinPool = await resolveXAddress(LiquidityPoolUSDCStablecoin);
     console.log(`LiquidityPoolStablecoin: ${usdcStablecoinPool}`);
-    config.RepayerRoutes.Pools.push(usdcStablecoinPool);
-    config.RepayerRoutes.Domains.push(network);
-    config.RepayerRoutes.Providers.push(Provider.LOCAL);
-    config.RepayerRoutes.SupportsAllTokens.push(true);
+    repayerRoutes.Pools.push(usdcStablecoinPool);
+    repayerRoutes.Domains.push(network);
+    repayerRoutes.Providers.push(Provider.LOCAL);
+    repayerRoutes.SupportsAllTokens.push(true);
   }
 
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
 
-  config.RepayerRoutes.Pools = await verifier.predictDeployXAddresses(config.RepayerRoutes!.Pools!, deployer);
+  repayerRoutes.Pools = await verifier.predictDeployXAddresses(repayerRoutes.Pools, deployer);
 
   const {target: repayer, targetAdmin: repayerAdmin} = await deployProxyX<Repayer>(
     verifier.deployX,
@@ -112,25 +123,25 @@ export async function main() {
     [
       config.Admin,
       config.RepayerCaller,
-      config.RepayerRoutes.Pools,
-      config.RepayerRoutes!.Domains!.map(el => DomainSolidity[el]) || [],
-      config.RepayerRoutes!.Providers!.map(el => ProviderSolidity[el]) || [],
-      config.RepayerRoutes!.SupportsAllTokens,
+      repayerRoutes.Pools,
+      repayerRoutes.Domains.map(el => DomainSolidity[el]) || [],
+      repayerRoutes.Providers.map(el => ProviderSolidity[el]) || [],
+      repayerRoutes.SupportsAllTokens,
     ],
     id,
   );
 
   console.log(`Repayer: ${repayer.target}`);
   console.log(`RepayerProxyAdmin: ${repayerAdmin.target}`);
-  if (config.RepayerRoutes) {
+  if (repayerRoutes.Pools.length > 0) {
     console.log("RepayerRoutes:");
     const transposedRoutes = [];
-    for (let i = 0; i < config.RepayerRoutes.Pools.length; i++) {
+    for (let i = 0; i < repayerRoutes.Pools.length; i++) {
       transposedRoutes.push({
-        Pool: config.RepayerRoutes.Pools[i],
-        Domain: config.RepayerRoutes.Domains[i],
-        Provider: config.RepayerRoutes.Providers[i],
-        SupportsAllTokens: config.RepayerRoutes.SupportsAllTokens[i],
+        Pool: repayerRoutes.Pools[i],
+        Domain: repayerRoutes.Domains[i],
+        Provider: repayerRoutes.Providers[i],
+        SupportsAllTokens: repayerRoutes.SupportsAllTokens[i],
       });
     }
     console.table(transposedRoutes);

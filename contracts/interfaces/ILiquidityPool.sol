@@ -26,9 +26,30 @@ interface ILiquidityPool {
         bytes calldata signature
     ) external;
 
+    function borrowMany(
+        address[] calldata borrowTokens,
+        uint256[] calldata amounts,
+        address target,
+        bytes calldata targetCallData,
+        uint256 nonce,
+        uint256 deadline,
+        bytes calldata signature
+    ) external;
+
     function borrowAndSwap(
         address borrowToken,
         uint256 amount,
+        SwapParams calldata swapInputData,
+        address target,
+        bytes calldata targetCallData,
+        uint256 nonce,
+        uint256 deadline,
+        bytes calldata signature
+    ) external;
+
+    function borrowAndSwapMany(
+        address[] calldata borrowTokens,
+        uint256[] calldata amounts,
         SwapParams calldata swapInputData,
         address target,
         bytes calldata targetCallData,

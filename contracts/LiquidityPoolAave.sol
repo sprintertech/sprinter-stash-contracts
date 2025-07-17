@@ -159,7 +159,6 @@ contract LiquidityPoolAave is LiquidityPool {
     }
 
     function _borrowLogic(address borrowToken, uint256 amount, address /*target*/) internal override {
-        // - Borrow the requested source token from the lending protocol against available USDC liquidity.
         AAVE_POOL.borrow(
             borrowToken,
             amount,
@@ -167,22 +166,27 @@ contract LiquidityPoolAave is LiquidityPool {
             NO_REFERRAL,
             address(this)
         );
+    }
 
-        // - Check health factor for user after borrow (can be read from aave, getUserAccountData)
-        (uint256 totalCollateralBase,,,,, uint256 currentHealthFactor) = AAVE_POOL.getUserAccountData(address(this));
-        require(currentHealthFactor / (1e18 / MULTIPLIER) >= minHealthFactor, HealthFactorTooLow());
+    function _afterBorrowLogic(address borrowToken, address /*target*/) internal view override {
+        uint256 totalCollateralBase = _checkHealthFactor();
 
-        // check ltv for token
         _checkTokenLTV(totalCollateralBase, borrowToken);
+    }
+
+    function _afterBorrowManyLogic(address[] calldata borrowTokens, address /*target*/) internal view override {
+        uint256 totalCollateralBase = _checkHealthFactor();
+
+        uint256 length = borrowTokens.length;
+        for (uint256 i = 0; i < length; ++i) {
+            _checkTokenLTV(totalCollateralBase, borrowTokens[i]);
+        }
     }
 
     function _withdrawLogic(address to, uint256 amount) internal override {
         require(ATOKEN.balanceOf(address(this)) >= amount, InsufficientLiquidity());
-        // get USDC from AAVE
         AAVE_POOL.withdraw(address(ASSETS), amount, to);
-        // health factor after withdraw
-        (,,,,,uint256 currentHealthFactor) = AAVE_POOL.getUserAccountData(address(this));
-        require(currentHealthFactor / (1e18 / MULTIPLIER) >= minHealthFactor, HealthFactorTooLow());
+        _checkHealthFactor();
         emit WithdrawnFromAave(to, amount);
     }
 
@@ -234,6 +238,13 @@ contract LiquidityPoolAave is LiquidityPool {
         if (token == address(WRAPPED_NATIVE_TOKEN) && address(this).balance > 0) {
             WRAPPED_NATIVE_TOKEN.deposit{value: address(this).balance}();
         }
+    }
+
+    function _checkHealthFactor() internal view returns (uint256) {
+        (uint256 totalCollateralBase,,,,, uint256 currentHealthFactor) = AAVE_POOL.getUserAccountData(address(this));
+        require(currentHealthFactor / (1e18 / MULTIPLIER) >= minHealthFactor, HealthFactorTooLow());
+
+        return totalCollateralBase;
     }
 
     // @notice Only takes into account LTV, without HF.

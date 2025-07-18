@@ -7,6 +7,7 @@ import {
 } from "./typechain-types";
 import {
   assert, isSet, ProviderSolidity, DomainSolidity, CCTPDomain, SolidityDomain, SolidityProvider,
+  DEFAULT_ADMIN_ROLE,
 } from "./scripts/common";
 import "hardhat-ignore-warnings";
 
@@ -16,6 +17,10 @@ dotenv.config();
 // Got to use lazy loading because HRE is only becomes available inside the tasks.
 async function loadTestHelpers() {
   return await import("./test/helpers");
+}
+
+async function loadScriptHelpers() {
+  return await import("./scripts/helpers");
 }
 
 task("grant-role", "Grant some role on some AccessControl")
@@ -122,7 +127,8 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
   rebalancer: string,
 }, hre) => {
   const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
-  const config = networkConfig[hre.network.name as Network];
+  const {getNetworkConfig} = await loadScriptHelpers();
+  const {config} = await getNetworkConfig();
 
   const [admin] = await hre.ethers.getSigners();
 
@@ -130,7 +136,7 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
   const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, admin)) as Rebalancer;
   const onchainRoutes = await target.getAllRoutes();
   const onchainConfig: {Pool: string, Domain: Network, Provider: Provider}[] = [];
-  for (let i = 0; i < onchainRoutes.length; i++) {
+  for (let i = 0; i < onchainRoutes.pools.length; i++) {
     onchainConfig.push({
       Pool: getAddress(onchainRoutes.pools[i]),
       Domain: SolidityDomain[Number(onchainRoutes.domains[i])],
@@ -149,6 +155,10 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
       }
     }
   }
+  console.log('The onchain configuration is:');
+  console.table(onchainConfig);
+  console.log('The updated configuration will be:');
+  console.table(localConfig);
 
   const toAllow = localConfig.filter(el => !onchainConfig.some(el2 =>
     el2.Pool === el.Pool &&
@@ -161,28 +171,57 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
     el2.Provider === el.Provider
   ));
 
+  const hasRole = await target.hasRole(DEFAULT_ADMIN_ROLE, admin.address);
+
   if (toAllow.length > 0) {
-    await target.setRoute(
-      toAllow.map(el => el.Pool),
-      toAllow.map(el => DomainSolidity[el.Domain]),
-      toAllow.map(el => ProviderSolidity[el.Provider]),
-      true
-    );
+    const toAllowParams = toAllow.map(el => ({
+      pools: el.Pool,
+      domains: DomainSolidity[el.Domain],
+      providers: ProviderSolidity[el.Provider],
+    }));
+    if (hasRole) {
+      await target.setRoute(
+        toAllowParams.map(el => el.pools),
+        toAllowParams.map(el => el.domains),
+        toAllowParams.map(el => el.providers),
+        true
+      );
+      console.log(`Following routes are now allowed on ${targetAddress}.`);
+      console.table(toAllow);
+    } else {
+      console.log('To allow missing routes execute the following transaction.');
+      console.log(`To: ${targetAddress}`);
+      console.log('Function: setRoute');
+      console.log('Params:');
+      console.log('isAllowed: true');
+      console.table(toAllowParams);
+    }
   }
 
   if (toDeny.length > 0) {
-    await target.setRoute(
-      toDeny.map(el => el.Pool),
-      toDeny.map(el => DomainSolidity[el.Domain]),
-      toDeny.map(el => ProviderSolidity[el.Provider]),
-      false
-    );
+    const toDenyParams = toDeny.map(el => ({
+      pools: el.Pool,
+      domains: DomainSolidity[el.Domain],
+      providers: ProviderSolidity[el.Provider],
+    }));
+    if (hasRole) {
+      await target.setRoute(
+        toDenyParams.map(el => el.pools),
+        toDenyParams.map(el => el.domains),
+        toDenyParams.map(el => el.providers),
+        false
+      );
+      console.log(`Following routes are now denied on ${targetAddress}.`);
+      console.table(toDeny);
+    } else {
+      console.log('To deny excess routes execute the following transaction.');
+      console.log(`To: ${targetAddress}`);
+      console.log('Function: setRoute');
+      console.log('Params:');
+      console.log('isAllowed: false');
+      console.table(toDenyParams);
+    }
   }
-
-  console.log(`Following routes are now allowed on ${targetAddress}.`);
-  console.table(toAllow);
-  console.log(`Following routes are now denied on ${targetAddress}.`);
-  console.table(toDeny);
 });
 
 task("set-routes-repayer", "Update Repayer config")
@@ -241,7 +280,7 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
   const target = (await hre.ethers.getContractAt("Repayer", targetAddress, admin)) as Repayer;
   const onchainRoutes = await target.getAllRoutes();
   const onchainConfig: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens: boolean}[] = [];
-  for (let i = 0; i < onchainRoutes.length; i++) {
+  for (let i = 0; i < onchainRoutes.pools.length; i++) {
     onchainConfig.push({
       Pool: getAddress(onchainRoutes.pools[i]),
       Domain: SolidityDomain[Number(onchainRoutes.domains[i])],
@@ -262,6 +301,10 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
       }
     }
   }
+  console.log('The onchain configuration is:');
+  console.table(onchainConfig);
+  console.log('The updated configuration will be:');
+  console.table(localConfig);
 
   const toAllow = localConfig.filter(el => !onchainConfig.some(el2 =>
     el2.Pool === el.Pool &&
@@ -276,31 +319,62 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
     el2.SupportsAllTokens === el.SupportsAllTokens
   ));
 
+  const hasRole = await target.hasRole(DEFAULT_ADMIN_ROLE, admin.address);
+
   // Calling deny first so that allow overrides incorrect SupportsAllTokens flag.
   if (toDeny.length > 0) {
-    await target.setRoute(
-      toDeny.map(el => el.Pool),
-      toDeny.map(el => DomainSolidity[el.Domain]),
-      toDeny.map(el => ProviderSolidity[el.Provider]),
-      toDeny.map(el => el.SupportsAllTokens),
-      false
-    );
+    const toDenyParams = toDeny.map(el => ({
+      pools: el.Pool,
+      domains: DomainSolidity[el.Domain],
+      providers: ProviderSolidity[el.Provider],
+      supportsAllTokens: el.SupportsAllTokens,
+    }));
+    if (hasRole) {
+      await target.setRoute(
+        toDenyParams.map(el => el.pools),
+        toDenyParams.map(el => el.domains),
+        toDenyParams.map(el => el.providers),
+        toDenyParams.map(el => el.supportsAllTokens),
+        false
+      );
+      console.log(`Following routes are now denied on ${targetAddress}.`);
+      console.table(toDeny);
+    } else {
+      console.log('To deny excess routes execute the following transaction.');
+      console.log(`To: ${targetAddress}`);
+      console.log('Function: setRoute');
+      console.log('Params:');
+      console.log('isAllowed: false');
+      console.table(toDenyParams);
+    }
   }
 
   if (toAllow.length > 0) {
-    await target.setRoute(
-      toAllow.map(el => el.Pool),
-      toAllow.map(el => DomainSolidity[el.Domain]),
-      toAllow.map(el => ProviderSolidity[el.Provider]),
-      toAllow.map(el => el.SupportsAllTokens),
-      true
-    );
+    const toAllowParams = toAllow.map(el => ({
+      pools: el.Pool,
+      domains: DomainSolidity[el.Domain],
+      providers: ProviderSolidity[el.Provider],
+      supportsAllTokens: el.SupportsAllTokens,
+    }));
+    if (hasRole) {
+      await target.setRoute(
+        toAllowParams.map(el => el.pools),
+        toAllowParams.map(el => el.domains),
+        toAllowParams.map(el => el.providers),
+        toAllowParams.map(el => el.supportsAllTokens),
+        true
+      );
+      console.log(`Following routes are now allowed on ${targetAddress}.`);
+      console.table(toAllow);
+    } else {
+      console.log('To allow missing routes execute the following transaction.');
+      console.log(`To: ${targetAddress}`);
+      console.log('Function: setRoute');
+      console.log('Params:');
+      console.log('isAllowed: true');
+      console.table(toAllowParams);
+    }
   }
-
-  console.log(`Following routes are now denied on ${targetAddress}.`);
-  console.table(toDeny);
-  console.log(`Following routes are now allowed on ${targetAddress}.`);
-  console.table(toAllow);
 });
 
 task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")

@@ -3,7 +3,7 @@ dotenv.config();
 import hre from "hardhat";
 import {isAddress, getAddress} from "ethers";
 import {getVerifier, deployProxyX, getHardhatStandaloneRepayerConfig, getStandaloneRepayerConfig} from "./helpers";
-import {toBytes32} from "../test/helpers";
+import {resolveXAddress, toBytes32} from "../test/helpers";
 import {isSet, assert, ProviderSolidity, DomainSolidity, ZERO_ADDRESS, DEFAULT_ADMIN_ROLE} from "./common";
 import {Repayer} from "../typechain-types";
 import {
@@ -41,21 +41,16 @@ export async function main() {
   assert(isAddress(config.CCTP.MessageTransmitter), "CCTP MessageTransmitter must be an address");
   assert(isAddress(config.WrappedNativeToken), "WrappedNativeToken must be an address");
 
-  const repayerRoutes: {Pools: string[], Domains: Network[], Providers: Provider[], SupportsAllTokens: boolean[]} = {
-    Pools: [],
-    Domains: [],
-    Providers: [],
-    SupportsAllTokens: [],
-  };
-  if (config.RepayerRoutes) {
-    for (const [pool, domainProviders] of Object.entries(config.RepayerRoutes)) {
-      for (const [domain, providers] of Object.entries(domainProviders.Domains)) {
-        for (const provider of providers) {
-          repayerRoutes.Pools.push(pool);
-          repayerRoutes.Domains.push(domain as Network);
-          repayerRoutes.Providers.push(provider);
-          repayerRoutes.SupportsAllTokens.push(domainProviders.SupportsAllTokens);
-        }
+  const repayerRoutes: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens: boolean}[] = [];
+  for (const [pool, domainProviders] of Object.entries(config.RepayerRoutes || {})) {
+    for (const [domain, providers] of Object.entries(domainProviders.Domains) as [Network, Provider[]][]) {
+      for (const provider of providers) {
+        repayerRoutes.push({
+          Pool: await resolveXAddress(pool, false),
+          Domain: domain,
+          Provider: provider,
+          SupportsAllTokens: domainProviders.SupportsAllTokens,
+        });
       }
     }
   }
@@ -74,8 +69,6 @@ export async function main() {
   }
 
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
-
-  repayerRoutes.Pools = await verifier.predictDeployXAddresses(repayerRoutes.Pools, deployer);
 
   const {target: repayer, targetAdmin: repayerAdmin} = await deployProxyX<Repayer>(
     verifier.deployX,
@@ -96,10 +89,10 @@ export async function main() {
     [
       deployer.address,
       config.RepayerCallers[0],
-      repayerRoutes.Pools,
-      repayerRoutes.Domains.map(el => DomainSolidity[el]) || [],
-      repayerRoutes.Providers.map(el => ProviderSolidity[el]) || [],
-      repayerRoutes.SupportsAllTokens,
+      repayerRoutes.map(el => el.Pool),
+      repayerRoutes.map(el => DomainSolidity[el.Domain]),
+      repayerRoutes.map(el => ProviderSolidity[el.Provider]),
+      repayerRoutes.map(el => el.SupportsAllTokens),
     ],
     id,
   );
@@ -113,18 +106,9 @@ export async function main() {
   console.log(`Repayer: ${repayer.target}`);
   console.log(`RepayerProxyAdmin: ${repayerAdmin.target}`);
   console.log("Repayer callers:", config.RepayerCallers.join(", "));
-  if (repayerRoutes.Pools.length > 0) {
+  if (repayerRoutes.length > 0) {
     console.log("RepayerRoutes:");
-    const transposedRoutes = [];
-    for (let i = 0; i < repayerRoutes.Pools.length; i++) {
-      transposedRoutes.push({
-        Pool: repayerRoutes.Pools[i],
-        Domain: repayerRoutes.Domains[i],
-        Provider: repayerRoutes.Providers[i],
-        SupportsAllTokens: repayerRoutes.SupportsAllTokens[i],
-      });
-    }
-    console.table(transposedRoutes);
+    console.table(repayerRoutes);
   }
 
   if (getAddress(deployer.address) != getAddress(config.Admin)) {

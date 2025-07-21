@@ -10,7 +10,7 @@ import {
   LiquidityPoolAave, Rebalancer, Repayer
 } from "./typechain-types";
 import {
-  assert, assertAddress, isSet, ProviderSolidity, DomainSolidity, CCTPDomain, SolidityDomain, SolidityProvider,
+  assert, isSet, ProviderSolidity, DomainSolidity, CCTPDomain, SolidityDomain, SolidityProvider,
   DEFAULT_ADMIN_ROLE,
 } from "./scripts/common";
 import "hardhat-ignore-warnings";
@@ -25,47 +25,6 @@ async function loadTestHelpers() {
 
 async function loadScriptHelpers() {
   return await import("./scripts/helpers");
-}
-
-async function addLocalPool(
-  condition: any,
-  network: Network,
-  routes: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens?: boolean}[],
-  versions: string[],
-  supportsAllTokens: boolean,
-  poolName: string,
-): Promise<void> {
-  const {resolveXAddress} = await loadTestHelpers();
-  if (condition) {
-    let pool = "";
-    for (const version of versions.slice().reverse()) {
-      try {
-        pool = await resolveXAddress(version);
-        break;
-      } catch {
-        // Try older version.
-      }
-    }
-    assertAddress(pool, `${poolName} pool not found`);
-    routes.push({
-      Pool: pool,
-      Domain: network,
-      Provider: Provider.LOCAL,
-      SupportsAllTokens: supportsAllTokens,
-    });
-  }
-}
-
-async function addLocalPools(
-  config: NetworkConfig,
-  network: Network,
-  routes: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens?: boolean}[]
-): Promise<void> {
-  await addLocalPool(config.AavePool, network, routes, LiquidityPoolAaveUSDCVersions, true, "Aave USDC");
-  await addLocalPool(config.USDCPool, network, routes, LiquidityPoolUSDCVersions, false, "USDC");
-  await addLocalPool(
-    config.USDCStablecoinPool, network, routes, LiquidityPoolUSDCStablecoinVersions, true, "USDC stablecoin"
-  );
 }
 
 function sortRoutes(routes: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens?: boolean}[]): void {
@@ -176,7 +135,7 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
   rebalancer: string,
 }, hre) => {
   const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
-  const {getNetworkConfig} = await loadScriptHelpers();
+  const {getNetworkConfig, addLocalPools} = await loadScriptHelpers();
   const {network, config} = await getNetworkConfig();
 
   const [admin] = await hre.ethers.getSigners();
@@ -329,7 +288,7 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
   repayer: string,
 }, hre) => {
   const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
-  const {getNetworkConfig} = await loadScriptHelpers();
+  const {getNetworkConfig, addLocalPools} = await loadScriptHelpers();
   const {network, config} = await getNetworkConfig();
 
   const [admin] = await hre.ethers.getSigners();

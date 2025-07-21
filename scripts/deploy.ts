@@ -126,12 +126,8 @@ export async function main() {
     )) as LiquidityPoolAave;
 
     if (config.AavePool.tokenLTVs) {
-      const tokens: string[] = [];
-      const LTVs: number[] = [];
-      for (const [token, ltv] of Object.entries(config.AavePool.tokenLTVs)) {
-        tokens.push(token);
-        LTVs.push(ltv);
-      }
+      const tokens = Object.keys(config.AavePool.tokenLTVs);
+      const LTVs = Object.values(config.AavePool.tokenLTVs);
       await aavePool.setBorrowTokenLTVs(
         tokens,
         percentsToBps(LTVs),

@@ -116,7 +116,7 @@ task("set-routes-rebalancer", "Update Rebalancer config")
     assert(Object.values(Network).includes(el as Network), `Invalid domain ${el}`);
     return DomainSolidity[el as Network];
   });
-  const providers = args.providers && args.providers.split(",") || [];
+  const providers = args.providers?.split(",") || [];
   const providersSolidity = providers.map(el => {
     assert(Object.values(Provider).includes(el as Provider), `Invalid provider ${el}`);
     return ProviderSolidity[el as Provider];

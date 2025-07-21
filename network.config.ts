@@ -8,6 +8,16 @@ export const LiquidityPoolAaveUSDC: string = "LiquidityPoolAaveUSDC";
 export const LiquidityPoolUSDC: string = "LiquidityPoolUSDC";
 export const LiquidityPoolUSDCStablecoin: string = "LiquidityPoolUSDCStablecoin";
 export const LiquidityPoolAaveUSDCV2: string = "LiquidityPoolAaveUSDC-V2-7a30700";
+export const LiquidityPoolAaveUSDCVersions: string[] = [
+  LiquidityPoolAaveUSDC,
+  LiquidityPoolAaveUSDCV2,
+];
+export const LiquidityPoolUSDCVersions: string[] = [
+  LiquidityPoolUSDC,
+];
+export const LiquidityPoolUSDCStablecoinVersions: string[] = [
+  LiquidityPoolUSDCStablecoin,
+];
 
 export enum Network {
   ETHEREUM = "ETHEREUM",

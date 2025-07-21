@@ -1,12 +1,16 @@
 import {HardhatUserConfig, task, types} from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
-import {networkConfig, Network, Provider} from "./network.config";
+import {
+  networkConfig, Network, Provider, LiquidityPoolAaveUSDCVersions,
+  LiquidityPoolUSDCVersions, LiquidityPoolUSDCStablecoinVersions,
+  NetworkConfig,
+} from "./network.config";
 import {TypedDataDomain, AbiCoder, toNumber, dataSlice, getAddress} from "ethers";
 import {
   LiquidityPoolAave, Rebalancer, Repayer
 } from "./typechain-types";
 import {
-  assert, isSet, ProviderSolidity, DomainSolidity, CCTPDomain, SolidityDomain, SolidityProvider,
+  assert, assertAddress, isSet, ProviderSolidity, DomainSolidity, CCTPDomain, SolidityDomain, SolidityProvider,
   DEFAULT_ADMIN_ROLE,
 } from "./scripts/common";
 import "hardhat-ignore-warnings";
@@ -21,6 +25,51 @@ async function loadTestHelpers() {
 
 async function loadScriptHelpers() {
   return await import("./scripts/helpers");
+}
+
+async function addLocalPool(
+  condition: any,
+  network: Network,
+  routes: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens?: boolean}[],
+  versions: string[],
+  supportsAllTokens: boolean,
+  poolName: string,
+): Promise<void> {
+  const {resolveXAddress} = await loadTestHelpers();
+  if (condition) {
+    let pool = "";
+    for (const version of versions.slice().reverse()) {
+      try {
+        pool = await resolveXAddress(version);
+        break;
+      } catch {
+        // Try older version.
+      }
+    }
+    assertAddress(pool, `${poolName} pool not found`);
+    routes.push({
+      Pool: pool,
+      Domain: network,
+      Provider: Provider.LOCAL,
+      SupportsAllTokens: supportsAllTokens,
+    });
+  }
+}
+
+async function addLocalPools(
+  config: NetworkConfig,
+  network: Network,
+  routes: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens?: boolean}[]
+): Promise<void> {
+  await addLocalPool(config.AavePool, network, routes, LiquidityPoolAaveUSDCVersions, true, "Aave USDC");
+  await addLocalPool(config.USDCPool, network, routes, LiquidityPoolUSDCVersions, false, "USDC");
+  await addLocalPool(
+    config.USDCStablecoinPool, network, routes, LiquidityPoolUSDCStablecoinVersions, true, "USDC stablecoin"
+  );
+}
+
+function sortRoutes(routes: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens?: boolean}[]): void {
+  routes.sort((a, b) => `${a.Pool}${a.Domain}${a.Provider}`.localeCompare(`${b.Pool}${b.Domain}${b.Provider}`));
 }
 
 task("grant-role", "Grant some role on some AccessControl")
@@ -128,7 +177,7 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
 }, hre) => {
   const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
   const {getNetworkConfig} = await loadScriptHelpers();
-  const {config} = await getNetworkConfig();
+  const {network, config} = await getNetworkConfig();
 
   const [admin] = await hre.ethers.getSigners();
 
@@ -155,10 +204,14 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
       }
     }
   }
-  console.log('The onchain configuration is:');
+  await addLocalPools(config, network, localConfig);
+  sortRoutes(onchainConfig);
+  sortRoutes(localConfig);
+
+  console.log("The onchain configuration is:");
   console.table(onchainConfig);
-  console.log('The updated configuration will be:');
-  console.table(localConfig);
+  console.log("The updated configuration should be:");
+  console.table(localConfig, ["Pool", "Domain", "Provider"]);
 
   const toAllow = localConfig.filter(el => !onchainConfig.some(el2 =>
     el2.Pool === el.Pool &&
@@ -189,13 +242,15 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
       console.log(`Following routes are now allowed on ${targetAddress}.`);
       console.table(toAllow);
     } else {
-      console.log('To allow missing routes execute the following transaction.');
+      console.log("To allow missing routes execute the following transaction.");
       console.log(`To: ${targetAddress}`);
-      console.log('Function: setRoute');
-      console.log('Params:');
-      console.log('isAllowed: true');
+      console.log("Function: setRoute");
+      console.log("Params:");
+      console.log("isAllowed: true");
       console.table(toAllowParams);
     }
+  } else {
+    console.log("There are no missing routes to allow.");
   }
 
   if (toDeny.length > 0) {
@@ -214,13 +269,15 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
       console.log(`Following routes are now denied on ${targetAddress}.`);
       console.table(toDeny);
     } else {
-      console.log('To deny excess routes execute the following transaction.');
+      console.log("To deny excess routes execute the following transaction.");
       console.log(`To: ${targetAddress}`);
-      console.log('Function: setRoute');
-      console.log('Params:');
-      console.log('isAllowed: false');
+      console.log("Function: setRoute");
+      console.log("Params:");
+      console.log("isAllowed: false");
       console.table(toDenyParams);
     }
+  } else {
+    console.log("There are no excess routes to deny.");
   }
 });
 
@@ -272,7 +329,8 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
   repayer: string,
 }, hre) => {
   const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
-  const config = networkConfig[hre.network.name as Network];
+  const {getNetworkConfig} = await loadScriptHelpers();
+  const {network, config} = await getNetworkConfig();
 
   const [admin] = await hre.ethers.getSigners();
 
@@ -301,9 +359,13 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
       }
     }
   }
-  console.log('The onchain configuration is:');
+  await addLocalPools(config, network, localConfig);
+  sortRoutes(onchainConfig);
+  sortRoutes(localConfig);
+
+  console.log("The onchain configuration is:");
   console.table(onchainConfig);
-  console.log('The updated configuration will be:');
+  console.log("The updated configuration should be:");
   console.table(localConfig);
 
   const toAllow = localConfig.filter(el => !onchainConfig.some(el2 =>
@@ -340,13 +402,15 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
       console.log(`Following routes are now denied on ${targetAddress}.`);
       console.table(toDeny);
     } else {
-      console.log('To deny excess routes execute the following transaction.');
+      console.log("To deny excess routes execute the following transaction.");
       console.log(`To: ${targetAddress}`);
-      console.log('Function: setRoute');
-      console.log('Params:');
-      console.log('isAllowed: false');
+      console.log("Function: setRoute");
+      console.log("Params:");
+      console.log("isAllowed: false");
       console.table(toDenyParams);
     }
+  } else {
+    console.log("There are no excess routes to deny.");
   }
 
   if (toAllow.length > 0) {
@@ -367,13 +431,15 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
       console.log(`Following routes are now allowed on ${targetAddress}.`);
       console.table(toAllow);
     } else {
-      console.log('To allow missing routes execute the following transaction.');
+      console.log("To allow missing routes execute the following transaction.");
       console.log(`To: ${targetAddress}`);
-      console.log('Function: setRoute');
-      console.log('Params:');
-      console.log('isAllowed: true');
+      console.log("Function: setRoute");
+      console.log("Params:");
+      console.log("isAllowed: true");
       console.table(toAllowParams);
     }
+  } else {
+    console.log("There are no missing routes to allow.");
   }
 });
 

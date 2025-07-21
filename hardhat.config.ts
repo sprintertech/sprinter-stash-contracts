@@ -109,7 +109,7 @@ task("set-routes-rebalancer", "Update Rebalancer config")
   const targetAddress = await resolveProxyXAddress(args.rebalancer);
   const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, admin)) as Rebalancer;
 
-  const targetPools = args.pools && args.pools.split(",") || [];
+  const targetPools = args.pools?.split(",") || [];
   const pools = await Promise.all(targetPools.map(el => resolveXAddress(el, false)));
   const domains = args.domains && args.domains.split(",") || [];
   const domainsSolidity = domains.map(el => {

@@ -1,9 +1,7 @@
 import {HardhatUserConfig, task, types} from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import {
-  networkConfig, Network, Provider, LiquidityPoolAaveUSDCVersions,
-  LiquidityPoolUSDCVersions, LiquidityPoolUSDCStablecoinVersions,
-  NetworkConfig,
+  networkConfig, Network, Provider,
 } from "./network.config";
 import {TypedDataDomain, AbiCoder, toNumber, dataSlice, getAddress} from "ethers";
 import {

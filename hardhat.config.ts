@@ -111,7 +111,7 @@ task("set-routes-rebalancer", "Update Rebalancer config")
 
   const targetPools = args.pools?.split(",") || [];
   const pools = await Promise.all(targetPools.map(el => resolveXAddress(el, false)));
-  const domains = args.domains && args.domains.split(",") || [];
+  const domains = args.domains?.split(",") || [];
   const domainsSolidity = domains.map(el => {
     assert(Object.values(Network).includes(el as Network), `Invalid domain ${el}`);
     return DomainSolidity[el as Network];

@@ -260,19 +260,19 @@ task("set-routes-repayer", "Update Repayer config")
   const targetAddress = await resolveProxyXAddress(args.repayer);
   const target = (await hre.ethers.getContractAt("Repayer", targetAddress, admin)) as Repayer;
 
-  const targetPools = args.pools && args.pools.split(",") || [];
+  const targetPools = args.pools?.split(",") || [];
   const pools = await Promise.all(targetPools.map(el => resolveXAddress(el, false)));
-  const domains = args.domains && args.domains.split(",") || [];
+  const domains = args.domains?.split(",") || [];
   const domainsSolidity = domains.map(el => {
     assert(Object.values(Network).includes(el as Network), `Invalid domain ${el}`);
     return DomainSolidity[el as Network];
   });
-  const providers = args.providers && args.providers.split(",") || [];
+  const providers = args.providers?.split(",") || [];
   const providersSolidity = providers.map(el => {
     assert(Object.values(Provider).includes(el as Provider), `Invalid provider ${el}`);
     return ProviderSolidity[el as Provider];
   });
-  const supportsAllTokens = args.supportsalltokens && args.supportsalltokens.split(",") || [];
+  const supportsAllTokens = args.supportsalltokens?.split(",") || [];
   const supportsAllTokensBool = supportsAllTokens.map(el => el.toString() === "true");
 
   await target.setRoute(pools, domainsSolidity, providersSolidity, supportsAllTokensBool, args.allowed);

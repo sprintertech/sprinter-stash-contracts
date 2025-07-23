@@ -9,7 +9,6 @@ import {IAavePoolAddressesProvider} from "./interfaces/IAavePoolAddressesProvide
 import {IAavePool, AaveDataTypes, NO_REFERRAL, INTEREST_RATE_MODE_VARIABLE} from "./interfaces/IAavePool.sol";
 import {IAaveOracle} from "./interfaces/IAaveOracle.sol";
 import {IAavePoolDataProvider} from "./interfaces/IAavePoolDataProvider.sol";
-import {IWrappedNativeToken} from "./interfaces/IWrappedNativeToken.sol";
 import {LiquidityPool} from "./LiquidityPool.sol";
 
 /// @title A version of the liquidity pool contract that uses Aave pool.
@@ -31,7 +30,6 @@ contract LiquidityPoolAave is LiquidityPool {
     IAavePool immutable public AAVE_POOL;
     IERC20 immutable public ATOKEN;
     uint8 immutable public ASSETS_DECIMALS;
-    IWrappedNativeToken immutable public WRAPPED_NATIVE_TOKEN;
 
     uint32 public minHealthFactor;
     uint32 public defaultLTV;
@@ -61,7 +59,7 @@ contract LiquidityPoolAave is LiquidityPool {
         uint32 minHealthFactor_,
         uint32 defaultLTV_,
         address wrappedNativeToken
-    ) LiquidityPool(liquidityToken, admin, mpcAddress_) {
+    ) LiquidityPool(liquidityToken, admin, mpcAddress_, wrappedNativeToken) {
         ASSETS_DECIMALS = IERC20Metadata(liquidityToken).decimals();
         require(aavePoolProvider != address(0), ZeroAddress());
         IAavePoolAddressesProvider provider = IAavePoolAddressesProvider(aavePoolProvider);
@@ -74,11 +72,6 @@ contract LiquidityPoolAave is LiquidityPool {
         require(usageAsCollateralEnabled, CollateralNotSupported());
         _setMinHealthFactor(minHealthFactor_);
         _setDefaultLTV(defaultLTV_);
-        WRAPPED_NATIVE_TOKEN = IWrappedNativeToken(wrappedNativeToken);
-    }
-
-    receive() external payable {
-        // Allow native token transfers.
     }
 
     function repay(address[] calldata borrowTokens) external override {
@@ -174,7 +167,7 @@ contract LiquidityPoolAave is LiquidityPool {
         _checkTokenLTV(totalCollateralBase, borrowToken);
     }
 
-    function _afterBorrowManyLogic(address[] calldata borrowTokens, address /*target*/) internal view override {
+    function _afterBorrowManyLogic(address[] memory borrowTokens, address /*target*/) internal view override {
         uint256 totalCollateralBase = _checkHealthFactor();
 
         uint256 length = borrowTokens.length;
@@ -193,7 +186,6 @@ contract LiquidityPoolAave is LiquidityPool {
     function _withdrawProfitLogic(IERC20 token) internal override returns (uint256) {
         // Check that not aToken
         require(token != ATOKEN, CannotWithdrawAToken());
-        _wrapIfNative(address(token));
         // Check that the token doesn't have debt
         AaveDataTypes.ReserveData memory tokenData = AAVE_POOL.getReserveData(address(token));
         if (tokenData.variableDebtTokenAddress != address(0)) {
@@ -216,7 +208,7 @@ contract LiquidityPoolAave is LiquidityPool {
         internal
         returns(bool success)
     {
-        _wrapIfNative(borrowToken);
+        _wrapIfNative(IERC20(borrowToken));
         AaveDataTypes.ReserveData memory borrowTokenData = AAVE_POOL.getReserveData(borrowToken);
         if (borrowTokenData.variableDebtTokenAddress == address(0)) return false;
         uint256 totalBorrowed = IERC20(borrowTokenData.variableDebtTokenAddress).balanceOf(address(this));
@@ -232,12 +224,6 @@ contract LiquidityPoolAave is LiquidityPool {
         );
         emit Repaid(borrowToken, repaidAmount);
         return true;
-    }
-
-    function _wrapIfNative(address token) internal {
-        if (token == address(WRAPPED_NATIVE_TOKEN) && address(this).balance > 0) {
-            WRAPPED_NATIVE_TOKEN.deposit{value: address(this).balance}();
-        }
     }
 
     function _checkHealthFactor() internal view returns (uint256) {

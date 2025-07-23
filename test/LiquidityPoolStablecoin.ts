@@ -51,7 +51,7 @@ describe("LiquidityPoolStablecoin", function () {
 
     const liquidityPoolStablecoin = (
       await deploy("LiquidityPoolStablecoin", deployer, {},
-        usdc.target, admin.address, mpc_signer.address
+        usdc.target, admin.address, mpc_signer.address, forkNetworkConfig.WrappedNativeToken
       )
     ) as LiquidityPoolStablecoin;
 
@@ -89,21 +89,21 @@ describe("LiquidityPoolStablecoin", function () {
     it("Should NOT deploy the contract if liquidity token address is 0", async function () {
       const {deployer, liquidityPoolStablecoin, admin, mpc_signer} = await loadFixture(deployAll);
       await expect(deploy("LiquidityPool", deployer, {},
-        ZERO_ADDRESS, admin, mpc_signer.address
+        ZERO_ADDRESS, admin, mpc_signer.address, networkConfig.BASE.WrappedNativeToken
       )).to.be.revertedWithCustomError(liquidityPoolStablecoin, "ZeroAddress");
     });
 
     it("Should NOT deploy the contract if admin address is 0", async function () {
       const {deployer, liquidityPoolStablecoin, usdc, mpc_signer} = await loadFixture(deployAll);
       await expect(deploy("LiquidityPool", deployer, {},
-        usdc, ZERO_ADDRESS, mpc_signer.address
+        usdc, ZERO_ADDRESS, mpc_signer.address, networkConfig.BASE.WrappedNativeToken
       )).to.be.revertedWithCustomError(liquidityPoolStablecoin, "ZeroAddress");
     });
 
     it("Should NOT deploy the contract if MPC address is 0", async function () {
       const {deployer, liquidityPoolStablecoin, usdc, admin} = await loadFixture(deployAll);
       await expect(deploy("LiquidityPool", deployer, {},
-        usdc, admin, ZERO_ADDRESS
+        usdc, admin, ZERO_ADDRESS, networkConfig.BASE.WrappedNativeToken
       )).to.be.revertedWithCustomError(liquidityPoolStablecoin, "ZeroAddress");
     });
   });

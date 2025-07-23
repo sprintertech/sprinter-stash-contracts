@@ -16,8 +16,9 @@ contract LiquidityPoolStablecoin is LiquidityPool {
     constructor(
         address liquidityToken,
         address admin,
-        address mpcAddress_
-    ) LiquidityPool(liquidityToken, admin, mpcAddress_) {
+        address mpcAddress_,
+        address wrappedNativeToken
+    ) LiquidityPool(liquidityToken, admin, mpcAddress_, wrappedNativeToken) {
         return;
     }
 

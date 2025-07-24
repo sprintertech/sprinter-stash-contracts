@@ -34,7 +34,7 @@ contract LiquidityPoolStablecoin is LiquidityPool {
         return token.balanceOf(address(this));
     }
 
-    function balance(IERC20 token) external view override returns (uint256) {
+    function _balance(IERC20 token) internal view override returns (uint256) {
         return token.balanceOf(address(this));
     }
 }

@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import {IWrappedNativeToken} from "./IWrappedNativeToken.sol";
 
 interface ILiquidityPool {
     struct SwapParams {
@@ -78,4 +79,6 @@ interface ILiquidityPool {
     function ASSETS() external returns (IERC20);
 
     function balance(IERC20 token) external view returns (uint256);
+
+    function WRAPPED_NATIVE_TOKEN() external view returns (IWrappedNativeToken);
 }

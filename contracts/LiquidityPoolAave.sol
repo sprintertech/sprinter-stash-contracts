@@ -281,7 +281,7 @@ contract LiquidityPoolAave is LiquidityPool {
         return totalAvailableBorrowsBase;
     }
 
-    function balance(IERC20 token) external view override returns (uint256) {
+    function _balance(IERC20 token) internal view override returns (uint256) {
         address reserveAToken = AAVE_POOL.getReserveAToken(address(token));
         if (reserveAToken == address(0)) {
             return 0;

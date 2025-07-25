@@ -47,7 +47,7 @@ import {
       const GHO_DEC = 10n ** (await gho.decimals());
       const WETH_DEC = 10n ** (await weth.decimals());
 
-      const wethLiquidityPool = (
+      const liquidityPool = (
         await deploy("LiquidityPool", deployer, {},
           weth, admin, mpc_signer, weth
         )
@@ -62,62 +62,62 @@ import {
       ) as MockBorrowSwap;
 
       const LIQUIDITY_ADMIN_ROLE = encodeBytes32String("LIQUIDITY_ADMIN_ROLE");
-      await wethLiquidityPool.connect(admin).grantRole(LIQUIDITY_ADMIN_ROLE, liquidityAdmin);
+      await liquidityPool.connect(admin).grantRole(LIQUIDITY_ADMIN_ROLE, liquidityAdmin);
 
       const WITHDRAW_PROFIT_ROLE = encodeBytes32String("WITHDRAW_PROFIT_ROLE");
-      await wethLiquidityPool.connect(admin).grantRole(WITHDRAW_PROFIT_ROLE, withdrawProfit);
+      await liquidityPool.connect(admin).grantRole(WITHDRAW_PROFIT_ROLE, withdrawProfit);
 
       const PAUSER_ROLE = encodeBytes32String("PAUSER_ROLE");
-      await wethLiquidityPool.connect(admin).grantRole(PAUSER_ROLE, pauser);
+      await liquidityPool.connect(admin).grantRole(PAUSER_ROLE, pauser);
 
       return {deployer, admin, user, user2, mpc_signer, weth, wethOwner, gho, ghoOwner, eurc, eurcOwner,
-        wethLiquidityPool, mockTarget, mockBorrowSwap, EURC_DEC, GHO_DEC, WETH_DEC,
+        liquidityPool, mockTarget, mockBorrowSwap, EURC_DEC, GHO_DEC, WETH_DEC,
         liquidityAdmin, withdrawProfit, pauser};
     };
 
     describe("Initialization", function () {
       it("Should initialize the contract with correct values", async function () {
-        const {wethLiquidityPool, weth, mpc_signer} = await loadFixture(deployAll);
-        expect(await wethLiquidityPool.ASSETS())
+        const {liquidityPool, weth, mpc_signer} = await loadFixture(deployAll);
+        expect(await liquidityPool.ASSETS())
           .to.be.eq(weth.target);
-        expect(await wethLiquidityPool.mpcAddress())
+        expect(await liquidityPool.mpcAddress())
           .to.be.eq(mpc_signer);
-        expect(await wethLiquidityPool.WRAPPED_NATIVE_TOKEN())
+        expect(await liquidityPool.WRAPPED_NATIVE_TOKEN())
           .to.be.eq(weth.target);
       });
     });
 
     describe("Borrow, supply, withdraw", function () {
       it("Should deposit to the pool", async function () {
-        const {wethLiquidityPool, weth, wethOwner, WETH_DEC, liquidityAdmin} = await loadFixture(deployAll);
+        const {liquidityPool, weth, wethOwner, WETH_DEC, liquidityAdmin} = await loadFixture(deployAll);
         const amount = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amount);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amount))
-          .to.emit(wethLiquidityPool, "Deposit").withArgs(liquidityAdmin, amount);
-        expect(await wethLiquidityPool.totalDeposited()).to.eq(amount);
-        expect(await wethLiquidityPool.balance(weth)).to.eq(amount);
-        expect(await wethLiquidityPool.balance(NATIVE_TOKEN)).to.eq(amount);
+        await weth.connect(wethOwner).transfer(liquidityPool, amount);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amount))
+          .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amount);
+        expect(await liquidityPool.totalDeposited()).to.eq(amount);
+        expect(await liquidityPool.balance(weth)).to.eq(amount);
+        expect(await liquidityPool.balance(NATIVE_TOKEN)).to.eq(amount);
       });
 
       it("Should deposit to the pool with pulling funds", async function () {
-        const {wethLiquidityPool, weth, wethOwner, WETH_DEC} = await loadFixture(deployAll);
+        const {liquidityPool, weth, wethOwner, WETH_DEC} = await loadFixture(deployAll);
         const amount = 100n * WETH_DEC;
-        await weth.connect(wethOwner).approve(wethLiquidityPool, amount);
-        await expect(wethLiquidityPool.connect(wethOwner).depositWithPull(amount))
-          .to.emit(wethLiquidityPool, "Deposit").withArgs(wethOwner, amount);
-        expect(await wethLiquidityPool.totalDeposited()).to.eq(amount);
-        expect(await wethLiquidityPool.balance(weth)).to.eq(amount);
-        expect(await wethLiquidityPool.balance(NATIVE_TOKEN)).to.eq(amount);
+        await weth.connect(wethOwner).approve(liquidityPool, amount);
+        await expect(liquidityPool.connect(wethOwner).depositWithPull(amount))
+          .to.emit(liquidityPool, "Deposit").withArgs(wethOwner, amount);
+        expect(await liquidityPool.totalDeposited()).to.eq(amount);
+        expect(await liquidityPool.balance(weth)).to.eq(amount);
+        expect(await liquidityPool.balance(NATIVE_TOKEN)).to.eq(amount);
       });
 
       it("Should borrow a token with contract call", async function () {
         const {
-          wethLiquidityPool, mockTarget, weth, WETH_DEC, user, mpc_signer, wethOwner, liquidityAdmin
+          liquidityPool, mockTarget, weth, WETH_DEC, user, mpc_signer, wethOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
 
         const amountToBorrow = 3n * WETH_DEC;
 
@@ -127,7 +127,7 @@ import {
 
         const signature = await signBorrow(
           mpc_signer,
-          wethLiquidityPool.target as string,
+          liquidityPool.target as string,
           user.address,
           weth.target as string,
           amountToBorrow.toString(),
@@ -136,7 +136,7 @@ import {
           31337
         );
 
-        await expect(wethLiquidityPool.connect(user).borrow(
+        await expect(liquidityPool.connect(user).borrow(
           weth,
           amountToBorrow,
           mockTarget,
@@ -145,23 +145,23 @@ import {
           2000000000n,
           signature))
         .to.emit(mockTarget, "DataReceived").withArgs(additionalData);
-        expect(await weth.balanceOf(wethLiquidityPool)).to.eq(amountLiquidity - amountToBorrow);
-        expect(await getBalance(wethLiquidityPool)).to.eq(0n);
-        expect(await wethLiquidityPool.totalDeposited()).to.eq(amountLiquidity);
+        expect(await weth.balanceOf(liquidityPool)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await getBalance(liquidityPool)).to.eq(0n);
+        expect(await liquidityPool.totalDeposited()).to.eq(amountLiquidity);
         expect(await weth.balanceOf(mockTarget)).to.eq(amountToBorrow);
         expect(await getBalance(mockTarget)).to.eq(0n);
-        expect(await wethLiquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow);
-        expect(await wethLiquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await liquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await liquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow);
       });
 
       it("Should borrow a native token with contract call", async function () {
         const {
-          wethLiquidityPool, mockTarget, weth, WETH_DEC, user, mpc_signer, wethOwner, liquidityAdmin
+          liquidityPool, mockTarget, weth, WETH_DEC, user, mpc_signer, wethOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
 
         const amountToBorrow = 3n * WETH_DEC;
 
@@ -171,7 +171,7 @@ import {
 
         const signature = await signBorrow(
           mpc_signer,
-          wethLiquidityPool.target as string,
+          liquidityPool.target as string,
           user.address,
           NATIVE_TOKEN,
           amountToBorrow.toString(),
@@ -180,7 +180,7 @@ import {
           31337
         );
 
-        await expect(wethLiquidityPool.connect(user).borrow(
+        await expect(liquidityPool.connect(user).borrow(
           NATIVE_TOKEN,
           amountToBorrow,
           mockTarget,
@@ -189,25 +189,25 @@ import {
           2000000000n,
           signature))
         .to.emit(mockTarget, "DataReceived").withArgs(additionalData);
-        expect(await weth.balanceOf(wethLiquidityPool)).to.eq(amountLiquidity - amountToBorrow);
-        expect(await getBalance(wethLiquidityPool)).to.eq(0n);
-        expect(await wethLiquidityPool.totalDeposited()).to.eq(amountLiquidity);
+        expect(await weth.balanceOf(liquidityPool)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await getBalance(liquidityPool)).to.eq(0n);
+        expect(await liquidityPool.totalDeposited()).to.eq(amountLiquidity);
         expect(await weth.balanceOf(mockTarget)).to.eq(0n);
         expect(await getBalance(mockTarget)).to.eq(amountToBorrow);
-        expect(await wethLiquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow);
-        expect(await wethLiquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await liquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await liquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow);
       });
 
       it("Should borrow a token with swap", async function () {
         // WETH is borrowed and swapped to EURC
         const {
-          wethLiquidityPool, mockTarget, mockBorrowSwap, weth, WETH_DEC,
+          liquidityPool, mockTarget, mockBorrowSwap, weth, WETH_DEC,
           user, mpc_signer, wethOwner, eurc, EURC_DEC, eurcOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
 
         const amountToBorrow = 3n * WETH_DEC;
         const fillAmount = 200n * EURC_DEC;
@@ -223,7 +223,7 @@ import {
 
         const signature = await signBorrow(
           mpc_signer,
-          wethLiquidityPool.target as string,
+          liquidityPool.target as string,
           mockBorrowSwap.target as string,
           weth.target as string,
           amountToBorrow.toString(),
@@ -232,7 +232,7 @@ import {
           31337
         );
 
-        const borrowCalldata = await wethLiquidityPool.borrowAndSwap.populateTransaction(
+        const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
           weth,
           amountToBorrow,
           {fillToken: eurc, fillAmount, swapData},
@@ -243,27 +243,27 @@ import {
           signature
         );
 
-        await expect(mockBorrowSwap.connect(user).callBorrow(wethLiquidityPool, borrowCalldata.data))
+        await expect(mockBorrowSwap.connect(user).callBorrow(liquidityPool, borrowCalldata.data))
           .to.emit(mockBorrowSwap, "Swapped").withArgs(swapData)
           .and.to.emit(mockTarget, "DataReceived").withArgs(additionalData);
-        expect(await weth.balanceOf(wethLiquidityPool)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await weth.balanceOf(liquidityPool)).to.eq(amountLiquidity - amountToBorrow);
         expect(await weth.balanceOf(mockBorrowSwap)).to.eq(amountToBorrow);
-        expect(await eurc.balanceOf(wethLiquidityPool)).to.eq(0);
+        expect(await eurc.balanceOf(liquidityPool)).to.eq(0);
         expect(await eurc.balanceOf(mockTarget)).to.eq(fillAmount);
-        expect(await wethLiquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow);
-        expect(await wethLiquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await liquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await liquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow);
       });
 
       it("Should borrow a token with swap and native fill", async function () {
         // WETH is borrowed and swapped to ETH
         const {
-          wethLiquidityPool, mockTarget, mockBorrowSwap, weth, WETH_DEC,
+          liquidityPool, mockTarget, mockBorrowSwap, weth, WETH_DEC,
           user, mpc_signer, wethOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
 
         const amountToBorrow = 3n * WETH_DEC;
         const fillAmount = 1n * ETH;
@@ -279,7 +279,7 @@ import {
 
         const signature = await signBorrow(
           mpc_signer,
-          wethLiquidityPool.target as string,
+          liquidityPool.target as string,
           mockBorrowSwap.target as string,
           weth.target as string,
           amountToBorrow.toString(),
@@ -288,7 +288,7 @@ import {
           31337
         );
 
-        const borrowCalldata = await wethLiquidityPool.borrowAndSwap.populateTransaction(
+        const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
           weth,
           amountToBorrow,
           {fillToken: NATIVE_TOKEN, fillAmount, swapData},
@@ -299,28 +299,28 @@ import {
           signature
         );
 
-        await expect(mockBorrowSwap.connect(user).callBorrow(wethLiquidityPool, borrowCalldata.data))
+        await expect(mockBorrowSwap.connect(user).callBorrow(liquidityPool, borrowCalldata.data))
           .to.emit(mockBorrowSwap, "Swapped").withArgs(swapData)
           .and.to.emit(mockTarget, "DataReceived").withArgs(additionalData);
-        expect(await weth.balanceOf(wethLiquidityPool)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await weth.balanceOf(liquidityPool)).to.eq(amountLiquidity - amountToBorrow);
         expect(await weth.balanceOf(mockBorrowSwap)).to.eq(amountToBorrow);
-        expect(await getBalance(wethLiquidityPool)).to.eq(0);
+        expect(await getBalance(liquidityPool)).to.eq(0);
         expect(await getBalance(mockTarget)).to.eq(fillAmount);
         expect(await getBalance(mockBorrowSwap)).to.eq(0);
-        expect(await wethLiquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow);
-        expect(await wethLiquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await liquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await liquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow);
       });
 
       it("Should NOT borrow a native token with swap", async function () {
-        // WETH is borrowed and swapped to ETH
+        // ETH is borrowed and swapped to ETH
         const {
-          wethLiquidityPool, mockTarget, weth, WETH_DEC,
+          liquidityPool, mockTarget, weth, WETH_DEC,
           user, mpc_signer, wethOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
 
         const amountToBorrow = 3n * WETH_DEC;
         const fillAmount = 1n * ETH;
@@ -335,7 +335,7 @@ import {
 
         const signature = await signBorrow(
           mpc_signer,
-          wethLiquidityPool.target as string,
+          liquidityPool.target as string,
           user.address as string,
           NATIVE_TOKEN,
           amountToBorrow.toString(),
@@ -344,7 +344,7 @@ import {
           31337
         );
 
-        await expect(wethLiquidityPool.connect(user).borrowAndSwap(
+        await expect(liquidityPool.connect(user).borrowAndSwap(
           NATIVE_TOKEN,
           amountToBorrow,
           {fillToken: NATIVE_TOKEN, fillAmount, swapData},
@@ -353,9 +353,9 @@ import {
           0n,
           2000000000n,
           signature
-        )).to.be.revertedWithCustomError(wethLiquidityPool, "NativeBorrowDenied");
+        )).to.be.revertedWithCustomError(liquidityPool, "NativeBorrowDenied");
 
-        await expect(wethLiquidityPool.connect(user).borrowAndSwap(
+        await expect(liquidityPool.connect(user).borrowAndSwap(
           NATIVE_TOKEN,
           amountToBorrow,
           {fillToken: weth, fillAmount, swapData},
@@ -364,19 +364,19 @@ import {
           0n,
           2000000000n,
           signature
-        )).to.be.revertedWithCustomError(wethLiquidityPool, "NativeBorrowDenied");
+        )).to.be.revertedWithCustomError(liquidityPool, "NativeBorrowDenied");
       });
 
       it("Should revert borrow if swap with native fill returned insufficient amount", async function () {
         // WETH is borrowed and swapped to ETH
         const {
-          wethLiquidityPool, mockTarget, weth, WETH_DEC, mockBorrowSwap,
+          liquidityPool, mockTarget, weth, WETH_DEC, mockBorrowSwap,
           user, mpc_signer, wethOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
 
         const amountToBorrow = 3n * WETH_DEC;
         const fillAmount = 1n * ETH;
@@ -391,7 +391,7 @@ import {
 
         const signature = await signBorrow(
           mpc_signer,
-          wethLiquidityPool.target as string,
+          liquidityPool.target as string,
           mockBorrowSwap.target as string,
           weth.target as string,
           amountToBorrow.toString(),
@@ -400,7 +400,7 @@ import {
           31337
         );
 
-        const borrowCalldata = await wethLiquidityPool.borrowAndSwap.populateTransaction(
+        const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
           weth,
           amountToBorrow,
           {fillToken: NATIVE_TOKEN, fillAmount, swapData},
@@ -412,20 +412,20 @@ import {
         );
 
         await expect(mockBorrowSwap.connect(user).callBorrowBubbleRevert(
-          wethLiquidityPool, borrowCalldata.data
-        )).to.be.revertedWithCustomError(wethLiquidityPool, "InsufficientSwapResult");
+          liquidityPool, borrowCalldata.data
+        )).to.be.revertedWithCustomError(liquidityPool, "InsufficientSwapResult");
       });
 
       it("Should borrow with swap with native fill if returned extra amount", async function () {
         // WETH is borrowed and swapped to ETH
         const {
-          wethLiquidityPool, mockTarget, weth, WETH_DEC, mockBorrowSwap,
+          liquidityPool, mockTarget, weth, WETH_DEC, mockBorrowSwap,
           user, mpc_signer, wethOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
 
         const amountToBorrow = 3n * WETH_DEC;
         const fillAmount = 1n * ETH;
@@ -441,7 +441,7 @@ import {
 
         const signature = await signBorrow(
           mpc_signer,
-          wethLiquidityPool.target as string,
+          liquidityPool.target as string,
           mockBorrowSwap.target  as string,
           weth.target as string,
           amountToBorrow.toString(),
@@ -450,7 +450,7 @@ import {
           31337
         );
 
-        const borrowCalldata = await wethLiquidityPool.borrowAndSwap.populateTransaction(
+        const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
           weth,
           amountToBorrow,
           {fillToken: NATIVE_TOKEN, fillAmount, swapData},
@@ -461,26 +461,26 @@ import {
           signature
         );
 
-        await expect(mockBorrowSwap.connect(user).callBorrow(wethLiquidityPool, borrowCalldata.data))
+        await expect(mockBorrowSwap.connect(user).callBorrow(liquidityPool, borrowCalldata.data))
           .to.emit(mockBorrowSwap, "Swapped").withArgs(swapData)
           .and.to.emit(mockTarget, "DataReceived").withArgs(additionalData);
-        expect(await weth.balanceOf(wethLiquidityPool)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await weth.balanceOf(liquidityPool)).to.eq(amountLiquidity - amountToBorrow);
         expect(await weth.balanceOf(mockBorrowSwap)).to.eq(amountToBorrow - returnedAmount);
-        expect(await getBalance(wethLiquidityPool)).to.eq(returnedAmount - fillAmount);
+        expect(await getBalance(liquidityPool)).to.eq(returnedAmount - fillAmount);
         expect(await getBalance(mockTarget)).to.eq(fillAmount);
         expect(await getBalance(mockBorrowSwap)).to.eq(0);
-        expect(await wethLiquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow);
-        expect(await wethLiquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await liquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await liquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow);
       });
 
       it("Should borrow many tokens [weth, weth] with contract call", async function () {
         const {
-          wethLiquidityPool, mockTarget, weth, WETH_DEC, user, mpc_signer, wethOwner, liquidityAdmin
+          liquidityPool, mockTarget, weth, WETH_DEC, user, mpc_signer, wethOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
 
         const amountToBorrow = 3n * WETH_DEC;
         const amountToBorrow2 = 4n * WETH_DEC;
@@ -493,7 +493,7 @@ import {
 
         const signature = await signBorrowMany(
           mpc_signer,
-          wethLiquidityPool,
+          liquidityPool,
           user,
           [weth, weth],
           [amountToBorrow, amountToBorrow2],
@@ -502,7 +502,7 @@ import {
           31337
         );
 
-        await expect(wethLiquidityPool.connect(user).borrowMany(
+        await expect(liquidityPool.connect(user).borrowMany(
           [weth, weth],
           [amountToBorrow, amountToBorrow2],
           mockTarget,
@@ -511,21 +511,21 @@ import {
           2000000000n,
           signature))
         .to.emit(mockTarget, "DataReceived").withArgs(additionalData);
-        expect(await weth.balanceOf(wethLiquidityPool)).to.eq(amountLiquidity - amountToBorrow2);
-        expect(await wethLiquidityPool.totalDeposited()).to.eq(amountLiquidity);
+        expect(await weth.balanceOf(liquidityPool)).to.eq(amountLiquidity - amountToBorrow2);
+        expect(await liquidityPool.totalDeposited()).to.eq(amountLiquidity);
         expect(await weth.balanceOf(mockTarget)).to.eq(amountToBorrow2);
-        expect(await wethLiquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow2);
-        expect(await wethLiquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow2);
+        expect(await liquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow2);
+        expect(await liquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow2);
       });
 
       it("Should borrow many tokens [weth, native] with contract call", async function () {
         const {
-          wethLiquidityPool, mockTarget, weth, WETH_DEC, user, mpc_signer, wethOwner, liquidityAdmin
+          liquidityPool, mockTarget, weth, WETH_DEC, user, mpc_signer, wethOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
 
         const amountToBorrow = 3n * WETH_DEC;
         const amountToBorrow2 = 4n * ETH;
@@ -540,7 +540,7 @@ import {
 
         const signature = await signBorrowMany(
           mpc_signer,
-          wethLiquidityPool,
+          liquidityPool,
           user,
           [weth, NATIVE_TOKEN],
           [amountToBorrow, amountToBorrow2],
@@ -549,7 +549,7 @@ import {
           31337
         );
 
-        await expect(wethLiquidityPool.connect(user).borrowMany(
+        await expect(liquidityPool.connect(user).borrowMany(
           [weth, NATIVE_TOKEN],
           [amountToBorrow, amountToBorrow2],
           mockTarget,
@@ -558,23 +558,23 @@ import {
           2000000000n,
           signature))
         .to.emit(mockTarget, "DataReceived").withArgs(additionalData);
-        expect(await weth.balanceOf(wethLiquidityPool)).to.eq(amountLiquidity - amountToBorrow - amountToBorrow2);
-        expect(await wethLiquidityPool.totalDeposited()).to.eq(amountLiquidity);
+        expect(await weth.balanceOf(liquidityPool)).to.eq(amountLiquidity - amountToBorrow - amountToBorrow2);
+        expect(await liquidityPool.totalDeposited()).to.eq(amountLiquidity);
         expect(await weth.balanceOf(mockTarget)).to.eq(amountToBorrow);
-        expect(await getBalance(wethLiquidityPool)).to.eq(0);
+        expect(await getBalance(liquidityPool)).to.eq(0);
         expect(await getBalance(mockTarget)).to.eq(amountToBorrow2);
-        expect(await wethLiquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow - amountToBorrow2);
-        expect(await wethLiquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow - amountToBorrow2);
+        expect(await liquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow - amountToBorrow2);
+        expect(await liquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow - amountToBorrow2);
       });
 
       it("Should borrow many tokens [native, weth] with contract call", async function () {
         const {
-          wethLiquidityPool, mockTarget, weth, WETH_DEC, user, mpc_signer, wethOwner, liquidityAdmin
+          liquidityPool, mockTarget, weth, WETH_DEC, user, mpc_signer, wethOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
 
         const amountToBorrow = 3n * WETH_DEC;
         const amountToBorrow2 = 4n * ETH;
@@ -589,7 +589,7 @@ import {
 
         const signature = await signBorrowMany(
           mpc_signer,
-          wethLiquidityPool,
+          liquidityPool,
           user,
           [NATIVE_TOKEN, weth],
           [amountToBorrow2, amountToBorrow],
@@ -598,7 +598,7 @@ import {
           31337
         );
 
-        await expect(wethLiquidityPool.connect(user).borrowMany(
+        await expect(liquidityPool.connect(user).borrowMany(
           [NATIVE_TOKEN, weth],
           [amountToBorrow2, amountToBorrow],
           mockTarget,
@@ -607,23 +607,23 @@ import {
           2000000000n,
           signature))
         .to.emit(mockTarget, "DataReceived").withArgs(additionalData);
-        expect(await weth.balanceOf(wethLiquidityPool)).to.eq(amountLiquidity - amountToBorrow - amountToBorrow2);
-        expect(await wethLiquidityPool.totalDeposited()).to.eq(amountLiquidity);
+        expect(await weth.balanceOf(liquidityPool)).to.eq(amountLiquidity - amountToBorrow - amountToBorrow2);
+        expect(await liquidityPool.totalDeposited()).to.eq(amountLiquidity);
         expect(await weth.balanceOf(mockTarget)).to.eq(amountToBorrow);
-        expect(await getBalance(wethLiquidityPool)).to.eq(0);
+        expect(await getBalance(liquidityPool)).to.eq(0);
         expect(await getBalance(mockTarget)).to.eq(amountToBorrow2);
-        expect(await wethLiquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow - amountToBorrow2);
-        expect(await wethLiquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow - amountToBorrow2);
+        expect(await liquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow - amountToBorrow2);
+        expect(await liquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow - amountToBorrow2);
       });
 
       it("Should borrow many tokens [native, weth, native] with contract call", async function () {
         const {
-          wethLiquidityPool, mockTarget, weth, WETH_DEC, user, mpc_signer, wethOwner, liquidityAdmin
+          liquidityPool, mockTarget, weth, WETH_DEC, user, mpc_signer, wethOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
 
         const amountToBorrow = 3n * WETH_DEC;
         const amountToBorrow2 = 4n * ETH;
@@ -639,7 +639,7 @@ import {
 
         const signature = await signBorrowMany(
           mpc_signer,
-          wethLiquidityPool,
+          liquidityPool,
           user,
           [NATIVE_TOKEN, weth, NATIVE_TOKEN],
           [amountToBorrow2, amountToBorrow, amountToBorrow3],
@@ -648,7 +648,7 @@ import {
           31337
         );
 
-        await expect(wethLiquidityPool.connect(user).borrowMany(
+        await expect(liquidityPool.connect(user).borrowMany(
           [NATIVE_TOKEN, weth, NATIVE_TOKEN],
           [amountToBorrow2, amountToBorrow, amountToBorrow3],
           mockTarget,
@@ -658,25 +658,25 @@ import {
           signature))
         .to.emit(mockTarget, "DataReceived").withArgs(additionalData);
         const remainingLiquidity = amountLiquidity - amountToBorrow - amountToBorrow2 - amountToBorrow3;
-        expect(await weth.balanceOf(wethLiquidityPool)).to.eq(remainingLiquidity);
-        expect(await wethLiquidityPool.totalDeposited()).to.eq(amountLiquidity);
+        expect(await weth.balanceOf(liquidityPool)).to.eq(remainingLiquidity);
+        expect(await liquidityPool.totalDeposited()).to.eq(amountLiquidity);
         expect(await weth.balanceOf(mockTarget)).to.eq(amountToBorrow);
-        expect(await getBalance(wethLiquidityPool)).to.eq(0);
+        expect(await getBalance(liquidityPool)).to.eq(0);
         expect(await getBalance(mockTarget)).to.eq(amountToBorrow2 + amountToBorrow3);
-        expect(await wethLiquidityPool.balance(weth)).to.eq(remainingLiquidity);
-        expect(await wethLiquidityPool.balance(NATIVE_TOKEN)).to.eq(remainingLiquidity);
+        expect(await liquidityPool.balance(weth)).to.eq(remainingLiquidity);
+        expect(await liquidityPool.balance(NATIVE_TOKEN)).to.eq(remainingLiquidity);
       });
 
       it("Should borrow many tokens with swap", async function () {
         // WETH is borrowed and swapped to EURC
         const {
-          wethLiquidityPool, mockTarget, mockBorrowSwap, weth, WETH_DEC,
+          liquidityPool, mockTarget, mockBorrowSwap, weth, WETH_DEC,
           user, mpc_signer, wethOwner, eurc, EURC_DEC, eurcOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
 
         const amountToBorrow = 3n * WETH_DEC;
         const fillAmount = 200n * EURC_DEC;
@@ -692,7 +692,7 @@ import {
 
         const signature = await signBorrowMany(
           mpc_signer,
-          wethLiquidityPool,
+          liquidityPool,
           mockBorrowSwap,
           [weth],
           [amountToBorrow],
@@ -701,7 +701,7 @@ import {
           31337
         );
 
-        const borrowCalldata = await wethLiquidityPool.borrowAndSwapMany.populateTransaction(
+        const borrowCalldata = await liquidityPool.borrowAndSwapMany.populateTransaction(
           [weth],
           [amountToBorrow],
           {fillToken: eurc, fillAmount, swapData},
@@ -712,27 +712,27 @@ import {
           signature
         );
 
-        await expect(mockBorrowSwap.connect(user).callBorrow(wethLiquidityPool, borrowCalldata.data))
+        await expect(mockBorrowSwap.connect(user).callBorrow(liquidityPool, borrowCalldata.data))
           .to.emit(mockBorrowSwap, "Swapped").withArgs(swapData)
           .and.to.emit(mockTarget, "DataReceived").withArgs(additionalData);
-        expect(await weth.balanceOf(wethLiquidityPool)).to.be.lessThan(amountLiquidity);
+        expect(await weth.balanceOf(liquidityPool)).to.be.lessThan(amountLiquidity);
         expect(await weth.balanceOf(mockBorrowSwap)).to.eq(amountToBorrow);
-        expect(await eurc.balanceOf(wethLiquidityPool)).to.eq(0);
+        expect(await eurc.balanceOf(liquidityPool)).to.eq(0);
         expect(await eurc.balanceOf(mockTarget)).to.eq(fillAmount);
-        expect(await wethLiquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow);
-        expect(await wethLiquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await liquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await liquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow);
       });
 
       it("Should borrow many tokens with swap and native fill", async function () {
         // WETH is borrowed and swapped to ETH
         const {
-          wethLiquidityPool, mockTarget, mockBorrowSwap, weth, WETH_DEC,
+          liquidityPool, mockTarget, mockBorrowSwap, weth, WETH_DEC,
           user, mpc_signer, wethOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
 
         const amountToBorrow = 3n * WETH_DEC;
         const fillAmount = 1n * ETH;
@@ -748,7 +748,7 @@ import {
 
         const signature = await signBorrowMany(
           mpc_signer,
-          wethLiquidityPool,
+          liquidityPool,
           mockBorrowSwap,
           [weth],
           [amountToBorrow],
@@ -757,7 +757,7 @@ import {
           31337
         );
 
-        const borrowCalldata = await wethLiquidityPool.borrowAndSwapMany.populateTransaction(
+        const borrowCalldata = await liquidityPool.borrowAndSwapMany.populateTransaction(
           [weth],
           [amountToBorrow],
           {fillToken: NATIVE_TOKEN, fillAmount, swapData},
@@ -768,28 +768,28 @@ import {
           signature
         );
 
-        await expect(mockBorrowSwap.connect(user).callBorrow(wethLiquidityPool, borrowCalldata.data))
+        await expect(mockBorrowSwap.connect(user).callBorrow(liquidityPool, borrowCalldata.data))
           .to.emit(mockBorrowSwap, "Swapped").withArgs(swapData)
           .and.to.emit(mockTarget, "DataReceived").withArgs(additionalData);
-        expect(await weth.balanceOf(wethLiquidityPool)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await weth.balanceOf(liquidityPool)).to.eq(amountLiquidity - amountToBorrow);
         expect(await weth.balanceOf(mockBorrowSwap)).to.eq(amountToBorrow);
-        expect(await getBalance(wethLiquidityPool)).to.eq(0);
+        expect(await getBalance(liquidityPool)).to.eq(0);
         expect(await getBalance(mockTarget)).to.eq(fillAmount);
         expect(await getBalance(mockBorrowSwap)).to.eq(0);
-        expect(await wethLiquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow);
-        expect(await wethLiquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await liquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await liquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow);
       });
 
       it("Should NOT borrow many tokens with native with swap", async function () {
         // ETH is borrowed and swapped
         const {
-          wethLiquidityPool, mockTarget, mockBorrowSwap, weth, WETH_DEC,
+          liquidityPool, mockTarget, mockBorrowSwap, weth, WETH_DEC,
           user, mpc_signer, wethOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
 
         const amountToBorrow = 3n * WETH_DEC;
         const fillAmount = 1n * ETH;
@@ -805,7 +805,7 @@ import {
 
         let signature = await signBorrowMany(
           mpc_signer,
-          wethLiquidityPool,
+          liquidityPool,
           user,
           [NATIVE_TOKEN],
           [amountToBorrow],
@@ -814,7 +814,7 @@ import {
           31337
         );
 
-        await expect(wethLiquidityPool.connect(user).borrowAndSwapMany(
+        await expect(liquidityPool.connect(user).borrowAndSwapMany(
           [NATIVE_TOKEN],
           [amountToBorrow],
           {fillToken: NATIVE_TOKEN, fillAmount, swapData},
@@ -823,11 +823,11 @@ import {
           0n,
           2000000000n,
           signature
-        )).to.be.revertedWithCustomError(wethLiquidityPool, "NativeBorrowDenied");
+        )).to.be.revertedWithCustomError(liquidityPool, "NativeBorrowDenied");
 
         signature = await signBorrowMany(
           mpc_signer,
-          wethLiquidityPool,
+          liquidityPool,
           user,
           [weth, NATIVE_TOKEN],
           [amountToBorrow, amountToBorrow],
@@ -836,7 +836,7 @@ import {
           31337
         );
 
-        await expect(wethLiquidityPool.connect(user).borrowAndSwapMany(
+        await expect(liquidityPool.connect(user).borrowAndSwapMany(
           [weth, NATIVE_TOKEN],
           [amountToBorrow, amountToBorrow],
           {fillToken: weth, fillAmount, swapData},
@@ -845,11 +845,11 @@ import {
           0n,
           2000000000n,
           signature
-        )).to.be.revertedWithCustomError(wethLiquidityPool, "NativeBorrowDenied");
+        )).to.be.revertedWithCustomError(liquidityPool, "NativeBorrowDenied");
 
         signature = await signBorrowMany(
           mpc_signer,
-          wethLiquidityPool,
+          liquidityPool,
           user,
           [NATIVE_TOKEN, weth],
           [amountToBorrow, amountToBorrow],
@@ -858,7 +858,7 @@ import {
           31337
         );
 
-        await expect(wethLiquidityPool.connect(user).borrowAndSwapMany(
+        await expect(liquidityPool.connect(user).borrowAndSwapMany(
           [NATIVE_TOKEN, weth],
           [amountToBorrow, amountToBorrow],
           {fillToken: weth, fillAmount, swapData},
@@ -867,19 +867,19 @@ import {
           0n,
           2000000000n,
           signature
-        )).to.be.revertedWithCustomError(wethLiquidityPool, "NativeBorrowDenied");
+        )).to.be.revertedWithCustomError(liquidityPool, "NativeBorrowDenied");
       });
 
       it("Should revert borrow many if swap with native fill returned insufficient amount", async function () {
         // WETH is borrowed and swapped to ETH
         const {
-          wethLiquidityPool, mockTarget, weth, WETH_DEC, mockBorrowSwap,
+          liquidityPool, mockTarget, weth, WETH_DEC, mockBorrowSwap,
           user, mpc_signer, wethOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
 
         const amountToBorrow = 3n * WETH_DEC;
         const fillAmount = 1n * ETH;
@@ -894,7 +894,7 @@ import {
 
         const signature = await signBorrowMany(
           mpc_signer,
-          wethLiquidityPool,
+          liquidityPool,
           mockBorrowSwap,
           [weth],
           [amountToBorrow],
@@ -903,7 +903,7 @@ import {
           31337
         );
 
-        const borrowCalldata = await wethLiquidityPool.borrowAndSwapMany.populateTransaction(
+        const borrowCalldata = await liquidityPool.borrowAndSwapMany.populateTransaction(
           [weth],
           [amountToBorrow],
           {fillToken: NATIVE_TOKEN, fillAmount, swapData},
@@ -915,20 +915,20 @@ import {
         );
 
         await expect(mockBorrowSwap.connect(user).callBorrowBubbleRevert(
-          wethLiquidityPool, borrowCalldata.data
-        )).to.be.revertedWithCustomError(wethLiquidityPool, "InsufficientSwapResult");
+          liquidityPool, borrowCalldata.data
+        )).to.be.revertedWithCustomError(liquidityPool, "InsufficientSwapResult");
       });
 
       it("Should borrow many with swap with native fill if returned extra amount", async function () {
         // WETH is borrowed and swapped to ETH
         const {
-          wethLiquidityPool, mockTarget, weth, WETH_DEC, mockBorrowSwap,
+          liquidityPool, mockTarget, weth, WETH_DEC, mockBorrowSwap,
           user, mpc_signer, wethOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
 
         const amountToBorrow = 3n * WETH_DEC;
         const fillAmount = 1n * ETH;
@@ -944,7 +944,7 @@ import {
 
         const signature = await signBorrowMany(
           mpc_signer,
-          wethLiquidityPool,
+          liquidityPool,
           mockBorrowSwap,
           [weth],
           [amountToBorrow],
@@ -953,7 +953,7 @@ import {
           31337
         );
 
-        const borrowCalldata = await wethLiquidityPool.borrowAndSwapMany.populateTransaction(
+        const borrowCalldata = await liquidityPool.borrowAndSwapMany.populateTransaction(
           [weth],
           [amountToBorrow],
           {fillToken: NATIVE_TOKEN, fillAmount, swapData},
@@ -964,140 +964,140 @@ import {
           signature
         );
 
-        await expect(mockBorrowSwap.connect(user).callBorrow(wethLiquidityPool, borrowCalldata.data))
+        await expect(mockBorrowSwap.connect(user).callBorrow(liquidityPool, borrowCalldata.data))
           .to.emit(mockBorrowSwap, "Swapped").withArgs(swapData)
           .and.to.emit(mockTarget, "DataReceived").withArgs(additionalData);
-        expect(await weth.balanceOf(wethLiquidityPool)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await weth.balanceOf(liquidityPool)).to.eq(amountLiquidity - amountToBorrow);
         expect(await weth.balanceOf(mockBorrowSwap)).to.eq(amountToBorrow - returnedAmount);
-        expect(await getBalance(wethLiquidityPool)).to.eq(returnedAmount - fillAmount);
+        expect(await getBalance(liquidityPool)).to.eq(returnedAmount - fillAmount);
         expect(await getBalance(mockTarget)).to.eq(fillAmount);
         expect(await getBalance(mockBorrowSwap)).to.eq(0);
-        expect(await wethLiquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow);
-        expect(await wethLiquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await liquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await liquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow);
       });
 
       it("Should deposit when the contract is paused", async function () {
-        const {wethLiquidityPool, pauser, weth, wethOwner, WETH_DEC, liquidityAdmin} = await loadFixture(deployAll);
-        await expect(wethLiquidityPool.connect(pauser).pause())
-          .to.emit(wethLiquidityPool, "Paused");
+        const {liquidityPool, pauser, weth, wethOwner, WETH_DEC, liquidityAdmin} = await loadFixture(deployAll);
+        await expect(liquidityPool.connect(pauser).pause())
+          .to.emit(liquidityPool, "Paused");
         const amountLiquidity = 10n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit");
-        await weth.connect(wethOwner).approve(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(wethOwner).depositWithPull(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit").withArgs(wethOwner, amountLiquidity);
-        expect(await wethLiquidityPool.balance(weth)).to.eq(amountLiquidity + amountLiquidity);
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit");
+        await weth.connect(wethOwner).approve(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(wethOwner).depositWithPull(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit").withArgs(wethOwner, amountLiquidity);
+        expect(await liquidityPool.balance(weth)).to.eq(amountLiquidity + amountLiquidity);
       });
 
       it("Should withdraw liquidity", async function () {
         const {
-          wethLiquidityPool, weth, wethOwner, WETH_DEC, user, liquidityAdmin
+          liquidityPool, weth, wethOwner, WETH_DEC, user, liquidityAdmin
         } = await loadFixture(deployAll);
         const amount = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amount);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amount))
-          .to.emit(wethLiquidityPool, "Deposit").withArgs(liquidityAdmin, amount);
-        expect(await wethLiquidityPool.totalDeposited()).to.eq(amount);
+        await weth.connect(wethOwner).transfer(liquidityPool, amount);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amount))
+          .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amount);
+        expect(await liquidityPool.totalDeposited()).to.eq(amount);
 
-        await expect(wethLiquidityPool.connect(liquidityAdmin).withdraw(user, amount))
-          .to.emit(wethLiquidityPool, "Withdraw").withArgs(liquidityAdmin, user.address, amount);
+        await expect(liquidityPool.connect(liquidityAdmin).withdraw(user, amount))
+          .to.emit(liquidityPool, "Withdraw").withArgs(liquidityAdmin, user.address, amount);
         expect(await weth.balanceOf(user)).to.eq(amount);
-        expect(await weth.balanceOf(wethLiquidityPool)).to.eq(0);
-        expect(await wethLiquidityPool.totalDeposited()).to.eq(0);
-        expect(await wethLiquidityPool.balance(weth)).to.eq(0);
+        expect(await weth.balanceOf(liquidityPool)).to.eq(0);
+        expect(await liquidityPool.totalDeposited()).to.eq(0);
+        expect(await liquidityPool.balance(weth)).to.eq(0);
       });
 
       it("Should withdraw profit for multiple tokens from the pool", async function () {
         const {
-          wethLiquidityPool, eurc, gho, EURC_DEC, GHO_DEC, eurcOwner, ghoOwner, withdrawProfit, user
+          liquidityPool, eurc, gho, EURC_DEC, GHO_DEC, eurcOwner, ghoOwner, withdrawProfit, user
         } = await loadFixture(deployAll);
         const amountEURC = 1n * EURC_DEC;
         const amountGHO = 1n * GHO_DEC;
-        await eurc.connect(eurcOwner).transfer(wethLiquidityPool, amountEURC);
-        await gho.connect(ghoOwner).transfer(wethLiquidityPool, amountGHO);
-        await expect(wethLiquidityPool.connect(withdrawProfit).withdrawProfit([eurc, gho], user))
-          .to.emit(wethLiquidityPool, "ProfitWithdrawn").withArgs(eurc.target, user.address, amountEURC)
-          .and.to.emit(wethLiquidityPool, "ProfitWithdrawn").withArgs(gho.target, user.address, amountGHO);
+        await eurc.connect(eurcOwner).transfer(liquidityPool, amountEURC);
+        await gho.connect(ghoOwner).transfer(liquidityPool, amountGHO);
+        await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([eurc, gho], user))
+          .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(eurc.target, user.address, amountEURC)
+          .and.to.emit(liquidityPool, "ProfitWithdrawn").withArgs(gho.target, user.address, amountGHO);
         expect(await eurc.balanceOf(user)).to.eq(amountEURC);
         expect(await gho.balanceOf(user)).to.eq(amountGHO);
       });
 
       it("Should withdraw liquidity as profit from the pool", async function () {
         const {
-          wethLiquidityPool, weth, WETH_DEC, wethOwner, withdrawProfit, liquidityAdmin, user
+          liquidityPool, weth, WETH_DEC, wethOwner, withdrawProfit, liquidityAdmin, user
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit");
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit");
         const amountProfit = 2n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountProfit);
-        expect(await wethLiquidityPool.balance(weth)).to.eq(amountLiquidity + amountProfit);
-        expect(await wethLiquidityPool.totalDeposited()).to.eq(amountLiquidity);
-        await expect(wethLiquidityPool.connect(withdrawProfit).withdrawProfit([weth], user))
-          .to.emit(wethLiquidityPool, "ProfitWithdrawn").withArgs(weth.target, user.address, amountProfit);
+        await weth.connect(wethOwner).transfer(liquidityPool, amountProfit);
+        expect(await liquidityPool.balance(weth)).to.eq(amountLiquidity + amountProfit);
+        expect(await liquidityPool.totalDeposited()).to.eq(amountLiquidity);
+        await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([weth], user))
+          .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(weth.target, user.address, amountProfit);
         expect(await weth.balanceOf(user)).to.eq(amountProfit);
-        expect(await weth.balanceOf(wethLiquidityPool)).to.eq(amountLiquidity);
-        expect(await wethLiquidityPool.totalDeposited()).to.eq(amountLiquidity);
-        expect(await wethLiquidityPool.balance(weth)).to.eq(amountLiquidity);
+        expect(await weth.balanceOf(liquidityPool)).to.eq(amountLiquidity);
+        expect(await liquidityPool.totalDeposited()).to.eq(amountLiquidity);
+        expect(await liquidityPool.balance(weth)).to.eq(amountLiquidity);
       });
 
       it("Should withdraw all available balance as profit ", async function () {
-        const {wethLiquidityPool, weth, WETH_DEC, wethOwner, withdrawProfit, user} = await loadFixture(deployAll);
+        const {liquidityPool, weth, WETH_DEC, wethOwner, withdrawProfit, user} = await loadFixture(deployAll);
         const amount = 2n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amount);
-        await expect(wethLiquidityPool.connect(withdrawProfit).withdrawProfit([weth], user))
-          .to.emit(wethLiquidityPool, "ProfitWithdrawn").withArgs(weth.target, user.address, amount);
+        await weth.connect(wethOwner).transfer(liquidityPool, amount);
+        await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([weth], user))
+          .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(weth.target, user.address, amount);
         expect(await weth.balanceOf(user)).to.eq(amount);
-        expect(await wethLiquidityPool.balance(weth)).to.eq(0);
+        expect(await liquidityPool.balance(weth)).to.eq(0);
       });
 
       it("Should withdraw all native balance as profit ", async function () {
         const {
-          admin, wethLiquidityPool, weth, WETH_DEC,
+          admin, liquidityPool, weth, WETH_DEC,
           withdrawProfit, user
         } = await loadFixture(deployAll);
         const amount = 2n * WETH_DEC;
-        await admin.sendTransaction({to: wethLiquidityPool, value: amount});
-        await expect(wethLiquidityPool.connect(withdrawProfit).withdrawProfit([weth], user))
-          .to.emit(wethLiquidityPool, "ProfitWithdrawn").withArgs(weth.target, user.address, amount);
+        await admin.sendTransaction({to: liquidityPool, value: amount});
+        await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([weth], user))
+          .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(weth.target, user.address, amount);
         expect(await weth.balanceOf(user)).to.eq(amount);
-        expect(await wethLiquidityPool.balance(weth)).to.eq(0);
+        expect(await liquidityPool.balance(weth)).to.eq(0);
       });
 
       it("Should NOT withdraw profit for zero address token", async function () {
-        const {wethLiquidityPool, withdrawProfit, user} = await loadFixture(deployAll);
-        await expect(wethLiquidityPool.connect(withdrawProfit).withdrawProfit([ZERO_ADDRESS], user))
+        const {liquidityPool, withdrawProfit, user} = await loadFixture(deployAll);
+        await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([ZERO_ADDRESS], user))
           .to.be.reverted;
       });
 
       it("Should NOT deposit if no collateral on contract", async function () {
-        const {wethLiquidityPool, liquidityAdmin} = await loadFixture(deployAll);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(10))
-          .to.be.revertedWithCustomError(wethLiquidityPool, "NotEnoughToDeposit");
+        const {liquidityPool, liquidityAdmin} = await loadFixture(deployAll);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(10))
+          .to.be.revertedWithCustomError(liquidityPool, "NotEnoughToDeposit");
       });
 
       it("Should return 0 for balance of other tokens", async function () {
         const {
-          wethLiquidityPool, eurc, EURC_DEC, eurcOwner
+          liquidityPool, eurc, EURC_DEC, eurcOwner
         } = await loadFixture(deployAll);
         const amountLiquidity = 1000n * EURC_DEC;
-        await eurc.connect(eurcOwner).transfer(wethLiquidityPool, amountLiquidity);
-        expect(await wethLiquidityPool.balance(eurc)).to.eq(0);
+        await eurc.connect(eurcOwner).transfer(liquidityPool, amountLiquidity);
+        expect(await liquidityPool.balance(eurc)).to.eq(0);
       });
 
       it("Should NOT borrow other tokens", async function () {
         const {
-          wethLiquidityPool, eurc, EURC_DEC, user, mpc_signer, user2, eurcOwner
+          liquidityPool, eurc, EURC_DEC, user, mpc_signer, user2, eurcOwner
         } = await loadFixture(deployAll);
         const amountLiquidity = 1000n * EURC_DEC;
-        await eurc.connect(eurcOwner).transfer(wethLiquidityPool, amountLiquidity);
+        await eurc.connect(eurcOwner).transfer(liquidityPool, amountLiquidity);
 
         const amountToBorrow = 2n * EURC_DEC;
         const signature = await signBorrow(
           mpc_signer,
-          wethLiquidityPool.target as string,
+          liquidityPool.target as string,
           user.address as string,
           eurc.target as string,
           amountToBorrow.toString(),
@@ -1106,7 +1106,7 @@ import {
           31337
         );
 
-        await expect(wethLiquidityPool.connect(user).borrow(
+        await expect(liquidityPool.connect(user).borrow(
           eurc.target,
           amountToBorrow,
           user2,
@@ -1114,22 +1114,22 @@ import {
           0n,
           2000000000n,
           signature))
-        .to.be.revertedWithCustomError(wethLiquidityPool, "InvalidBorrowToken");
+        .to.be.revertedWithCustomError(liquidityPool, "InvalidBorrowToken");
       });
 
       it("Should NOT borrow if MPC signature is wrong", async function () {
         const {
-          wethLiquidityPool, weth, WETH_DEC, user, user2, wethOwner, liquidityAdmin
+          liquidityPool, weth, WETH_DEC, user, user2, wethOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit");
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit");
 
         const amountToBorrow = 2n * WETH_DEC;
         const signature = await signBorrow(
           user,
-          wethLiquidityPool.target as string,
+          liquidityPool.target as string,
           user.address as string,
           weth.target as string,
           amountToBorrow.toString(),
@@ -1138,7 +1138,7 @@ import {
           31337
         );
 
-        await expect(wethLiquidityPool.connect(user).borrow(
+        await expect(liquidityPool.connect(user).borrow(
           weth.target,
           amountToBorrow,
           user2,
@@ -1146,22 +1146,22 @@ import {
           0n,
           2000000000n,
           signature))
-        .to.be.revertedWithCustomError(wethLiquidityPool, "InvalidSignature");
+        .to.be.revertedWithCustomError(liquidityPool, "InvalidSignature");
       });
 
       it("Should NOT borrow if MPC signature nonce is reused", async function () {
         const {
-          wethLiquidityPool, weth, WETH_DEC, user, user2, wethOwner, mpc_signer, liquidityAdmin
+          liquidityPool, weth, WETH_DEC, user, user2, wethOwner, mpc_signer, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit");
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit");
 
         const amountToBorrow = 2n * WETH_DEC;
         const signature = await signBorrow(
           mpc_signer,
-          wethLiquidityPool.target as string,
+          liquidityPool.target as string,
           user.address as string,
           weth.target as string,
           amountToBorrow.toString(),
@@ -1170,7 +1170,7 @@ import {
           31337
         );
 
-        await wethLiquidityPool.connect(user).borrow(
+        await liquidityPool.connect(user).borrow(
           weth.target,
           amountToBorrow,
           user2,
@@ -1178,7 +1178,7 @@ import {
           0n,
           2000000000n,
           signature);
-        await expect(wethLiquidityPool.connect(user).borrow(
+        await expect(liquidityPool.connect(user).borrow(
           weth.target,
           amountToBorrow,
           user2,
@@ -1186,23 +1186,23 @@ import {
           0n,
           2000000000n,
           signature))
-        .to.be.revertedWithCustomError(wethLiquidityPool, "NonceAlreadyUsed");
+        .to.be.revertedWithCustomError(liquidityPool, "NonceAlreadyUsed");
       });
 
       it("Should NOT borrow if MPC signature is expired", async function () {
         const {
-          wethLiquidityPool, weth, WETH_DEC, user, user2, wethOwner, mpc_signer, liquidityAdmin
+          liquidityPool, weth, WETH_DEC, user, user2, wethOwner, mpc_signer, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit");
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit");
 
         const amountToBorrow = 2n * WETH_DEC;
         const deadline = (await now()) - 1n;
         const signature = await signBorrow(
           mpc_signer,
-          wethLiquidityPool.target as string,
+          liquidityPool.target as string,
           user.address as string,
           weth.target as string,
           amountToBorrow.toString(),
@@ -1213,7 +1213,7 @@ import {
           deadline,
         );
 
-        await expect(wethLiquidityPool.connect(user).borrow(
+        await expect(liquidityPool.connect(user).borrow(
           weth.target,
           amountToBorrow,
           user2,
@@ -1221,17 +1221,17 @@ import {
           0n,
           deadline,
           signature))
-        .to.be.revertedWithCustomError(wethLiquidityPool, "ExpiredSignature");
+        .to.be.revertedWithCustomError(liquidityPool, "ExpiredSignature");
       });
 
       it("Should NOT borrow if target call fails", async function () {
         const {
-          wethLiquidityPool, mockTarget, weth, WETH_DEC, user, mpc_signer, wethOwner, liquidityAdmin
+          liquidityPool, mockTarget, weth, WETH_DEC, user, mpc_signer, wethOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit");
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit");
 
         const amountToBorrow = 2n * WETH_DEC;
 
@@ -1241,7 +1241,7 @@ import {
 
         const signature = await signBorrow(
           mpc_signer,
-          wethLiquidityPool.target as string,
+          liquidityPool.target as string,
           user.address as string,
           weth.target as string,
           amountToBorrow.toString(),
@@ -1250,7 +1250,7 @@ import {
           31337
         );
 
-        await expect(wethLiquidityPool.connect(user).borrow(
+        await expect(liquidityPool.connect(user).borrow(
           weth.target,
           amountToBorrow,
           mockTarget.target,
@@ -1258,23 +1258,23 @@ import {
           0n,
           2000000000n,
           signature))
-        .to.be.revertedWithCustomError(wethLiquidityPool, "TargetCallFailed");
+        .to.be.revertedWithCustomError(liquidityPool, "TargetCallFailed");
       });
 
       it("Should NOT borrow if borrowing is paused", async function () {
         const {
-          wethLiquidityPool, user, user2, withdrawProfit, mpc_signer,
+          liquidityPool, user, user2, withdrawProfit, mpc_signer,
           weth, WETH_DEC
         } = await loadFixture(deployAll);
 
         // Pause borrowing
-        await expect(wethLiquidityPool.connect(withdrawProfit).pauseBorrow())
-          .to.emit(wethLiquidityPool, "BorrowPaused");
+        await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())
+          .to.emit(liquidityPool, "BorrowPaused");
 
         const amountToBorrow = 2n * WETH_DEC;
         const signature = await signBorrow(
           mpc_signer,
-          wethLiquidityPool.target as string,
+          liquidityPool.target as string,
           user.address as string,
           weth.target as string,
           amountToBorrow.toString(),
@@ -1283,7 +1283,7 @@ import {
           31337
         );
 
-        await expect(wethLiquidityPool.connect(user).borrow(
+        await expect(liquidityPool.connect(user).borrow(
           weth.target,
           amountToBorrow,
           user2,
@@ -1291,17 +1291,17 @@ import {
           0n,
           2000000000n,
           signature))
-        .to.be.revertedWithCustomError(wethLiquidityPool, "BorrowingIsPaused");
+        .to.be.revertedWithCustomError(liquidityPool, "BorrowingIsPaused");
       });
 
       it("Should NOT borrow if the contract is paused", async function () {
-        const {wethLiquidityPool, weth, user, user2, pauser} = await loadFixture(deployAll);
+        const {liquidityPool, weth, user, user2, pauser} = await loadFixture(deployAll);
 
         // Pause the contract
-        await expect(wethLiquidityPool.connect(pauser).pause())
-          .to.emit(wethLiquidityPool, "Paused");
+        await expect(liquidityPool.connect(pauser).pause())
+          .to.emit(liquidityPool, "Paused");
 
-        await expect(wethLiquidityPool.connect(user).borrow(
+        await expect(liquidityPool.connect(user).borrow(
           weth.target,
           1,
           user2,
@@ -1309,22 +1309,22 @@ import {
           0n,
           2000000000n,
           "0x"))
-        .to.be.revertedWithCustomError(wethLiquidityPool, "EnforcedPause");
+        .to.be.revertedWithCustomError(liquidityPool, "EnforcedPause");
       });
 
       it("Should NOT borrow if MPC signature is wrong (caller is wrong)", async function () {
         const {
-          wethLiquidityPool, weth, WETH_DEC, user, user2, wethOwner, liquidityAdmin, mpc_signer,
+          liquidityPool, weth, WETH_DEC, user, user2, wethOwner, liquidityAdmin, mpc_signer,
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit");
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit");
 
         const amountToBorrow = 2n * WETH_DEC;
         const signature = await signBorrow(
           mpc_signer,
-          wethLiquidityPool.target as string,
+          liquidityPool.target as string,
           user.address as string,
           weth.target as string,
           amountToBorrow.toString(),
@@ -1333,7 +1333,7 @@ import {
           31337
         );
 
-        await expect(wethLiquidityPool.connect(user2).borrow(
+        await expect(liquidityPool.connect(user2).borrow(
           weth.target,
           amountToBorrow,
           user2,
@@ -1341,19 +1341,19 @@ import {
           0n,
           2000000000n,
           signature))
-        .to.be.revertedWithCustomError(wethLiquidityPool, "InvalidSignature");
+        .to.be.revertedWithCustomError(liquidityPool, "InvalidSignature");
       });
 
       it("Should NOT borrow and swap if MPC signature is wrong (caller is wrong)", async function () {
         // WETH is borrowed and swapped to EURC
         const {
-          wethLiquidityPool, mockTarget, mockBorrowSwap, weth, WETH_DEC,
+          liquidityPool, mockTarget, mockBorrowSwap, weth, WETH_DEC,
           user, mpc_signer, wethOwner, eurc, EURC_DEC, eurcOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit");
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit");
 
         const amountToBorrow = 3n * WETH_DEC;
         const fillAmount = 200n * EURC_DEC;
@@ -1370,7 +1370,7 @@ import {
         // user address is signed instead of mockBorrowSwap address
         const signature = await signBorrow(
           mpc_signer,
-          wethLiquidityPool.target as string,
+          liquidityPool.target as string,
           user.address as string,
           weth.target as string,
           amountToBorrow.toString(),
@@ -1379,7 +1379,7 @@ import {
           31337
         );
 
-        const borrowCalldata = await wethLiquidityPool.borrowAndSwap.populateTransaction(
+        const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
           weth,
           amountToBorrow,
           {fillToken: eurc.target, fillAmount, swapData},
@@ -1390,20 +1390,20 @@ import {
           signature
         );
 
-        await expect(mockBorrowSwap.connect(user).callBorrow(wethLiquidityPool, borrowCalldata.data))
+        await expect(mockBorrowSwap.connect(user).callBorrow(liquidityPool, borrowCalldata.data))
           .to.be.reverted;
       });
 
       it("Should NOT borrow and swap if the swap fails", async function () {
         // WETH is borrowed and swapped to EURC
         const {
-          wethLiquidityPool, mockTarget, mockBorrowSwap, weth, WETH_DEC,
+          liquidityPool, mockTarget, mockBorrowSwap, weth, WETH_DEC,
           user, mpc_signer, wethOwner, eurc, EURC_DEC, eurcOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit");
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit");
 
         const amountToBorrow = 3n * WETH_DEC;
         const fillAmount = 200n * EURC_DEC;
@@ -1418,7 +1418,7 @@ import {
 
         const signature = await signBorrow(
           mpc_signer,
-          wethLiquidityPool.target as string,
+          liquidityPool.target as string,
           mockBorrowSwap.target as string,
           weth.target as string,
           amountToBorrow.toString(),
@@ -1427,7 +1427,7 @@ import {
           31337
         );
 
-        const borrowCalldata = await wethLiquidityPool.borrowAndSwap.populateTransaction(
+        const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
           weth,
           amountToBorrow,
           {fillToken: eurc.target, fillAmount, swapData},
@@ -1439,21 +1439,21 @@ import {
         );
 
         // No EURC tokens (fillToken) will be available for swap
-        await expect(mockBorrowSwap.connect(user).callBorrow(wethLiquidityPool, borrowCalldata.data))
+        await expect(mockBorrowSwap.connect(user).callBorrow(liquidityPool, borrowCalldata.data))
         .to.be.reverted;
       });
 
       it("Should NOT borrow non-asset token", async function () {
         const {
-          wethLiquidityPool, eurc, EURC_DEC, mpc_signer, user, user2, eurcOwner
+          liquidityPool, eurc, EURC_DEC, mpc_signer, user, user2, eurcOwner
         } = await loadFixture(deployAll);
         const amountLiquidity = 1000n * EURC_DEC;
-        await eurc.connect(eurcOwner).transfer(wethLiquidityPool, amountLiquidity);
+        await eurc.connect(eurcOwner).transfer(liquidityPool, amountLiquidity);
 
         const amountToBorrow = 2n * EURC_DEC;
         const signature = await signBorrow(
           mpc_signer,
-          wethLiquidityPool.target as string,
+          liquidityPool.target as string,
           user.address as string,
           eurc.target as string,
           amountToBorrow.toString(),
@@ -1462,7 +1462,7 @@ import {
           31337
         );
 
-        await expect(wethLiquidityPool.connect(user).borrow(
+        await expect(liquidityPool.connect(user).borrow(
           eurc,
           amountToBorrow,
           user2,
@@ -1470,21 +1470,21 @@ import {
           0n,
           2000000000n,
           signature))
-        .to.be.revertedWithCustomError(wethLiquidityPool, "InvalidBorrowToken");
+        .to.be.revertedWithCustomError(liquidityPool, "InvalidBorrowToken");
       });
 
       it("Should NOT borrow and swap non-asset token", async function () {
         const {
-          wethLiquidityPool, eurc, EURC_DEC, mpc_signer, user, eurcOwner,
+          liquidityPool, eurc, EURC_DEC, mpc_signer, user, eurcOwner,
           mockTarget,
         } = await loadFixture(deployAll);
         const amountLiquidity = 1000n * EURC_DEC;
-        await eurc.connect(eurcOwner).transfer(wethLiquidityPool, amountLiquidity);
+        await eurc.connect(eurcOwner).transfer(liquidityPool, amountLiquidity);
 
         const amountToBorrow = 2n * EURC_DEC;
         const signature = await signBorrow(
           mpc_signer,
-          wethLiquidityPool.target as string,
+          liquidityPool.target as string,
           user.address as string,
           eurc.target as string,
           amountToBorrow.toString(),
@@ -1493,7 +1493,7 @@ import {
           31337
         );
 
-        await expect(wethLiquidityPool.connect(user).borrowAndSwap(
+        await expect(liquidityPool.connect(user).borrowAndSwap(
           eurc,
           amountToBorrow,
           {fillToken: eurc, fillAmount: 0n, swapData: "0x"},
@@ -1502,22 +1502,22 @@ import {
           0n,
           2000000000n,
           signature))
-        .to.be.revertedWithCustomError(wethLiquidityPool, "InvalidBorrowToken");
+        .to.be.revertedWithCustomError(liquidityPool, "InvalidBorrowToken");
       });
 
       it("Should NOT borrow many if MPC signature is wrong", async function () {
         const {
-          wethLiquidityPool, weth, WETH_DEC, user, user2, wethOwner, liquidityAdmin
+          liquidityPool, weth, WETH_DEC, user, user2, wethOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit");
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit");
 
         const amountToBorrow = 2n * WETH_DEC;
         const signature = await signBorrowMany(
           user,
-          wethLiquidityPool,
+          liquidityPool,
           user,
           [weth, weth],
           [amountToBorrow, amountToBorrow],
@@ -1526,7 +1526,7 @@ import {
           31337
         );
 
-        await expect(wethLiquidityPool.connect(user).borrowMany(
+        await expect(liquidityPool.connect(user).borrowMany(
           [weth, weth],
           [amountToBorrow, amountToBorrow],
           user2,
@@ -1534,22 +1534,22 @@ import {
           0n,
           2000000000n,
           signature))
-        .to.be.revertedWithCustomError(wethLiquidityPool, "InvalidSignature");
+        .to.be.revertedWithCustomError(liquidityPool, "InvalidSignature");
       });
 
       it("Should NOT borrow many if MPC signature nonce is reused", async function () {
         const {
-          wethLiquidityPool, weth, WETH_DEC, user, user2, wethOwner, mpc_signer, liquidityAdmin
+          liquidityPool, weth, WETH_DEC, user, user2, wethOwner, mpc_signer, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit");
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit");
 
         const amountToBorrow = 2n * WETH_DEC;
         const signature = await signBorrowMany(
           mpc_signer,
-          wethLiquidityPool,
+          liquidityPool,
           user,
           [weth, weth],
           [amountToBorrow, amountToBorrow],
@@ -1558,7 +1558,7 @@ import {
           31337
         );
 
-        await wethLiquidityPool.connect(user).borrowMany(
+        await liquidityPool.connect(user).borrowMany(
           [weth, weth],
           [amountToBorrow, amountToBorrow],
           user2,
@@ -1566,7 +1566,7 @@ import {
           0n,
           2000000000n,
           signature);
-        await expect(wethLiquidityPool.connect(user).borrowMany(
+        await expect(liquidityPool.connect(user).borrowMany(
           [weth, weth],
           [amountToBorrow, amountToBorrow],
           user2,
@@ -1574,23 +1574,23 @@ import {
           0n,
           2000000000n,
           signature))
-        .to.be.revertedWithCustomError(wethLiquidityPool, "NonceAlreadyUsed");
+        .to.be.revertedWithCustomError(liquidityPool, "NonceAlreadyUsed");
       });
 
       it("Should NOT borrow many if MPC signature is expired", async function () {
         const {
-          wethLiquidityPool, weth, WETH_DEC, user, user2, wethOwner, mpc_signer, liquidityAdmin
+          liquidityPool, weth, WETH_DEC, user, user2, wethOwner, mpc_signer, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit");
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit");
 
         const amountToBorrow = 2n * WETH_DEC;
         const deadline = (await now()) - 1n;
         const signature = await signBorrowMany(
           mpc_signer,
-          wethLiquidityPool,
+          liquidityPool,
           user,
           [weth, weth],
           [amountToBorrow, amountToBorrow],
@@ -1601,7 +1601,7 @@ import {
           deadline,
         );
 
-        await expect(wethLiquidityPool.connect(user).borrowMany(
+        await expect(liquidityPool.connect(user).borrowMany(
           [weth, weth],
           [amountToBorrow, amountToBorrow],
           user2,
@@ -1609,17 +1609,17 @@ import {
           0n,
           deadline,
           signature))
-        .to.be.revertedWithCustomError(wethLiquidityPool, "ExpiredSignature");
+        .to.be.revertedWithCustomError(liquidityPool, "ExpiredSignature");
       });
 
       it("Should NOT borrow many if target call fails", async function () {
         const {
-          wethLiquidityPool, mockTarget, weth, WETH_DEC, user, mpc_signer, wethOwner, liquidityAdmin
+          liquidityPool, mockTarget, weth, WETH_DEC, user, mpc_signer, wethOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit");
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit");
 
         const amountToBorrow = 2n * WETH_DEC;
 
@@ -1629,7 +1629,7 @@ import {
 
         const signature = await signBorrowMany(
           mpc_signer,
-          wethLiquidityPool,
+          liquidityPool,
           user,
           [weth, weth],
           [amountToBorrow, amountToBorrow],
@@ -1638,7 +1638,7 @@ import {
           31337
         );
 
-        await expect(wethLiquidityPool.connect(user).borrowMany(
+        await expect(liquidityPool.connect(user).borrowMany(
           [weth, weth],
           [amountToBorrow, amountToBorrow],
           mockTarget,
@@ -1646,23 +1646,23 @@ import {
           0n,
           2000000000n,
           signature))
-        .to.be.revertedWithCustomError(wethLiquidityPool, "TargetCallFailed");
+        .to.be.revertedWithCustomError(liquidityPool, "TargetCallFailed");
       });
 
       it("Should NOT borrow many if borrowing is paused", async function () {
         const {
-          wethLiquidityPool, user, user2, withdrawProfit, mpc_signer, weth,
+          liquidityPool, user, user2, withdrawProfit, mpc_signer, weth,
           WETH_DEC
         } = await loadFixture(deployAll);
 
         // Pause borrowing
-        await expect(wethLiquidityPool.connect(withdrawProfit).pauseBorrow())
-          .to.emit(wethLiquidityPool, "BorrowPaused");
+        await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())
+          .to.emit(liquidityPool, "BorrowPaused");
 
         const amountToBorrow = 2n * WETH_DEC;
         const signature = await signBorrowMany(
           mpc_signer,
-          wethLiquidityPool,
+          liquidityPool,
           user,
           [weth, weth],
           [amountToBorrow, amountToBorrow],
@@ -1671,7 +1671,7 @@ import {
           31337
         );
 
-        await expect(wethLiquidityPool.connect(user).borrowMany(
+        await expect(liquidityPool.connect(user).borrowMany(
           [weth, weth],
           [amountToBorrow, amountToBorrow],
           user2,
@@ -1679,17 +1679,17 @@ import {
           0n,
           2000000000n,
           signature))
-        .to.be.revertedWithCustomError(wethLiquidityPool, "BorrowingIsPaused");
+        .to.be.revertedWithCustomError(liquidityPool, "BorrowingIsPaused");
       });
 
       it("Should NOT borrow many if the contract is paused", async function () {
-        const {wethLiquidityPool, weth, user, user2, pauser} = await loadFixture(deployAll);
+        const {liquidityPool, weth, user, user2, pauser} = await loadFixture(deployAll);
 
         // Pause the contract
-        await expect(wethLiquidityPool.connect(pauser).pause())
-          .to.emit(wethLiquidityPool, "Paused");
+        await expect(liquidityPool.connect(pauser).pause())
+          .to.emit(liquidityPool, "Paused");
 
-        await expect(wethLiquidityPool.connect(user).borrowMany(
+        await expect(liquidityPool.connect(user).borrowMany(
           [weth, weth],
           [1n, 1n],
           user2,
@@ -1697,22 +1697,22 @@ import {
           0n,
           2000000000n,
           "0x"))
-        .to.be.revertedWithCustomError(wethLiquidityPool, "EnforcedPause");
+        .to.be.revertedWithCustomError(liquidityPool, "EnforcedPause");
       });
 
       it("Should NOT borrow many if MPC signature is wrong (caller is wrong)", async function () {
         const {
-          wethLiquidityPool, weth, WETH_DEC, user, user2, wethOwner, liquidityAdmin, mpc_signer,
+          liquidityPool, weth, WETH_DEC, user, user2, wethOwner, liquidityAdmin, mpc_signer,
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit");
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit");
 
         const amountToBorrow = 2n * WETH_DEC;
         const signature = await signBorrowMany(
           mpc_signer,
-          wethLiquidityPool,
+          liquidityPool,
           user,
           [weth, weth],
           [amountToBorrow, amountToBorrow],
@@ -1721,7 +1721,7 @@ import {
           31337
         );
 
-        await expect(wethLiquidityPool.connect(user2).borrowMany(
+        await expect(liquidityPool.connect(user2).borrowMany(
           [weth, weth],
           [amountToBorrow, amountToBorrow],
           user2,
@@ -1729,19 +1729,19 @@ import {
           0n,
           2000000000n,
           signature))
-        .to.be.revertedWithCustomError(wethLiquidityPool, "InvalidSignature");
+        .to.be.revertedWithCustomError(liquidityPool, "InvalidSignature");
       });
 
       it("Should NOT borrow and swap many if MPC signature is wrong (caller is wrong)", async function () {
         // WETH is borrowed and swapped to EURC
         const {
-          wethLiquidityPool, mockTarget, mockBorrowSwap, weth, WETH_DEC,
+          liquidityPool, mockTarget, mockBorrowSwap, weth, WETH_DEC,
           user, mpc_signer, wethOwner, eurc, EURC_DEC, eurcOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit");
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit");
 
         const amountToBorrow = 3n * WETH_DEC;
         const fillAmount = 200n * EURC_DEC;
@@ -1758,7 +1758,7 @@ import {
         // user address is signed instead of mockBorrowSwap address
         const signature = await signBorrowMany(
           mpc_signer,
-          wethLiquidityPool,
+          liquidityPool,
           user,
           [weth, weth],
           [amountToBorrow, amountToBorrow],
@@ -1767,7 +1767,7 @@ import {
           31337
         );
 
-        const borrowCalldata = await wethLiquidityPool.borrowAndSwap.populateTransaction(
+        const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
           weth,
           amountToBorrow,
           {fillToken: eurc, fillAmount, swapData},
@@ -1778,20 +1778,20 @@ import {
           signature
         );
 
-        await expect(mockBorrowSwap.connect(user).callBorrow(wethLiquidityPool, borrowCalldata.data))
+        await expect(mockBorrowSwap.connect(user).callBorrow(liquidityPool, borrowCalldata.data))
           .to.be.reverted;
       });
 
       it("Should NOT borrow and swap many if the swap fails", async function () {
         // WETH is borrowed and swapped to EURC
         const {
-          wethLiquidityPool, mockTarget, mockBorrowSwap, weth, WETH_DEC,
+          liquidityPool, mockTarget, mockBorrowSwap, weth, WETH_DEC,
           user, mpc_signer, wethOwner, eurc, EURC_DEC, eurcOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit");
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit");
 
         const amountToBorrow = 3n * WETH_DEC;
         const fillAmount = 200n * EURC_DEC;
@@ -1806,7 +1806,7 @@ import {
 
         const signature = await signBorrowMany(
           mpc_signer,
-          wethLiquidityPool,
+          liquidityPool,
           mockBorrowSwap,
           [weth, weth],
           [amountToBorrow, amountToBorrow],
@@ -1815,7 +1815,7 @@ import {
           31337
         );
 
-        const borrowCalldata = await wethLiquidityPool.borrowAndSwap.populateTransaction(
+        const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
           weth,
           amountToBorrow,
           {fillToken: eurc, fillAmount, swapData},
@@ -1827,23 +1827,23 @@ import {
         );
 
         // No EURC tokens (fillToken) will be available for swap
-        await expect(mockBorrowSwap.connect(user).callBorrow(wethLiquidityPool, borrowCalldata.data))
+        await expect(mockBorrowSwap.connect(user).callBorrow(liquidityPool, borrowCalldata.data))
         .to.be.reverted;
       });
 
       it("Should NOT borrow many if tokens and amounts have diff or zero length", async function () {
         const {
-          wethLiquidityPool, weth, WETH_DEC, mpc_signer, user, user2, wethOwner, liquidityAdmin
+          liquidityPool, weth, WETH_DEC, mpc_signer, user, user2, wethOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit");
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit");
 
         const amountToBorrow = 2n * WETH_DEC;
         let signature = await signBorrowMany(
           mpc_signer,
-          wethLiquidityPool,
+          liquidityPool,
           user,
           [weth],
           [amountToBorrow, amountToBorrow],
@@ -1852,7 +1852,7 @@ import {
           31337
         );
 
-        await expect(wethLiquidityPool.connect(user).borrowMany(
+        await expect(liquidityPool.connect(user).borrowMany(
           [weth],
           [amountToBorrow, amountToBorrow],
           user2,
@@ -1860,11 +1860,11 @@ import {
           0n,
           2000000000n,
           signature))
-        .to.be.revertedWithCustomError(wethLiquidityPool, "InvalidLength");
+        .to.be.revertedWithCustomError(liquidityPool, "InvalidLength");
 
         signature = await signBorrowMany(
           mpc_signer,
-          wethLiquidityPool,
+          liquidityPool,
           user,
           [weth, weth],
           [amountToBorrow],
@@ -1873,7 +1873,7 @@ import {
           31337
         );
 
-        await expect(wethLiquidityPool.connect(user).borrowMany(
+        await expect(liquidityPool.connect(user).borrowMany(
           [weth, weth],
           [amountToBorrow],
           user2,
@@ -1881,11 +1881,11 @@ import {
           0n,
           2000000000n,
           signature))
-        .to.be.revertedWithCustomError(wethLiquidityPool, "InvalidLength");
+        .to.be.revertedWithCustomError(liquidityPool, "InvalidLength");
 
         signature = await signBorrowMany(
           mpc_signer,
-          wethLiquidityPool,
+          liquidityPool,
           user,
           [],
           [],
@@ -1894,7 +1894,7 @@ import {
           31337
         );
 
-        await expect(wethLiquidityPool.connect(user).borrowMany(
+        await expect(liquidityPool.connect(user).borrowMany(
           [],
           [],
           user2,
@@ -1902,22 +1902,22 @@ import {
           0n,
           2000000000n,
           signature))
-        .to.be.revertedWithCustomError(wethLiquidityPool, "InvalidLength");
+        .to.be.revertedWithCustomError(liquidityPool, "InvalidLength");
       });
 
       it("Should NOT borrow many if contains non-asset tokens", async function () {
         const {
-          wethLiquidityPool, weth, WETH_DEC, eurc, mpc_signer, user, user2, wethOwner, liquidityAdmin
+          liquidityPool, weth, WETH_DEC, eurc, mpc_signer, user, user2, wethOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit");
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit");
 
         const amountToBorrow = 2n * WETH_DEC;
         const signature = await signBorrowMany(
           mpc_signer,
-          wethLiquidityPool,
+          liquidityPool,
           user,
           [weth, eurc],
           [amountToBorrow, amountToBorrow],
@@ -1926,7 +1926,7 @@ import {
           31337
         );
 
-        await expect(wethLiquidityPool.connect(user).borrowMany(
+        await expect(liquidityPool.connect(user).borrowMany(
           [weth, eurc],
           [amountToBorrow, amountToBorrow],
           user2,
@@ -1934,22 +1934,22 @@ import {
           0n,
           2000000000n,
           signature))
-        .to.be.revertedWithCustomError(wethLiquidityPool, "InvalidBorrowToken");
+        .to.be.revertedWithCustomError(liquidityPool, "InvalidBorrowToken");
       });
 
       it("Should NOT borrow and swap many if contains non-asset tokens", async function () {
         const {
-          wethLiquidityPool, weth, WETH_DEC, eurc, mpc_signer, user, user2, wethOwner, liquidityAdmin
+          liquidityPool, weth, WETH_DEC, eurc, mpc_signer, user, user2, wethOwner, liquidityAdmin
         } = await loadFixture(deployAll);
         const amountLiquidity = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amountLiquidity);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
-          .to.emit(wethLiquidityPool, "Deposit");
+        await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+          .to.emit(liquidityPool, "Deposit");
 
         const amountToBorrow = 2n * WETH_DEC;
         const signature = await signBorrowMany(
           mpc_signer,
-          wethLiquidityPool,
+          liquidityPool,
           user,
           [eurc, weth],
           [amountToBorrow, amountToBorrow],
@@ -1958,7 +1958,7 @@ import {
           31337
         );
 
-        await expect(wethLiquidityPool.connect(user).borrowAndSwapMany(
+        await expect(liquidityPool.connect(user).borrowAndSwapMany(
           [eurc, weth],
           [amountToBorrow, amountToBorrow],
           {fillToken: eurc, fillAmount: 0n, swapData: "0x"},
@@ -1967,182 +1967,182 @@ import {
           0n,
           2000000000n,
           signature))
-        .to.be.revertedWithCustomError(wethLiquidityPool, "InvalidBorrowToken");
+        .to.be.revertedWithCustomError(liquidityPool, "InvalidBorrowToken");
       });
 
       it("Should NOT withdraw liquidity if not enough on contract", async function () {
-        const {wethLiquidityPool, weth, WETH_DEC, wethOwner, user, liquidityAdmin} = await loadFixture(deployAll);
+        const {liquidityPool, weth, WETH_DEC, wethOwner, user, liquidityAdmin} = await loadFixture(deployAll);
         const amount = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amount);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amount))
-          .to.emit(wethLiquidityPool, "Deposit");
+        await weth.connect(wethOwner).transfer(liquidityPool, amount);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amount))
+          .to.emit(liquidityPool, "Deposit");
 
-        await expect(wethLiquidityPool.connect(liquidityAdmin).withdraw(user, amount * 2n))
+        await expect(liquidityPool.connect(liquidityAdmin).withdraw(user, amount * 2n))
           .to.be.reverted;
       });
 
       it("Should NOT withdraw profit as liquidity", async function () {
-        const {wethLiquidityPool, weth, WETH_DEC, wethOwner, user, liquidityAdmin} = await loadFixture(deployAll);
+        const {liquidityPool, weth, WETH_DEC, wethOwner, user, liquidityAdmin} = await loadFixture(deployAll);
         const amount = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amount);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amount - 1n))
-          .to.emit(wethLiquidityPool, "Deposit");
-        expect(await wethLiquidityPool.totalDeposited()).to.eq(amount - 1n);
+        await weth.connect(wethOwner).transfer(liquidityPool, amount);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amount - 1n))
+          .to.emit(liquidityPool, "Deposit");
+        expect(await liquidityPool.totalDeposited()).to.eq(amount - 1n);
 
-        await expect(wethLiquidityPool.connect(liquidityAdmin).withdraw(user, amount))
-          .to.be.revertedWithCustomError(wethLiquidityPool, "InsufficientLiquidity");
+        await expect(liquidityPool.connect(liquidityAdmin).withdraw(user, amount))
+          .to.be.revertedWithCustomError(liquidityPool, "InsufficientLiquidity");
       });
 
       it("Should NOT withdraw liquidity if the contract is paused", async function () {
-        const {wethLiquidityPool, user, liquidityAdmin, pauser} = await loadFixture(deployAll);
-        await expect(wethLiquidityPool.connect(pauser).pause())
-          .to.emit(wethLiquidityPool, "Paused");
+        const {liquidityPool, user, liquidityAdmin, pauser} = await loadFixture(deployAll);
+        await expect(liquidityPool.connect(pauser).pause())
+          .to.emit(liquidityPool, "Paused");
 
-        await expect(wethLiquidityPool.connect(liquidityAdmin).withdraw(user, 10))
-          .to.be.revertedWithCustomError(wethLiquidityPool, "EnforcedPause");
+        await expect(liquidityPool.connect(liquidityAdmin).withdraw(user, 10))
+          .to.be.revertedWithCustomError(liquidityPool, "EnforcedPause");
       });
 
       it("Should NOT withdraw liquidity to zero address", async function () {
-        const {wethLiquidityPool, liquidityAdmin} = await loadFixture(deployAll);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).withdraw(ZERO_ADDRESS, 10))
-          .to.be.revertedWithCustomError(wethLiquidityPool, "ZeroAddress()");
+        const {liquidityPool, liquidityAdmin} = await loadFixture(deployAll);
+        await expect(liquidityPool.connect(liquidityAdmin).withdraw(ZERO_ADDRESS, 10))
+          .to.be.revertedWithCustomError(liquidityPool, "ZeroAddress()");
       });
 
       it("Should NOT withdraw profit if the contract is paused", async function () {
-        const {wethLiquidityPool, user, weth, withdrawProfit, pauser} = await loadFixture(deployAll);
-        await expect(wethLiquidityPool.connect(pauser).pause())
-          .to.emit(wethLiquidityPool, "Paused");
-        await expect(wethLiquidityPool.connect(withdrawProfit).withdrawProfit([weth], user))
-          .to.be.revertedWithCustomError(wethLiquidityPool, "EnforcedPause");
+        const {liquidityPool, user, weth, withdrawProfit, pauser} = await loadFixture(deployAll);
+        await expect(liquidityPool.connect(pauser).pause())
+          .to.emit(liquidityPool, "Paused");
+        await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([weth], user))
+          .to.be.revertedWithCustomError(liquidityPool, "EnforcedPause");
       });
 
       it("Should NOT withdraw profit to zero address", async function () {
-        const {wethLiquidityPool, weth, withdrawProfit} = await loadFixture(deployAll);
-        await expect(wethLiquidityPool.connect(withdrawProfit).withdrawProfit([weth], ZERO_ADDRESS))
-          .to.be.revertedWithCustomError(wethLiquidityPool, "ZeroAddress()");
+        const {liquidityPool, weth, withdrawProfit} = await loadFixture(deployAll);
+        await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([weth], ZERO_ADDRESS))
+          .to.be.revertedWithCustomError(liquidityPool, "ZeroAddress()");
       });
 
       it("Should revert during withdrawing profit if no profit", async function () {
-        const {wethLiquidityPool, weth, withdrawProfit, user} = await loadFixture(deployAll);
-        await expect(wethLiquidityPool.connect(withdrawProfit).withdrawProfit([weth], user))
-          .to.be.revertedWithCustomError(wethLiquidityPool, "NoProfit()");
+        const {liquidityPool, weth, withdrawProfit, user} = await loadFixture(deployAll);
+        await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([weth], user))
+          .to.be.revertedWithCustomError(liquidityPool, "NoProfit()");
       });
     });
 
     describe("Roles and admin functions", function () {
       it("Should allow admin to set MPC address", async function () {
-        const {wethLiquidityPool, admin, user} = await loadFixture(deployAll);
-        const oldMPCAddress = await wethLiquidityPool.mpcAddress();
-        await expect(wethLiquidityPool.connect(admin).setMPCAddress(user.address))
-          .to.emit(wethLiquidityPool, "MPCAddressSet").withArgs(oldMPCAddress, user.address);
-        expect(await wethLiquidityPool.mpcAddress())
+        const {liquidityPool, admin, user} = await loadFixture(deployAll);
+        const oldMPCAddress = await liquidityPool.mpcAddress();
+        await expect(liquidityPool.connect(admin).setMPCAddress(user.address))
+          .to.emit(liquidityPool, "MPCAddressSet").withArgs(oldMPCAddress, user.address);
+        expect(await liquidityPool.mpcAddress())
           .to.eq(user.address);
       });
 
       it("Should NOT allow others to set MPC address", async function () {
-        const {wethLiquidityPool, user} = await loadFixture(deployAll);
-        await expect(wethLiquidityPool.connect(user).setMPCAddress(user.address))
-          .to.be.revertedWithCustomError(wethLiquidityPool, "AccessControlUnauthorizedAccount");
+        const {liquidityPool, user} = await loadFixture(deployAll);
+        await expect(liquidityPool.connect(user).setMPCAddress(user.address))
+          .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
       });
 
       it("Should allow WITHDRAW_PROFIT_ROLE to pause and unpause borrowing", async function () {
-        const {wethLiquidityPool, withdrawProfit} = await loadFixture(deployAll);
-        expect(await wethLiquidityPool.borrowPaused())
+        const {liquidityPool, withdrawProfit} = await loadFixture(deployAll);
+        expect(await liquidityPool.borrowPaused())
           .to.eq(false);
-        await expect(wethLiquidityPool.connect(withdrawProfit).pauseBorrow())
-          .to.emit(wethLiquidityPool, "BorrowPaused");
-        expect(await wethLiquidityPool.borrowPaused())
+        await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())
+          .to.emit(liquidityPool, "BorrowPaused");
+        expect(await liquidityPool.borrowPaused())
           .to.eq(true);
-        await expect(wethLiquidityPool.connect(withdrawProfit).unpauseBorrow())
-          .to.emit(wethLiquidityPool, "BorrowUnpaused");
-        expect(await wethLiquidityPool.borrowPaused())
+        await expect(liquidityPool.connect(withdrawProfit).unpauseBorrow())
+          .to.emit(liquidityPool, "BorrowUnpaused");
+        expect(await liquidityPool.borrowPaused())
           .to.eq(false);
       });
 
       it("Should NOT allow others to pause and unpause borrowing", async function () {
-        const {wethLiquidityPool, admin} = await loadFixture(deployAll);
-        await expect(wethLiquidityPool.connect(admin).pauseBorrow())
-          .to.be.revertedWithCustomError(wethLiquidityPool, "AccessControlUnauthorizedAccount");
+        const {liquidityPool, admin} = await loadFixture(deployAll);
+        await expect(liquidityPool.connect(admin).pauseBorrow())
+          .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
       });
 
       it("Should allow WITHDRAW_PROFIT_ROLE to withdraw profit", async function () {
         const {
-          wethLiquidityPool, eurc, EURC_DEC, eurcOwner, withdrawProfit, user
+          liquidityPool, eurc, EURC_DEC, eurcOwner, withdrawProfit, user
         } = await loadFixture(deployAll);
         const amountEURC = 1n * EURC_DEC;
-        await eurc.connect(eurcOwner).transfer(wethLiquidityPool, amountEURC);
-        await expect(wethLiquidityPool.connect(withdrawProfit).withdrawProfit([eurc], user.address))
-          .to.emit(wethLiquidityPool, "ProfitWithdrawn").withArgs(eurc.target, user.address, amountEURC);
+        await eurc.connect(eurcOwner).transfer(liquidityPool, amountEURC);
+        await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([eurc], user.address))
+          .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(eurc.target, user.address, amountEURC);
         expect(await eurc.balanceOf(user)).to.eq(amountEURC);
       });
 
       it("Should NOT allow others to withdraw profit", async function () {
-        const {wethLiquidityPool, eurc, user} = await loadFixture(deployAll);
-        await expect(wethLiquidityPool.connect(user).withdrawProfit([eurc], user.address))
-          .to.be.revertedWithCustomError(wethLiquidityPool, "AccessControlUnauthorizedAccount");
+        const {liquidityPool, eurc, user} = await loadFixture(deployAll);
+        await expect(liquidityPool.connect(user).withdrawProfit([eurc], user.address))
+          .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
       });
 
       it("Should allow LIQUIDITY_ADMIN_ROLE to deposit liquidity", async function () {
-        const {wethLiquidityPool, weth, wethOwner, WETH_DEC, liquidityAdmin} = await loadFixture(deployAll);
+        const {liquidityPool, weth, wethOwner, WETH_DEC, liquidityAdmin} = await loadFixture(deployAll);
         const amount = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amount);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amount))
-          .to.emit(wethLiquidityPool, "Deposit").withArgs(liquidityAdmin, amount);
-        expect(await wethLiquidityPool.totalDeposited()).to.eq(amount);
+        await weth.connect(wethOwner).transfer(liquidityPool, amount);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amount))
+          .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amount);
+        expect(await liquidityPool.totalDeposited()).to.eq(amount);
       });
 
       it("Should NOT allow others to deposit liquidity", async function () {
-        const {wethLiquidityPool, weth, wethOwner, WETH_DEC, user} = await loadFixture(deployAll);
+        const {liquidityPool, weth, wethOwner, WETH_DEC, user} = await loadFixture(deployAll);
         const amount = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amount);
-        await expect(wethLiquidityPool.connect(user).deposit(amount))
-          .to.be.revertedWithCustomError(wethLiquidityPool, "AccessControlUnauthorizedAccount");
+        await weth.connect(wethOwner).transfer(liquidityPool, amount);
+        await expect(liquidityPool.connect(user).deposit(amount))
+          .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
       });
 
       it("Should allow LIQUIDITY_ADMIN_ROLE to withdraw liquidity", async function () {
-        const {wethLiquidityPool, weth, wethOwner, WETH_DEC, user, liquidityAdmin} = await loadFixture(deployAll);
+        const {liquidityPool, weth, wethOwner, WETH_DEC, user, liquidityAdmin} = await loadFixture(deployAll);
         const amount = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amount);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amount))
-          .to.emit(wethLiquidityPool, "Deposit").withArgs(liquidityAdmin, amount);
+        await weth.connect(wethOwner).transfer(liquidityPool, amount);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amount))
+          .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amount);
 
-        await expect(wethLiquidityPool.connect(liquidityAdmin).withdraw(user, amount))
-          .to.emit(wethLiquidityPool, "Withdraw").withArgs(liquidityAdmin, user.address, amount);
+        await expect(liquidityPool.connect(liquidityAdmin).withdraw(user, amount))
+          .to.emit(liquidityPool, "Withdraw").withArgs(liquidityAdmin, user.address, amount);
 
         expect(await weth.balanceOf(user)).to.be.eq(amount);
-        expect(await wethLiquidityPool.totalDeposited()).to.be.eq(0);
-        expect(await wethLiquidityPool.balance(weth)).to.eq(0);
+        expect(await liquidityPool.totalDeposited()).to.be.eq(0);
+        expect(await liquidityPool.balance(weth)).to.eq(0);
       });
 
       it("Should NOT allow others to withdraw liquidity", async function () {
-        const {wethLiquidityPool, weth, wethOwner, WETH_DEC, user, liquidityAdmin} = await loadFixture(deployAll);
+        const {liquidityPool, weth, wethOwner, WETH_DEC, user, liquidityAdmin} = await loadFixture(deployAll);
         const amount = 100n * WETH_DEC;
-        await weth.connect(wethOwner).transfer(wethLiquidityPool, amount);
-        await expect(wethLiquidityPool.connect(liquidityAdmin).deposit(amount))
-          .to.emit(wethLiquidityPool, "Deposit").withArgs(liquidityAdmin, amount);
+        await weth.connect(wethOwner).transfer(liquidityPool, amount);
+        await expect(liquidityPool.connect(liquidityAdmin).deposit(amount))
+          .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amount);
 
-        await expect(wethLiquidityPool.connect(user).withdraw(user, amount * 2n))
-          .to.be.revertedWithCustomError(wethLiquidityPool, "AccessControlUnauthorizedAccount");
+        await expect(liquidityPool.connect(user).withdraw(user, amount * 2n))
+          .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
       });
 
       it("Should allow PAUSER_ROLE to pause and unpause the contract", async function () {
-        const {wethLiquidityPool, pauser} = await loadFixture(deployAll);
-        expect(await wethLiquidityPool.paused())
+        const {liquidityPool, pauser} = await loadFixture(deployAll);
+        expect(await liquidityPool.paused())
           .to.eq(false);
-        await expect(wethLiquidityPool.connect(pauser).pause())
-          .to.emit(wethLiquidityPool, "Paused");
-        expect(await wethLiquidityPool.paused())
+        await expect(liquidityPool.connect(pauser).pause())
+          .to.emit(liquidityPool, "Paused");
+        expect(await liquidityPool.paused())
           .to.eq(true);
-        await expect(wethLiquidityPool.connect(pauser).unpause())
-          .to.emit(wethLiquidityPool, "Unpaused");
-        expect(await wethLiquidityPool.paused())
+        await expect(liquidityPool.connect(pauser).unpause())
+          .to.emit(liquidityPool, "Unpaused");
+        expect(await liquidityPool.paused())
           .to.eq(false);
       });
 
       it("Should NOT allow others to pause and unpause the contract", async function () {
-        const {wethLiquidityPool, admin} = await loadFixture(deployAll);
-        await expect(wethLiquidityPool.connect(admin).pause())
-          .to.be.revertedWithCustomError(wethLiquidityPool, "AccessControlUnauthorizedAccount");
+        const {liquidityPool, admin} = await loadFixture(deployAll);
+        await expect(liquidityPool.connect(admin).pause())
+          .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
       });
     });
   });

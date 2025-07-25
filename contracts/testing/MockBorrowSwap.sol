@@ -25,6 +25,11 @@ contract MockBorrowSwap is IBorrower {
         if (!success) revert BorrowCallFailed();
     }
 
+    function callBorrowBubbleRevert(address pool, bytes calldata borrowData) external {
+        (bool success, bytes memory result) = pool.call(borrowData);
+        if (!success) _revert(result);
+    }
+
     function swap(
         address borrowToken,
         uint256 borrowAmount,
@@ -53,7 +58,11 @@ contract MockBorrowSwap is IBorrower {
         (address from) = abi.decode(swapData, (address));
         if (fillToken == address(NATIVE_TOKEN)) {
             IWrappedNativeToken weth = ILiquidityPool(msg.sender).WRAPPED_NATIVE_TOKEN();
-            IERC20(weth).safeTransferFrom(from, address(this), fillAmount);
+            if (from != address(0)) {
+                IERC20(weth).safeTransferFrom(from, address(this), fillAmount);
+            } else {
+                (, fillAmount) = abi.decode(swapData, (address, uint256));
+            }
             weth.withdraw(fillAmount);
             (bool success, ) = payable(msg.sender).call{value: fillAmount}("");
             require(success, NativeFillFailed());
@@ -62,5 +71,13 @@ contract MockBorrowSwap is IBorrower {
             IERC20(fillToken).forceApprove(msg.sender, fillAmount);
         }
         emit Swapped(swapData);
+    }
+
+    /// @notice From @openzeppelin/contracts/utils/Address.sol
+    function _revert(bytes memory returndata) private pure {
+        assembly ("memory-safe") {
+            let returndata_size := mload(returndata)
+            revert(add(32, returndata), returndata_size)
+        }
     }
 }

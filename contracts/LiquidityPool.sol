@@ -177,7 +177,9 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
     ) external override whenNotPaused() whenBorrowNotPaused() {
         // - Validate MPC signature
         _validateMPCSignatureWithCaller(borrowTokens, amounts, target, targetCallData, nonce, deadline, signature);
-        (uint256 nativeValue, address[] memory actualBorrowTokens) = _borrowMany(borrowTokens, amounts, target, NATIVE_ALLOWED);
+        (uint256 nativeValue, address[] memory actualBorrowTokens) = _borrowMany(
+            borrowTokens, amounts, target, NATIVE_ALLOWED
+        );
         _afterBorrowManyLogic(actualBorrowTokens, target);
         _unwrapNative(nativeValue);
         _finalizeBorrow(target, nativeValue, targetCallData);

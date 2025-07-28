@@ -1,12 +1,15 @@
 import {HardhatUserConfig, task, types} from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
-import {networkConfig, Network, Provider} from "./network.config";
-import {TypedDataDomain, AbiCoder, toNumber, dataSlice} from "ethers";
+import {
+  networkConfig, Network, Provider,
+} from "./network.config";
+import {TypedDataDomain, AbiCoder, toNumber, dataSlice, getAddress} from "ethers";
 import {
   LiquidityPoolAave, Rebalancer, Repayer
 } from "./typechain-types";
 import {
-  assert, isSet, ProviderSolidity, DomainSolidity, CCTPDomain,
+  assert, isSet, ProviderSolidity, DomainSolidity, CCTPDomain, SolidityDomain, SolidityProvider,
+  DEFAULT_ADMIN_ROLE,
 } from "./scripts/common";
 import "hardhat-ignore-warnings";
 
@@ -16,6 +19,14 @@ dotenv.config();
 // Got to use lazy loading because HRE is only becomes available inside the tasks.
 async function loadTestHelpers() {
   return await import("./test/helpers");
+}
+
+async function loadScriptHelpers() {
+  return await import("./scripts/helpers");
+}
+
+function sortRoutes(routes: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens?: boolean}[]): void {
+  routes.sort((a, b) => `${a.Pool}${a.Domain}${a.Provider}`.localeCompare(`${b.Pool}${b.Domain}${b.Provider}`));
 }
 
 task("grant-role", "Grant some role on some AccessControl")
@@ -80,33 +91,32 @@ task("set-min-health-factor", "Update Liquidity Pool config")
 
 task("set-routes-rebalancer", "Update Rebalancer config")
 .addOptionalParam("rebalancer", "Rebalancer address or id", "Rebalancer", types.string)
-.addOptionalParam("pools", "Comma separated list of Liquidity Pool ids or addresses")
-.addOptionalParam("domains", "Comma separated list of domain names")
-.addOptionalParam("providers", "Comma separated list of provider names")
+.addParam("pools", "Comma separated list of Liquidity Pool ids or addresses")
+.addParam("domains", "Comma separated list of domain names")
+.addParam("providers", "Comma separated list of provider names")
 .addOptionalParam("allowed", "Allowed or denied", true, types.boolean)
 .setAction(async (args: {
   rebalancer: string,
-  pools?: string,
-  domains?: string,
-  providers?: string,
+  pools: string,
+  domains: string,
+  providers: string,
   allowed: boolean,
 }, hre) => {
   const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
-  const config = networkConfig[hre.network.name as Network];
 
   const [admin] = await hre.ethers.getSigners();
 
   const targetAddress = await resolveProxyXAddress(args.rebalancer);
   const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, admin)) as Rebalancer;
 
-  const targetPools = args.pools && args.pools.split(",") || config.RebalancerRoutes?.Pools || [];
+  const targetPools = args.pools?.split(",") || [];
   const pools = await Promise.all(targetPools.map(el => resolveXAddress(el, false)));
-  const domains = args.domains && args.domains.split(",") || config.RebalancerRoutes?.Domains || [];
+  const domains = args.domains?.split(",") || [];
   const domainsSolidity = domains.map(el => {
     assert(Object.values(Network).includes(el as Network), `Invalid domain ${el}`);
     return DomainSolidity[el as Network];
   });
-  const providers = args.providers && args.providers.split(",") || config.RebalancerRoutes?.Providers || [];
+  const providers = args.providers?.split(",") || [];
   const providersSolidity = providers.map(el => {
     assert(Object.values(Provider).includes(el as Provider), `Invalid provider ${el}`);
     return ProviderSolidity[el as Provider];
@@ -117,48 +127,277 @@ task("set-routes-rebalancer", "Update Rebalancer config")
   console.table({domains, providers});
 });
 
+task("update-routes-rebalancer", "Update Rebalancer routes based on current network config")
+.addOptionalParam("rebalancer", "Rebalancer address or id", "Rebalancer", types.string)
+.setAction(async (args: {
+  rebalancer: string,
+}, hre) => {
+  const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
+  const {getNetworkConfig, addLocalPools} = await loadScriptHelpers();
+  const {network, config} = await getNetworkConfig();
+
+  const [admin] = await hre.ethers.getSigners();
+
+  const targetAddress = await resolveProxyXAddress(args.rebalancer);
+  const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, admin)) as Rebalancer;
+  const onchainRoutes = await target.getAllRoutes();
+  const onchainConfig: {Pool: string, Domain: Network, Provider: Provider}[] = [];
+  for (let i = 0; i < onchainRoutes.pools.length; i++) {
+    onchainConfig.push({
+      Pool: getAddress(onchainRoutes.pools[i]),
+      Domain: SolidityDomain[Number(onchainRoutes.domains[i])],
+      Provider: SolidityProvider[Number(onchainRoutes.providers[i])],
+    });
+  }
+  const localConfig: {Pool: string, Domain: Network, Provider: Provider}[] = [];
+  for (const [pool, domainProviders] of Object.entries(config.RebalancerRoutes || {})) {
+    for (const [domain, providers] of Object.entries(domainProviders) as [Network, Provider[]][]) {
+      for (const provider of providers) {
+        localConfig.push({
+          Pool: await resolveXAddress(pool, false),
+          Domain: domain,
+          Provider: provider,
+        });
+      }
+    }
+  }
+  await addLocalPools(config, network, localConfig);
+  sortRoutes(onchainConfig);
+  sortRoutes(localConfig);
+
+  console.log("The onchain configuration is:");
+  console.table(onchainConfig);
+  console.log("The updated configuration should be:");
+  console.table(localConfig, ["Pool", "Domain", "Provider"]);
+
+  const toAllow = localConfig.filter(el => !onchainConfig.some(el2 =>
+    el2.Pool === el.Pool &&
+    el2.Domain === el.Domain &&
+    el2.Provider === el.Provider
+  ));
+  const toDeny = onchainConfig.filter(el => !localConfig.some(el2 =>
+    el2.Pool === el.Pool &&
+    el2.Domain === el.Domain &&
+    el2.Provider === el.Provider
+  ));
+
+  const hasRole = await target.hasRole(DEFAULT_ADMIN_ROLE, admin.address);
+
+  if (toAllow.length > 0) {
+    const toAllowParams = toAllow.map(el => ({
+      pools: el.Pool,
+      domains: DomainSolidity[el.Domain],
+      providers: ProviderSolidity[el.Provider],
+    }));
+    if (hasRole) {
+      await target.setRoute(
+        toAllowParams.map(el => el.pools),
+        toAllowParams.map(el => el.domains),
+        toAllowParams.map(el => el.providers),
+        true
+      );
+      console.log(`Following routes are now allowed on ${targetAddress}.`);
+      console.table(toAllow);
+    } else {
+      console.log("To allow missing routes execute the following transaction.");
+      console.log(`To: ${targetAddress}`);
+      console.log("Function: setRoute");
+      console.log("Params:");
+      console.log("isAllowed: true");
+      console.table(toAllowParams);
+    }
+  } else {
+    console.log("There are no missing routes to allow.");
+  }
+
+  if (toDeny.length > 0) {
+    const toDenyParams = toDeny.map(el => ({
+      pools: el.Pool,
+      domains: DomainSolidity[el.Domain],
+      providers: ProviderSolidity[el.Provider],
+    }));
+    if (hasRole) {
+      await target.setRoute(
+        toDenyParams.map(el => el.pools),
+        toDenyParams.map(el => el.domains),
+        toDenyParams.map(el => el.providers),
+        false
+      );
+      console.log(`Following routes are now denied on ${targetAddress}.`);
+      console.table(toDeny);
+    } else {
+      console.log("To deny excess routes execute the following transaction.");
+      console.log(`To: ${targetAddress}`);
+      console.log("Function: setRoute");
+      console.log("Params:");
+      console.log("isAllowed: false");
+      console.table(toDenyParams);
+    }
+  } else {
+    console.log("There are no excess routes to deny.");
+  }
+});
+
 task("set-routes-repayer", "Update Repayer config")
 .addOptionalParam("repayer", "Repayer address or id", "Repayer", types.string)
-.addOptionalParam("pools", "Comma separated list of Liquidity Pool ids or addresses")
-.addOptionalParam("domains", "Comma separated list of domain names")
-.addOptionalParam("providers", "Comma separated list of provider names")
-.addOptionalParam("supportsalltokens", "Comma separated bool flags whether the pool supports all tokens")
+.addParam("pools", "Comma separated list of Liquidity Pool ids or addresses")
+.addParam("domains", "Comma separated list of domain names")
+.addParam("providers", "Comma separated list of provider names")
+.addParam("supportsalltokens", "Comma separated bool flags whether the pool supports all tokens")
 .addOptionalParam("allowed", "Allowed or denied", true, types.boolean)
 .setAction(async (args: {
   repayer: string,
-  pools?: string,
-  domains?: string,
-  providers?: string,
-  supportsalltokens?: string,
+  pools: string,
+  domains: string,
+  providers: string,
+  supportsalltokens: string,
   allowed: boolean,
 }, hre) => {
   const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
-  const config = networkConfig[hre.network.name as Network];
 
   const [admin] = await hre.ethers.getSigners();
 
   const targetAddress = await resolveProxyXAddress(args.repayer);
   const target = (await hre.ethers.getContractAt("Repayer", targetAddress, admin)) as Repayer;
 
-  const targetPools = args.pools && args.pools.split(",") || config.RepayerRoutes?.Pools || [];
+  const targetPools = args.pools?.split(",") || [];
   const pools = await Promise.all(targetPools.map(el => resolveXAddress(el, false)));
-  const domains = args.domains && args.domains.split(",") || config.RepayerRoutes?.Domains || [];
+  const domains = args.domains?.split(",") || [];
   const domainsSolidity = domains.map(el => {
     assert(Object.values(Network).includes(el as Network), `Invalid domain ${el}`);
     return DomainSolidity[el as Network];
   });
-  const providers = args.providers && args.providers.split(",") || config.RepayerRoutes?.Providers || [];
+  const providers = args.providers?.split(",") || [];
   const providersSolidity = providers.map(el => {
     assert(Object.values(Provider).includes(el as Provider), `Invalid provider ${el}`);
     return ProviderSolidity[el as Provider];
   });
-  const supportsAllTokens = args.supportsalltokens && args.supportsalltokens.split(",") ||
-    config.RepayerRoutes?.SupportsAllTokens || [];
+  const supportsAllTokens = args.supportsalltokens?.split(",") || [];
   const supportsAllTokensBool = supportsAllTokens.map(el => el.toString() === "true");
 
   await target.setRoute(pools, domainsSolidity, providersSolidity, supportsAllTokensBool, args.allowed);
   console.log(`Following routes are ${args.allowed ? "" : "dis"}allowed on ${targetAddress}.`);
   console.table({domains, providers, allTokens: supportsAllTokensBool});
+});
+
+task("update-routes-repayer", "Update Repayer routes based on current network config")
+.addOptionalParam("repayer", "Repayer address or id", "Repayer", types.string)
+.setAction(async (args: {
+  repayer: string,
+}, hre) => {
+  const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
+  const {getNetworkConfig, addLocalPools} = await loadScriptHelpers();
+  const {network, config} = await getNetworkConfig();
+
+  const [admin] = await hre.ethers.getSigners();
+
+  const targetAddress = await resolveProxyXAddress(args.repayer);
+  const target = (await hre.ethers.getContractAt("Repayer", targetAddress, admin)) as Repayer;
+  const onchainRoutes = await target.getAllRoutes();
+  const onchainConfig: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens: boolean}[] = [];
+  for (let i = 0; i < onchainRoutes.pools.length; i++) {
+    onchainConfig.push({
+      Pool: getAddress(onchainRoutes.pools[i]),
+      Domain: SolidityDomain[Number(onchainRoutes.domains[i])],
+      Provider: SolidityProvider[Number(onchainRoutes.providers[i])],
+      SupportsAllTokens: onchainRoutes.poolSupportsAllTokens[i],
+    });
+  }
+  const localConfig: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens: boolean}[] = [];
+  for (const [pool, domainProviders] of Object.entries(config.RepayerRoutes || {})) {
+    for (const [domain, providers] of Object.entries(domainProviders.Domains) as [Network, Provider[]][]) {
+      for (const provider of providers) {
+        localConfig.push({
+          Pool: await resolveXAddress(pool, false),
+          Domain: domain,
+          Provider: provider,
+          SupportsAllTokens: domainProviders.SupportsAllTokens,
+        });
+      }
+    }
+  }
+  await addLocalPools(config, network, localConfig);
+  sortRoutes(onchainConfig);
+  sortRoutes(localConfig);
+
+  console.log("The onchain configuration is:");
+  console.table(onchainConfig);
+  console.log("The updated configuration should be:");
+  console.table(localConfig);
+
+  const toAllow = localConfig.filter(el => !onchainConfig.some(el2 =>
+    el2.Pool === el.Pool &&
+    el2.Domain === el.Domain &&
+    el2.Provider === el.Provider &&
+    el2.SupportsAllTokens === el.SupportsAllTokens
+  ));
+  const toDeny = onchainConfig.filter(el => !localConfig.some(el2 =>
+    el2.Pool === el.Pool &&
+    el2.Domain === el.Domain &&
+    el2.Provider === el.Provider &&
+    el2.SupportsAllTokens === el.SupportsAllTokens
+  ));
+
+  const hasRole = await target.hasRole(DEFAULT_ADMIN_ROLE, admin.address);
+
+  // Calling deny first so that allow overrides incorrect SupportsAllTokens flag.
+  if (toDeny.length > 0) {
+    const toDenyParams = toDeny.map(el => ({
+      pools: el.Pool,
+      domains: DomainSolidity[el.Domain],
+      providers: ProviderSolidity[el.Provider],
+      supportsAllTokens: el.SupportsAllTokens,
+    }));
+    if (hasRole) {
+      await target.setRoute(
+        toDenyParams.map(el => el.pools),
+        toDenyParams.map(el => el.domains),
+        toDenyParams.map(el => el.providers),
+        toDenyParams.map(el => el.supportsAllTokens),
+        false
+      );
+      console.log(`Following routes are now denied on ${targetAddress}.`);
+      console.table(toDeny);
+    } else {
+      console.log("To deny excess routes execute the following transaction.");
+      console.log(`To: ${targetAddress}`);
+      console.log("Function: setRoute");
+      console.log("Params:");
+      console.log("isAllowed: false");
+      console.table(toDenyParams);
+    }
+  } else {
+    console.log("There are no excess routes to deny.");
+  }
+
+  if (toAllow.length > 0) {
+    const toAllowParams = toAllow.map(el => ({
+      pools: el.Pool,
+      domains: DomainSolidity[el.Domain],
+      providers: ProviderSolidity[el.Provider],
+      supportsAllTokens: el.SupportsAllTokens,
+    }));
+    if (hasRole) {
+      await target.setRoute(
+        toAllowParams.map(el => el.pools),
+        toAllowParams.map(el => el.domains),
+        toAllowParams.map(el => el.providers),
+        toAllowParams.map(el => el.supportsAllTokens),
+        true
+      );
+      console.log(`Following routes are now allowed on ${targetAddress}.`);
+      console.table(toAllow);
+    } else {
+      console.log("To allow missing routes execute the following transaction.");
+      console.log(`To: ${targetAddress}`);
+      console.log("Function: setRoute");
+      console.log("Params:");
+      console.log("isAllowed: true");
+      console.table(toAllowParams);
+    }
+  } else {
+    console.log("There are no missing routes to allow.");
+  }
 });
 
 task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")

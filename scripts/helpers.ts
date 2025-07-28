@@ -2,14 +2,19 @@ import hre from "hardhat";
 import {Signer, BaseContract, AddressLike, resolveAddress, ContractTransaction, isAddress} from "ethers";
 import {
   deploy, deployX, getContractAt, getCreateAddress, getDeployXAddressBase,
+  resolveXAddress,
 } from "../test/helpers";
 import {
   TransparentUpgradeableProxy, ProxyAdmin,
 } from "../typechain-types";
-import {sleep, DEFAULT_PROXY_TYPE, assert} from "./common";
+import {sleep, DEFAULT_PROXY_TYPE, assert, assertAddress} from "./common";
 import {
   networkConfig, Network, NetworkConfig, StandaloneRepayerEnv, StandaloneRepayerConfig,
   repayerConfig,
+  Provider,
+  LiquidityPoolAaveUSDCVersions,
+  LiquidityPoolUSDCVersions,
+  LiquidityPoolUSDCStablecoinVersions,
 } from "../network.config";
 
 export async function resolveAddresses(input: any[]): Promise<any[]> {
@@ -213,6 +218,46 @@ export async function upgradeProxyX<ContractType extends Initializable>(
 
 export async function getProxyCreateAddress(deployer: Signer, startingNonce: number) {
   return await getCreateAddress(deployer, startingNonce + 1);
+}
+
+export async function addLocalPool(
+  condition: any,
+  network: Network,
+  routes: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens?: boolean}[],
+  versions: string[],
+  supportsAllTokens: boolean,
+  poolName: string,
+): Promise<void> {
+  if (condition) {
+    let pool = "";
+    for (const version of versions.slice().reverse()) {
+      try {
+        pool = await resolveXAddress(version);
+        break;
+      } catch {
+        // Try older version.
+      }
+    }
+    assertAddress(pool, `${poolName} pool not found`);
+    routes.push({
+      Pool: pool,
+      Domain: network,
+      Provider: Provider.LOCAL,
+      SupportsAllTokens: supportsAllTokens,
+    });
+  }
+}
+
+export async function addLocalPools(
+  config: NetworkConfig,
+  network: Network,
+  routes: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens?: boolean}[]
+): Promise<void> {
+  await addLocalPool(config.AavePool, network, routes, LiquidityPoolAaveUSDCVersions, true, "Aave USDC");
+  await addLocalPool(config.USDCPool, network, routes, LiquidityPoolUSDCVersions, false, "USDC");
+  await addLocalPool(
+    config.USDCStablecoinPool, network, routes, LiquidityPoolUSDCStablecoinVersions, true, "USDC stablecoin"
+  );
 }
 
 export async function getNetworkConfig() {

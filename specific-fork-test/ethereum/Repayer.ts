@@ -28,8 +28,22 @@ describe("Repayer", function () {
     const DEPOSIT_PROFIT_ROLE = toBytes32("DEPOSIT_PROFIT_ROLE");
 
     const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.USDC);
-    const liquidityPool = (await deploy("TestLiquidityPool", deployer, {}, usdc, deployer)) as TestLiquidityPool;
-    const liquidityPool2 = (await deploy("TestLiquidityPool", deployer, {}, usdc, deployer)) as TestLiquidityPool;
+    const liquidityPool = (await deploy(
+      "TestLiquidityPool",
+      deployer,
+      {},
+      usdc,
+      deployer,
+      forkNetworkConfig.WrappedNativeToken
+    )) as TestLiquidityPool;
+    const liquidityPool2 = (await deploy(
+      "TestLiquidityPool",
+      deployer,
+      {},
+      usdc,
+      deployer,
+      forkNetworkConfig.WrappedNativeToken
+    )) as TestLiquidityPool;
     const cctpTokenMessenger = await hre.ethers.getContractAt(
       "ICCTPTokenMessenger",
       forkNetworkConfig.CCTP!.TokenMessenger!

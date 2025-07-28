@@ -41,7 +41,7 @@ import {
       if (!EURC_OWNER_ADDRESS) throw new Error("Env variables not configured (EURC_OWNER_ADDRESS missing)");
       const eurc = await hre.ethers.getContractAt("ERC20", EURC_ADDRESS);
       const eurcOwner = await hre.ethers.getImpersonatedSigner(EURC_OWNER_ADDRESS);
-      await setBalance(EURC_OWNER_ADDRESS, 10n ** 18n);
+      await setBalance(EURC_OWNER_ADDRESS, 100n ** 18n);
 
       const EURC_DEC = 10n ** (await eurc.decimals());
       const GHO_DEC = 10n ** (await gho.decimals());
@@ -150,6 +150,90 @@ import {
         expect(await liquidityPool.totalDeposited()).to.eq(amountLiquidity);
         expect(await weth.balanceOf(mockTarget)).to.eq(amountToBorrow);
         expect(await getBalance(mockTarget)).to.eq(0n);
+        expect(await liquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await liquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow);
+      });
+
+      it("Should borrow a token with autowrapping with contract call", async function () {
+        const {
+          liquidityPool, mockTarget, weth, WETH_DEC, user, mpc_signer, wethOwner
+        } = await loadFixture(deployAll);
+        const amountLiquidity = 10n * WETH_DEC;
+        await wethOwner.sendTransaction({to: liquidityPool, value: amountLiquidity});
+
+        const amountToBorrow = 3n * WETH_DEC;
+
+        const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
+
+        const callData = await mockTarget.fulfill.populateTransaction(weth, amountToBorrow, additionalData);
+
+        const signature = await signBorrow(
+          mpc_signer,
+          liquidityPool.target as string,
+          user.address,
+          weth.target as string,
+          amountToBorrow.toString(),
+          mockTarget.target as string,
+          callData.data,
+          31337
+        );
+
+        await expect(liquidityPool.connect(user).borrow(
+          weth,
+          amountToBorrow,
+          mockTarget,
+          callData.data,
+          0n,
+          2000000000n,
+          signature))
+        .to.emit(mockTarget, "DataReceived").withArgs(additionalData);
+        expect(await weth.balanceOf(liquidityPool)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await getBalance(liquidityPool)).to.eq(0n);
+        expect(await liquidityPool.totalDeposited()).to.eq(0);
+        expect(await weth.balanceOf(mockTarget)).to.eq(amountToBorrow);
+        expect(await getBalance(mockTarget)).to.eq(0n);
+        expect(await liquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await liquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow);
+      });
+
+      it("Should borrow native token with autowrapping with contract call", async function () {
+        const {
+          liquidityPool, mockTarget, weth, WETH_DEC, user, mpc_signer, wethOwner
+        } = await loadFixture(deployAll);
+        const amountLiquidity = 10n * WETH_DEC;
+        await wethOwner.sendTransaction({to: liquidityPool, value: amountLiquidity});
+
+        const amountToBorrow = 3n * WETH_DEC;
+
+        const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
+
+        const callData = await mockTarget.fulfill.populateTransaction(NATIVE_TOKEN, amountToBorrow, additionalData);
+
+        const signature = await signBorrow(
+          mpc_signer,
+          liquidityPool.target as string,
+          user.address,
+          NATIVE_TOKEN,
+          amountToBorrow.toString(),
+          mockTarget.target as string,
+          callData.data,
+          31337
+        );
+
+        await expect(liquidityPool.connect(user).borrow(
+          NATIVE_TOKEN,
+          amountToBorrow,
+          mockTarget,
+          callData.data,
+          0n,
+          2000000000n,
+          signature))
+        .to.emit(mockTarget, "DataReceived").withArgs(additionalData);
+        expect(await weth.balanceOf(liquidityPool)).to.eq(amountLiquidity - amountToBorrow);
+        expect(await getBalance(liquidityPool)).to.eq(0n);
+        expect(await liquidityPool.totalDeposited()).to.eq(0);
+        expect(await weth.balanceOf(mockTarget)).to.eq(0);
+        expect(await getBalance(mockTarget)).to.eq(amountToBorrow);
         expect(await liquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow);
         expect(await liquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow);
       });
@@ -469,8 +553,9 @@ import {
         expect(await getBalance(liquidityPool)).to.eq(returnedAmount - fillAmount);
         expect(await getBalance(mockTarget)).to.eq(fillAmount);
         expect(await getBalance(mockBorrowSwap)).to.eq(0);
-        expect(await liquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow);
-        expect(await liquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow);
+        const borrowableBalance = amountLiquidity - amountToBorrow + returnedAmount - fillAmount;
+        expect(await liquidityPool.balance(weth)).to.eq(borrowableBalance);
+        expect(await liquidityPool.balance(NATIVE_TOKEN)).to.eq(borrowableBalance);
       });
 
       it("Should borrow many tokens [weth, weth] with contract call", async function () {
@@ -972,8 +1057,9 @@ import {
         expect(await getBalance(liquidityPool)).to.eq(returnedAmount - fillAmount);
         expect(await getBalance(mockTarget)).to.eq(fillAmount);
         expect(await getBalance(mockBorrowSwap)).to.eq(0);
-        expect(await liquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow);
-        expect(await liquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow);
+        const borrowableBalance = amountLiquidity - amountToBorrow + returnedAmount - fillAmount;
+        expect(await liquidityPool.balance(weth)).to.eq(borrowableBalance);
+        expect(await liquidityPool.balance(NATIVE_TOKEN)).to.eq(borrowableBalance);
       });
 
       it("Should deposit when the contract is paused", async function () {
@@ -1043,7 +1129,7 @@ import {
         expect(await liquidityPool.balance(weth)).to.eq(amountLiquidity);
       });
 
-      it("Should withdraw all available balance as profit ", async function () {
+      it("Should withdraw all available balance as profit", async function () {
         const {liquidityPool, weth, WETH_DEC, wethOwner, withdrawProfit, user} = await loadFixture(deployAll);
         const amount = 2n * WETH_DEC;
         await weth.connect(wethOwner).transfer(liquidityPool, amount);
@@ -1053,7 +1139,7 @@ import {
         expect(await liquidityPool.balance(weth)).to.eq(0);
       });
 
-      it("Should withdraw all native balance as profit ", async function () {
+      it("Should withdraw all native balance as profit", async function () {
         const {
           admin, liquidityPool, weth, WETH_DEC,
           withdrawProfit, user

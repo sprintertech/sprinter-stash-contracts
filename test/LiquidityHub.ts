@@ -13,6 +13,7 @@ import {
   TestUSDC, SprinterUSDCLPShare, LiquidityHub, TransparentUpgradeableProxy, ProxyAdmin,
   TestLiquidityPool,
 } from "../typechain-types";
+import {networkConfig} from "../network.config";
 
 const INCREASE = true;
 const DECREASE = false;
@@ -24,9 +25,15 @@ describe("LiquidityHub", function () {
     const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
 
     const usdc = (await deploy("TestUSDC", deployer)) as TestUSDC;
-    const liquidityPool = (
-      await deployX("TestLiquidityPool", deployer, "TestLiquidityPool", {}, usdc.target, deployer)
-    ) as TestLiquidityPool;
+    const liquidityPool = (await deployX(
+      "TestLiquidityPool",
+      deployer,
+      "TestLiquidityPool",
+      {},
+      usdc.target,
+      deployer,
+      networkConfig.BASE.WrappedNativeToken
+    )) as TestLiquidityPool;
 
     const USDC = 10n ** (await usdc.decimals());
 

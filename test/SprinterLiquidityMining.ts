@@ -12,6 +12,7 @@ import {
   TestUSDC, SprinterUSDCLPShare, LiquidityHub, TransparentUpgradeableProxy, ProxyAdmin,
   TestLiquidityPool, SprinterLiquidityMining,
 } from "../typechain-types";
+import {networkConfig} from "../network.config";
 
 const DAY = 60n * 60n * 24n;
 const MONTH = 30n * DAY;
@@ -27,9 +28,14 @@ describe("SprinterLiquidityMining", function () {
     const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
 
     const usdc = (await deploy("TestUSDC", deployer, {})) as TestUSDC;
-    const liquidityPool = (
-      await deploy("TestLiquidityPool", deployer, {}, usdc.target, deployer)
-    ) as TestLiquidityPool;
+    const liquidityPool = (await deploy(
+      "TestLiquidityPool",
+      deployer,
+      {},
+      usdc.target,
+      deployer,
+      networkConfig.BASE.WrappedNativeToken
+    )) as TestLiquidityPool;
 
     const USDC = 10n ** (await usdc.decimals());
 

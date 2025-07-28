@@ -432,18 +432,18 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         uint256 amount,
         address target,
         bool nativeAllowed
-    ) private returns (uint256, address) {
+    ) private returns (uint256 nativeAmount, address actualBorrowToken) {
         bool isNative = borrowToken == address(NATIVE_TOKEN);
-        address mappedToken = isNative ? address(WRAPPED_NATIVE_TOKEN) : borrowToken;
-        _wrapIfNative(IERC20(mappedToken));
-        _borrowLogic(mappedToken, amount, target);
+        actualBorrowToken = isNative ? address(WRAPPED_NATIVE_TOKEN) : borrowToken;
+        _wrapIfNative(IERC20(actualBorrowToken));
+        _borrowLogic(actualBorrowToken, amount, target);
         if (isNative) {
             require(nativeAllowed, NativeBorrowDenied());
-            return (amount, address(WRAPPED_NATIVE_TOKEN));
+            nativeAmount = amount;
         } else {
             IERC20(borrowToken).forceApprove(target, amount);
         }
-        return (0, borrowToken);
+        return (nativeAmount, actualBorrowToken);
     }
 
     function _wrapIfNative(IERC20 token) internal {

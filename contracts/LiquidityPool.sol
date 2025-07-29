@@ -149,6 +149,8 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
     /// It's supposed that the target is a trusted contract that fulfills the request, performs transferFrom
     /// of borrow tokens and guarantees to repay the tokens to the pool later.
     /// targetCallData is a trusted and checked calldata.
+    /// @param borrowToken can be specified as native token address which is 0x0. In this case, the function will
+    /// borrow wrapped native token, then unwrap it and include the native value in the target call.
     function borrow(
         address borrowToken,
         uint256 amount,
@@ -166,6 +168,8 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         _finalizeBorrow(target, nativeValue, targetCallData);
     }
 
+    /// @param borrowTokens can include a native token address which is 0x0. In this case, the function will
+    /// borrow wrapped native token, then unwrap it and include the native value in the target call.
     function borrowMany(
         address[] calldata borrowTokens,
         uint256[] calldata amounts,
@@ -207,6 +211,11 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
     /// 4. The swapData could be anything, the caller cannot reuse the signature in a reentrancy as the nonce is
     ///    already marked as used. The caller can reenter with another valid signature, which is an allowed scenario
     ///    as there are no state assumptions/changes made afterwards.
+    /// @param borrowToken can NOT be specified as native token address because the swap function is supposed to work
+    /// with wrapped native token.
+    /// @param swap is a struct that contains the fill token which could be specified as native token address 0x0.
+    /// In this case the swap call is expected to send back the native token amount that is >= fillAmount.
+    /// The fillAmount will then be included in the target call.
     function borrowAndSwap(
         address borrowToken,
         uint256 amount,
@@ -227,6 +236,11 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         _finalizeSwap(swap, target, targetCallData, nativeBalanceBefore);
     }
 
+    /// @param borrowTokens can NOT include native token address because the swapMany() function is supposed to work
+    /// with wrapped native token.
+    /// @param swap is a struct that contains the fill token which could be specified as native token address 0x0.
+    /// In this case the swap call is expected to send back the native token amount that is >= fillAmount.
+    /// The fillAmount will then be included in the target call.
     function borrowAndSwapMany(
         address[] calldata borrowTokens,
         uint256[] calldata amounts,

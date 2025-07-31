@@ -178,6 +178,9 @@ import {
           31337
         );
 
+        expect(await weth.balanceOf(liquidityPool)).to.eq(0);
+        expect(await getBalance(liquidityPool)).to.eq(amountLiquidity);
+
         await expect(liquidityPool.connect(user).borrow(
           weth,
           amountToBorrow,
@@ -188,10 +191,10 @@ import {
           signature))
         .to.emit(mockTarget, "DataReceived").withArgs(additionalData);
         expect(await weth.balanceOf(liquidityPool)).to.eq(amountLiquidity - amountToBorrow);
-        expect(await getBalance(liquidityPool)).to.eq(0n);
+        expect(await getBalance(liquidityPool)).to.eq(0);
         expect(await liquidityPool.totalDeposited()).to.eq(0);
         expect(await weth.balanceOf(mockTarget)).to.eq(amountToBorrow);
-        expect(await getBalance(mockTarget)).to.eq(0n);
+        expect(await getBalance(mockTarget)).to.eq(0);
         expect(await liquidityPool.balance(weth)).to.eq(amountLiquidity - amountToBorrow);
         expect(await liquidityPool.balance(NATIVE_TOKEN)).to.eq(amountLiquidity - amountToBorrow);
       });

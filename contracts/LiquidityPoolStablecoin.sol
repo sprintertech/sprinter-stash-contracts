@@ -6,7 +6,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {LiquidityPool} from "./LiquidityPool.sol";
 
 /// @title A version of the liquidity pool contract that supports multiple assets for borrowing.
-/// The idea is that pool has to allow repayyments with any token equivalent to the liquidity token.
+/// The idea is that pool has to allow repayments with any token equivalent to the liquidity token.
 /// It's possible to borrow any tokens that are present in the pool.
 /// @author Tanya Bushenyova <tanya@chainsafe.io>
 contract LiquidityPoolStablecoin is LiquidityPool {

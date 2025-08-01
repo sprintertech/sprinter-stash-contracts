@@ -30,7 +30,7 @@ export async function main() {
   const liquidityPool = await liquidityHub.LIQUIDITY_POOL();
 
   await upgradeProxyX<LiquidityHub>(
-    verifier.deployX,
+    verifier.deployX.bind(verifier),
     liquidityHubAddress,
     "LiquidityHub",
     deployer,

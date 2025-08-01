@@ -46,7 +46,7 @@ export async function main() {
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
 
   await upgradeProxyX<Repayer>(
-    verifier.deployX,
+    verifier.deployX.bind(verifier),
     repayerAddress,
     repayerVersion,
     deployer,

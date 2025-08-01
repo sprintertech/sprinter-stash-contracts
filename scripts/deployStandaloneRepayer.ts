@@ -95,6 +95,7 @@ export async function main() {
       repayerRoutes.map(el => el.SupportsAllTokens),
     ],
     id,
+    verifier,
   );
 
   if (config.RepayerCallers.length > 1) {

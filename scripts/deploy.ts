@@ -217,6 +217,7 @@ export async function main() {
       rebalancerRoutes.Providers.map(el => ProviderSolidity[el]),
     ],
     "Rebalancer",
+    verifier,
   );
 
   if (config.AavePool) {
@@ -266,6 +267,7 @@ export async function main() {
       repayerRoutes.SupportsAllTokens,
     ],
     "Repayer",
+    verifier,
   );
 
   if (config.Hub) {
@@ -296,6 +298,8 @@ export async function main() {
         config.Hub.AssetsLimitSetter,
         assetsLimit
       ],
+      "LiquidityHub",
+      verifier,
     );
 
     assert(liquidityHubAddress == liquidityHub.target, "LiquidityHub address mismatch");

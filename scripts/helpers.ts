@@ -37,103 +37,116 @@ export function stringify(input?: any[]): string {
   });
 }
 
-export function getVerifier(deployXPrefix: string = "") {
-  interface VerificationInput {
-    address: string;
-    constructorArguments: any[];
-    contract?: string;
+interface VerificationInput {
+  address: string;
+  constructorArguments: any[];
+  contract?: string;
+}
+
+export class Verifier {
+  private contracts: VerificationInput[] = [];
+  private deployXPrefix: string;
+
+  constructor(deployXPrefix: string = "") {
+    this.deployXPrefix = deployXPrefix;
   }
 
-  const contracts: VerificationInput[] = [];
-  return {
-    deploy: async (
-      contractName: string,
-      deployer: Signer,
-      txParams: object = {},
-      params: any[] = [],
-      contractVerificationName?: string,
-    ): Promise<BaseContract> => {
-      const contract = await deploy(contractName, deployer, txParams, ...params);
-      contracts.push({
-        address: await resolveAddress(contract),
-        constructorArguments: await resolveAddresses(params),
-        contract: contractVerificationName,
-      });
-      return contract;
-    },
-    deployX: async (
-      contractName: string,
-      deployer: Signer,
-      txParams: object = {},
-      params: any[] = [],
-      id: string = contractName,
-      contractVerificationName?: string,
-    ): Promise<BaseContract> => {
-      const contract = await deployX(contractName, deployer, deployXPrefix + id, txParams, ...params);
-      contracts.push({
-        address: await resolveAddress(contract),
-        constructorArguments: await resolveAddresses(params),
-        contract: contractVerificationName,
-      });
-      return contract;
-    },
-    predictDeployXAddresses: async (
-      idsContractNamesOrAddresses: string[],
-      deployer: Signer,
-    ): Promise<string[]> => {
-      return await Promise.all(idsContractNamesOrAddresses.map(idOrNameOrAddress => {
-        if (isAddress(idOrNameOrAddress)) {
-          return idOrNameOrAddress;
-        }
-        return getDeployXAddressBase(deployer, deployXPrefix + idOrNameOrAddress, false);
-      }));
-    },
-    predictDeployXAddress: async (
-      idOrContractName: string,
-      deployer: Signer,
-    ): Promise<string> => {
-      return await getDeployXAddressBase(deployer, deployXPrefix + idOrContractName, false);
-    },
-    predictDeployProxyXAddress: async (
-      idOrContractName: string,
-      deployer: Signer,
-      proxyType: string = DEFAULT_PROXY_TYPE,
-    ): Promise<string> => {
-      return await getDeployXAddressBase(deployer, deployXPrefix + proxyType + idOrContractName, false);
-    },
-    verify: async (performVerification: boolean) => {
-      if (hre.network.name === "hardhat") {
-        return;
+  async deploy(
+    contractName: string,
+    deployer: Signer,
+    txParams: object = {},
+    params: any[] = [],
+    contractVerificationName?: string,
+  ): Promise<BaseContract> {
+    const contract = await deploy(contractName, deployer, txParams, ...params);
+    await this.addContractForVerification(contract, params, contractVerificationName);
+    return contract;
+  }
+
+  async deployX(
+    contractName: string,
+    deployer: Signer,
+    txParams: object = {},
+    params: any[] = [],
+    id: string = contractName,
+    contractVerificationName?: string,
+  ): Promise<BaseContract> {
+    const contract = await deployX(contractName, deployer, this.deployXPrefix + id, txParams, ...params);
+    await this.addContractForVerification(contract, params, contractVerificationName);
+    return contract;
+  }
+
+  async predictDeployXAddresses(
+    idsContractNamesOrAddresses: string[],
+    deployer: Signer,
+  ): Promise<string[]> {
+    return await Promise.all(idsContractNamesOrAddresses.map(idOrNameOrAddress => {
+      if (isAddress(idOrNameOrAddress)) {
+        return idOrNameOrAddress;
       }
-      if (performVerification) {
-        console.log("Waiting half a minute to start verification");
-        await sleep(30000);
-        for (const contract of contracts) {
-          try {
-            await hre.run("verify:verify", contract);
-          } catch(error) {
-            console.error(error);
-            console.log(`Failed to verify: ${contract.address}`);
-            console.log(stringify(contract.constructorArguments));
-          }
+      return getDeployXAddressBase(deployer, this.deployXPrefix + idOrNameOrAddress, false);
+    }));
+  }
+
+  async predictDeployXAddress(
+    idOrContractName: string,
+    deployer: Signer,
+  ): Promise<string> {
+    return await getDeployXAddressBase(deployer, this.deployXPrefix + idOrContractName, false);
+  }
+
+  async predictDeployProxyXAddress(
+    idOrContractName: string,
+    deployer: Signer,
+    proxyType: string = DEFAULT_PROXY_TYPE,
+  ): Promise<string> {
+    return await getDeployXAddressBase(deployer, this.deployXPrefix + proxyType + idOrContractName, false);
+  }
+
+  async addContractForVerification(address: AddressLike, constructorArguments: any[], contract?: string) {
+    this.contracts.push({
+      address: await resolveAddress(address),
+      constructorArguments: await resolveAddresses(constructorArguments),
+      contract: contract,
+    });
+  }
+
+  async verify(performVerification: boolean) {
+    if (hre.network.name === "hardhat") {
+      return;
+    }
+    if (performVerification) {
+      console.log("Waiting half a minute to start verification");
+      await sleep(30000);
+      for (const contract of this.contracts) {
+        try {
+          await hre.run("verify:verify", contract);
+        } catch(error) {
+          console.error(error);
+          console.log(`Failed to verify: ${contract.address}`);
+          console.log(stringify(contract.constructorArguments));
         }
-      } else {
+      }
+    } else {
+      console.log();
+      console.log("Verification skipped");
+      for (const contract of this.contracts) {
+        console.log(`Contract: ${contract.address}`);
+        if (contract.contract) {
+          console.log(`Name: ${contract.contract}`);
+        }
+        if (contract.constructorArguments.length > 0) {
+          console.log("Constructor args:");
+          console.log(stringify(contract.constructorArguments));
+        }
         console.log();
-        console.log("Verification skipped");
-        for (const contract of contracts) {
-          console.log(`Contract: ${contract.address}`);
-          if (contract.contract) {
-            console.log(`Name: ${contract.contract}`);
-          }
-          if (contract.constructorArguments.length > 0) {
-            console.log("Constructor args:");
-            console.log(stringify(contract.constructorArguments));
-          }
-          console.log();
-        }
       }
-    },
-  };
+    }
+  }
+}
+
+export function getVerifier(deployXPrefix: string = "") {
+  return new Verifier(deployXPrefix);
 }
 
 interface Initializable extends BaseContract {
@@ -158,6 +171,7 @@ export async function deployProxyX<ContractType extends Initializable>(
   contructorArgs: any[] = [],
   initArgs: any[] = [],
   id: string = contractName,
+  verifier?: Verifier,
 ): Promise<{target: ContractType; targetAdmin: ProxyAdmin;}> {
   const targetImpl = (
     await deployFunc(contractName, deployer, {}, contructorArgs, id)
@@ -171,6 +185,7 @@ export async function deployProxyX<ContractType extends Initializable>(
   const target = (await getContractAt(contractName, targetProxy, deployer)) as ContractType;
   const targetProxyAdminAddress = await getCreateAddress(targetProxy, 1);
   const targetAdmin = (await getContractAt("ProxyAdmin", targetProxyAdminAddress)) as ProxyAdmin;
+  await verifier?.addContractForVerification(targetProxyAdminAddress, [upgradeAdmin]);
   return {target, targetAdmin};
 }
 

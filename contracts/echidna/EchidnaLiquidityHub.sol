@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {LiquidityHub} from "../LiquidityHub.sol";
 import {TestUSDC} from "../testing/TestUSDC.sol";
+import {TestWETH} from "../testing/TestWETH.sol";
 import {TestLiquidityPool} from "../testing/TestLiquidityPool.sol";
 import {TestERC20Token} from "@crytic/properties/contracts/ERC4626/util/TestERC20Token.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
@@ -20,7 +21,7 @@ contract EchidnaLiquidityHub {
         shares = new TestERC20Token("Test Token", "TT", 18);
         liquidityToken = new TestUSDC();
 
-        pool = new TestLiquidityPool(liquidityToken, address(this));
+        pool = new TestLiquidityPool(liquidityToken, address(this), address(new TestWETH()));
 
         // Impl
         LiquidityHub hubImpl = new LiquidityHub(address(shares), address(pool));

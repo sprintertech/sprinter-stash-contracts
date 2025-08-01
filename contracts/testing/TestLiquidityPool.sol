@@ -2,20 +2,22 @@
 pragma solidity 0.8.28;
 
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ILiquidityPool} from "../interfaces/ILiquidityPool.sol";
+import {ILiquidityPool, IWrappedNativeToken} from "../interfaces/ILiquidityPool.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 contract TestLiquidityPool is ILiquidityPool, AccessControl {
     IERC20 public immutable ASSETS;
     bytes32 public constant LIQUIDITY_ADMIN_ROLE = "LIQUIDITY_ADMIN_ROLE";
+    IWrappedNativeToken immutable public WRAPPED_NATIVE_TOKEN;
 
     event Deposit();
     event Repaid();
 
-    constructor(IERC20 assets, address admin) {
+    constructor(IERC20 assets, address admin, address weth) {
         ASSETS = assets;
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(LIQUIDITY_ADMIN_ROLE, admin);
+        WRAPPED_NATIVE_TOKEN = IWrappedNativeToken(weth);
     }
 
     function deposit(uint256) external override {

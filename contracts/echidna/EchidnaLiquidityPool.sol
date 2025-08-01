@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {LiquidityPool} from "../LiquidityPool.sol";
 import {TestUSDC} from "../testing/TestUSDC.sol";
+import {TestWETH} from "../testing/TestWETH.sol";
 
 contract EchidnaLiquidityPool {
 
@@ -15,7 +16,7 @@ contract EchidnaLiquidityPool {
         liquidityToken = new TestUSDC();
         liquidityToken.mint(address(this), 1e18);
 
-        pool = new LiquidityPool(address(liquidityToken), address(this), address(this));
+        pool = new LiquidityPool(address(liquidityToken), address(this), address(this), address(new TestWETH()));
         pool.grantRole(pool.LIQUIDITY_ADMIN_ROLE(), address(this));
         pool.grantRole(pool.WITHDRAW_PROFIT_ROLE(), address(this));
     }

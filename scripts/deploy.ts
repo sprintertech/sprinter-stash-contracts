@@ -151,7 +151,11 @@ export async function main() {
   if (config.USDCPool) {
     console.log("Deploying USDC Liquidity Pool");
     usdcPool = (await verifier.deployX(
-      "LiquidityPool", deployer, {}, [config.USDC, deployer, config.MpcAddress], LiquidityPoolUSDC
+      "LiquidityPool",
+      deployer,
+      {},
+      [config.USDC, deployer, config.MpcAddress, config.WrappedNativeToken],
+      LiquidityPoolUSDC
     )) as LiquidityPool;
     console.log(`LiquidityPoolUSDC: ${usdcPool.target}`);
 
@@ -173,7 +177,11 @@ export async function main() {
   if (config.USDCStablecoinPool) {
     console.log("Deploying USDC Stablecoin Liquidity Pool");
     usdcStablecoinPool = (await verifier.deployX(
-      "LiquidityPoolStablecoin", deployer, {}, [config.USDC, deployer, config.MpcAddress], LiquidityPoolUSDCStablecoin
+      "LiquidityPoolStablecoin",
+      deployer,
+      {},
+      [config.USDC, deployer, config.MpcAddress, config.WrappedNativeToken],
+      LiquidityPoolUSDCStablecoin
     )) as LiquidityPool;
     console.log(`LiquidityPoolUSDCStablecoin: ${usdcStablecoinPool.target}`);
 

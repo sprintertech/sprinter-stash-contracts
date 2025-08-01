@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 interface IBorrower {
+    /// @notice if the fillToken is native token (0x0) then swapper must send back fillAmount of native token.
     function swap(
         address borrowToken,
         uint256 borrowAmount,
@@ -10,6 +11,7 @@ interface IBorrower {
         bytes calldata data
     ) external;
 
+    /// @notice if the fillToken is native token (0x0) then swapper must send back fillAmount of native token.
     function swapMany(
         address[] calldata borrowTokens,
         uint256[] calldata borrowAmounts,

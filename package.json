@@ -110,7 +110,7 @@
     "@nomicfoundation/hardhat-verify": "^2.0.14",
     "dotenv": "^16.4.7",
     "eslint": "^9.17.0",
-    "hardhat": "^2.22.17",
+    "hardhat": "^2.26.1",
     "hardhat-ignore-warnings": "^0.2.12",
     "solhint": "^5.0.4",
     "typescript": "^5.7.3",

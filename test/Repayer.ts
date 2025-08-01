@@ -41,8 +41,22 @@ describe("Repayer", function () {
     const REPAYER_ROLE = toBytes32("REPAYER_ROLE");
 
     const usdc = (await deploy("TestUSDC", deployer, {})) as TestUSDC;
-    const liquidityPool = (await deploy("TestLiquidityPool", deployer, {}, usdc, deployer)) as TestLiquidityPool;
-    const liquidityPool2 = (await deploy("TestLiquidityPool", deployer, {}, usdc, deployer)) as TestLiquidityPool;
+    const liquidityPool = (await deploy(
+      "TestLiquidityPool",
+      deployer,
+      {},
+      usdc,
+      deployer,
+      networkConfig.BASE.WrappedNativeToken
+    )) as TestLiquidityPool;
+    const liquidityPool2 = (await deploy(
+      "TestLiquidityPool",
+      deployer,
+      {},
+      usdc,
+      deployer,
+      networkConfig.BASE.WrappedNativeToken
+    )) as TestLiquidityPool;
     const cctpTokenMessenger = (await deploy("TestCCTPTokenMessenger", deployer, {})) as TestCCTPTokenMessenger;
     const cctpMessageTransmitter = (
       await deploy("TestCCTPMessageTransmitter", deployer, {})
@@ -250,7 +264,9 @@ describe("Repayer", function () {
 
   it("Should not allow admin to enable invalid routes", async function () {
     const {repayer, admin, liquidityPool2, deployer} = await loadFixture(deployAll);
-    const liquidityPool3 = (await deploy("TestLiquidityPool", deployer, {}, admin, admin)) as TestLiquidityPool;
+    const liquidityPool3 = (await deploy(
+      "TestLiquidityPool", deployer, {}, admin, admin, networkConfig.BASE.WrappedNativeToken
+    )) as TestLiquidityPool;
 
     await expect(repayer.connect(admin).setRoute(
       [liquidityPool2.target],

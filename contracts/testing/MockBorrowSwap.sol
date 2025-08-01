@@ -4,17 +4,30 @@ pragma solidity 0.8.28;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IBorrower} from "../interfaces/IBorrower.sol";
+import {NATIVE_TOKEN} from "../utils/Constants.sol";
+import {ILiquidityPool} from "../interfaces/ILiquidityPool.sol";
+import {IWrappedNativeToken} from "../interfaces/IWrappedNativeToken.sol";
 
 contract MockBorrowSwap is IBorrower {
     using SafeERC20 for IERC20;
 
     error BorrowCallFailed();
+    error NativeFillFailed();
 
     event Swapped(bytes swapData);
+
+    receive() external payable {
+        // For WETH.
+    }
 
     function callBorrow(address pool, bytes calldata borrowData) external {
         (bool success,) = pool.call(borrowData);
         if (!success) revert BorrowCallFailed();
+    }
+
+    function callBorrowBubbleRevert(address pool, bytes calldata borrowData) external {
+        (bool success, bytes memory result) = pool.call(borrowData);
+        if (!success) _revert(result);
     }
 
     function swap(
@@ -24,11 +37,8 @@ contract MockBorrowSwap is IBorrower {
         uint256 fillAmount,
         bytes calldata swapData
     ) external override {
-        (address from) = abi.decode(swapData, (address));
         IERC20(borrowToken).safeTransferFrom(msg.sender, address(this), borrowAmount);
-        IERC20(fillToken).safeTransferFrom(from, address(this), fillAmount);
-        IERC20(fillToken).forceApprove(msg.sender, fillAmount);
-        emit Swapped(swapData);
+        _finalizeSwap(fillToken, fillAmount, swapData);
     }
 
     function swapMany(
@@ -38,12 +48,36 @@ contract MockBorrowSwap is IBorrower {
         uint256 fillAmount,
         bytes calldata swapData
     ) external override {
-        (address from) = abi.decode(swapData, (address));
         for (uint256 i = 0; i < borrowTokens.length; ++i) {
             IERC20(borrowTokens[i]).safeTransferFrom(msg.sender, address(this), borrowAmounts[i]);
         }
-        IERC20(fillToken).safeTransferFrom(from, address(this), fillAmount);
-        IERC20(fillToken).forceApprove(msg.sender, fillAmount);
+        _finalizeSwap(fillToken, fillAmount, swapData);
+    }
+
+    function _finalizeSwap(address fillToken, uint256 fillAmount, bytes calldata swapData) private {
+        (address from) = abi.decode(swapData, (address));
+        if (fillToken == address(NATIVE_TOKEN)) {
+            IWrappedNativeToken weth = ILiquidityPool(msg.sender).WRAPPED_NATIVE_TOKEN();
+            if (from != address(0)) {
+                IERC20(weth).safeTransferFrom(from, address(this), fillAmount);
+            } else {
+                (, fillAmount) = abi.decode(swapData, (address, uint256));
+            }
+            weth.withdraw(fillAmount);
+            (bool success, ) = payable(msg.sender).call{value: fillAmount}("");
+            require(success, NativeFillFailed());
+        } else {
+            IERC20(fillToken).safeTransferFrom(from, address(this), fillAmount);
+            IERC20(fillToken).forceApprove(msg.sender, fillAmount);
+        }
         emit Swapped(swapData);
+    }
+
+    /// @notice From @openzeppelin/contracts/utils/Address.sol
+    function _revert(bytes memory returndata) private pure {
+        assembly ("memory-safe") {
+            let returndata_size := mload(returndata)
+            revert(add(32, returndata), returndata_size)
+        }
     }
 }

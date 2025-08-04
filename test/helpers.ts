@@ -120,7 +120,6 @@ export async function deployX(
   ...params: any[]
 ): Promise<BaseContract> {
   const factory = await hre.ethers.getContractFactory(contractName, signer);
-  console.log(params);
   const deployCode = (await factory.getDeployTransaction(...params)).data;
   const createX = await getCreateX(signer);
   const salt = concat([

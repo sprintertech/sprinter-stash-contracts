@@ -127,11 +127,11 @@ describe("WETHLiquidityPool", function () {
 
       const signature = await signBorrow(
         mpc_signer,
-        liquidityPool.target as string,
-        user.address,
-        weth.target as string,
-        amountToBorrow.toString(),
-        mockTarget.target as string,
+        liquidityPool,
+        user,
+        weth,
+        amountToBorrow,
+        mockTarget,
         callData.data,
         31337
       );
@@ -169,11 +169,11 @@ describe("WETHLiquidityPool", function () {
 
       const signature = await signBorrow(
         mpc_signer,
-        liquidityPool.target as string,
-        user.address,
-        weth.target as string,
-        amountToBorrow.toString(),
-        mockTarget.target as string,
+        liquidityPool,
+        user,
+        weth,
+        amountToBorrow,
+        mockTarget,
         callData.data,
         31337
       );
@@ -214,11 +214,11 @@ describe("WETHLiquidityPool", function () {
 
       const signature = await signBorrow(
         mpc_signer,
-        liquidityPool.target as string,
-        user.address,
+        liquidityPool,
+        user,
         NATIVE_TOKEN,
-        amountToBorrow.toString(),
-        mockTarget.target as string,
+        amountToBorrow,
+        mockTarget,
         callData.data,
         31337
       );
@@ -258,11 +258,11 @@ describe("WETHLiquidityPool", function () {
 
       const signature = await signBorrow(
         mpc_signer,
-        liquidityPool.target as string,
-        user.address,
+        liquidityPool,
+        user,
         NATIVE_TOKEN,
-        amountToBorrow.toString(),
-        mockTarget.target as string,
+        amountToBorrow,
+        mockTarget,
         callData.data,
         31337
       );
@@ -310,11 +310,11 @@ describe("WETHLiquidityPool", function () {
 
       const signature = await signBorrow(
         mpc_signer,
-        liquidityPool.target as string,
-        mockBorrowSwap.target as string,
-        weth.target as string,
-        amountToBorrow.toString(),
-        mockTarget.target as string,
+        liquidityPool,
+        mockBorrowSwap,
+        weth,
+        amountToBorrow,
+        mockTarget,
         callData.data,
         31337
       );
@@ -366,11 +366,11 @@ describe("WETHLiquidityPool", function () {
 
       const signature = await signBorrow(
         mpc_signer,
-        liquidityPool.target as string,
-        mockBorrowSwap.target as string,
-        weth.target as string,
-        amountToBorrow.toString(),
-        mockTarget.target as string,
+        liquidityPool,
+        mockBorrowSwap,
+        weth,
+        amountToBorrow,
+        mockTarget,
         callData.data,
         31337
       );
@@ -422,11 +422,11 @@ describe("WETHLiquidityPool", function () {
 
       const signature = await signBorrow(
         mpc_signer,
-        liquidityPool.target as string,
-        user.address as string,
+        liquidityPool,
+        user,
         NATIVE_TOKEN,
-        amountToBorrow.toString(),
-        mockTarget.target as string,
+        amountToBorrow,
+        mockTarget,
         callData.data,
         31337
       );
@@ -478,11 +478,11 @@ describe("WETHLiquidityPool", function () {
 
       const signature = await signBorrow(
         mpc_signer,
-        liquidityPool.target as string,
-        mockBorrowSwap.target as string,
-        weth.target as string,
-        amountToBorrow.toString(),
-        mockTarget.target as string,
+        liquidityPool,
+        mockBorrowSwap,
+        weth,
+        amountToBorrow,
+        mockTarget,
         callData.data,
         31337
       );
@@ -528,11 +528,11 @@ describe("WETHLiquidityPool", function () {
 
       const signature = await signBorrow(
         mpc_signer,
-        liquidityPool.target as string,
-        mockBorrowSwap.target  as string,
-        weth.target as string,
-        amountToBorrow.toString(),
-        mockTarget.target as string,
+        liquidityPool,
+        mockBorrowSwap,
+        weth,
+        amountToBorrow,
+        mockTarget,
         callData.data,
         31337
       );
@@ -1186,17 +1186,17 @@ describe("WETHLiquidityPool", function () {
       const amountToBorrow = 2n * EURC_DEC;
       const signature = await signBorrow(
         mpc_signer,
-        liquidityPool.target as string,
-        user.address as string,
-        eurc.target as string,
-        amountToBorrow.toString(),
-        user2.address,
+        liquidityPool,
+        user,
+        eurc,
+        amountToBorrow,
+        user2,
         "0x",
         31337
       );
 
       await expect(liquidityPool.connect(user).borrow(
-        eurc.target,
+        eurc,
         amountToBorrow,
         user2,
         "0x",
@@ -1218,17 +1218,17 @@ describe("WETHLiquidityPool", function () {
       const amountToBorrow = 2n * WETH_DEC;
       const signature = await signBorrow(
         user,
-        liquidityPool.target as string,
-        user.address as string,
-        weth.target as string,
-        amountToBorrow.toString(),
-        user2.address,
+        liquidityPool,
+        user,
+        weth,
+        amountToBorrow,
+        user2,
         "0x",
         31337
       );
 
       await expect(liquidityPool.connect(user).borrow(
-        weth.target,
+        weth,
         amountToBorrow,
         user2,
         "0x",
@@ -1250,17 +1250,17 @@ describe("WETHLiquidityPool", function () {
       const amountToBorrow = 2n * WETH_DEC;
       const signature = await signBorrow(
         mpc_signer,
-        liquidityPool.target as string,
-        user.address as string,
-        weth.target as string,
-        amountToBorrow.toString(),
-        user2.address,
+        liquidityPool,
+        user,
+        weth,
+        amountToBorrow,
+        user2,
         "0x",
         31337
       );
 
       await liquidityPool.connect(user).borrow(
-        weth.target,
+        weth,
         amountToBorrow,
         user2,
         "0x",
@@ -1268,7 +1268,7 @@ describe("WETHLiquidityPool", function () {
         2000000000n,
         signature);
       await expect(liquidityPool.connect(user).borrow(
-        weth.target,
+        weth,
         amountToBorrow,
         user2,
         "0x",
@@ -1291,11 +1291,11 @@ describe("WETHLiquidityPool", function () {
       const deadline = (await now()) - 1n;
       const signature = await signBorrow(
         mpc_signer,
-        liquidityPool.target as string,
-        user.address as string,
-        weth.target as string,
-        amountToBorrow.toString(),
-        user2.address,
+        liquidityPool,
+        user,
+        weth,
+        amountToBorrow,
+        user2,
         "0x",
         31337,
         0n,
@@ -1303,7 +1303,7 @@ describe("WETHLiquidityPool", function () {
       );
 
       await expect(liquidityPool.connect(user).borrow(
-        weth.target,
+        weth,
         amountToBorrow,
         user2,
         "0x",
@@ -1330,19 +1330,19 @@ describe("WETHLiquidityPool", function () {
 
       const signature = await signBorrow(
         mpc_signer,
-        liquidityPool.target as string,
-        user.address as string,
-        weth.target as string,
-        amountToBorrow.toString(),
-        mockTarget.target as string,
+        liquidityPool,
+        user,
+        weth,
+        amountToBorrow,
+        mockTarget,
         callData.data,
         31337
       );
 
       await expect(liquidityPool.connect(user).borrow(
-        weth.target,
+        weth,
         amountToBorrow,
-        mockTarget.target,
+        mockTarget,
         callData.data,
         0n,
         2000000000n,
@@ -1363,17 +1363,17 @@ describe("WETHLiquidityPool", function () {
       const amountToBorrow = 2n * WETH_DEC;
       const signature = await signBorrow(
         mpc_signer,
-        liquidityPool.target as string,
-        user.address as string,
-        weth.target as string,
-        amountToBorrow.toString(),
-        user2.address,
+        liquidityPool,
+        user,
+        weth,
+        amountToBorrow,
+        user2,
         "0x",
         31337
       );
 
       await expect(liquidityPool.connect(user).borrow(
-        weth.target,
+        weth,
         amountToBorrow,
         user2,
         "0x",
@@ -1391,7 +1391,7 @@ describe("WETHLiquidityPool", function () {
         .to.emit(liquidityPool, "Paused");
 
       await expect(liquidityPool.connect(user).borrow(
-        weth.target,
+        weth,
         1,
         user2,
         "0x",
@@ -1413,17 +1413,17 @@ describe("WETHLiquidityPool", function () {
       const amountToBorrow = 2n * WETH_DEC;
       const signature = await signBorrow(
         mpc_signer,
-        liquidityPool.target as string,
-        user.address as string,
-        weth.target as string,
-        amountToBorrow.toString(),
-        user2.address,
+        liquidityPool,
+        user,
+        weth,
+        amountToBorrow,
+        user2,
         "0x",
         31337
       );
 
       await expect(liquidityPool.connect(user2).borrow(
-        weth.target,
+        weth,
         amountToBorrow,
         user2,
         "0x",
@@ -1459,11 +1459,11 @@ describe("WETHLiquidityPool", function () {
       // user address is signed instead of mockBorrowSwap address
       const signature = await signBorrow(
         mpc_signer,
-        liquidityPool.target as string,
-        user.address as string,
-        weth.target as string,
-        amountToBorrow.toString(),
-        mockTarget.target as string,
+        liquidityPool,
+        user,
+        weth,
+        amountToBorrow,
+        mockTarget,
         callData.data,
         31337
       );
@@ -1471,8 +1471,8 @@ describe("WETHLiquidityPool", function () {
       const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
         weth,
         amountToBorrow,
-        {fillToken: eurc.target, fillAmount, swapData},
-        mockTarget.target,
+        {fillToken: eurc, fillAmount, swapData},
+        mockTarget,
         callData.data,
         0n,
         2000000000n,
@@ -1507,11 +1507,11 @@ describe("WETHLiquidityPool", function () {
 
       const signature = await signBorrow(
         mpc_signer,
-        liquidityPool.target as string,
-        mockBorrowSwap.target as string,
-        weth.target as string,
-        amountToBorrow.toString(),
-        mockTarget.target as string,
+        liquidityPool,
+        mockBorrowSwap,
+        weth,
+        amountToBorrow,
+        mockTarget,
         callData.data,
         31337
       );
@@ -1519,8 +1519,8 @@ describe("WETHLiquidityPool", function () {
       const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
         weth,
         amountToBorrow,
-        {fillToken: eurc.target, fillAmount, swapData},
-        mockTarget.target,
+        {fillToken: eurc, fillAmount, swapData},
+        mockTarget,
         callData.data,
         0n,
         2000000000n,
@@ -1542,11 +1542,11 @@ describe("WETHLiquidityPool", function () {
       const amountToBorrow = 2n * EURC_DEC;
       const signature = await signBorrow(
         mpc_signer,
-        liquidityPool.target as string,
-        user.address as string,
-        eurc.target as string,
-        amountToBorrow.toString(),
-        user2.address,
+        liquidityPool,
+        user,
+        eurc,
+        amountToBorrow,
+        user2,
         "0x",
         31337
       );
@@ -1573,11 +1573,11 @@ describe("WETHLiquidityPool", function () {
       const amountToBorrow = 2n * EURC_DEC;
       const signature = await signBorrow(
         mpc_signer,
-        liquidityPool.target as string,
-        user.address as string,
-        eurc.target as string,
-        amountToBorrow.toString(),
-        mockTarget.target as string,
+        liquidityPool,
+        user,
+        eurc,
+        amountToBorrow,
+        mockTarget,
         "0x",
         31337
       );
@@ -2122,7 +2122,7 @@ describe("WETHLiquidityPool", function () {
     it("Should allow admin to set MPC address", async function () {
       const {liquidityPool, admin, user} = await loadFixture(deployAll);
       const oldMPCAddress = await liquidityPool.mpcAddress();
-      await expect(liquidityPool.connect(admin).setMPCAddress(user.address))
+      await expect(liquidityPool.connect(admin).setMPCAddress(user))
         .to.emit(liquidityPool, "MPCAddressSet").withArgs(oldMPCAddress, user.address);
       expect(await liquidityPool.mpcAddress())
         .to.eq(user.address);
@@ -2130,7 +2130,7 @@ describe("WETHLiquidityPool", function () {
 
     it("Should NOT allow others to set MPC address", async function () {
       const {liquidityPool, user} = await loadFixture(deployAll);
-      await expect(liquidityPool.connect(user).setMPCAddress(user.address))
+      await expect(liquidityPool.connect(user).setMPCAddress(user))
         .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
     });
 
@@ -2160,14 +2160,14 @@ describe("WETHLiquidityPool", function () {
       } = await loadFixture(deployAll);
       const amountEURC = 1n * EURC_DEC;
       await eurc.connect(eurcOwner).transfer(liquidityPool, amountEURC);
-      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([eurc], user.address))
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([eurc], user))
         .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(eurc.target, user.address, amountEURC);
       expect(await eurc.balanceOf(user)).to.eq(amountEURC);
     });
 
     it("Should NOT allow others to withdraw profit", async function () {
       const {liquidityPool, eurc, user} = await loadFixture(deployAll);
-      await expect(liquidityPool.connect(user).withdrawProfit([eurc], user.address))
+      await expect(liquidityPool.connect(user).withdrawProfit([eurc], user))
         .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
     });
 

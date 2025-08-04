@@ -92,29 +92,29 @@ describe("Repayer", function () {
     const repayerImpl = (
       await deployX("Repayer", deployer, "Repayer", {},
         Domain.BASE,
-        usdc.target,
-        cctpTokenMessenger.target,
-        cctpMessageTransmitter.target,
-        acrossV3SpokePool.target,
-        everclearFeeAdapter.target,
-        weth.target,
+        usdc,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
+        acrossV3SpokePool,
+        everclearFeeAdapter,
+        weth,
         stargateTreasurerTrue,
-        optimismBridge.target,
+        optimismBridge,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
-      admin.address,
-      repayUser.address,
-      [liquidityPool.target, liquidityPool2.target, liquidityPool.target, liquidityPool.target],
+      admin,
+      repayUser,
+      [liquidityPool, liquidityPool2, liquidityPool, liquidityPool],
       [Domain.BASE, Domain.BASE, Domain.ETHEREUM, Domain.ARBITRUM_ONE],
       [Provider.LOCAL, Provider.LOCAL, Provider.CCTP, Provider.CCTP],
       [true, false, true, true],
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer", {},
-      repayerImpl.target, admin, repayerInit
+      repayerImpl, admin, repayerInit
     )) as TransparentUpgradeableProxy;
-    const repayer = (await getContractAt("Repayer", repayerProxy.target, deployer)) as Repayer;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
     const repayerProxyAdminAddress = await getCreateAddress(repayerProxy, 1);
     const repayerAdmin = (await getContractAt("ProxyAdmin", repayerProxyAdminAddress, admin)) as ProxyAdmin;
 
@@ -139,18 +139,18 @@ describe("Repayer", function () {
     expect(await repayer.STARGATE_TREASURER()).to.equal(stargateTreasurerTrue.target);
     expect(await repayer.OPTIMISM_STANDARD_BRIDGE()).to.equal(optimismBridge.target);
     expect(await repayer.REPAYER_ROLE()).to.equal(REPAYER_ROLE);
-    expect(await repayer.isRouteAllowed(liquidityPool.target, Domain.BASE, Provider.LOCAL)).to.be.true;
-    expect(await repayer.isRouteAllowed(liquidityPool2.target, Domain.BASE, Provider.LOCAL)).to.be.true;
-    expect(await repayer.isRouteAllowed(liquidityPool2.target, Domain.BASE, Provider.CCTP)).to.be.false;
-    expect(await repayer.isRouteAllowed(liquidityPool2.target, Domain.ETHEREUM, Provider.CCTP)).to.be.false;
-    expect(await repayer.isRouteAllowed(liquidityPool.target, Domain.ETHEREUM, Provider.CCTP)).to.be.true;
-    expect(await repayer.isRouteAllowed(liquidityPool.target, Domain.AVALANCHE, Provider.CCTP)).to.be.false;
-    expect(await repayer.isRouteAllowed(liquidityPool.target, Domain.ARBITRUM_ONE, Provider.CCTP)).to.be.true;
-    expect(await repayer.isRouteAllowed(liquidityPool.target, Domain.ETHEREUM, Provider.ACROSS)).to.be.false;
-    expect(await repayer.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be.true;
-    expect(await repayer.hasRole(DEFAULT_ADMIN_ROLE, deployer.address)).to.be.false;
-    expect(await repayer.hasRole(REPAYER_ROLE, repayUser.address)).to.be.true;
-    expect(await repayer.hasRole(REPAYER_ROLE, deployer.address)).to.be.false;
+    expect(await repayer.isRouteAllowed(liquidityPool, Domain.BASE, Provider.LOCAL)).to.be.true;
+    expect(await repayer.isRouteAllowed(liquidityPool2, Domain.BASE, Provider.LOCAL)).to.be.true;
+    expect(await repayer.isRouteAllowed(liquidityPool2, Domain.BASE, Provider.CCTP)).to.be.false;
+    expect(await repayer.isRouteAllowed(liquidityPool2, Domain.ETHEREUM, Provider.CCTP)).to.be.false;
+    expect(await repayer.isRouteAllowed(liquidityPool, Domain.ETHEREUM, Provider.CCTP)).to.be.true;
+    expect(await repayer.isRouteAllowed(liquidityPool, Domain.AVALANCHE, Provider.CCTP)).to.be.false;
+    expect(await repayer.isRouteAllowed(liquidityPool, Domain.ARBITRUM_ONE, Provider.CCTP)).to.be.true;
+    expect(await repayer.isRouteAllowed(liquidityPool, Domain.ETHEREUM, Provider.ACROSS)).to.be.false;
+    expect(await repayer.hasRole(DEFAULT_ADMIN_ROLE, admin)).to.be.true;
+    expect(await repayer.hasRole(DEFAULT_ADMIN_ROLE, deployer)).to.be.false;
+    expect(await repayer.hasRole(REPAYER_ROLE, repayUser)).to.be.true;
+    expect(await repayer.hasRole(REPAYER_ROLE, deployer)).to.be.false;
     expect(await repayer.domainCCTP(Domain.ETHEREUM)).to.equal(0n);
     expect(await repayer.domainCCTP(Domain.AVALANCHE)).to.equal(1n);
     expect(await repayer.domainCCTP(Domain.OP_MAINNET)).to.equal(2n);
@@ -171,7 +171,7 @@ describe("Repayer", function () {
     ]);
 
     await expect(repayer.connect(admin).initialize(
-      admin.address, repayUser.address, [], [], [], []
+      admin, repayUser, [], [], [], []
     )).to.be.reverted;
   });
 
@@ -180,17 +180,17 @@ describe("Repayer", function () {
       liquidityPool, liquidityPool2
     } = await loadFixture(deployAll);
 
-    await usdc.transfer(repayer.target, 10n * USDC_DEC);
+    await usdc.transfer(repayer, 10n * USDC_DEC);
     await expect(repayer.connect(repayUser).initiateRepay(
-      usdc.target,
+      usdc,
       5n * USDC_DEC,
-      liquidityPool.target,
+      liquidityPool,
       Domain.AVALANCHE,
       Provider.CCTP,
       "0x"
     )).to.be.revertedWithCustomError(repayer, "RouteDenied()");
     const tx = repayer.connect(admin).setRoute(
-      [liquidityPool.target],
+      [liquidityPool],
       [Domain.AVALANCHE],
       [Provider.CCTP],
       [true],
@@ -206,13 +206,13 @@ describe("Repayer", function () {
       [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.LOCAL, Provider.LOCAL],
       [true, true, true, true, false],
     ]);
-    expect(await repayer.isRouteAllowed(liquidityPool.target, Domain.ETHEREUM, Provider.CCTP)).to.be.true;
-    expect(await repayer.isRouteAllowed(liquidityPool.target, Domain.AVALANCHE, Provider.CCTP)).to.be.true;
-    expect(await repayer.isRouteAllowed(liquidityPool.target, Domain.ARBITRUM_ONE, Provider.CCTP)).to.be.true;
+    expect(await repayer.isRouteAllowed(liquidityPool, Domain.ETHEREUM, Provider.CCTP)).to.be.true;
+    expect(await repayer.isRouteAllowed(liquidityPool, Domain.AVALANCHE, Provider.CCTP)).to.be.true;
+    expect(await repayer.isRouteAllowed(liquidityPool, Domain.ARBITRUM_ONE, Provider.CCTP)).to.be.true;
     await repayer.connect(repayUser).initiateRepay(
-      usdc.target,
+      usdc,
       5n * USDC_DEC,
-      liquidityPool.target,
+      liquidityPool,
       Domain.AVALANCHE,
       Provider.CCTP,
       "0x"
@@ -222,17 +222,17 @@ describe("Repayer", function () {
   it("Should allow admin to disable routes", async function () {
     const {repayer, usdc, USDC_DEC, admin, repayUser, liquidityPool, liquidityPool2} = await loadFixture(deployAll);
 
-    await usdc.transfer(repayer.target, 10n * USDC_DEC);
+    await usdc.transfer(repayer, 10n * USDC_DEC);
     await repayer.connect(repayUser).initiateRepay(
-      usdc.target,
+      usdc,
       5n * USDC_DEC,
-      liquidityPool.target,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.CCTP,
       "0x"
     );
     const tx = repayer.connect(admin).setRoute(
-      [liquidityPool.target],
+      [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.CCTP],
       [true],
@@ -249,13 +249,13 @@ describe("Repayer", function () {
       [true, true, false]
     ]);
 
-    expect(await repayer.isRouteAllowed(liquidityPool.target, Domain.ETHEREUM, Provider.CCTP)).to.be.false;
-    expect(await repayer.isRouteAllowed(liquidityPool.target, Domain.AVALANCHE, Provider.CCTP)).to.be.false;
-    expect(await repayer.isRouteAllowed(liquidityPool.target, Domain.ARBITRUM_ONE, Provider.CCTP)).to.be.true;
+    expect(await repayer.isRouteAllowed(liquidityPool, Domain.ETHEREUM, Provider.CCTP)).to.be.false;
+    expect(await repayer.isRouteAllowed(liquidityPool, Domain.AVALANCHE, Provider.CCTP)).to.be.false;
+    expect(await repayer.isRouteAllowed(liquidityPool, Domain.ARBITRUM_ONE, Provider.CCTP)).to.be.true;
     await expect(repayer.connect(repayUser).initiateRepay(
-      usdc.target,
+      usdc,
       5n * USDC_DEC,
-      liquidityPool.target,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.CCTP,
       "0x"
@@ -269,21 +269,21 @@ describe("Repayer", function () {
     )) as TestLiquidityPool;
 
     await expect(repayer.connect(admin).setRoute(
-      [liquidityPool2.target],
+      [liquidityPool2],
       [Domain.BASE],
       [Provider.CCTP],
       [true],
       ALLOWED
     )).to.be.revertedWithCustomError(repayer, "UnsupportedProvider()");
     await expect(repayer.connect(admin).setRoute(
-      [liquidityPool2.target],
+      [liquidityPool2],
       [Domain.ETHEREUM],
       [Provider.LOCAL],
       [true],
       ALLOWED
     )).to.be.revertedWithCustomError(repayer, "UnsupportedProvider()");
     await expect(repayer.connect(admin).setRoute(
-      [liquidityPool3.target],
+      [liquidityPool3],
       [Domain.BASE],
       [Provider.LOCAL],
       [false],
@@ -295,7 +295,7 @@ describe("Repayer", function () {
     const {repayer, repayUser, liquidityPool2} = await loadFixture(deployAll);
 
     await expect(repayer.connect(repayUser).setRoute(
-      [liquidityPool2.target],
+      [liquidityPool2],
       [Domain.AVALANCHE],
       [Provider.CCTP],
       [true],
@@ -307,7 +307,7 @@ describe("Repayer", function () {
     const {repayer, repayUser, liquidityPool} = await loadFixture(deployAll);
 
     await expect(repayer.connect(repayUser).setRoute(
-      [liquidityPool.target],
+      [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.CCTP],
       [true],
@@ -320,11 +320,11 @@ describe("Repayer", function () {
       cctpTokenMessenger
     } = await loadFixture(deployAll);
 
-    await usdc.transfer(repayer.target, 10n * USDC_DEC);
+    await usdc.transfer(repayer, 10n * USDC_DEC);
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc.target,
+      usdc,
       4n * USDC_DEC,
-      liquidityPool.target,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.CCTP,
       "0x"
@@ -339,7 +339,7 @@ describe("Repayer", function () {
       .to.emit(usdc, "Transfer")
       .withArgs(cctpTokenMessenger.target, ZERO_ADDRESS, 4n * USDC_DEC);
 
-    expect(await usdc.balanceOf(repayer.target)).to.equal(6n * USDC_DEC);
+    expect(await usdc.balanceOf(repayer)).to.equal(6n * USDC_DEC);
   });
 
   it("Should allow repayer to initiate Across repay", async function () {
@@ -347,10 +347,10 @@ describe("Repayer", function () {
       liquidityPool, acrossV3SpokePool, eurc, user,
     } = await loadFixture(deployAll);
 
-    await usdc.transfer(repayer.target, 10n * USDC_DEC);
+    await usdc.transfer(repayer, 10n * USDC_DEC);
 
     await repayer.connect(admin).setRoute(
-      [liquidityPool.target],
+      [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.ACROSS],
       [true],
@@ -362,9 +362,9 @@ describe("Repayer", function () {
       [eurc.target, amount + 1n, user.address, 1n, 2n, 3n]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc.target,
+      usdc,
       amount,
-      liquidityPool.target,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.ACROSS,
       extraData
@@ -393,7 +393,7 @@ describe("Repayer", function () {
         "0x"
       );
 
-    expect(await usdc.balanceOf(repayer.target)).to.equal(6n * USDC_DEC);
+    expect(await usdc.balanceOf(repayer)).to.equal(6n * USDC_DEC);
   });
 
   it("Should allow repayer to initiate Across repay with a different token", async function () {
@@ -401,10 +401,10 @@ describe("Repayer", function () {
       liquidityPool, acrossV3SpokePool, eurc, user, eurcOwner,
     } = await loadFixture(deployAll);
 
-    await eurc.connect(eurcOwner).transfer(repayer.target, 10n * EURC_DEC);
+    await eurc.connect(eurcOwner).transfer(repayer, 10n * EURC_DEC);
 
     await repayer.connect(admin).setRoute(
-      [liquidityPool.target],
+      [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.ACROSS],
       [true],
@@ -416,9 +416,9 @@ describe("Repayer", function () {
       [ZERO_ADDRESS, amount * 998n / 1000n, user.address, 1n, 2n, 3n]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      eurc.target,
+      eurc,
       amount,
-      liquidityPool.target,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.ACROSS,
       extraData
@@ -447,7 +447,7 @@ describe("Repayer", function () {
         "0x"
       );
 
-    expect(await eurc.balanceOf(repayer.target)).to.equal(6n * EURC_DEC);
+    expect(await eurc.balanceOf(repayer)).to.equal(6n * EURC_DEC);
   });
 
   it("Should allow repayer to initiate Across repay with SpokePool on fork", async function () {
@@ -474,12 +474,12 @@ describe("Repayer", function () {
         "Repayer2",
         {},
         Domain.BASE,
-        usdc.target,
-        cctpTokenMessenger.target,
-        cctpMessageTransmitter.target,
-        acrossV3SpokePoolFork.target,
-        everclearFeeAdapter.target,
-        weth.target,
+        usdc,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
+        acrossV3SpokePoolFork,
+        everclearFeeAdapter,
+        weth,
         stargateTreasurerTrue,
         optimismBridge,
       )
@@ -490,10 +490,10 @@ describe("Repayer", function () {
     expect(await repayer.ACROSS_SPOKE_POOL())
       .to.equal(acrossV3SpokePoolFork.target);
 
-    await usdc.connect(usdcOwner).transfer(repayer.target, 10n * USDC_DEC);
+    await usdc.connect(usdcOwner).transfer(repayer, 10n * USDC_DEC);
 
     await repayer.connect(admin).setRoute(
-      [liquidityPool.target],
+      [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.ACROSS],
       [true],
@@ -506,9 +506,9 @@ describe("Repayer", function () {
       [USDC_BASE_ADDRESS, amount * 998n / 1000n, ZERO_ADDRESS, currentTime - 1n, currentTime + 90n, 0n]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc.target,
+      usdc,
       amount,
-      liquidityPool.target,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.ACROSS,
       extraData
@@ -543,10 +543,10 @@ describe("Repayer", function () {
       liquidityPool, acrossV3SpokePool, eurc, user, eurcOwner,
     } = await loadFixture(deployAll);
 
-    await eurc.connect(eurcOwner).transfer(repayer.target, 10n * EURC_DEC);
+    await eurc.connect(eurcOwner).transfer(repayer, 10n * EURC_DEC);
 
     await repayer.connect(admin).setRoute(
-      [liquidityPool.target],
+      [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.ACROSS],
       [true],
@@ -559,9 +559,9 @@ describe("Repayer", function () {
       [ZERO_ADDRESS, amount, user.address, 1n, fillDeadlineError, 3n]
     );
     await expect(repayer.connect(repayUser).initiateRepay(
-      eurc.target,
+      eurc,
       amount,
-      liquidityPool.target,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.ACROSS,
       extraData
@@ -573,10 +573,10 @@ describe("Repayer", function () {
       liquidityPool, eurc, user, eurcOwner,
     } = await loadFixture(deployAll);
 
-    await eurc.connect(eurcOwner).transfer(repayer.target, 10n * EURC_DEC);
+    await eurc.connect(eurcOwner).transfer(repayer, 10n * EURC_DEC);
 
     await repayer.connect(admin).setRoute(
-      [liquidityPool.target],
+      [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.ACROSS],
       [true],
@@ -588,9 +588,9 @@ describe("Repayer", function () {
       [ZERO_ADDRESS, amount * 998n / 1000n - 1n, user.address, 1n, 2n, 3n]
     );
     await expect(repayer.connect(repayUser).initiateRepay(
-      eurc.target,
+      eurc,
       amount,
-      liquidityPool.target,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.ACROSS,
       extraData
@@ -607,10 +607,10 @@ describe("Repayer", function () {
     const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.USDC);
     const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ADDRESS);
 
-    await usdc.connect(usdcOwner).transfer(repayer.target, 100000n * USDC_DEC);
+    await usdc.connect(usdcOwner).transfer(repayer, 100000n * USDC_DEC);
 
     await repayer.connect(admin).setRoute(
-      [liquidityPool.target],
+      [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.EVERCLEAR],
       [true],
@@ -624,8 +624,8 @@ describe("Repayer", function () {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        origin: forkNetworkConfig.chainId.toString(),
-        destinations: [networkConfig.ETHEREUM.chainId.toString()],
+        origin: forkNetworkConfig.ChainId.toString(),
+        destinations: [networkConfig.ETHEREUM.ChainId.toString()],
         to: liquidityPool.target,
         inputAsset: usdc.target,
         amount: amount.toString(),
@@ -643,9 +643,9 @@ describe("Repayer", function () {
       [apiTx[3], apiTx[4], apiTx[5], apiTx[6], apiTx[8]]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc.target,
+      usdc,
       amount,
-      liquidityPool.target,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.EVERCLEAR,
       extraData
@@ -659,7 +659,7 @@ describe("Repayer", function () {
       .withArgs(repayer.target, everclearFeeAdapter.target, amount);
     await expect(tx)
       .to.emit(everclearFeeAdapter, "IntentWithFeesAdded");
-    expect(await usdc.balanceOf(repayer.target)).to.equal(60000n * USDC_DEC);
+    expect(await usdc.balanceOf(repayer)).to.equal(60000n * USDC_DEC);
   });
 
   it("Should allow repayer to initiate Everclear repay with other token", async function () {
@@ -667,10 +667,10 @@ describe("Repayer", function () {
       liquidityPool, everclearFeeAdapter, forkNetworkConfig,
     } = await loadFixture(deployAll);
 
-    await deployer.sendTransaction({to: repayer.target, value: 10n * ETH});
+    await deployer.sendTransaction({to: repayer, value: 10n * ETH});
 
     await repayer.connect(admin).setRoute(
-      [liquidityPool.target],
+      [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.EVERCLEAR],
       [true],
@@ -684,8 +684,8 @@ describe("Repayer", function () {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        origin: forkNetworkConfig.chainId.toString(),
-        destinations: [networkConfig.ETHEREUM.chainId.toString()],
+        origin: forkNetworkConfig.ChainId.toString(),
+        destinations: [networkConfig.ETHEREUM.ChainId.toString()],
         to: liquidityPool.target,
         inputAsset: weth.target,
         amount: amount.toString(),
@@ -703,9 +703,9 @@ describe("Repayer", function () {
       [apiTx[3], apiTx[4], apiTx[5], apiTx[6], apiTx[8]]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      weth.target,
+      weth,
       amount,
-      liquidityPool.target,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.EVERCLEAR,
       extraData
@@ -719,8 +719,8 @@ describe("Repayer", function () {
       .withArgs(repayer.target, everclearFeeAdapter.target, amount);
     await expect(tx)
       .to.emit(everclearFeeAdapter, "IntentWithFeesAdded");
-    expect(await weth.balanceOf(repayer.target)).to.equal(6n * ETH);
-    expect(await getBalance(repayer.target)).to.equal(0n);
+    expect(await weth.balanceOf(repayer)).to.equal(6n * ETH);
+    expect(await getBalance(repayer)).to.equal(0n);
   });
 
   it("Should revert Everclear repay if call to Everclear reverts", async function () {
@@ -733,10 +733,10 @@ describe("Repayer", function () {
     const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.USDC);
     const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ADDRESS);
 
-    await usdc.connect(usdcOwner).transfer(repayer.target, 10n * USDC_DEC);
+    await usdc.connect(usdcOwner).transfer(repayer, 10n * USDC_DEC);
 
     await repayer.connect(admin).setRoute(
-      [liquidityPool.target],
+      [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.EVERCLEAR],
       [true],
@@ -749,9 +749,9 @@ describe("Repayer", function () {
       [ZERO_BYTES32, amount, 0, 0, [0, 0, "0x"]]
     );
     await expect(repayer.connect(repayUser).initiateRepay(
-      usdc.target,
+      usdc,
       amount,
-      liquidityPool.target,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.EVERCLEAR,
       extraData
@@ -767,31 +767,31 @@ describe("Repayer", function () {
     const repayerImpl = (
       await deployX("Repayer", deployer, "Repayer2", {},
         Domain.ETHEREUM,
-        usdc.target,
-        cctpTokenMessenger.target,
-        cctpMessageTransmitter.target,
-        acrossV3SpokePool.target,
-        everclearFeeAdapter.target,
-        weth.target,
+        usdc,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
+        acrossV3SpokePool,
+        everclearFeeAdapter,
+        weth,
         stargateTreasurerTrue,
-        optimismBridge.target,
+        optimismBridge,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
-      admin.address,
-      repayUser.address,
-      [liquidityPool.target, liquidityPool.target],
+      admin,
+      repayUser,
+      [liquidityPool, liquidityPool],
       [Domain.ETHEREUM, Domain.OP_MAINNET],
       [Provider.LOCAL, Provider.OPTIMISM_STANDARD_BRIDGE],
       [true, true],
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
-      repayerImpl.target, admin, repayerInit
+      repayerImpl, admin, repayerInit
     )) as TransparentUpgradeableProxy;
-    const repayer = (await getContractAt("Repayer", repayerProxy.target, deployer)) as Repayer;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
 
-    await usdc.transfer(repayer.target, 10n * USDC_DEC);
+    await usdc.transfer(repayer, 10n * USDC_DEC);
 
     const amount = 4n * USDC_DEC;
     const outputToken = networkConfig.OP_MAINNET.USDC;
@@ -801,9 +801,9 @@ describe("Repayer", function () {
       [outputToken, minGasLimit]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc.target,
+      usdc,
       amount,
-      liquidityPool.target,
+      liquidityPool,
       Domain.OP_MAINNET,
       Provider.OPTIMISM_STANDARD_BRIDGE,
       extraData
@@ -822,31 +822,31 @@ describe("Repayer", function () {
     const repayerImpl = (
       await deployX("Repayer", deployer, "Repayer2", {},
         Domain.ETHEREUM,
-        usdc.target,
-        cctpTokenMessenger.target,
-        cctpMessageTransmitter.target,
-        acrossV3SpokePool.target,
-        everclearFeeAdapter.target,
-        weth.target,
+        usdc,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
+        acrossV3SpokePool,
+        everclearFeeAdapter,
+        weth,
         stargateTreasurerTrue,
-        optimismBridge.target,
+        optimismBridge,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
-      admin.address,
-      repayUser.address,
-      [liquidityPool.target, liquidityPool.target],
+      admin,
+      repayUser,
+      [liquidityPool, liquidityPool],
       [Domain.ETHEREUM, Domain.OP_MAINNET],
       [Provider.LOCAL, Provider.OPTIMISM_STANDARD_BRIDGE],
       [true, true],
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
-      repayerImpl.target, admin, repayerInit
+      repayerImpl, admin, repayerInit
     )) as TransparentUpgradeableProxy;
-    const repayer = (await getContractAt("Repayer", repayerProxy.target, deployer)) as Repayer;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
 
-    await usdc.transfer(repayer.target, 10n * USDC_DEC);
+    await usdc.transfer(repayer, 10n * USDC_DEC);
 
     const amount = 4n * USDC_DEC;
     const outputToken = usdc.target;
@@ -856,9 +856,9 @@ describe("Repayer", function () {
       [outputToken, minGasLimit]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc.target,
+      usdc,
       amount,
-      liquidityPool.target,
+      liquidityPool,
       Domain.OP_MAINNET,
       Provider.OPTIMISM_STANDARD_BRIDGE,
       extraData
@@ -870,10 +870,10 @@ describe("Repayer", function () {
   it("Should NOT allow repayer to initiate Optimism repay on invalid route", async function () {
     const {repayer, USDC_DEC, usdc, admin, repayUser, liquidityPool} = await loadFixture(deployAll);
 
-    await usdc.transfer(repayer.target, 10n * USDC_DEC);
+    await usdc.transfer(repayer, 10n * USDC_DEC);
 
     await repayer.connect(admin).setRoute(
-      [liquidityPool.target],
+      [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.OPTIMISM_STANDARD_BRIDGE],
       [true],
@@ -887,9 +887,9 @@ describe("Repayer", function () {
       [outputToken, minGasLimit]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc.target,
+      usdc,
       amount,
-      liquidityPool.target,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.OPTIMISM_STANDARD_BRIDGE,
       extraData
@@ -902,11 +902,11 @@ describe("Repayer", function () {
     const {repayer, eurc, EURC_DEC, eurcOwner, repayUser, liquidityPool
     } = await loadFixture(deployAll);
 
-    await eurc.connect(eurcOwner).transfer(repayer.target, 10n * EURC_DEC);
+    await eurc.connect(eurcOwner).transfer(repayer, 10n * EURC_DEC);
     const tx = repayer.connect(repayUser).initiateRepay(
-      eurc.target,
+      eurc,
       4n * EURC_DEC,
-      liquidityPool.target,
+      liquidityPool,
       Domain.BASE,
       Provider.LOCAL,
       "0x"
@@ -918,19 +918,19 @@ describe("Repayer", function () {
       .to.emit(eurc, "Transfer")
       .withArgs(repayer.target, liquidityPool.target, 4n * EURC_DEC);
 
-    expect(await eurc.balanceOf(repayer.target)).to.equal(6n * EURC_DEC);
-    expect(await eurc.balanceOf(liquidityPool.target)).to.equal(4n * EURC_DEC);
+    expect(await eurc.balanceOf(repayer)).to.equal(6n * EURC_DEC);
+    expect(await eurc.balanceOf(liquidityPool)).to.equal(4n * EURC_DEC);
   });
 
   it("Should allow repayer to initiate repay to local pool", async function () {
     const {repayer, usdc, USDC_DEC, repayUser, liquidityPool2
     } = await loadFixture(deployAll);
 
-    await usdc.transfer(repayer.target, 10n * USDC_DEC);
+    await usdc.transfer(repayer, 10n * USDC_DEC);
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc.target,
+      usdc,
       4n * USDC_DEC,
-      liquidityPool2.target,
+      liquidityPool2,
       Domain.BASE,
       Provider.LOCAL,
       "0x"
@@ -942,27 +942,27 @@ describe("Repayer", function () {
       .to.emit(usdc, "Transfer")
       .withArgs(repayer.target, liquidityPool2.target, 4n * USDC_DEC);
 
-    expect(await usdc.balanceOf(repayer.target)).to.equal(6n * USDC_DEC);
-    expect(await usdc.balanceOf(liquidityPool2.target)).to.equal(4n * USDC_DEC);
+    expect(await usdc.balanceOf(repayer)).to.equal(6n * USDC_DEC);
+    expect(await usdc.balanceOf(liquidityPool2)).to.equal(4n * USDC_DEC);
   });
 
   it("Should not allow repayer to initiate repay on invalid route", async function () {
     const {repayer, usdc, USDC_DEC, repayUser, liquidityPool,
     } = await loadFixture(deployAll);
 
-    await usdc.transfer(repayer.target, 10n * USDC_DEC);
+    await usdc.transfer(repayer, 10n * USDC_DEC);
     await expect(repayer.connect(repayUser).initiateRepay(
-      usdc.target,
+      usdc,
       4n * USDC_DEC,
-      usdc.target,
+      usdc,
       Domain.ETHEREUM,
       Provider.CCTP,
       "0x"
     )).to.be.revertedWithCustomError(repayer, "RouteDenied()");
     await expect(repayer.connect(repayUser).initiateRepay(
-      usdc.target,
+      usdc,
       4n * USDC_DEC,
-      liquidityPool.target,
+      liquidityPool,
       Domain.BASE,
       Provider.CCTP,
       "0x"
@@ -972,11 +972,11 @@ describe("Repayer", function () {
   it("Should not allow others to initiate repay", async function () {
     const {repayer, usdc, USDC_DEC, admin, liquidityPool} = await loadFixture(deployAll);
 
-    await usdc.transfer(repayer.target, 10n * USDC_DEC);
+    await usdc.transfer(repayer, 10n * USDC_DEC);
     await expect(repayer.connect(admin).initiateRepay(
-      usdc.target,
+      usdc,
       4n * USDC_DEC,
-      liquidityPool.target,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.CCTP,
       "0x"
@@ -986,11 +986,11 @@ describe("Repayer", function () {
   it("Should not allow repayer to initiate repay with 0 amount", async function () {
     const {repayer, repayUser, usdc, USDC_DEC, liquidityPool} = await loadFixture(deployAll);
 
-    await usdc.transfer(repayer.target, 10n * USDC_DEC);
+    await usdc.transfer(repayer, 10n * USDC_DEC);
     await expect(repayer.connect(repayUser).initiateRepay(
-      usdc.target,
+      usdc,
       0n,
-      liquidityPool.target,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.CCTP,
       "0x"
@@ -1000,11 +1000,11 @@ describe("Repayer", function () {
   it("Should not allow repayer to initiate repay with disabled route", async function () {
     const {repayer, repayUser, usdc, USDC_DEC, liquidityPool} = await loadFixture(deployAll);
 
-    await usdc.transfer(repayer.target, 10n * USDC_DEC);
+    await usdc.transfer(repayer, 10n * USDC_DEC);
     await expect(repayer.connect(repayUser).initiateRepay(
-      usdc.target,
+      usdc,
       4n * USDC_DEC,
-      liquidityPool.target,
+      liquidityPool,
       Domain.AVALANCHE,
       Provider.CCTP,
       "0x"
@@ -1014,11 +1014,11 @@ describe("Repayer", function () {
   it("Should not allow repayer to initiate repay with other token if the pool doesn't support it", async function () {
     const {repayer, repayUser, eurc, EURC_DEC, eurcOwner, liquidityPool2} = await loadFixture(deployAll);
 
-    await eurc.connect(eurcOwner).transfer(repayer.target, 10n * EURC_DEC);
+    await eurc.connect(eurcOwner).transfer(repayer, 10n * EURC_DEC);
     await expect(repayer.connect(repayUser).initiateRepay(
-      eurc.target,
+      eurc,
       4n * EURC_DEC,
-      liquidityPool2.target,
+      liquidityPool2,
       Domain.BASE,
       Provider.LOCAL,
       "0x"
@@ -1028,11 +1028,11 @@ describe("Repayer", function () {
   it("Should not allow repayer to initiate repay with other token if the provider is CCTP", async function () {
     const {repayer, repayUser, eurc, EURC_DEC, eurcOwner, liquidityPool} = await loadFixture(deployAll);
 
-    await eurc.connect(eurcOwner).transfer(repayer.target, 10n * EURC_DEC);
+    await eurc.connect(eurcOwner).transfer(repayer, 10n * EURC_DEC);
     await expect(repayer.connect(repayUser).initiateRepay(
-      eurc.target,
+      eurc,
       4n * EURC_DEC,
-      liquidityPool.target,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.CCTP,
       "0x"
@@ -1048,7 +1048,7 @@ describe("Repayer", function () {
     );
     const signature = AbiCoder.defaultAbiCoder().encode(["bool", "bool"], [true, true]);
     const extraData = AbiCoder.defaultAbiCoder().encode(["bytes", "bytes"], [message, signature]);
-    const tx = repayer.connect(repayUser).processRepay(liquidityPool.target, Provider.CCTP, extraData);
+    const tx = repayer.connect(repayUser).processRepay(liquidityPool, Provider.CCTP, extraData);
     await expect(tx)
       .to.emit(repayer, "ProcessRepay")
       .withArgs(usdc.target, 4n * USDC_DEC, liquidityPool.target, Provider.CCTP);
@@ -1056,8 +1056,8 @@ describe("Repayer", function () {
       .to.emit(usdc, "Transfer")
       .withArgs(ZERO_ADDRESS, liquidityPool.target, 4n * USDC_DEC);
 
-    expect(await usdc.balanceOf(liquidityPool.target)).to.equal(4n * USDC_DEC);
-    expect(await usdc.balanceOf(repayer.target)).to.equal(0n);
+    expect(await usdc.balanceOf(liquidityPool)).to.equal(4n * USDC_DEC);
+    expect(await usdc.balanceOf(repayer)).to.equal(0n);
   });
 
   it("Should not allow others to process repay", async function () {
@@ -1069,7 +1069,7 @@ describe("Repayer", function () {
     );
     const signature = AbiCoder.defaultAbiCoder().encode(["bool", "bool"], [true, true]);
     const extraData = AbiCoder.defaultAbiCoder().encode(["bytes", "bytes"], [message, signature]);
-    await expect(repayer.connect(user).processRepay(liquidityPool.target, Provider.CCTP, extraData))
+    await expect(repayer.connect(user).processRepay(liquidityPool, Provider.CCTP, extraData))
       .to.be.revertedWithCustomError(repayer, "AccessControlUnauthorizedAccount(address,bytes32)");;
   });
 
@@ -1082,7 +1082,7 @@ describe("Repayer", function () {
     );
     const signature = AbiCoder.defaultAbiCoder().encode(["bool", "bool"], [false, true]);
     const extraData = AbiCoder.defaultAbiCoder().encode(["bytes", "bytes"], [message, signature]);
-    await expect(repayer.connect(repayUser).processRepay(liquidityPool.target, Provider.CCTP, extraData))
+    await expect(repayer.connect(repayUser).processRepay(liquidityPool, Provider.CCTP, extraData))
       .to.be.reverted;
   });
 
@@ -1095,7 +1095,7 @@ describe("Repayer", function () {
     );
     const signature = AbiCoder.defaultAbiCoder().encode(["bool", "bool"], [true, false]);
     const extraData = AbiCoder.defaultAbiCoder().encode(["bytes", "bytes"], [message, signature]);
-    await expect(repayer.connect(repayUser).processRepay(liquidityPool.target, Provider.CCTP, extraData))
+    await expect(repayer.connect(repayUser).processRepay(liquidityPool, Provider.CCTP, extraData))
       .to.be.revertedWithCustomError(repayer, "ProcessFailed()");
   });
 
@@ -1103,14 +1103,14 @@ describe("Repayer", function () {
     const {repayer, USDC_DEC, usdc, admin, repayUser, liquidityPool, deployer} = await loadFixture(deployAll);
 
     const testStargate = (
-      await deploy("TestStargate", deployer, {}, usdc.target)
+      await deploy("TestStargate", deployer, {}, usdc)
     ) as TestStargate;
     expect(await testStargate.token()).to.eq(usdc.target);
 
-    await usdc.transfer(repayer.target, 10n * USDC_DEC);
+    await usdc.transfer(repayer, 10n * USDC_DEC);
 
     await repayer.connect(admin).setRoute(
-      [liquidityPool.target],
+      [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.STARGATE],
       [true],
@@ -1123,9 +1123,9 @@ describe("Repayer", function () {
       [testStargate.target, minAmount]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc.target,
+      usdc,
       amount,
-      liquidityPool.target,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.STARGATE,
       extraData,
@@ -1162,10 +1162,10 @@ describe("Repayer", function () {
       everclearFeeAdapter, optimismBridge,
     } = await loadFixture(deployAll);
 
-    await usdc.transfer(repayer.target, 10n * USDC_DEC);
+    await usdc.transfer(repayer, 10n * USDC_DEC);
 
     const testStargate = (
-      await deploy("TestStargate", deployer, {}, usdc.target)
+      await deploy("TestStargate", deployer, {}, usdc)
     ) as TestStargate;
     expect(await testStargate.token()).to.eq(usdc.target);
 
@@ -1176,12 +1176,12 @@ describe("Repayer", function () {
         "Repayer2",
         {},
         Domain.BASE,
-        usdc.target,
-        cctpTokenMessenger.target,
-        cctpMessageTransmitter.target,
-        acrossV3SpokePool.target,
-        everclearFeeAdapter.target,
-        weth.target,
+        usdc,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
+        acrossV3SpokePool,
+        everclearFeeAdapter,
+        weth,
         stargateTreasurerFalse,
         optimismBridge,
       )
@@ -1193,7 +1193,7 @@ describe("Repayer", function () {
       .to.equal(stargateTreasurerFalse.target);
 
     await repayer.connect(admin).setRoute(
-      [liquidityPool.target],
+      [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.STARGATE],
       [true],
@@ -1205,9 +1205,9 @@ describe("Repayer", function () {
       ["address", "uint256"], [testStargate.target, minAmount]
     );
     await expect(repayer.connect(repayUser).initiateRepay(
-      usdc.target,
+      usdc,
       amount,
-      liquidityPool.target,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.STARGATE,
       extraData,
@@ -1219,17 +1219,17 @@ describe("Repayer", function () {
     const {repayer, USDC_DEC, usdc, admin, repayUser, liquidityPool, deployer
     } = await loadFixture(deployAll);
 
-    await usdc.transfer(repayer.target, 10n * USDC_DEC);
+    await usdc.transfer(repayer, 10n * USDC_DEC);
 
     const testStargate = (
-      await deploy("TestStargate", deployer, {}, usdc.target)
+      await deploy("TestStargate", deployer, {}, usdc)
     ) as TestStargate;
     expect(await testStargate.token()).to.eq(usdc.target);
 
-    await usdc.transfer(repayer.target, 10n * USDC_DEC);
+    await usdc.transfer(repayer, 10n * USDC_DEC);
 
     await repayer.connect(admin).setRoute(
-      [liquidityPool.target],
+      [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.STARGATE],
       [true],
@@ -1242,9 +1242,9 @@ describe("Repayer", function () {
       ["address", "uint256"], [testStargate.target, minAmount]
     );
     await expect(repayer.connect(repayUser).initiateRepay(
-      usdc.target,
+      usdc,
       amount,
-      liquidityPool.target,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.STARGATE,
       extraData,
@@ -1258,14 +1258,14 @@ describe("Repayer", function () {
     } = await loadFixture(deployAll);
 
     const testStargate = (
-      await deploy("TestStargate", deployer, {}, usdc.target)
+      await deploy("TestStargate", deployer, {}, usdc)
     ) as TestStargate;
     expect(await testStargate.token()).to.eq(usdc.target);
 
-    await eurc.connect(eurcOwner).transfer(repayer.target, 10n * EURC_DEC);
+    await eurc.connect(eurcOwner).transfer(repayer, 10n * EURC_DEC);
 
     await repayer.connect(admin).setRoute(
-      [liquidityPool.target],
+      [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.STARGATE],
       [true],
@@ -1277,9 +1277,9 @@ describe("Repayer", function () {
       ["address", "uint256"], [testStargate.target, minAmount]
     );
     await expect(repayer.connect(repayUser).initiateRepay(
-      eurc.target,
+      eurc,
       amount,
-      liquidityPool.target,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.STARGATE,
       extraData,
@@ -1313,12 +1313,12 @@ describe("Repayer", function () {
         "Repayer2",
         {},
         Domain.BASE,
-        usdc.target,
-        cctpTokenMessenger.target,
-        cctpMessageTransmitter.target,
-        acrossV3SpokePool.target,
-        everclearFeeAdapter.target,
-        weth.target,
+        usdc,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
+        acrossV3SpokePool,
+        everclearFeeAdapter,
+        weth,
         stargateTreasurer,
         optimismBridge,
       )
@@ -1329,10 +1329,10 @@ describe("Repayer", function () {
     expect(await repayer.STARGATE_TREASURER())
       .to.equal(stargateTreasurer);
 
-    await usdc.connect(usdcOwner).transfer(repayer.target, 100000n * USDC_DEC);
+    await usdc.connect(usdcOwner).transfer(repayer, 100000n * USDC_DEC);
 
     await repayer.connect(admin).setRoute(
-      [liquidityPool.target],
+      [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.STARGATE],
       [true],
@@ -1344,9 +1344,9 @@ describe("Repayer", function () {
       ["address", "uint256"], [stargatePoolUsdcAddress, minAmount]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc.target,
+      usdc,
       amount,
-      liquidityPool.target,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.STARGATE,
       extraData,
@@ -1391,10 +1391,10 @@ describe("Repayer", function () {
     const usdc = await hre.ethers.getContractAt("ERC20", USDC_BASE_ADDRESS);
     const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ADDRESS);
 
-    await usdc.connect(usdcOwner).transfer(repayer.target, 10n * USDC_DEC);
+    await usdc.connect(usdcOwner).transfer(repayer, 10n * USDC_DEC);
 
     await repayer.connect(admin).setRoute(
-      [liquidityPool.target],
+      [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.STARGATE],
       [true],
@@ -1407,9 +1407,9 @@ describe("Repayer", function () {
     );
     // Not enough native fee provided
     await expect(repayer.connect(repayUser).initiateRepay(
-      usdc.target,
+      usdc,
       amount,
-      liquidityPool.target,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.STARGATE,
       extraData,
@@ -1432,11 +1432,11 @@ describe("Repayer", function () {
     const nativeAmount = 10n * ETH;
     const repayAmount = 4n * ETH;
 
-    await repayUser.sendTransaction({to: repayer.target, value: nativeAmount});
+    await repayUser.sendTransaction({to: repayer, value: nativeAmount});
     const tx = repayer.connect(repayUser).initiateRepay(
-      weth.target,
+      weth,
       repayAmount,
-      liquidityPool.target,
+      liquidityPool,
       Domain.BASE,
       Provider.LOCAL,
       "0x"
@@ -1451,9 +1451,9 @@ describe("Repayer", function () {
       .to.emit(weth, "Deposit")
       .withArgs(repayer.target, nativeAmount);
 
-    expect(await weth.balanceOf(repayer.target)).to.equal(6n * ETH);
-    expect(await weth.balanceOf(liquidityPool.target)).to.equal(4n * ETH);
-    expect(await getBalance(repayer.target)).to.equal(0n);
+    expect(await weth.balanceOf(repayer)).to.equal(6n * ETH);
+    expect(await weth.balanceOf(liquidityPool)).to.equal(4n * ETH);
+    expect(await getBalance(repayer)).to.equal(0n);
   });
 
   it("Should unwrap enough native tokens on initiate repay", async function () {
@@ -1468,9 +1468,9 @@ describe("Repayer", function () {
 
     const weth = (await deploy("TestWETH", deployer)) as IWrappedNativeToken;
 
-    await repayUser.sendTransaction({to: repayer.target, value: nativeAmount});
+    await repayUser.sendTransaction({to: repayer, value: nativeAmount});
     await weth.connect(repayUser).deposit({value: wrappedAmount});
-    await weth.connect(repayUser).transfer(repayer.target, wrappedAmount);
+    await weth.connect(repayUser).transfer(repayer, wrappedAmount);
 
     const repayerImpl2 = (
       await deployX(
@@ -1479,12 +1479,12 @@ describe("Repayer", function () {
         "Repayer2",
         {},
         Domain.ETHEREUM,
-        usdc.target,
-        cctpTokenMessenger.target,
-        cctpMessageTransmitter.target,
+        usdc,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
         ZERO_ADDRESS,
         ZERO_ADDRESS,
-        weth.target,
+        weth,
         ZERO_ADDRESS,
         optimismBridge,
       )
@@ -1494,7 +1494,7 @@ describe("Repayer", function () {
       .to.emit(repayerProxy, "Upgraded");
 
     await repayer.connect(admin).setRoute(
-      [liquidityPool.target],
+      [liquidityPool],
       [Domain.OP_MAINNET],
       [Provider.OPTIMISM_STANDARD_BRIDGE],
       [true],
@@ -1507,9 +1507,9 @@ describe("Repayer", function () {
       [ZERO_ADDRESS, minGasLimit]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      weth.target,
+      weth,
       repayAmount,
-      liquidityPool.target,
+      liquidityPool,
       Domain.OP_MAINNET,
       Provider.OPTIMISM_STANDARD_BRIDGE,
       extraData
@@ -1524,9 +1524,9 @@ describe("Repayer", function () {
       .to.emit(weth, "Withdrawal")
       .withArgs(repayer.target, repayAmount);
 
-    expect(await weth.balanceOf(repayer.target)).to.equal(7n * ETH);
-    expect(await getBalance(repayer.target)).to.equal(0n);
-    expect(await getBalance(optimismBridge.target)).to.equal(repayAmount);
+    expect(await weth.balanceOf(repayer)).to.equal(7n * ETH);
+    expect(await getBalance(repayer)).to.equal(0n);
+    expect(await getBalance(optimismBridge)).to.equal(repayAmount);
   });
 
   it("Should not wrap native tokens on initiate repay if the balance is 0", async function () {
@@ -1537,11 +1537,11 @@ describe("Repayer", function () {
     const repayAmount = 4n * ETH;
 
     await weth.connect(repayUser).deposit({value: nativeAmount});
-    await weth.connect(repayUser).transfer(repayer.target, nativeAmount);
+    await weth.connect(repayUser).transfer(repayer, nativeAmount);
     const tx = repayer.connect(repayUser).initiateRepay(
-      weth.target,
+      weth,
       repayAmount,
-      liquidityPool.target,
+      liquidityPool,
       Domain.BASE,
       Provider.LOCAL,
       "0x"
@@ -1555,9 +1555,9 @@ describe("Repayer", function () {
     await expect(tx)
       .to.not.emit(weth, "Deposit");
 
-    expect(await weth.balanceOf(repayer.target)).to.equal(6n * ETH);
-    expect(await weth.balanceOf(liquidityPool.target)).to.equal(4n * ETH);
-    expect(await getBalance(repayer.target)).to.equal(0);
+    expect(await weth.balanceOf(repayer)).to.equal(6n * ETH);
+    expect(await weth.balanceOf(liquidityPool)).to.equal(4n * ETH);
+    expect(await getBalance(repayer)).to.equal(0);
   });
 
   it("Should not wrap native tokens on initiate repay of other tokens", async function () {
@@ -1566,12 +1566,12 @@ describe("Repayer", function () {
 
     const nativeAmount = 10n * ETH;
 
-    await repayUser.sendTransaction({to: repayer.target, value: nativeAmount});
-    await eurc.connect(eurcOwner).transfer(repayer.target, 10n * EURC_DEC);
+    await repayUser.sendTransaction({to: repayer, value: nativeAmount});
+    await eurc.connect(eurcOwner).transfer(repayer, 10n * EURC_DEC);
     const tx = repayer.connect(repayUser).initiateRepay(
-      eurc.target,
+      eurc,
       4n * EURC_DEC,
-      liquidityPool.target,
+      liquidityPool,
       Domain.BASE,
       Provider.LOCAL,
       "0x"
@@ -1585,11 +1585,11 @@ describe("Repayer", function () {
     await expect(tx)
       .to.not.emit(weth, "Deposit");
 
-    expect(await eurc.balanceOf(repayer.target)).to.equal(6n * EURC_DEC);
-    expect(await eurc.balanceOf(liquidityPool.target)).to.equal(4n * EURC_DEC);
-    expect(await weth.balanceOf(repayer.target)).to.equal(0);
-    expect(await weth.balanceOf(liquidityPool.target)).to.equal(0);
-    expect(await getBalance(repayer.target)).to.equal(nativeAmount);
+    expect(await eurc.balanceOf(repayer)).to.equal(6n * EURC_DEC);
+    expect(await eurc.balanceOf(liquidityPool)).to.equal(4n * EURC_DEC);
+    expect(await weth.balanceOf(repayer)).to.equal(0);
+    expect(await weth.balanceOf(liquidityPool)).to.equal(0);
+    expect(await getBalance(repayer)).to.equal(nativeAmount);
   });
 
   it("Should not wrap native tokens on initiate repay that were sent in as msg.value", async function () {
@@ -1600,11 +1600,11 @@ describe("Repayer", function () {
     const repayAmount = 4n * ETH;
     const extraAmount = 1n * ETH;
 
-    await repayUser.sendTransaction({to: repayer.target, value: nativeAmount});
+    await repayUser.sendTransaction({to: repayer, value: nativeAmount});
     const tx = repayer.connect(repayUser).initiateRepay(
-      weth.target,
+      weth,
       repayAmount,
-      liquidityPool.target,
+      liquidityPool,
       Domain.BASE,
       Provider.LOCAL,
       "0x",
@@ -1620,9 +1620,9 @@ describe("Repayer", function () {
       .to.emit(weth, "Deposit")
       .withArgs(repayer.target, nativeAmount);
 
-    expect(await weth.balanceOf(repayer.target)).to.equal(6n * ETH);
-    expect(await weth.balanceOf(liquidityPool.target)).to.equal(repayAmount);
-    expect(await getBalance(repayer.target)).to.equal(extraAmount);
+    expect(await weth.balanceOf(repayer)).to.equal(6n * ETH);
+    expect(await weth.balanceOf(liquidityPool)).to.equal(repayAmount);
+    expect(await getBalance(repayer)).to.equal(extraAmount);
   });
 
   it("Should not wrap native tokens on initiate repay if the balance was 0 before the tx", async function () {
@@ -1632,9 +1632,9 @@ describe("Repayer", function () {
     const nativeAmount = 10n * ETH;
 
     await expect(repayer.connect(repayUser).initiateRepay(
-      weth.target,
+      weth,
       nativeAmount,
-      liquidityPool.target,
+      liquidityPool,
       Domain.BASE,
       Provider.LOCAL,
       "0x",

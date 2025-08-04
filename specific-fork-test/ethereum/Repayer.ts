@@ -72,33 +72,33 @@ describe("Repayer", function () {
     const repayerImpl = (
       await deployX("Repayer", deployer, "Repayer", {},
         Domain.ETHEREUM,
-        usdc.target,
-        cctpTokenMessenger.target,
-        cctpMessageTransmitter.target,
-        acrossV3SpokePool.target,
-        everclearFeeAdapter.target,
-        weth.target,
+        usdc,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
+        acrossV3SpokePool,
+        everclearFeeAdapter,
+        weth,
         stargateTreasurer,
-        optimismStandardBridge.target,
+        optimismStandardBridge,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
-      admin.address,
-      repayUser.address,
-      [liquidityPool.target, liquidityPool2.target, liquidityPool.target],
+      admin,
+      repayUser,
+      [liquidityPool, liquidityPool2, liquidityPool],
       [Domain.ETHEREUM, Domain.ETHEREUM, Domain.OP_MAINNET],
       [Provider.LOCAL, Provider.LOCAL, Provider.OPTIMISM_STANDARD_BRIDGE],
       [true, false, true],
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer", {},
-      repayerImpl.target, admin, repayerInit
+      repayerImpl, admin, repayerInit
     )) as TransparentUpgradeableProxy;
-    const repayer = (await getContractAt("Repayer", repayerProxy.target, deployer)) as Repayer;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
     const repayerProxyAdminAddress = await getCreateAddress(repayerProxy, 1);
     const repayerAdmin = (await getContractAt("ProxyAdmin", repayerProxyAdminAddress, admin)) as ProxyAdmin;
 
-    await liquidityPool.grantRole(DEPOSIT_PROFIT_ROLE, repayer.target);
+    await liquidityPool.grantRole(DEPOSIT_PROFIT_ROLE, repayer);
 
     return {
       deployer, admin, repayUser, user, usdc,
@@ -119,7 +119,7 @@ describe("Repayer", function () {
     expect(await repayer.OPTIMISM_STANDARD_BRIDGE())
       .to.equal(optimismStandardBridge.target);
 
-    await usdc.connect(usdcOwner).transfer(repayer.target, 10n * USDC_DEC);
+    await usdc.connect(usdcOwner).transfer(repayer, 10n * USDC_DEC);
 
     const amount = 4n * USDC_DEC;
     const outputToken = networkConfig.OP_MAINNET.USDC;
@@ -129,9 +129,9 @@ describe("Repayer", function () {
       [outputToken, minGasLimit]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc.target,
+      usdc,
       amount,
-      liquidityPool.target,
+      liquidityPool,
       Domain.OP_MAINNET,
       Provider.OPTIMISM_STANDARD_BRIDGE,
       extraData
@@ -145,10 +145,10 @@ describe("Repayer", function () {
     await expect(tx)
       .to.emit(optimismStandardBridge, "ERC20BridgeInitiated")
       .withArgs(
-        usdc.target,
+        usdc,
         outputToken,
-        repayer.target,
-        liquidityPool.target,
+        repayer,
+        liquidityPool,
         amount,
         "0x"
       );
@@ -158,7 +158,7 @@ describe("Repayer", function () {
     const {repayer, repayUser, liquidityPool, optimismStandardBridge, weth} = await loadFixture(deployAll);
 
     const amount = 4n * ETH;
-    await repayUser.sendTransaction({to: repayer.target, value: amount});
+    await repayUser.sendTransaction({to: repayer, value: amount});
 
     const minGasLimit = 100000n;
     const extraData = AbiCoder.defaultAbiCoder().encode(
@@ -166,9 +166,9 @@ describe("Repayer", function () {
       [ZERO_ADDRESS, minGasLimit]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      weth.target,
+      weth,
       amount,
-      liquidityPool.target,
+      liquidityPool,
       Domain.OP_MAINNET,
       Provider.OPTIMISM_STANDARD_BRIDGE,
       extraData
@@ -179,12 +179,12 @@ describe("Repayer", function () {
     await expect(tx)
       .to.emit(optimismStandardBridge, "ETHBridgeInitiated")
       .withArgs(
-        repayer.target,
-        liquidityPool.target,
+        repayer,
+        liquidityPool,
         amount,
         "0x"
       );
-    expect(await getBalance(repayer.target)).to.equal(0n);
-    expect(await weth.balanceOf(repayer.target)).to.equal(0n);
+    expect(await getBalance(repayer)).to.equal(0n);
+    expect(await weth.balanceOf(repayer)).to.equal(0n);
   });
 });

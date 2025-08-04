@@ -60,19 +60,19 @@ describe("CensoredTransferFromMulticall", function () {
 
     const amount = 10n * USDC;
     const tx = multicall.connect(deployer).multicall(
-      [usdc.target, usdc.target, usdc.target, mockTarget.target],
+      [usdc, usdc, usdc, mockTarget],
       [
         (await usdc.permit.populateTransaction(
-          deployer.address, multicall.target, amount, 2000000000n, permitSig.v, permitSig.r, permitSig.s)
+          deployer, multicall, amount, 2000000000n, permitSig.v, permitSig.r, permitSig.s)
         ).data,
         (await usdc.transferFrom.populateTransaction(
-          deployer.address, multicall.target, amount)
+          deployer, multicall, amount)
         ).data,
         (await usdc.approve.populateTransaction(
-          mockTarget.target, amount)
+          mockTarget, amount)
         ).data,
         (await mockTarget.fulfill.populateTransaction(
-          usdc.target, amount, "0x1234")
+          usdc, amount, "0x1234")
         ).data,
       ],
     );
@@ -85,8 +85,8 @@ describe("CensoredTransferFromMulticall", function () {
     await expect(tx)
       .to.emit(mockTarget, "DataReceived")
       .withArgs("0x1234");
-    expect(await usdc.balanceOf(multicall.target)).to.equal(0n);
-    expect(await usdc.balanceOf(mockTarget.target)).to.equal(10n * USDC);
+    expect(await usdc.balanceOf(multicall)).to.equal(0n);
+    expect(await usdc.balanceOf(mockTarget)).to.equal(10n * USDC);
   });
 
   it("Should not allow invalid length input", async function () {
@@ -94,7 +94,7 @@ describe("CensoredTransferFromMulticall", function () {
       deployer, multicall,
     } = await loadFixture(deployAll);
 
-    await expect(multicall.connect(deployer).multicall([multicall.target], []))
+    await expect(multicall.connect(deployer).multicall([multicall], []))
       .to.be.revertedWithCustomError(multicall, "InvalidLength()");
     await expect(multicall.connect(deployer).multicall([], ["0x1234"]))
       .to.be.revertedWithCustomError(multicall, "InvalidLength()");
@@ -106,8 +106,8 @@ describe("CensoredTransferFromMulticall", function () {
     } = await loadFixture(deployAll);
 
     await expect(multicall.connect(deployer).multicall(
-      [usdc.target],
-      [(await usdc.transferFrom.populateTransaction(multicall.target, multicall.target, 1n)).data],
+      [usdc],
+      [(await usdc.transferFrom.populateTransaction(multicall, multicall, 1n)).data],
     )).to.be.revertedWithCustomError(multicall, "CensoredTransferFrom()");
   });
 
@@ -117,11 +117,11 @@ describe("CensoredTransferFromMulticall", function () {
     } = await loadFixture(deployAll);
 
     await expect(multicall.connect(deployer).multicall(
-      [mockTarget.target, mockTarget.target],
+      [mockTarget, mockTarget],
       ["0x1234", "0x5678"],
     )).to.be.reverted;
     await expect(multicall.connect(deployer).multicall(
-      [deployer.address],
+      [deployer],
       ["0x1234"],
     )).to.be.reverted;
   });

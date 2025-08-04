@@ -179,7 +179,7 @@ export async function deployProxyX<ContractType extends Initializable>(
   const targetInit = (await targetImpl.initialize.populateTransaction(...initArgs)).data;
   const targetProxy = (await deployFunc(
     DEFAULT_PROXY_TYPE, deployer, {},
-    [targetImpl.target, await resolveAddress(upgradeAdmin), targetInit],
+    [targetImpl, await resolveAddress(upgradeAdmin), targetInit],
     DEFAULT_PROXY_TYPE + id,
   )) as TransparentUpgradeableProxy;
   const target = (await getContractAt(contractName, targetProxy, deployer)) as ContractType;
@@ -304,7 +304,7 @@ export async function getHardhatNetworkConfig() {
   const [deployer, opsAdmin, superAdmin, mpc] = await hre.ethers.getSigners();
   process.env.DEPLOYER_ADDRESS = await resolveAddress(deployer);
   const config = networkConfig[network];
-  config.chainId = 31337;
+  config.ChainId = 31337;
   assert(config.Hub, "Hub must be in config");
   config.Hub.AssetsAdjuster = superAdmin.address;
   config.Hub.DepositProfit = opsAdmin.address;
@@ -348,7 +348,7 @@ export async function getHardhatStandaloneRepayerConfig(repayerEnv: StandaloneRe
   process.env.DEPLOYER_ADDRESS = await resolveAddress(deployer);
   const config = repayerConfig[network]![repayerEnv];
   assert(config, `No config for repayer env ${repayerEnv}`);
-  config.chainId = 31337;
+  config.ChainId = 31337;
   config.Admin = superAdmin.address;
   config.RepayerCallers = [opsAdmin.address];
 

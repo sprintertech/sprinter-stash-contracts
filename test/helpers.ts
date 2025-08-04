@@ -120,6 +120,7 @@ export async function deployX(
   ...params: any[]
 ): Promise<BaseContract> {
   const factory = await hre.ethers.getContractFactory(contractName, signer);
+  console.log(params);
   const deployCode = (await factory.getDeployTransaction(...params)).data;
   const createX = await getCreateX(signer);
   const salt = concat([
@@ -146,11 +147,11 @@ export function divCeil(a: bigint, b: bigint): bigint {
 
 export async function signBorrow(
   signer: Signer,
-  verifyingContract: string,
-  caller: string,
-  borrowToken: string,
-  amount: string,
-  target: string,
+  verifyingContract: AddressLike,
+  caller: AddressLike,
+  borrowToken: AddressLike,
+  amount: bigint,
+  target: AddressLike,
   targetCallData: string,
   chainId: number = 1,
   nonce: bigint = 0n,
@@ -163,7 +164,7 @@ export async function signBorrow(
     name,
     version,
     chainId,
-    verifyingContract
+    verifyingContract: await resolveAddress(verifyingContract)
   };
 
   const types = {
@@ -179,10 +180,10 @@ export async function signBorrow(
   };
 
   const value = {
-    caller,
-    borrowToken,
+    caller: await resolveAddress(caller),
+    borrowToken: await resolveAddress(borrowToken),
     amount,
-    target,
+    target: await resolveAddress(target),
     targetCallData,
     nonce,
     deadline,

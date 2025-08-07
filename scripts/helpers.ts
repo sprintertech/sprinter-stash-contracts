@@ -79,7 +79,7 @@ export class Verifier {
   predictDeployXAddresses = async (
     idsContractNamesOrAddresses: string[],
     deployer: Signer,
-  ): Promise<string[]> =>{
+  ): Promise<string[]> => {
     return await Promise.all(idsContractNamesOrAddresses.map(idOrNameOrAddress => {
       if (isAddress(idOrNameOrAddress)) {
         return idOrNameOrAddress;
@@ -99,7 +99,7 @@ export class Verifier {
     idOrContractName: string,
     deployer: Signer,
     proxyType: string = DEFAULT_PROXY_TYPE,
-  ): Promise<string> =>  {
+  ): Promise<string> => {
     return await getDeployXAddressBase(deployer, this.deployXPrefix + proxyType + idOrContractName, false);
   }
 

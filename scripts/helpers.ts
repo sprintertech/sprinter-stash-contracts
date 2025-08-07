@@ -51,35 +51,35 @@ export class Verifier {
     this.deployXPrefix = deployXPrefix;
   }
 
-  async deploy(
+  deploy = async(
     contractName: string,
     deployer: Signer,
     txParams: object = {},
     params: any[] = [],
     contractVerificationName?: string,
-  ): Promise<BaseContract> {
+  ): Promise<BaseContract> => {
     const contract = await deploy(contractName, deployer, txParams, ...params);
     await this.addContractForVerification(contract, params, contractVerificationName);
     return contract;
   }
 
-  async deployX(
+  deployX = async (
     contractName: string,
     deployer: Signer,
     txParams: object = {},
     params: any[] = [],
     id: string = contractName,
     contractVerificationName?: string,
-  ): Promise<BaseContract> {
+  ): Promise<BaseContract> => {
     const contract = await deployX(contractName, deployer, this.deployXPrefix + id, txParams, ...params);
     await this.addContractForVerification(contract, params, contractVerificationName);
     return contract;
   }
 
-  async predictDeployXAddresses(
+  predictDeployXAddresses = async (
     idsContractNamesOrAddresses: string[],
     deployer: Signer,
-  ): Promise<string[]> {
+  ): Promise<string[]> =>{
     return await Promise.all(idsContractNamesOrAddresses.map(idOrNameOrAddress => {
       if (isAddress(idOrNameOrAddress)) {
         return idOrNameOrAddress;
@@ -88,22 +88,22 @@ export class Verifier {
     }));
   }
 
-  async predictDeployXAddress(
+  predictDeployXAddress = async (
     idOrContractName: string,
     deployer: Signer,
-  ): Promise<string> {
+  ): Promise<string> => {
     return await getDeployXAddressBase(deployer, this.deployXPrefix + idOrContractName, false);
   }
 
-  async predictDeployProxyXAddress(
+  predictDeployProxyXAddress = async (
     idOrContractName: string,
     deployer: Signer,
     proxyType: string = DEFAULT_PROXY_TYPE,
-  ): Promise<string> {
+  ): Promise<string> =>  {
     return await getDeployXAddressBase(deployer, this.deployXPrefix + proxyType + idOrContractName, false);
   }
 
-  async addContractForVerification(address: AddressLike, constructorArguments: any[], contract?: string) {
+  addContractForVerification = async (address: AddressLike, constructorArguments: any[], contract?: string) => {
     this.contracts.push({
       address: await resolveAddress(address),
       constructorArguments: await resolveAddresses(constructorArguments),
@@ -111,7 +111,7 @@ export class Verifier {
     });
   }
 
-  async verify(performVerification: boolean) {
+  verify = async (performVerification: boolean) => {
     if (hre.network.name === "hardhat") {
       return;
     }

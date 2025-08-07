@@ -33,7 +33,7 @@ export async function main() {
   const rebalancerVersion = config.IsTest ? "TestRebalancer" : "Rebalancer";
 
   await upgradeProxyX<Rebalancer>(
-    verifier.deployX.bind(verifier),
+    verifier.deployX,
     rebalancerAddress,
     rebalancerVersion,
     deployer,

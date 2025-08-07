@@ -71,7 +71,7 @@ export async function main() {
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
 
   const {target: repayer, targetAdmin: repayerAdmin} = await deployProxyX<Repayer>(
-    verifier.deployX.bind(verifier),
+    verifier.deployX,
     repayerVersion,
     deployer,
     config.Admin,

@@ -204,7 +204,7 @@ export async function main() {
   rebalancerRoutes.Pools = await verifier.predictDeployXAddresses(rebalancerRoutes.Pools, deployer);
 
   const {target: rebalancer, targetAdmin: rebalancerAdmin} = await deployProxyX<Rebalancer>(
-    verifier.deployX.bind(verifier),
+    verifier.deployX,
     rebalancerVersion,
     deployer,
     config.Admin,
@@ -243,7 +243,7 @@ export async function main() {
   repayerRoutes.Pools = await verifier.predictDeployXAddresses(repayerRoutes.Pools || [], deployer);
 
   const {target: repayer, targetAdmin: repayerAdmin} = await deployProxyX<Repayer>(
-    verifier.deployX.bind(verifier),
+    verifier.deployX,
     repayerVersion,
     deployer,
     config.Admin,
@@ -285,7 +285,7 @@ export async function main() {
     )) as SprinterUSDCLPShare;
 
     const {target: liquidityHub, targetAdmin: liquidityHubAdmin} = await deployProxyX<LiquidityHub>(
-      verifier.deployX.bind(verifier),
+      verifier.deployX,
       "LiquidityHub",
       deployer,
       config.Admin,

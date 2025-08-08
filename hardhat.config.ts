@@ -181,7 +181,7 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
     el2.Provider === el.Provider
   ));
 
-  const hasRole = await target.hasRole(DEFAULT_ADMIN_ROLE, admin.address);
+  const hasRole = await target.hasRole(DEFAULT_ADMIN_ROLE, admin);
 
   if (toAllow.length > 0) {
     const toAllowParams = toAllow.map(el => ({
@@ -338,7 +338,7 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
     el2.SupportsAllTokens === el.SupportsAllTokens
   ));
 
-  const hasRole = await target.hasRole(DEFAULT_ADMIN_ROLE, admin.address);
+  const hasRole = await target.hasRole(DEFAULT_ADMIN_ROLE, admin);
 
   // Calling deny first so that allow overrides incorrect SupportsAllTokens flag.
   if (toDeny.length > 0) {
@@ -452,7 +452,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
   const borrowToken = args.token || config.USDC;
   const amount = args.amount;
   const target = args.target || borrowToken;
-  const data = args.data || (await token.transfer.populateTransaction(signer.address, amount)).data;
+  const data = args.data || (await token.transfer.populateTransaction(signer, amount)).data;
   const nonce = args.nonce;
   const deadline = args.deadline;
   const value = {
@@ -548,52 +548,52 @@ const config: HardhatUserConfig = {
       url: "http://127.0.0.1:8545/",
     },
     [Network.BASE_SEPOLIA]: {
-      chainId: networkConfig.BASE_SEPOLIA.chainId,
+      chainId: networkConfig.BASE_SEPOLIA.ChainId,
       url: process.env.BASE_SEPOLIA_RPC || "https://sepolia.base.org",
       accounts,
     },
     [Network.ETHEREUM_SEPOLIA]: {
-      chainId: networkConfig.ETHEREUM_SEPOLIA.chainId,
+      chainId: networkConfig.ETHEREUM_SEPOLIA.ChainId,
       url: process.env.ETHEREUM_SEPOLIA_RPC || "",
       accounts,
     },
     [Network.ARBITRUM_SEPOLIA]: {
-      chainId: networkConfig.ARBITRUM_SEPOLIA.chainId,
+      chainId: networkConfig.ARBITRUM_SEPOLIA.ChainId,
       url: process.env.ARBITRUM_SEPOLIA_RPC || "https://sepolia-rollup.arbitrum.io/rpc",
       accounts,
     },
     [Network.OP_SEPOLIA]: {
-      chainId: networkConfig.OP_SEPOLIA.chainId,
+      chainId: networkConfig.OP_SEPOLIA.ChainId,
       url: process.env.OP_SEPOLIA_RPC || "https://sepolia.optimism.io",
       accounts,
     },
     [Network.BASE]: {
-      chainId: networkConfig.BASE.chainId,
+      chainId: networkConfig.BASE.ChainId,
       url: process.env.BASE_RPC || "https://base-mainnet.public.blastapi.io",
       accounts,
     },
     [Network.ETHEREUM]: {
-      chainId: networkConfig.ETHEREUM.chainId,
+      chainId: networkConfig.ETHEREUM.ChainId,
       url: process.env.ETHEREUM_RPC || "https://eth-mainnet.public.blastapi.io",
       accounts,
     },
     [Network.ARBITRUM_ONE]: {
-      chainId: networkConfig.ARBITRUM_ONE.chainId,
+      chainId: networkConfig.ARBITRUM_ONE.ChainId,
       url: process.env.ARBITRUM_ONE_RPC || "https://arbitrum-one.public.blastapi.io",
       accounts,
     },
     [Network.OP_MAINNET]: {
-      chainId: networkConfig.OP_MAINNET.chainId,
+      chainId: networkConfig.OP_MAINNET.ChainId,
       url: process.env.OP_MAINNET_RPC || "https://optimism-mainnet.public.blastapi.io",
       accounts,
     },
     [Network.POLYGON_MAINNET]: {
-      chainId: networkConfig.POLYGON_MAINNET.chainId,
+      chainId: networkConfig.POLYGON_MAINNET.ChainId,
       url: process.env.POLYGON_MAINNET_RPC || "https://polygon-bor-rpc.publicnode.com",
       accounts,
     },
     [Network.UNICHAIN]: {
-      chainId: networkConfig.UNICHAIN.chainId,
+      chainId: networkConfig.UNICHAIN.ChainId,
       url: process.env.UNICHAIN_RPC || "https://mainnet.unichain.org",
       accounts,
     },
@@ -608,8 +608,8 @@ const config: HardhatUserConfig = {
         ? [{privateKey: process.env.PRIVATE_KEY!, balance: "1000000000000000000"}]
         : undefined,
       chains: isSet(process.env.DRY_RUN) // https://github.com/NomicFoundation/hardhat/issues/5511
-        ? {[networkConfig[`${process.env.DRY_RUN}` as Network]!.chainId]: {hardforkHistory: {cancun: 0}}}
-        : {[networkConfig.BASE.chainId]: {hardforkHistory: {cancun: 0}}},
+        ? {[networkConfig[`${process.env.DRY_RUN}` as Network]!.ChainId]: {hardforkHistory: {cancun: 0}}}
+        : {[networkConfig.BASE.ChainId]: {hardforkHistory: {cancun: 0}}},
     },
   },
   sourcify: {
@@ -620,7 +620,7 @@ const config: HardhatUserConfig = {
     customChains: [
       {
         network: "opSepolia",
-        chainId: networkConfig.OP_SEPOLIA.chainId,
+        chainId: networkConfig.OP_SEPOLIA.ChainId,
         urls: {
           apiURL: "https://api-sepolia-optimism.etherscan.io/api",
           browserURL: "https://sepolia-optimism.etherscan.io"
@@ -628,7 +628,7 @@ const config: HardhatUserConfig = {
       },
       {
         network: "unichain",
-        chainId: networkConfig.UNICHAIN.chainId,
+        chainId: networkConfig.UNICHAIN.ChainId,
         urls: {
           apiURL: "https://uniscan.xyz/api",
           browserURL: "https://uniscan.xyz"

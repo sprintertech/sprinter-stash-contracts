@@ -106,8 +106,8 @@ export async function main() {
   let mainPool: LiquidityPool;
   let aavePool: LiquidityPoolAave;
   if (config.AavePool) {
-    const minHealthFactor = BigInt(config.AavePool.minHealthFactor) * 10000n / 100n;
-    const defaultLTV = BigInt(config.AavePool.defaultLTV) * 10000n / 100n;
+    const minHealthFactor = BigInt(config.AavePool.MinHealthFactor) * 10000n / 100n;
+    const defaultLTV = BigInt(config.AavePool.DefaultLTV) * 10000n / 100n;
     console.log("Deploying AAVE Liquidity Pool");
     aavePool = (await verifier.deployX(
       "LiquidityPoolAave",
@@ -125,9 +125,9 @@ export async function main() {
       LiquidityPoolAaveUSDCV2,
     )) as LiquidityPoolAave;
 
-    if (config.AavePool.tokenLTVs) {
-      const tokens = Object.keys(config.AavePool.tokenLTVs);
-      const LTVs = Object.values(config.AavePool.tokenLTVs);
+    if (config.AavePool.TokenLTVs) {
+      const tokens = Object.keys(config.AavePool.TokenLTVs);
+      const LTVs = Object.values(config.AavePool.TokenLTVs);
       await aavePool.setBorrowTokenLTVs(
         tokens,
         percentsToBps(LTVs),
@@ -217,6 +217,7 @@ export async function main() {
       rebalancerRoutes.Providers.map(el => ProviderSolidity[el]),
     ],
     "Rebalancer",
+    verifier,
   );
 
   if (config.AavePool) {
@@ -266,6 +267,7 @@ export async function main() {
       repayerRoutes.SupportsAllTokens,
     ],
     "Repayer",
+    verifier,
   );
 
   if (config.Hub) {
@@ -296,6 +298,8 @@ export async function main() {
         config.Hub.AssetsLimitSetter,
         assetsLimit
       ],
+      "LiquidityHub",
+      verifier,
     );
 
     assert(liquidityHubAddress == liquidityHub.target, "LiquidityHub address mismatch");

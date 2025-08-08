@@ -66,17 +66,18 @@ export interface RepayerRoutesConfig {
 
 interface AavePoolConfig {
   AaveAddressesProvider: string;
-  minHealthFactor: number; // Value 500 will result in health factor 5.
-  defaultLTV: number; // Value 20 will result in LTV 20%.
-  tokenLTVs?: {
+  MinHealthFactor: number; // Value 500 will result in health factor 5.
+  DefaultLTV: number; // Value 20 will result in LTV 20%.
+  TokenLTVs?: {
     [token: string]: number;
   };
 };
 
 // Liquidity mining tiers.
-// Period is in seconds.
-// Multiplier will be divided by 1000,000,000. So 1750000000 will result in 1.75x.
+// period is in seconds.
+// multiplier will be divided by 1000,000,000. So 1750000000 will result in 1.75x.
 // There is no limit to the number of tiers, but has to be at least one.
+// Keys are not capitalized to match the contract.
 interface Tier {
   period: bigint;
   multiplier: bigint;
@@ -91,7 +92,7 @@ interface HubConfig {
 };
 
 export interface NetworkConfig {
-  chainId: number;
+  ChainId: number;
   CCTP: CCTPConfig;
   AcrossV3SpokePool?: string;
   StargateTreasurer?: string;
@@ -121,7 +122,7 @@ type NetworksConfig = {
 
 export const networkConfig: NetworksConfig = {
   ETHEREUM: {
-    chainId: 1,
+    ChainId: 1,
     CCTP: {
       TokenMessenger: "0xbd3fa81b58ba92a82136038b25adec7066af3155",
       MessageTransmitter: "0x0a992d191deec32afe36203ad87d7d289a738f81",
@@ -159,12 +160,12 @@ export const networkConfig: NetworksConfig = {
     },
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3Ethereum.POOL_ADDRESSES_PROVIDER,
-      minHealthFactor: 300,
-      defaultLTV: 0,
+      MinHealthFactor: 300,
+      DefaultLTV: 0,
     },
   },
   AVALANCHE: {
-    chainId: 43114,
+    ChainId: 43114,
     CCTP: {
       TokenMessenger: "0x6b25532e1060ce10cc3b0a99e5683b91bfde6982",
       MessageTransmitter: "0x8186359af5f57fbb40c6b14a588d2a59c0c29880",
@@ -182,12 +183,12 @@ export const networkConfig: NetworksConfig = {
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3Avalanche.POOL_ADDRESSES_PROVIDER,
-      minHealthFactor: 300,
-      defaultLTV: 0,
+      MinHealthFactor: 300,
+      DefaultLTV: 0,
     },
   },
   OP_MAINNET: {
-    chainId: 10,
+    ChainId: 10,
     CCTP: {
       TokenMessenger: "0x2B4069517957735bE00ceE0fadAE88a26365528f",
       MessageTransmitter: "0x4d41f22c5a0e5c74090899e5a8fb597a8842b3e8",
@@ -233,9 +234,9 @@ export const networkConfig: NetworksConfig = {
     },
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3Optimism.POOL_ADDRESSES_PROVIDER,
-      minHealthFactor: 300,
-      defaultLTV: 0,
-      tokenLTVs: {
+      MinHealthFactor: 300,
+      DefaultLTV: 0,
+      TokenLTVs: {
         "0x1f32b1c2345538c0c6f582fcb022739c4a194ebb": 50, // wstETH
         "0x4200000000000000000000000000000000000006": 50, // WETH
         "0x0b2c639c533813f4aa9d7837caf62653d097ff85": 100, // USDC
@@ -252,7 +253,7 @@ export const networkConfig: NetworksConfig = {
     },
     USDCPool: true,
     Stage: {
-      chainId: 10,
+      ChainId: 10,
       CCTP: {
         TokenMessenger: "0x2B4069517957735bE00ceE0fadAE88a26365528f",
         MessageTransmitter: "0x4d41f22c5a0e5c74090899e5a8fb597a8842b3e8",
@@ -297,9 +298,9 @@ export const networkConfig: NetworksConfig = {
       },
       AavePool: {
         AaveAddressesProvider: AAVEPools.AaveV3Optimism.POOL_ADDRESSES_PROVIDER,
-        minHealthFactor: 300,
-        defaultLTV: 0,
-        tokenLTVs: {
+        MinHealthFactor: 300,
+        DefaultLTV: 0,
+        TokenLTVs: {
           "0x1f32b1c2345538c0c6f582fcb022739c4a194ebb": 50, // wstETH
           "0x4200000000000000000000000000000000000006": 50, // WETH
           "0x0b2c639c533813f4aa9d7837caf62653d097ff85": 100, // USDC
@@ -318,7 +319,7 @@ export const networkConfig: NetworksConfig = {
     },
   },
   ARBITRUM_ONE: {
-    chainId: 42161,
+    ChainId: 42161,
     CCTP: {
       TokenMessenger: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
       MessageTransmitter: "0xC30362313FBBA5cf9163F0bb16a0e01f01A896ca",
@@ -363,9 +364,9 @@ export const networkConfig: NetworksConfig = {
     },
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3Arbitrum.POOL_ADDRESSES_PROVIDER,
-      minHealthFactor: 300,
-      defaultLTV: 0,
-      tokenLTVs: {
+      MinHealthFactor: 300,
+      DefaultLTV: 0,
+      TokenLTVs: {
         "0xaf88d065e77c8cc2239327c5edb3a432268e5831": 100, // USDC
         "0x82af49447d8a07e3bd95bd0d56f35241523fbab1": 50, // WETH
         "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f": 50, // WBTC
@@ -384,7 +385,7 @@ export const networkConfig: NetworksConfig = {
     },
     USDCPool: true,
     Stage: {
-      chainId: 42161,
+      ChainId: 42161,
       CCTP: {
         TokenMessenger: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
         MessageTransmitter: "0xC30362313FBBA5cf9163F0bb16a0e01f01A896ca",
@@ -429,9 +430,9 @@ export const networkConfig: NetworksConfig = {
       },
       AavePool: {
         AaveAddressesProvider: AAVEPools.AaveV3Arbitrum.POOL_ADDRESSES_PROVIDER,
-        minHealthFactor: 300,
-        defaultLTV: 0,
-        tokenLTVs: {
+        MinHealthFactor: 300,
+        DefaultLTV: 0,
+        TokenLTVs: {
           "0xaf88d065e77c8cc2239327c5edb3a432268e5831": 100, // USDC
           "0x82af49447d8a07e3bd95bd0d56f35241523fbab1": 50, // WETH
           "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f": 50, // WBTC
@@ -452,7 +453,7 @@ export const networkConfig: NetworksConfig = {
     },
   },
   BASE: {
-    chainId: 8453,
+    ChainId: 8453,
     CCTP: {
       TokenMessenger: "0x1682Ae6375C4E4A97e4B583BC394c861A46D8962",
       MessageTransmitter: "0xAD09780d193884d503182aD4588450C416D6F9D4",
@@ -508,9 +509,9 @@ export const networkConfig: NetworksConfig = {
     },
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3Base.POOL_ADDRESSES_PROVIDER,
-      minHealthFactor: 300,
-      defaultLTV: 0,
-      tokenLTVs: {
+      MinHealthFactor: 300,
+      DefaultLTV: 0,
+      TokenLTVs: {
         "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": 100, // USDC
         "0x4200000000000000000000000000000000000006": 50, // WETH
         "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf": 50, // cbBTC
@@ -524,7 +525,7 @@ export const networkConfig: NetworksConfig = {
     },
     USDCPool: true,
     Stage: {
-      chainId: 8453,
+      ChainId: 8453,
       CCTP: {
         TokenMessenger: "0x1682Ae6375C4E4A97e4B583BC394c861A46D8962",
         MessageTransmitter: "0xAD09780d193884d503182aD4588450C416D6F9D4",
@@ -580,9 +581,9 @@ export const networkConfig: NetworksConfig = {
       },
       AavePool: {
         AaveAddressesProvider: AAVEPools.AaveV3Base.POOL_ADDRESSES_PROVIDER,
-        minHealthFactor: 300,
-        defaultLTV: 0,
-        tokenLTVs: {
+        MinHealthFactor: 300,
+        DefaultLTV: 0,
+        TokenLTVs: {
           "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": 100, // USDC
           "0x4200000000000000000000000000000000000006": 50, // WETH
           "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf": 50, // cbBTC
@@ -598,7 +599,7 @@ export const networkConfig: NetworksConfig = {
     },
   },
   POLYGON_MAINNET: {
-    chainId: 137,
+    ChainId: 137,
     CCTP: {
       TokenMessenger: "0x9daF8c91AEFAE50b9c0E69629D3F6Ca40cA3B3FE",
       MessageTransmitter: "0xF3be9355363857F3e001be68856A2f96b4C39Ba9",
@@ -635,12 +636,12 @@ export const networkConfig: NetworksConfig = {
     },
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3Polygon.POOL_ADDRESSES_PROVIDER,
-      minHealthFactor: 300,
-      defaultLTV: 0,
+      MinHealthFactor: 300,
+      DefaultLTV: 0,
     },
   },
   UNICHAIN: {
-    chainId: 130,
+    ChainId: 130,
     CCTP: {
       TokenMessenger: "0x4e744b28E787c3aD0e810eD65A24461D4ac5a762",
       MessageTransmitter: "0x353bE9E2E38AB1D19104534e4edC21c643Df86f4",
@@ -677,7 +678,7 @@ export const networkConfig: NetworksConfig = {
     },
   },
   ETHEREUM_SEPOLIA: {
-    chainId: 11155111,
+    ChainId: 11155111,
     CCTP: {
       TokenMessenger: "0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5",
       MessageTransmitter: "0x7865fAfC2db2093669d92c0F33AeEF291086BEFD",
@@ -697,7 +698,7 @@ export const networkConfig: NetworksConfig = {
     // Aave: AAVEPools.AaveV3Sepolia.POOL_ADDRESSES_PROVIDER, // Uses not official USDC.
   },
   AVALANCHE_FUJI: {
-    chainId: 43113,
+    ChainId: 43113,
     CCTP: {
       TokenMessenger: "0xeb08f243e5d3fcff26a9e38ae5520a669f4019d0",
       MessageTransmitter: "0xa9fb1b3009dcb79e2fe346c16a604b8fa8ae0a79",
@@ -713,12 +714,12 @@ export const networkConfig: NetworksConfig = {
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3Fuji.POOL_ADDRESSES_PROVIDER,
-      minHealthFactor: 500,
-      defaultLTV: 20,
+      MinHealthFactor: 500,
+      DefaultLTV: 20,
     },
   },
   OP_SEPOLIA: {
-    chainId: 11155420,
+    ChainId: 11155420,
     CCTP: {
       TokenMessenger: "0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5",
       MessageTransmitter: "0x7865fAfC2db2093669d92c0F33AeEF291086BEFD",
@@ -762,13 +763,13 @@ export const networkConfig: NetworksConfig = {
     },
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3OptimismSepolia.POOL_ADDRESSES_PROVIDER,
-      minHealthFactor: 500,
-      defaultLTV: 20,
+      MinHealthFactor: 500,
+      DefaultLTV: 20,
     },
     USDCPool: true,
   },
   ARBITRUM_SEPOLIA: {
-    chainId: 421614,
+    ChainId: 421614,
     CCTP: {
       TokenMessenger: "0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5",
       MessageTransmitter: "0xaCF1ceeF35caAc005e15888dDb8A3515C41B4872",
@@ -812,13 +813,13 @@ export const networkConfig: NetworksConfig = {
     },
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3ArbitrumSepolia.POOL_ADDRESSES_PROVIDER,
-      minHealthFactor: 500,
-      defaultLTV: 20,
+      MinHealthFactor: 500,
+      DefaultLTV: 20,
     },
     USDCPool: true,
   },
   BASE_SEPOLIA: {
-    chainId: 84532,
+    ChainId: 84532,
     CCTP: {
       TokenMessenger: "0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5",
       MessageTransmitter: "0x7865fAfC2db2093669d92c0F33AeEF291086BEFD",
@@ -872,13 +873,13 @@ export const networkConfig: NetworksConfig = {
     },
     AavePool: {
       AaveAddressesProvider: AAVEPools.AaveV3BaseSepolia.POOL_ADDRESSES_PROVIDER,
-      minHealthFactor: 500,
-      defaultLTV: 20,
+      MinHealthFactor: 500,
+      DefaultLTV: 20,
     },
     USDCPool: true,
   },
   POLYGON_AMOY: {
-    chainId: 80002,
+    ChainId: 80002,
     CCTP: {
       TokenMessenger: "0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5",
       MessageTransmitter: "0x7865fAfC2db2093669d92c0F33AeEF291086BEFD",
@@ -901,7 +902,7 @@ export enum StandaloneRepayerEnv {
 };
 
 export interface StandaloneRepayerConfig {
-  chainId: number;
+  ChainId: number;
   CCTP: CCTPConfig;
   AcrossV3SpokePool?: string;
   StargateTreasurer?: string;
@@ -924,7 +925,7 @@ type StandaloneRepayersConfig = {
 export const repayerConfig: StandaloneRepayersConfig = {
   BASE: {
     SparkStage: {
-      chainId: 8453,
+      ChainId: 8453,
       CCTP: {
         TokenMessenger: "0x1682Ae6375C4E4A97e4B583BC394c861A46D8962",
         MessageTransmitter: "0xAD09780d193884d503182aD4588450C416D6F9D4",
@@ -951,7 +952,7 @@ export const repayerConfig: StandaloneRepayersConfig = {
   },
   ARBITRUM_ONE: {
     SparkStage: {
-      chainId: 42161,
+      ChainId: 42161,
       CCTP: {
         TokenMessenger: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
         MessageTransmitter: "0xC30362313FBBA5cf9163F0bb16a0e01f01A896ca",
@@ -978,7 +979,7 @@ export const repayerConfig: StandaloneRepayersConfig = {
   },
   OP_MAINNET: {
     SparkStage: {
-      chainId: 10,
+      ChainId: 10,
       CCTP: {
         TokenMessenger: "0x2B4069517957735bE00ceE0fadAE88a26365528f",
         MessageTransmitter: "0x4d41f22c5a0e5c74090899e5a8fb597a8842b3e8",

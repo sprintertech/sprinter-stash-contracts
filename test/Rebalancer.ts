@@ -53,25 +53,25 @@ describe("Rebalancer", function () {
 
     const rebalancerImpl = (
       await deployX("Rebalancer", deployer, "Rebalancer", {},
-        Domain.BASE, usdc.target, cctpTokenMessenger.target, cctpMessageTransmitter.target
+        Domain.BASE, usdc, cctpTokenMessenger, cctpMessageTransmitter
       )
     ) as Rebalancer;
     const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(
-      admin.address,
-      rebalanceUser.address,
-      [liquidityPool.target, liquidityPool2.target, liquidityPool.target, liquidityPool.target],
+      admin,
+      rebalanceUser,
+      [liquidityPool, liquidityPool2, liquidityPool, liquidityPool],
       [Domain.BASE, Domain.BASE, Domain.ETHEREUM, Domain.ARBITRUM_ONE],
       [Provider.LOCAL, Provider.LOCAL, Provider.CCTP, Provider.CCTP]
     )).data;
     const rebalancerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRebalancer", {},
-      rebalancerImpl.target, admin, rebalancerInit
+      rebalancerImpl, admin, rebalancerInit
     )) as TransparentUpgradeableProxy;
-    const rebalancer = (await getContractAt("Rebalancer", rebalancerProxy.target, deployer)) as Rebalancer;
+    const rebalancer = (await getContractAt("Rebalancer", rebalancerProxy, deployer)) as Rebalancer;
     const rebalancerProxyAdminAddress = await getCreateAddress(rebalancerProxy, 1);
     const rebalancerAdmin = (await getContractAt("ProxyAdmin", rebalancerProxyAdminAddress, admin)) as ProxyAdmin;
 
-    await liquidityPool.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer.target);
+    await liquidityPool.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
 
     return {
       deployer, admin, rebalanceUser, user, usdc,
@@ -89,17 +89,17 @@ describe("Rebalancer", function () {
     expect(await rebalancer.CCTP_TOKEN_MESSENGER()).to.equal(cctpTokenMessenger.target);
     expect(await rebalancer.CCTP_MESSAGE_TRANSMITTER()).to.equal(cctpMessageTransmitter.target);
     expect(await rebalancer.REBALANCER_ROLE()).to.equal(REBALANCER_ROLE);
-    expect(await rebalancer.isRouteAllowed(liquidityPool.target, Domain.BASE, Provider.LOCAL)).to.be.true;
-    expect(await rebalancer.isRouteAllowed(liquidityPool2.target, Domain.BASE, Provider.LOCAL)).to.be.true;
-    expect(await rebalancer.isRouteAllowed(liquidityPool2.target, Domain.BASE, Provider.CCTP)).to.be.false;
-    expect(await rebalancer.isRouteAllowed(liquidityPool2.target, Domain.ETHEREUM, Provider.CCTP)).to.be.false;
-    expect(await rebalancer.isRouteAllowed(liquidityPool.target, Domain.ETHEREUM, Provider.CCTP)).to.be.true;
-    expect(await rebalancer.isRouteAllowed(liquidityPool.target, Domain.AVALANCHE, Provider.CCTP)).to.be.false;
-    expect(await rebalancer.isRouteAllowed(liquidityPool.target, Domain.ARBITRUM_ONE, Provider.CCTP)).to.be.true;
-    expect(await rebalancer.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be.true;
-    expect(await rebalancer.hasRole(DEFAULT_ADMIN_ROLE, deployer.address)).to.be.false;
-    expect(await rebalancer.hasRole(REBALANCER_ROLE, rebalanceUser.address)).to.be.true;
-    expect(await rebalancer.hasRole(REBALANCER_ROLE, deployer.address)).to.be.false;
+    expect(await rebalancer.isRouteAllowed(liquidityPool, Domain.BASE, Provider.LOCAL)).to.be.true;
+    expect(await rebalancer.isRouteAllowed(liquidityPool2, Domain.BASE, Provider.LOCAL)).to.be.true;
+    expect(await rebalancer.isRouteAllowed(liquidityPool2, Domain.BASE, Provider.CCTP)).to.be.false;
+    expect(await rebalancer.isRouteAllowed(liquidityPool2, Domain.ETHEREUM, Provider.CCTP)).to.be.false;
+    expect(await rebalancer.isRouteAllowed(liquidityPool, Domain.ETHEREUM, Provider.CCTP)).to.be.true;
+    expect(await rebalancer.isRouteAllowed(liquidityPool, Domain.AVALANCHE, Provider.CCTP)).to.be.false;
+    expect(await rebalancer.isRouteAllowed(liquidityPool, Domain.ARBITRUM_ONE, Provider.CCTP)).to.be.true;
+    expect(await rebalancer.hasRole(DEFAULT_ADMIN_ROLE, admin)).to.be.true;
+    expect(await rebalancer.hasRole(DEFAULT_ADMIN_ROLE, deployer)).to.be.false;
+    expect(await rebalancer.hasRole(REBALANCER_ROLE, rebalanceUser)).to.be.true;
+    expect(await rebalancer.hasRole(REBALANCER_ROLE, deployer)).to.be.false;
     expect(await rebalancer.domainCCTP(Domain.ETHEREUM)).to.equal(0n);
     expect(await rebalancer.domainCCTP(Domain.AVALANCHE)).to.equal(1n);
     expect(await rebalancer.domainCCTP(Domain.OP_MAINNET)).to.equal(2n);
@@ -113,7 +113,7 @@ describe("Rebalancer", function () {
     ]);
 
     await expect(rebalancer.connect(admin).initialize(
-      admin.address, rebalanceUser.address, [], [], []
+      admin, rebalanceUser.address, [], [], []
     )).to.be.reverted;
   });
 
@@ -122,17 +122,17 @@ describe("Rebalancer", function () {
       liquidityPool, liquidityPool2
     } = await loadFixture(deployAll);
 
-    await usdc.transfer(liquidityPool.target, 10n * USDC);
+    await usdc.transfer(liquidityPool, 10n * USDC);
     await expect(rebalancer.connect(rebalanceUser).initiateRebalance(
       5n * USDC,
-      liquidityPool.target,
-      liquidityPool.target,
+      liquidityPool,
+      liquidityPool,
       Domain.AVALANCHE,
       Provider.CCTP,
       "0x"
     )).to.be.revertedWithCustomError(rebalancer, "RouteDenied()");
     const tx = rebalancer.connect(admin).setRoute(
-      [liquidityPool.target],
+      [liquidityPool],
       [Domain.AVALANCHE],
       [Provider.CCTP],
       ALLOWED
@@ -146,13 +146,13 @@ describe("Rebalancer", function () {
       [Domain.ETHEREUM, Domain.AVALANCHE, Domain.ARBITRUM_ONE, Domain.BASE, Domain.BASE],
       [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.LOCAL, Provider.LOCAL],
     ]);
-    expect(await rebalancer.isRouteAllowed(liquidityPool.target, Domain.ETHEREUM, Provider.CCTP)).to.be.true;
-    expect(await rebalancer.isRouteAllowed(liquidityPool.target, Domain.AVALANCHE, Provider.CCTP)).to.be.true;
-    expect(await rebalancer.isRouteAllowed(liquidityPool.target, Domain.ARBITRUM_ONE, Provider.CCTP)).to.be.true;
+    expect(await rebalancer.isRouteAllowed(liquidityPool, Domain.ETHEREUM, Provider.CCTP)).to.be.true;
+    expect(await rebalancer.isRouteAllowed(liquidityPool, Domain.AVALANCHE, Provider.CCTP)).to.be.true;
+    expect(await rebalancer.isRouteAllowed(liquidityPool, Domain.ARBITRUM_ONE, Provider.CCTP)).to.be.true;
     await rebalancer.connect(rebalanceUser).initiateRebalance(
       5n * USDC,
-      liquidityPool.target,
-      liquidityPool.target,
+      liquidityPool,
+      liquidityPool,
       Domain.AVALANCHE,
       Provider.CCTP,
       "0x"
@@ -162,17 +162,17 @@ describe("Rebalancer", function () {
   it("Should allow admin to disable routes", async function () {
     const {rebalancer, usdc, USDC, admin, rebalanceUser, liquidityPool, liquidityPool2} = await loadFixture(deployAll);
 
-    await usdc.transfer(liquidityPool.target, 10n * USDC);
+    await usdc.transfer(liquidityPool, 10n * USDC);
     await rebalancer.connect(rebalanceUser).initiateRebalance(
       5n * USDC,
-      liquidityPool.target,
-      liquidityPool.target,
+      liquidityPool,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.CCTP,
       "0x"
     );
     const tx = rebalancer.connect(admin).setRoute(
-      [liquidityPool.target],
+      [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.CCTP],
       DISALLOWED
@@ -187,13 +187,13 @@ describe("Rebalancer", function () {
       [Provider.CCTP, Provider.LOCAL, Provider.LOCAL],
     ]);
 
-    expect(await rebalancer.isRouteAllowed(liquidityPool.target, Domain.ETHEREUM, Provider.CCTP)).to.be.false;
-    expect(await rebalancer.isRouteAllowed(liquidityPool.target, Domain.AVALANCHE, Provider.CCTP)).to.be.false;
-    expect(await rebalancer.isRouteAllowed(liquidityPool.target, Domain.ARBITRUM_ONE, Provider.CCTP)).to.be.true;
+    expect(await rebalancer.isRouteAllowed(liquidityPool, Domain.ETHEREUM, Provider.CCTP)).to.be.false;
+    expect(await rebalancer.isRouteAllowed(liquidityPool, Domain.AVALANCHE, Provider.CCTP)).to.be.false;
+    expect(await rebalancer.isRouteAllowed(liquidityPool, Domain.ARBITRUM_ONE, Provider.CCTP)).to.be.true;
     await expect(rebalancer.connect(rebalanceUser).initiateRebalance(
       5n * USDC,
-      liquidityPool.target,
-      liquidityPool.target,
+      liquidityPool,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.CCTP,
       "0x"
@@ -212,19 +212,19 @@ describe("Rebalancer", function () {
     )) as TestLiquidityPool;
 
     await expect(rebalancer.connect(admin).setRoute(
-      [liquidityPool2.target],
+      [liquidityPool2],
       [Domain.BASE],
       [Provider.CCTP],
       ALLOWED
     )).to.be.revertedWithCustomError(rebalancer, "UnsupportedProvider()");
     await expect(rebalancer.connect(admin).setRoute(
-      [liquidityPool2.target],
+      [liquidityPool2],
       [Domain.ETHEREUM],
       [Provider.LOCAL],
       ALLOWED
     )).to.be.revertedWithCustomError(rebalancer, "UnsupportedProvider()");
     await expect(rebalancer.connect(admin).setRoute(
-      [liquidityPool3.target],
+      [liquidityPool3],
       [Domain.BASE],
       [Provider.LOCAL],
       ALLOWED
@@ -235,7 +235,7 @@ describe("Rebalancer", function () {
     const {rebalancer, rebalanceUser, liquidityPool2} = await loadFixture(deployAll);
 
     await expect(rebalancer.connect(rebalanceUser).setRoute(
-      [liquidityPool2.target],
+      [liquidityPool2],
       [Domain.AVALANCHE],
       [Provider.CCTP],
       ALLOWED
@@ -246,7 +246,7 @@ describe("Rebalancer", function () {
     const {rebalancer, rebalanceUser, liquidityPool} = await loadFixture(deployAll);
 
     await expect(rebalancer.connect(rebalanceUser).setRoute(
-      [liquidityPool.target],
+      [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.CCTP],
       DISALLOWED
@@ -258,11 +258,11 @@ describe("Rebalancer", function () {
       cctpTokenMessenger
     } = await loadFixture(deployAll);
 
-    await usdc.transfer(liquidityPool.target, 10n * USDC);
+    await usdc.transfer(liquidityPool, 10n * USDC);
     const tx = rebalancer.connect(rebalanceUser).initiateRebalance(
       4n * USDC,
-      liquidityPool.target,
-      liquidityPool.target,
+      liquidityPool,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.CCTP,
       "0x"
@@ -280,19 +280,19 @@ describe("Rebalancer", function () {
       .to.emit(usdc, "Transfer")
       .withArgs(cctpTokenMessenger.target, ZERO_ADDRESS, 4n * USDC);
 
-    expect(await usdc.balanceOf(liquidityPool.target)).to.equal(6n * USDC);
-    expect(await usdc.balanceOf(rebalancer.target)).to.equal(0n);
+    expect(await usdc.balanceOf(liquidityPool)).to.equal(6n * USDC);
+    expect(await usdc.balanceOf(rebalancer)).to.equal(0n);
   });
 
   it("Should allow rebalancer to initiate rebalance to local pool", async function () {
     const {rebalancer, usdc, USDC, rebalanceUser, liquidityPool, liquidityPool2
     } = await loadFixture(deployAll);
 
-    await usdc.transfer(liquidityPool.target, 10n * USDC);
+    await usdc.transfer(liquidityPool, 10n * USDC);
     const tx = rebalancer.connect(rebalanceUser).initiateRebalance(
       4n * USDC,
-      liquidityPool.target,
-      liquidityPool2.target,
+      liquidityPool,
+      liquidityPool2,
       Domain.BASE,
       Provider.LOCAL,
       "0x"
@@ -307,44 +307,44 @@ describe("Rebalancer", function () {
       .to.emit(usdc, "Transfer")
       .withArgs(rebalancer.target, liquidityPool2.target, 4n * USDC);
 
-    expect(await usdc.balanceOf(liquidityPool.target)).to.equal(6n * USDC);
-    expect(await usdc.balanceOf(liquidityPool2.target)).to.equal(4n * USDC);
-    expect(await usdc.balanceOf(rebalancer.target)).to.equal(0n);
+    expect(await usdc.balanceOf(liquidityPool)).to.equal(6n * USDC);
+    expect(await usdc.balanceOf(liquidityPool2)).to.equal(4n * USDC);
+    expect(await usdc.balanceOf(rebalancer)).to.equal(0n);
   });
 
   it("Should not allow rebalancer to initiate rebalance on invalid route", async function () {
     const {rebalancer, usdc, USDC, rebalanceUser, liquidityPool,
     } = await loadFixture(deployAll);
 
-    await usdc.transfer(liquidityPool.target, 10n * USDC);
+    await usdc.transfer(liquidityPool, 10n * USDC);
     await expect(rebalancer.connect(rebalanceUser).initiateRebalance(
       4n * USDC,
-      usdc.target,
-      liquidityPool.target,
+      usdc,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.CCTP,
       "0x"
     )).to.be.revertedWithCustomError(rebalancer, "RouteDenied()");
     await expect(rebalancer.connect(rebalanceUser).initiateRebalance(
       4n * USDC,
-      liquidityPool.target,
-      usdc.target,
+      liquidityPool,
+      usdc,
       Domain.ETHEREUM,
       Provider.CCTP,
       "0x"
     )).to.be.revertedWithCustomError(rebalancer, "RouteDenied()");
     await expect(rebalancer.connect(rebalanceUser).initiateRebalance(
       4n * USDC,
-      liquidityPool.target,
-      liquidityPool.target,
+      liquidityPool,
+      liquidityPool,
       Domain.BASE,
       Provider.CCTP,
       "0x"
     )).to.be.revertedWithCustomError(rebalancer, "RouteDenied()");
     await expect(rebalancer.connect(rebalanceUser).initiateRebalance(
       4n * USDC,
-      liquidityPool.target,
-      liquidityPool.target,
+      liquidityPool,
+      liquidityPool,
       Domain.BASE,
       Provider.LOCAL,
       "0x"
@@ -354,11 +354,11 @@ describe("Rebalancer", function () {
   it("Should not allow others to initiate rebalance", async function () {
     const {rebalancer, usdc, USDC, admin, liquidityPool} = await loadFixture(deployAll);
 
-    await usdc.transfer(liquidityPool.target, 10n * USDC);
+    await usdc.transfer(liquidityPool, 10n * USDC);
     await expect(rebalancer.connect(admin).initiateRebalance(
       4n * USDC,
-      liquidityPool.target,
-      liquidityPool.target,
+      liquidityPool,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.CCTP,
       "0x"
@@ -368,11 +368,11 @@ describe("Rebalancer", function () {
   it("Should not allow rebalancer to initiate rebalance with 0 amount", async function () {
     const {rebalancer, rebalanceUser, usdc, USDC, liquidityPool} = await loadFixture(deployAll);
 
-    await usdc.transfer(liquidityPool.target, 10n * USDC);
+    await usdc.transfer(liquidityPool, 10n * USDC);
     await expect(rebalancer.connect(rebalanceUser).initiateRebalance(
       0n,
-      liquidityPool.target,
-      liquidityPool.target,
+      liquidityPool,
+      liquidityPool,
       Domain.ETHEREUM,
       Provider.CCTP,
       "0x"
@@ -382,11 +382,11 @@ describe("Rebalancer", function () {
   it("Should not allow rebalancer to initiate rebalance with disabled route", async function () {
     const {rebalancer, rebalanceUser, usdc, USDC, liquidityPool} = await loadFixture(deployAll);
 
-    await usdc.transfer(liquidityPool.target, 10n * USDC);
+    await usdc.transfer(liquidityPool, 10n * USDC);
     await expect(rebalancer.connect(rebalanceUser).initiateRebalance(
       4n * USDC,
-      liquidityPool.target,
-      liquidityPool.target,
+      liquidityPool,
+      liquidityPool,
       Domain.AVALANCHE,
       Provider.CCTP,
       "0x"
@@ -402,7 +402,7 @@ describe("Rebalancer", function () {
     );
     const signature = AbiCoder.defaultAbiCoder().encode(["bool", "bool"], [true, true]);
     const extraData = AbiCoder.defaultAbiCoder().encode(["bytes", "bytes"], [message, signature]);
-    const tx = rebalancer.connect(rebalanceUser).processRebalance(liquidityPool.target, Provider.CCTP, extraData);
+    const tx = rebalancer.connect(rebalanceUser).processRebalance(liquidityPool, Provider.CCTP, extraData);
     await expect(tx)
       .to.emit(rebalancer, "ProcessRebalance")
       .withArgs(4n * USDC, liquidityPool.target, Provider.CCTP);
@@ -412,8 +412,8 @@ describe("Rebalancer", function () {
     await expect(tx)
       .to.emit(liquidityPool, "Deposit");
 
-    expect(await usdc.balanceOf(liquidityPool.target)).to.equal(4n * USDC);
-    expect(await usdc.balanceOf(rebalancer.target)).to.equal(0n);
+    expect(await usdc.balanceOf(liquidityPool)).to.equal(4n * USDC);
+    expect(await usdc.balanceOf(rebalancer)).to.equal(0n);
   });
 
   it("Should not allow others to process rebalance", async function () {
@@ -425,7 +425,7 @@ describe("Rebalancer", function () {
     );
     const signature = AbiCoder.defaultAbiCoder().encode(["bool", "bool"], [true, true]);
     const extraData = AbiCoder.defaultAbiCoder().encode(["bytes", "bytes"], [message, signature]);
-    await expect(rebalancer.connect(user).processRebalance(liquidityPool.target, Provider.CCTP, extraData))
+    await expect(rebalancer.connect(user).processRebalance(liquidityPool, Provider.CCTP, extraData))
       .to.be.revertedWithCustomError(rebalancer, "AccessControlUnauthorizedAccount(address,bytes32)");;
   });
 
@@ -438,7 +438,7 @@ describe("Rebalancer", function () {
     );
     const signature = AbiCoder.defaultAbiCoder().encode(["bool", "bool"], [false, true]);
     const extraData = AbiCoder.defaultAbiCoder().encode(["bytes", "bytes"], [message, signature]);
-    await expect(rebalancer.connect(rebalanceUser).processRebalance(liquidityPool.target, Provider.CCTP, extraData))
+    await expect(rebalancer.connect(rebalanceUser).processRebalance(liquidityPool, Provider.CCTP, extraData))
       .to.be.reverted;
   });
 
@@ -451,7 +451,7 @@ describe("Rebalancer", function () {
     );
     const signature = AbiCoder.defaultAbiCoder().encode(["bool", "bool"], [true, false]);
     const extraData = AbiCoder.defaultAbiCoder().encode(["bytes", "bytes"], [message, signature]);
-    await expect(rebalancer.connect(rebalanceUser).processRebalance(liquidityPool.target, Provider.CCTP, extraData))
+    await expect(rebalancer.connect(rebalanceUser).processRebalance(liquidityPool, Provider.CCTP, extraData))
       .to.be.revertedWithCustomError(rebalancer, "ProcessFailed()");
   });
 });

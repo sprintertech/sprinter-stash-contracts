@@ -89,6 +89,7 @@ export async function main() {
       repayerRoutes.map(el => el.SupportsAllTokens),
     ],
     id,
+    verifier,
   );
 
   console.log(`Repayer: ${repayer.target}`);

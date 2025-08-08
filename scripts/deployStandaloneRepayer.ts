@@ -87,7 +87,7 @@ export async function main() {
       config.OptimismStandardBridge,
     ],
     [
-      deployer.address,
+      deployer,
       config.RepayerCallers[0],
       repayerRoutes.map(el => el.Pool),
       repayerRoutes.map(el => DomainSolidity[el.Domain]),
@@ -95,6 +95,7 @@ export async function main() {
       repayerRoutes.map(el => el.SupportsAllTokens),
     ],
     id,
+    verifier,
   );
 
   if (config.RepayerCallers.length > 1) {

@@ -2,7 +2,7 @@ import hre from "hardhat";
 import {Signer, BaseContract, AddressLike, resolveAddress, ContractTransaction, isAddress} from "ethers";
 import {
   deploy, deployX, getContractAt, getCreateAddress, getDeployXAddressBase,
-  resolveXAddress,
+  resolveXAddress, resolveProxyXAddress, assertCode,
 } from "../test/helpers";
 import {
   TransparentUpgradeableProxy, ProxyAdmin,
@@ -186,13 +186,7 @@ export async function upgradeProxyX<ContractType extends Initializable>(
     await deployFunc(contractName, deployer, {}, contructorArgs, id)
   ) as ContractType;
   console.log(`New ${contractName} implementation deployed to ${await resolveAddress(targetImpl)}`);
-  const targetProxyAdminAddress = await resolveAddress(
-    "0x" +
-    (await hre.ethers.provider.getStorage(
-      proxyAddress, "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103")
-    ).slice(-40)
-  );
-  const targetAdmin = (await getContractAt("ProxyAdmin", targetProxyAdminAddress, deployer)) as ProxyAdmin;
+  const targetAdmin = await getProxyXAdmin(await resolveAddress(proxyAddress), deployer);
   const adminOwner = await targetAdmin.owner();
   if (adminOwner == await resolveAddress(deployer)) {
     console.log(`Sending ${contractName} upgrade transaction.`);
@@ -216,8 +210,15 @@ export async function upgradeProxyX<ContractType extends Initializable>(
   }
 }
 
-export async function getProxyCreateAddress(deployer: Signer, startingNonce: number) {
-  return await getCreateAddress(deployer, startingNonce + 1);
+export async function getProxyXAdmin(idOrAddress: string, signer?: Signer): Promise<ProxyAdmin> {
+  const adminAddress = await resolveAddress(
+    "0x" +
+    (await hre.ethers.provider.getStorage(
+      await resolveProxyXAddress(idOrAddress), "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103")
+    ).slice(-40)
+  );
+  await assertCode(adminAddress);
+  return (await getContractAt("ProxyAdmin", adminAddress, signer)) as ProxyAdmin;
 }
 
 export async function addLocalPool(

@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {MaxUint256, isAddress} from "ethers";
-import {toBytes32, resolveProxyXAddress, getContractAt} from "../test/helpers";
+import {toBytes32, resolveProxyXAddress, resolveXAddress, getContractAt} from "../test/helpers";
 import {
   getVerifier, deployProxyX, getHardhatNetworkConfig, getNetworkConfig, percentsToBps,
   getProxyXAdmin,
@@ -243,11 +243,12 @@ export async function main() {
 
   repayerRoutes.Pools = await verifier.predictDeployXAddresses(repayerRoutes.Pools || [], deployer);
 
+  const repayerId = "Repayer";
   let repayer: Repayer;
   let repayerAdmin: ProxyAdmin;
   try {
-    repayer = (await getContractAt(repayerVersion, await resolveProxyXAddress("Repayer"), deployer)) as Repayer;
-    repayerAdmin = await getProxyXAdmin(repayerVersion, deployer);
+    repayer = (await getContractAt(repayerVersion, await resolveProxyXAddress(repayerId), deployer)) as Repayer;
+    repayerAdmin = await getProxyXAdmin(repayerId, deployer);
     console.log("Repayer was already deployed");
     console.log("Make sure to update the Repayer routes with the update-routes-repayer task");
     repayerRoutes.Pools = []; // We don't automatically update the routes so need to skip the logging in the end.
@@ -276,7 +277,7 @@ export async function main() {
         repayerRoutes.Providers.map(el => ProviderSolidity[el]),
         repayerRoutes.SupportsAllTokens,
       ],
-      "Repayer",
+      repayerId,
     );
     repayer = result.target;
     repayerAdmin = result.targetAdmin;
@@ -354,7 +355,7 @@ export async function main() {
 
   let multicall: string;
   try {
-    multicall = await resolveProxyXAddress("CensoredTransferFromMulticall");
+    multicall = await resolveXAddress("CensoredTransferFromMulticall");
     console.log("Multicall was already deployed");
   } catch {
     multicall = await (await verifier.deployX(

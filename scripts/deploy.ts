@@ -2,9 +2,10 @@ import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {MaxUint256, isAddress} from "ethers";
-import {toBytes32, resolveProxyXAddress} from "../test/helpers";
+import {toBytes32, resolveProxyXAddress, resolveXAddress, getContractAt} from "../test/helpers";
 import {
   getVerifier, deployProxyX, getHardhatNetworkConfig, getNetworkConfig, percentsToBps,
+  getProxyXAdmin,
 } from "./helpers";
 import {
   assert, isSet, ProviderSolidity, DomainSolidity, DEFAULT_ADMIN_ROLE, ZERO_ADDRESS,
@@ -13,6 +14,7 @@ import {
 import {
   SprinterUSDCLPShare, LiquidityHub, SprinterLiquidityMining,
   Rebalancer, Repayer, LiquidityPool, LiquidityPoolAave, LiquidityPoolStablecoin,
+  ProxyAdmin,
 } from "../typechain-types";
 import {
   Network, Provider, NetworkConfig, LiquidityPoolUSDC,
@@ -242,33 +244,46 @@ export async function main() {
 
   repayerRoutes.Pools = await verifier.predictDeployXAddresses(repayerRoutes.Pools || [], deployer);
 
-  const {target: repayer, targetAdmin: repayerAdmin} = await deployProxyX<Repayer>(
-    verifier.deployX,
-    repayerVersion,
-    deployer,
-    config.Admin,
-    [
-      DomainSolidity[network],
-      config.USDC,
-      config.CCTP.TokenMessenger,
-      config.CCTP.MessageTransmitter,
-      config.AcrossV3SpokePool,
-      config.EverclearFeeAdapter,
-      config.WrappedNativeToken,
-      config.StargateTreasurer,
-      config.OptimismStandardBridge,
-    ],
-    [
+  const repayerId = "Repayer";
+  let repayer: Repayer;
+  let repayerAdmin: ProxyAdmin;
+  try {
+    repayer = (await getContractAt(repayerVersion, await resolveProxyXAddress(repayerId), deployer)) as Repayer;
+    repayerAdmin = await getProxyXAdmin(repayerId, deployer);
+    console.log("Repayer was already deployed");
+    console.log("Make sure to update the Repayer routes with the update-routes-repayer task");
+    repayerRoutes.Pools = []; // We don't automatically update the routes so need to skip the logging in the end.
+  } catch {
+    const result = await deployProxyX<Repayer>(
+      verifier.deployX,
+      repayerVersion,
+      deployer,
       config.Admin,
-      config.RepayerCaller,
-      repayerRoutes.Pools,
-      repayerRoutes.Domains.map(el => DomainSolidity[el]),
-      repayerRoutes.Providers.map(el => ProviderSolidity[el]),
-      repayerRoutes.SupportsAllTokens,
-    ],
-    "Repayer",
-    verifier,
-  );
+      [
+        DomainSolidity[network],
+        config.USDC,
+        config.CCTP.TokenMessenger,
+        config.CCTP.MessageTransmitter,
+        config.AcrossV3SpokePool,
+        config.EverclearFeeAdapter,
+        config.WrappedNativeToken,
+        config.StargateTreasurer,
+        config.OptimismStandardBridge,
+      ],
+      [
+        config.Admin,
+        config.RepayerCaller,
+        repayerRoutes.Pools,
+        repayerRoutes.Domains.map(el => DomainSolidity[el]),
+        repayerRoutes.Providers.map(el => ProviderSolidity[el]),
+        repayerRoutes.SupportsAllTokens,
+      ],
+      repayerId,
+    );
+    repayer = result.target;
+    repayerAdmin = result.targetAdmin;
+  }
+
 
   if (config.Hub) {
     const tiers = config.Hub!.Tiers;
@@ -343,7 +358,7 @@ export async function main() {
 
   let multicall: string;
   try {
-    multicall = await resolveProxyXAddress("CensoredTransferFromMulticall");
+    multicall = await resolveXAddress("CensoredTransferFromMulticall");
     console.log("Multicall was already deployed");
   } catch {
     multicall = await (await verifier.deployX(

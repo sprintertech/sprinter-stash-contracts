@@ -20,3 +20,34 @@ RepayerRoutes:
 │ 10      │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'BASE'         │ 'CCTP'      │ false             │
 │ 11      │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'OP_MAINNET'   │ 'CCTP'      │ false             │
 └─────────┴──────────────────────────────────────────────┴────────────────┴─────────────┴───────────────────┘
+
+Deployment ID: MVP
+Deploying contracts set
+Using config for: UNICHAIN
+Deploying USDC Stablecoin Liquidity Pool
+LiquidityPoolUSDCStablecoin: 0x2781650E1d76b56b3BCD9836e4d16E04c86d3D07
+Repayer was already deployed
+Make sure to update the Repayer routes with the update-routes-repayer task
+Multicall: 0x7C472EBa1945E970a23C903FC8812D469a29B6bb
+Admin: 0x4eA9E682BA79bC403523c9e8D98A05EaF3810636
+LiquidityPool Withdraw Profit: 0x83B8D2eAda788943c3e80892f37f9c102271C1D6
+LiquidityPool Pauser: 0x83B8D2eAda788943c3e80892f37f9c102271C1D6
+MPC Address: 0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2
+USDC: 0x078D782b760474a361dDA0AF3839290b0EF57AD6
+Rebalancer: 0xA85Cf46c150db2600b1D03E437bedD5513869888
+RebalancerProxyAdmin: 0x818E818aC77112034aBf79506d53ba197Cac5077
+RebalancerRoutes:
+┌─────────┬──────────────────────────────────────────────┬────────────────┬──────────┐
+│ (index) │ Pool                                         │ Domain         │ Provider │
+├─────────┼──────────────────────────────────────────────┼────────────────┼──────────┤
+│ 0       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'OP_MAINNET'   │ 'CCTP'   │
+│ 1       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'ARBITRUM_ONE' │ 'CCTP'   │
+│ 2       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'BASE'         │ 'CCTP'   │
+│ 3       │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'OP_MAINNET'   │ 'CCTP'   │
+│ 4       │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'ARBITRUM_ONE' │ 'CCTP'   │
+│ 5       │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'BASE'         │ 'CCTP'   │
+│ 6       │ '0x2781650E1d76b56b3BCD9836e4d16E04c86d3D07' │ 'ETHEREUM'     │ 'CCTP'   │
+│ 7       │ '0x2781650E1d76b56b3BCD9836e4d16E04c86d3D07' │ 'UNICHAIN'     │ 'LOCAL'  │
+└─────────┴──────────────────────────────────────────────┴────────────────┴──────────┘
+Repayer: 0x36364Acc7B9c67692CA215af09A41CBd10439511
+RepayerProxyAdmin: 0x2B5D04eF6b3279bCdA4B219b02FAF627dA1664CB

@@ -163,7 +163,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         // - Validate MPC signature
         _validateMPCSignatureWithCaller(borrowToken, amount, target, targetCallData, nonce, deadline, signature);
         (uint256 nativeValue, address actualBorrowToken, bytes memory context) =
-            _borrow(borrowToken, amount, target, NATIVE_ALLOWED);
+            _borrow(borrowToken, amount, target, NATIVE_ALLOWED, "");
         _afterBorrowLogic(actualBorrowToken, context);
         _unwrapNative(nativeValue);
         _finalizeBorrow(target, nativeValue, targetCallData);
@@ -229,7 +229,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
     ) external override whenNotPaused() whenBorrowNotPaused() {
         _validateMPCSignatureWithCaller(borrowToken, amount, target, targetCallData, nonce, deadline, signature);
         // Native borrowing is denied because swap() is not payable.
-        (,, bytes memory context) = _borrow(borrowToken, amount, _msgSender(), NATIVE_DENIED);
+        (,, bytes memory context) = _borrow(borrowToken, amount, _msgSender(), NATIVE_DENIED, "");
         _afterBorrowLogic(borrowToken, context);
         uint256 nativeBalanceBefore = _prepareNativeFill(swap.fillToken);
         // Call the swap function on caller
@@ -360,7 +360,8 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         uint256 length = HelperLib.validatePositiveLength(tokens.length, amounts.length);
         for (uint256 i = 0; i < length; ++i) {
             uint256 nativeValue = 0;
-            (nativeValue, actualBorrowTokens[i], context) = _borrow(tokens[i], amounts[i], target, nativeAllowed);
+            (nativeValue, actualBorrowTokens[i], context) =
+                _borrow(tokens[i], amounts[i], target, nativeAllowed, context);
             totalNativeValue += nativeValue;
         }
         return (totalNativeValue, actualBorrowTokens, context);
@@ -446,8 +447,9 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         address borrowToken,
         uint256 amount,
         address target,
-        bool nativeAllowed
-    ) private returns (uint256 nativeAmount, address actualBorrowToken, bytes memory context) {
+        bool nativeAllowed,
+        bytes memory context
+    ) private returns (uint256 nativeAmount, address actualBorrowToken, bytes memory) {
         bool isNative = borrowToken == address(NATIVE_TOKEN);
         actualBorrowToken = isNative ? address(WRAPPED_NATIVE_TOKEN) : borrowToken;
         _wrapIfNative(IERC20(actualBorrowToken));

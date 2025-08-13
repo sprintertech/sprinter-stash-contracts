@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {LiquidityPoolAave, NO_REFERRAL, INTEREST_RATE_MODE_VARIABLE} from "./LiquidityPoolAave.sol";
+import {LiquidityPoolAave} from "./LiquidityPoolAave.sol";
 
 /// @title Same as LiquidityPoolAave, but when borrowing the contract will first try to fulfill
 /// the request with own funds. If there are not enough funds, the contract will borrow from Aave.
@@ -26,6 +26,7 @@ contract LiquidityPoolAaveLongTerm is LiquidityPoolAave {
         wrappedNativeToken
     ) {}
     
+    /// @dev borrowMany() might fail if trying to borrow duplicate tokens.
     function _borrowLogic(address borrowToken, uint256 amount, bytes memory context)
         internal override returns (bytes memory)
     {

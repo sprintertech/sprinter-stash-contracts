@@ -5,7 +5,7 @@ import {getVerifier, getHardhatNetworkConfig, getNetworkConfig} from "./helpers"
 import {resolveProxyXAddress, toBytes32} from "../test/helpers";
 import {isSet, assert, DEFAULT_ADMIN_ROLE} from "./common";
 import {LiquidityPoolStablecoin} from "../typechain-types";
-import {Network, NetworkConfig, LiquidityPoolUSDCStablecoin} from "../network.config";
+import {Network, NetworkConfig, LiquidityPoolUSDCStablecoinVersions} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -17,7 +17,7 @@ export async function main() {
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
   const verifier = getVerifier(process.env.DEPLOY_ID);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
-  let id = LiquidityPoolUSDCStablecoin;
+  let id = LiquidityPoolUSDCStablecoinVersions.at(-1);
 
   let network: Network;
   let config: NetworkConfig;
@@ -37,7 +37,7 @@ export async function main() {
   const usdcPoolStablecoin: LiquidityPoolStablecoin = (await verifier.deployX(
     "LiquidityPoolStablecoin", deployer, {}, [config.USDC, deployer, config.MpcAddress, config.WrappedNativeToken], id
   )) as LiquidityPoolStablecoin;
-  console.log(`LiquidityPoolUSDCStablecoin: ${usdcPoolStablecoin.target}`);
+  console.log(`${id}: ${usdcPoolStablecoin.target}`);
 
   await usdcPoolStablecoin!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
   await usdcPoolStablecoin!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);

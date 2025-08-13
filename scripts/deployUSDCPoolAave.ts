@@ -5,7 +5,7 @@ import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, percentsToBps} f
 import {resolveProxyXAddress, toBytes32} from "../test/helpers";
 import {isSet, assert, assertAddress, DEFAULT_ADMIN_ROLE, sameAddress} from "./common";
 import {LiquidityPoolAave} from "../typechain-types";
-import {Network, NetworkConfig, LiquidityPoolAaveUSDCV2} from "../network.config";
+import {Network, NetworkConfig, LiquidityPoolAaveUSDCVersions} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -18,7 +18,7 @@ export async function main() {
   const verifier = getVerifier(process.env.DEPLOY_ID);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
 
-  let id = LiquidityPoolAaveUSDCV2;
+  let id = LiquidityPoolAaveUSDCVersions.at(-1);
 
   let network: Network;
   let config: NetworkConfig;

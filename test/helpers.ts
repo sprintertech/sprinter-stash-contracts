@@ -92,6 +92,10 @@ export async function resolveProxyXAddress(addressOrId: string, codeCheck: boole
   return result || await getDeployProxyXAddress(addressOrId, codeCheck);
 }
 
+export async function resolveXAddresses(addressOrIds: string[], codeCheck: boolean = true): Promise<string[]> {
+  return await Promise.all(addressOrIds.map(el => resolveXAddress(el, codeCheck)));
+}
+
 export async function getContractAt(
   contractName: string,
   address: AddressLike,

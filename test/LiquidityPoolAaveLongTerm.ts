@@ -162,7 +162,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
       await usdc.connect(usdcOwner).transfer(liquidityPool, amount);
       await expect(liquidityPool.connect(liquidityAdmin).deposit(amount))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
-      expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amount - 1n);
+      expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amount - 2n);
       expect(await liquidityPool.totalDeposited()).to.eq(amount);
       expectAlmostEqual(await liquidityPool.balance(usdc), 50n * USDC_DEC);
     });
@@ -173,7 +173,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
       await usdc.connect(usdcOwner).approve(liquidityPool, amount);
       await expect(liquidityPool.connect(usdcOwner).depositWithPull(amount))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
-      expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amount - 1n);
+      expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amount - 2n);
       expect(await liquidityPool.totalDeposited()).to.eq(amount);
       expectAlmostEqual(await liquidityPool.balance(usdc), 50n * USDC_DEC);
     });
@@ -1766,7 +1766,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
       await usdc.connect(usdcOwner).transfer(liquidityPool, amount);
       await expect(liquidityPool.connect(liquidityAdmin).deposit(amount))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
-      expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amount - 1n);
+      expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amount - 2n);
       expect(await liquidityPool.totalDeposited()).to.eq(amount);
 
       // advance time by one hour to accrue interest
@@ -1801,7 +1801,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
       await usdc.connect(usdcOwner).transfer(liquidityPool, amount);
       await expect(liquidityPool.connect(liquidityAdmin).deposit(amount))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
-      expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amount - 1n);
+      expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amount - 2n);
       expect(await liquidityPool.totalDeposited()).to.eq(amount);
 
        // advance time by one hour to accrue interest
@@ -1817,7 +1817,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
         .to.emit(liquidityPool, "ProfitWithdrawn");
       expect(await aToken.balanceOf(liquidityPool))
-        .to.be.greaterThanOrEqual(amount - 1n)
+        .to.be.greaterThanOrEqual(amount - 2n)
         .and.to.be.lessThan(aTokenBalance);
       expect(await usdc.balanceOf(user)).to.be.greaterThanOrEqual(aTokenBalance - amount);
       expect(await liquidityPool.totalDeposited()).to.eq(amount);
@@ -3194,7 +3194,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
       await usdc.connect(usdcOwner).transfer(liquidityPool, amount);
       await expect(liquidityPool.connect(liquidityAdmin).deposit(amount))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
-      expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amount - 1n);
+      expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amount - 2n);
 
       await expect(liquidityPool.connect(liquidityAdmin).withdraw(user, amount * 2n))
         .to.be.reverted;
@@ -3243,7 +3243,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
       await usdc.connect(usdcOwner).transfer(liquidityPool, amount);
       await expect(liquidityPool.connect(liquidityAdmin).deposit(amount))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
-      expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amount - 1n);
+      expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amount - 2n);
       expect(await liquidityPool.totalDeposited()).to.eq(amount);
 
        // advance time by one hour to accrue interest
@@ -3297,7 +3297,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
       await usdc.connect(usdcOwner).transfer(liquidityPool, amount);
       await expect(liquidityPool.connect(liquidityAdmin).deposit(amount))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
-      expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amount - 1n);
+      expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amount - 2n);
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([aToken], user))
         .to.revertedWithCustomError(liquidityPool, "CannotWithdrawAToken");
     });

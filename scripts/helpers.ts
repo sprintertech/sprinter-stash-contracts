@@ -321,6 +321,7 @@ export async function getHardhatNetworkConfig() {
   config.RepayerCaller = opsAdmin.address;
   config.MpcAddress = mpc.address;
   config.USDCStablecoinPool = true;
+  config.AavePoolLongTerm = config.AavePoolLongTerm || config.AavePool;
 
   console.log("Using config for: hardhat");
   return {

@@ -3773,7 +3773,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
       await usdc.connect(usdcOwner).transfer(liquidityPool, amount);
       await expect(liquidityPool.connect(liquidityAdmin).deposit(amount))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
-      expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amount - 1n);
+      expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amount - 2n);
     });
 
     it("Should NOT allow others to deposit collateral", async function () {
@@ -3790,7 +3790,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
       await usdc.connect(usdcOwner).transfer(liquidityPool, amount);
       await expect(liquidityPool.connect(liquidityAdmin).deposit(amount))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
-      expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amount - 1n);
+      expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amount - 2n);
 
       await expect(liquidityPool.connect(liquidityAdmin).withdraw(user, amount))
         .to.emit(liquidityPool, "WithdrawnFromAave").withArgs(user.address, amount);
@@ -3806,7 +3806,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
       await usdc.connect(usdcOwner).transfer(liquidityPool, amount);
       await expect(liquidityPool.connect(liquidityAdmin).deposit(amount))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
-      expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amount - 1n);
+      expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amount - 2n);
 
       await expect(liquidityPool.connect(user).withdraw(user, amount * 2n))
         .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");

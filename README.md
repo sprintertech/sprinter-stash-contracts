@@ -41,7 +41,7 @@ In order to recover from this situation, the newly deployed contracts will have 
 ### Configuration
 
 Check/update `network.config.ts` as the main source of truth of the *desired* state of the system. For instance if some routes needs to be updated, first change
-them in the configuration, then apply changes onchain. There are hardhat tasks that simplify the synchronization between config and onchain state.
+them in the configuration, then apply the changes onchain. There are hardhat tasks that simplify the synchronization between config and onchain state.
 
 ### Deployment commands
 
@@ -62,7 +62,7 @@ To deploy to Base Sepolia Testnet, do:
 
 Make sure to save the output of the deployment. You can use those later in the `.env` file to run other scripts on the already deployed system.
 
-You can optionally set VERIFY to `true` in order to publish the source code after deployment to Etherscan.
+You can optionally set VERIFY to `true` in order to publish the source code to Etherscan after deployment.
 
 ### Deployed contract addresses
 
@@ -77,7 +77,7 @@ You can optionally set VERIFY to `true` in order to publish the source code afte
 
 ### Hardhat tasks
 
-In order to update onchain rebalancer or repayer routes to reflect what is put into configuration execute the following tasks:
+In order to update onchain rebalancer or repayer routes to reflect what is put into configuration, execute the following tasks:
 
 ```
 npm run hardhat -- update-routes-rebalancer --network BASE

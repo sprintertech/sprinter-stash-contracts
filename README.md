@@ -66,11 +66,15 @@ You can optionally set VERIFY to `true` in order to publish the source code to E
 
 ### Deployed contract addresses
 
+[YAML Stage](deployments/deployments.staging.yml)
+
 [YAML](deployments/deployments.yml)
 
 ### Deployment logs
 
 [Base Sepolia](deployments/deploy-basesepolia.log), [Optimism Sepolia](deployments/deploy-opsepolia.log), [Arbitrum Sepolia](deployments/deploy-arbitrumsepolia.log)
+
+[Base Stage](deployments/deploy-base-stage.log), [Optimism Mainnet Stage](deployments/deploy-opmainnet-stage.log), [Arbitrum One Stage](deployments/deploy-arbitrumone-stage.log),
 
 [Base](deployments/deploy-base.log), [Optimism Mainnet](deployments/deploy-opmainnet.log), [Arbitrum One](deployments/deploy-arbitrumone.log),
 [Ethereum](deployments/deploy-ethereum.log), [Polygon Mainnet](deployments/deploy-polygon.log), [Unichain](deployments/deploy-unichain.log)

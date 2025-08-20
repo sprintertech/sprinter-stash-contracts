@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {MaxUint256, isAddress} from "ethers";
-import {toBytes32, resolveProxyXAddress, resolveXAddress, getContractAt} from "../test/helpers";
+import {toBytes32, resolveProxyXAddress, resolveXAddress, getContractAt, resolveXAddresses} from "../test/helpers";
 import {
   getVerifier, deployProxyX, getHardhatNetworkConfig, getNetworkConfig, percentsToBps,
   getProxyXAdmin,
@@ -256,7 +256,7 @@ export async function main() {
   assert(mainPool, "Main pool is not defined");
   const rebalancerVersion = config.IsTest ? "TestRebalancer" : "Rebalancer";
 
-  rebalancerRoutes.Pools = await verifier.predictDeployXAddresses(rebalancerRoutes.Pools, deployer);
+  rebalancerRoutes.Pools = await resolveXAddresses(rebalancerRoutes.Pools, false);
 
   const {target: rebalancer, targetAdmin: rebalancerAdmin} = await deployProxyX<Rebalancer>(
     verifier.deployX,
@@ -301,7 +301,7 @@ export async function main() {
 
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
 
-  repayerRoutes.Pools = await verifier.predictDeployXAddresses(repayerRoutes.Pools || [], deployer);
+  repayerRoutes.Pools = await resolveXAddresses(repayerRoutes.Pools || [], false);
 
   const repayerId = "Repayer";
   let repayer: Repayer;

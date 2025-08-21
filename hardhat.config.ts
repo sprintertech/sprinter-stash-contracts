@@ -409,7 +409,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
 // By default produces a new nonce every 10 seconds.
 .addOptionalParam("nonce", "Reuse protection nonce", BigInt(Date.now()) / 1000n / 10n, types.bigint)
 .addOptionalParam("deadline", "Expiry protection timestamp", 2000000000n, types.bigint)
-.addOptionalParam("pool", "Liquidity Pool proxy address or id", "LiquidityPool", types.string)
+.addOptionalParam("pool", "Liquidity Pool address or id", "LiquidityPoolAaveUSDC", types.string)
 .setAction(async (args: {
   caller: string,
   token?: string,
@@ -420,7 +420,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
   deadline: bigint,
   pool: string,
 }, hre) => {
-  const {resolveProxyXAddress} = await loadTestHelpers();
+  const {resolveXAddress} = await loadTestHelpers();
   const config = networkConfig[hre.network.name as Network];
 
   const [signer] = await hre.ethers.getSigners();
@@ -428,7 +428,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
   const name = "LiquidityPool";
   const version = "1.0.0";
 
-  const pool = await resolveProxyXAddress(args.pool);
+  const pool = await resolveXAddress(args.pool);
   const domain: TypedDataDomain = {
     name,
     version,

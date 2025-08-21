@@ -12,6 +12,10 @@ contract MockTarget {
 
     event DataReceived(bytes data);
 
+    function fulfillSkip() external payable {
+        return;
+    }
+
     function fulfill(IERC20 token, uint256 amount, bytes calldata data) external payable {
         _fulfill(token, amount);
         emit DataReceived(data);

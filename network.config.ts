@@ -7,16 +7,24 @@ import * as AAVEPools from "@bgd-labs/aave-address-book";
 export const LiquidityPoolAaveUSDC: string = "LiquidityPoolAaveUSDC";
 export const LiquidityPoolUSDC: string = "LiquidityPoolUSDC";
 export const LiquidityPoolUSDCStablecoin: string = "LiquidityPoolUSDCStablecoin";
-export const LiquidityPoolAaveUSDCV2: string = "LiquidityPoolAaveUSDC-V2-aee23ae";
+export const LiquidityPoolAaveUSDCLongTerm: string = "LiquidityPoolAaveUSDCLongTerm";
+export const LiquidityPoolAaveUSDCV2: string = "LiquidityPoolAaveUSDC-V2-3601cc4";
+export const LiquidityPoolUSDCV2: string = "LiquidityPoolUSDC-V2-3601cc4";
+export const LiquidityPoolUSDCStablecoinV2: string = "LiquidityPoolUSDCStablecoin-V2-3601cc4";
+export const LiquidityPoolAaveUSDCLongTermVersions: string[] = [
+  LiquidityPoolAaveUSDCLongTerm,
+];
 export const LiquidityPoolAaveUSDCVersions: string[] = [
   LiquidityPoolAaveUSDC,
   LiquidityPoolAaveUSDCV2,
 ];
 export const LiquidityPoolUSDCVersions: string[] = [
   LiquidityPoolUSDC,
+  LiquidityPoolUSDCV2,
 ];
 export const LiquidityPoolUSDCStablecoinVersions: string[] = [
   LiquidityPoolUSDCStablecoin,
+  LiquidityPoolUSDCStablecoinV2,
 ];
 
 export enum Network {
@@ -111,6 +119,7 @@ export interface NetworkConfig {
   MpcAddress: string;
   Hub?: HubConfig;
   AavePool?: AavePoolConfig;
+  AavePoolLongTerm?: AavePoolConfig;
   USDCPool?: boolean;
   USDCStablecoinPool?: boolean;
   Stage?: NetworkConfig;

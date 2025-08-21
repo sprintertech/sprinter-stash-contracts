@@ -15,6 +15,7 @@ import {
   LiquidityPoolAaveUSDCVersions,
   LiquidityPoolUSDCVersions,
   LiquidityPoolUSDCStablecoinVersions,
+  LiquidityPoolAaveUSDCLongTermVersions,
 } from "../network.config";
 
 export async function resolveAddresses(input: any[]): Promise<any[]> {
@@ -269,6 +270,9 @@ export async function addLocalPools(
   network: Network,
   routes: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens?: boolean}[]
 ): Promise<void> {
+  await addLocalPool(
+    config.AavePoolLongTerm, network, routes, LiquidityPoolAaveUSDCLongTermVersions, true, "Aave USDC Long Term"
+  );
   await addLocalPool(config.AavePool, network, routes, LiquidityPoolAaveUSDCVersions, true, "Aave USDC");
   await addLocalPool(config.USDCPool, network, routes, LiquidityPoolUSDCVersions, false, "USDC");
   await addLocalPool(
@@ -317,6 +321,7 @@ export async function getHardhatNetworkConfig() {
   config.RepayerCaller = opsAdmin.address;
   config.MpcAddress = mpc.address;
   config.USDCStablecoinPool = true;
+  config.AavePoolLongTerm = config.AavePoolLongTerm || config.AavePool;
 
   console.log("Using config for: hardhat");
   return {

@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {MaxUint256, isAddress} from "ethers";
-import {toBytes32, resolveProxyXAddress, resolveXAddress, getContractAt} from "../test/helpers";
+import {toBytes32, resolveProxyXAddress, resolveXAddress, getContractAt, resolveXAddresses} from "../test/helpers";
 import {
   getVerifier, deployProxyX, getHardhatNetworkConfig, getNetworkConfig, percentsToBps,
   getProxyXAdmin,
@@ -13,12 +13,15 @@ import {
 } from "./common";
 import {
   SprinterUSDCLPShare, LiquidityHub, SprinterLiquidityMining,
-  Rebalancer, Repayer, LiquidityPool, LiquidityPoolAave, LiquidityPoolStablecoin,
+  Rebalancer, Repayer, LiquidityPool, LiquidityPoolAave, LiquidityPoolStablecoin, LiquidityPoolAaveLongTerm,
   ProxyAdmin,
 } from "../typechain-types";
 import {
-  Network, Provider, NetworkConfig, LiquidityPoolUSDC,
-  LiquidityPoolAaveUSDCV2, LiquidityPoolUSDCStablecoin,
+  Network, Provider, NetworkConfig,
+  LiquidityPoolAaveUSDCVersions,
+  LiquidityPoolAaveUSDCLongTermVersions,
+  LiquidityPoolUSDCVersions,
+  LiquidityPoolUSDCStablecoinVersions,
 } from "../network.config";
 
 export async function main() {
@@ -40,7 +43,7 @@ export async function main() {
     ({network, config} = await getHardhatNetworkConfig());
   }
 
-  assert(config.AavePool! || config.USDCPool! || config.USDCStablecoinPool!,
+  assert(config.AavePool! || config.AavePoolLongTerm! || config.USDCPool! || config.USDCStablecoinPool!,
     "At least one pool should be present.");
   assert(isAddress(config.USDC), "USDC must be an address");
   assert(isAddress(config.Admin), "Admin must be an address");
@@ -105,9 +108,54 @@ export async function main() {
     config.OptimismStandardBridge = ZERO_ADDRESS;
   }
 
-  let mainPool: LiquidityPool;
+  let mainPool: LiquidityPool | undefined = undefined;
+  let aavePoolLongTerm: LiquidityPoolAaveLongTerm;
+  if (config.AavePoolLongTerm) {
+    const id = LiquidityPoolAaveUSDCLongTermVersions.at(-1);
+    const minHealthFactor = BigInt(config.AavePoolLongTerm.MinHealthFactor) * 10000n / 100n;
+    const defaultLTV = BigInt(config.AavePoolLongTerm.DefaultLTV) * 10000n / 100n;
+    console.log("Deploying AAVE Liquidity Pool Long Term");
+    aavePoolLongTerm = (await verifier.deployX(
+      "LiquidityPoolAaveLongTerm",
+      deployer,
+      {},
+      [
+        config.USDC,
+        config.AavePoolLongTerm.AaveAddressesProvider,
+        deployer,
+        config.MpcAddress,
+        minHealthFactor,
+        defaultLTV,
+        config.WrappedNativeToken,
+      ],
+      id,
+    )) as LiquidityPoolAaveLongTerm;
+
+    if (config.AavePoolLongTerm.TokenLTVs) {
+      const tokens = Object.keys(config.AavePoolLongTerm.TokenLTVs);
+      const LTVs = Object.values(config.AavePoolLongTerm.TokenLTVs);
+      await aavePoolLongTerm.setBorrowTokenLTVs(
+        tokens,
+        percentsToBps(LTVs),
+      );
+    }
+    console.log(`${id}: ${aavePoolLongTerm.target}`);
+
+    rebalancerRoutes.Pools.push(await aavePoolLongTerm.getAddress());
+    rebalancerRoutes.Domains.push(network);
+    rebalancerRoutes.Providers.push(Provider.LOCAL);
+
+    repayerRoutes.Pools.push(await aavePoolLongTerm.getAddress());
+    repayerRoutes.Domains.push(network);
+    repayerRoutes.Providers.push(Provider.LOCAL);
+    repayerRoutes.SupportsAllTokens.push(true);
+
+    mainPool = aavePoolLongTerm as LiquidityPool;
+  }
+
   let aavePool: LiquidityPoolAave;
   if (config.AavePool) {
+    const id = LiquidityPoolAaveUSDCVersions.at(-1);
     const minHealthFactor = BigInt(config.AavePool.MinHealthFactor) * 10000n / 100n;
     const defaultLTV = BigInt(config.AavePool.DefaultLTV) * 10000n / 100n;
     console.log("Deploying AAVE Liquidity Pool");
@@ -124,7 +172,7 @@ export async function main() {
         defaultLTV,
         config.WrappedNativeToken,
       ],
-      LiquidityPoolAaveUSDCV2,
+      id,
     )) as LiquidityPoolAave;
 
     if (config.AavePool.TokenLTVs) {
@@ -135,7 +183,7 @@ export async function main() {
         percentsToBps(LTVs),
       );
     }
-    console.log(`LiquidityPoolAaveUSDC: ${aavePool.target}`);
+    console.log(`${id}: ${aavePool.target}`);
 
     rebalancerRoutes.Pools.push(await aavePool.getAddress());
     rebalancerRoutes.Domains.push(network);
@@ -146,20 +194,23 @@ export async function main() {
     repayerRoutes.Providers.push(Provider.LOCAL);
     repayerRoutes.SupportsAllTokens.push(true);
 
-    mainPool = aavePool as LiquidityPool;
-  } 
+    if (!mainPool) {
+      mainPool = aavePool as LiquidityPool;
+    }
+  }
   
   let usdcPool: LiquidityPool;
   if (config.USDCPool) {
+    const id = LiquidityPoolUSDCVersions.at(-1);
     console.log("Deploying USDC Liquidity Pool");
     usdcPool = (await verifier.deployX(
       "LiquidityPool",
       deployer,
       {},
       [config.USDC, deployer, config.MpcAddress, config.WrappedNativeToken],
-      LiquidityPoolUSDC
+      id,
     )) as LiquidityPool;
-    console.log(`LiquidityPoolUSDC: ${usdcPool.target}`);
+    console.log(`${id}: ${usdcPool.target}`);
 
     rebalancerRoutes.Pools.push(await usdcPool.getAddress());
     rebalancerRoutes.Domains.push(network);
@@ -170,22 +221,23 @@ export async function main() {
     repayerRoutes.Providers.push(Provider.LOCAL);
     repayerRoutes.SupportsAllTokens.push(false);
 
-    if (!config.AavePool) {
+    if (!mainPool) {
       mainPool = usdcPool;
     }
   }
 
   let usdcStablecoinPool: LiquidityPoolStablecoin;
   if (config.USDCStablecoinPool) {
+    const id = LiquidityPoolUSDCStablecoinVersions.at(-1);
     console.log("Deploying USDC Stablecoin Liquidity Pool");
     usdcStablecoinPool = (await verifier.deployX(
       "LiquidityPoolStablecoin",
       deployer,
       {},
       [config.USDC, deployer, config.MpcAddress, config.WrappedNativeToken],
-      LiquidityPoolUSDCStablecoin
+      id,
     )) as LiquidityPool;
-    console.log(`LiquidityPoolUSDCStablecoin: ${usdcStablecoinPool.target}`);
+    console.log(`${id}: ${usdcStablecoinPool.target}`);
 
     rebalancerRoutes.Pools.push(await usdcStablecoinPool.getAddress());
     rebalancerRoutes.Domains.push(network);
@@ -201,9 +253,10 @@ export async function main() {
     }
   }
 
+  assert(mainPool, "Main pool is not defined");
   const rebalancerVersion = config.IsTest ? "TestRebalancer" : "Rebalancer";
 
-  rebalancerRoutes.Pools = await verifier.predictDeployXAddresses(rebalancerRoutes.Pools, deployer);
+  rebalancerRoutes.Pools = await resolveXAddresses(rebalancerRoutes.Pools, false);
 
   const {target: rebalancer, targetAdmin: rebalancerAdmin} = await deployProxyX<Rebalancer>(
     verifier.deployX,
@@ -221,6 +274,12 @@ export async function main() {
     "Rebalancer",
     verifier,
   );
+
+  if (config.AavePoolLongTerm) {
+    await aavePoolLongTerm!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
+    await aavePoolLongTerm!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
+    await aavePoolLongTerm!.grantRole(PAUSER_ROLE, config.Pauser);
+  }
 
   if (config.AavePool) {
     await aavePool!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
@@ -242,7 +301,7 @@ export async function main() {
 
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
 
-  repayerRoutes.Pools = await verifier.predictDeployXAddresses(repayerRoutes.Pools || [], deployer);
+  repayerRoutes.Pools = await resolveXAddresses(repayerRoutes.Pools || [], false);
 
   const repayerId = "Repayer";
   let repayer: Repayer;
@@ -304,7 +363,7 @@ export async function main() {
       "LiquidityHub",
       deployer,
       config.Admin,
-      [lpToken, mainPool!],
+      [lpToken, mainPool],
       [
         config.USDC,
         config.Admin,
@@ -322,7 +381,7 @@ export async function main() {
       await verifier.deployX("SprinterLiquidityMining", deployer, {}, [config.Admin, liquidityHub, tiers])
     ) as SprinterLiquidityMining;
 
-    await mainPool!.grantRole(LIQUIDITY_ADMIN_ROLE, liquidityHub);
+    await mainPool.grantRole(LIQUIDITY_ADMIN_ROLE, liquidityHub);
 
     console.log(`SprinterUSDCLPShare: ${lpToken.target}`);
     console.log(`LiquidityHub: ${liquidityHub.target}`);
@@ -340,6 +399,11 @@ export async function main() {
   }
 
   if (!sameAddress(deployer.address, config.Admin)) {
+    if (config.AavePoolLongTerm) {
+      await aavePoolLongTerm!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
+      await aavePoolLongTerm!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    }
+
     if (config.AavePool) {
       await aavePool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
       await aavePool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);

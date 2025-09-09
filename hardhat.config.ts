@@ -3,13 +3,13 @@ import "@nomicfoundation/hardhat-toolbox";
 import {
   networkConfig, Network, Provider,
 } from "./network.config";
-import {TypedDataDomain, AbiCoder, toNumber, dataSlice, getAddress} from "ethers";
+import {TypedDataDomain, AbiCoder, toNumber, dataSlice, getAddress, parseEther} from "ethers";
 import {
   LiquidityPoolAave, Rebalancer, Repayer
 } from "./typechain-types";
 import {
   assert, isSet, ProviderSolidity, DomainSolidity, CCTPDomain, SolidityDomain, SolidityProvider,
-  DEFAULT_ADMIN_ROLE,
+  DEFAULT_ADMIN_ROLE, assertAddress,
 } from "./scripts/common";
 import "hardhat-ignore-warnings";
 
@@ -530,6 +530,19 @@ task("cctp-get-process-data", "Get burn attestation from CCTP Api to mint USDC o
   console.log(extraDatas);
 });
 
+task("push-native-token", "Push native currency through a selfdestruct")
+.addParam("receiver", "Address of the receiver")
+.addOptionalParam("amount", "Human readable amount of native token to send", "0.0011")
+.setAction(async ({receiver, amount}: {receiver: string, amount: string}, hre) => {
+  const {deploy} = await loadTestHelpers();
+  const [sender] = await hre.ethers.getSigners();
+  assertAddress(receiver, "Receiver must be a valid address");
+
+  const value = parseEther(amount);
+  await deploy("PushNativeToken", sender, {value}, receiver);
+  console.log("Done.");
+});
+
 const accounts: string[] = isSet(process.env.PRIVATE_KEY) ? [process.env.PRIVATE_KEY || ""] : [];
 
 const config: HardhatUserConfig = {
@@ -641,6 +654,9 @@ const config: HardhatUserConfig = {
       default: "off",
     },
     "@crytic/**/*": {
+      default: "off",
+    },
+    "contracts/utils/PushNativeToken.sol": {
       default: "off",
     },
   },

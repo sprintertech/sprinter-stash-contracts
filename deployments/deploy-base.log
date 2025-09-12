@@ -75,3 +75,15 @@ RepayerRoutes:
 │ 8       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'BASE'         │ 'LOCAL'     │ true              │
 │ 9       │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'BASE'         │ 'LOCAL'     │ false             │
 └─────────┴──────────────────────────────────────────────┴────────────────┴─────────────┴───────────────────┘
+
+Deployment ID: MVP
+Upgrade ID: MVP2
+Upgrading Rebalancer
+Using config for: BASE
+New Rebalancer implementation deployed to 0xC9A2cB19c2b155f62A1c4F165c315ce67b974e98
+Simulating Rebalancer upgrade.
+Success.
+To finalize upgrade send the following transaction from ProxyAdmin owner: 0x4eA9E682BA79bC403523c9e8D98A05EaF3810636
+To: 0x818E818aC77112034aBf79506d53ba197Cac5077
+Value: 0
+Data: 0x9623609d000000000000000000000000a85cf46c150db2600b1d03e437bedd5513869888000000000000000000000000c9a2cb19c2b155f62a1c4f165c315ce67b974e9800000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000

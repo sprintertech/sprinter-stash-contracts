@@ -11,6 +11,7 @@ import {main as deployUSDCStablecoinPool} from "./deployUSDCStablecoinPool";
 import {main as deployRepayer} from "./deployRepayer";
 import {main as upgradeLiquidityHub} from "./upgradeLiquidityHub";
 import {main as deployUSDCPoolAave} from "./deployUSDCPoolAave";
+import {main as deployUSDCPoolAaveLongTerm} from "./deployUSDCPoolAaveLongTerm";
 import {main as deployStandaloneRepayer} from "./deployStandaloneRepayer";
 
 async function main() {
@@ -32,6 +33,8 @@ async function main() {
   await upgradeLiquidityHub();
   console.log("Test deployUSDCPoolAave.")
   await deployUSDCPoolAave();
+  console.log("Test deployUSDCPoolAaveLongTerm.")
+  await deployUSDCPoolAaveLongTerm();
   console.log("Test deployStandaloneRepayer.")
   process.env.STANDALONE_REPAYER_ENV = "SparkStage";
   await deployStandaloneRepayer();

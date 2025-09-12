@@ -121,7 +121,7 @@ contract LiquidityPoolAave is LiquidityPool {
         emit HealthFactorSet(oldHealthFactor, minHealthFactor_);
     }
 
-    function _checkTokenLTV(uint256 totalCollateralBase, address borrowToken) private view {
+    function _checkTokenLTV(uint256 totalCollateralBase, address borrowToken) internal view {
         uint256 ltv = borrowTokenLTV[borrowToken];
         if (ltv == 0) ltv = defaultLTV;
         if (ltv >= MULTIPLIER) {
@@ -151,7 +151,9 @@ contract LiquidityPoolAave is LiquidityPool {
         emit SuppliedToAave(amount);
     }
 
-    function _borrowLogic(address borrowToken, uint256 amount, address /*target*/) internal override {
+    function _borrowLogic(address borrowToken, uint256 amount, bytes memory context)
+        internal virtual override returns (bytes memory)
+    {
         AAVE_POOL.borrow(
             borrowToken,
             amount,
@@ -159,15 +161,17 @@ contract LiquidityPoolAave is LiquidityPool {
             NO_REFERRAL,
             address(this)
         );
+        return context;
     }
 
-    function _afterBorrowLogic(address borrowToken, address /*target*/) internal view override {
+    function _afterBorrowLogic(address borrowToken, bytes memory /*context*/) internal virtual view override {
         uint256 totalCollateralBase = _checkHealthFactor();
-
         _checkTokenLTV(totalCollateralBase, borrowToken);
     }
 
-    function _afterBorrowManyLogic(address[] memory borrowTokens, address /*target*/) internal view override {
+    function _afterBorrowManyLogic(address[] memory borrowTokens, bytes memory /*context*/)
+        internal virtual view override
+    {
         uint256 totalCollateralBase = _checkHealthFactor();
 
         uint256 length = borrowTokens.length;

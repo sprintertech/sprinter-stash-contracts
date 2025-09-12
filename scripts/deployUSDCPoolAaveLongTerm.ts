@@ -4,8 +4,8 @@ import hre from "hardhat";
 import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, percentsToBps} from "./helpers";
 import {resolveProxyXAddress, toBytes32} from "../test/helpers";
 import {isSet, assert, assertAddress, DEFAULT_ADMIN_ROLE, sameAddress} from "./common";
-import {LiquidityPoolAave} from "../typechain-types";
-import {Network, NetworkConfig, LiquidityPoolAaveUSDCVersions} from "../network.config";
+import {LiquidityPoolAaveLongTerm} from "../typechain-types";
+import {Network, NetworkConfig, LiquidityPoolAaveUSDCLongTermVersions} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -18,17 +18,17 @@ export async function main() {
   const verifier = getVerifier(process.env.DEPLOY_ID);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
 
-  let id = LiquidityPoolAaveUSDCVersions.at(-1);
+  let id = LiquidityPoolAaveUSDCLongTermVersions.at(-1);
 
   let network: Network;
   let config: NetworkConfig;
-  console.log("Deploying Aave USDC Pool");
+  console.log("Deploying Aave USDC Long Term Pool");
   ({network, config} = await getNetworkConfig());
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
     id += "-DeployTest";
   }
-  assert(config.AavePool, "Aave pool is not configured");
+  assert(config.AavePoolLongTerm, "Aave pool long term is not configured");
   assertAddress(config.Admin, "Admin must be an address");
   assertAddress(config.WithdrawProfit, "WithdrawProfit must be an address");
   assertAddress(config.Pauser, "Pauser must be an address");
@@ -39,16 +39,16 @@ export async function main() {
   const rebalancer = await resolveProxyXAddress("Rebalancer");
   console.log(`Rebalancer: ${rebalancer}`);
 
-  console.log("Deploying Aave USDC Liquidity Pool");
-  const minHealthFactor = BigInt(config.AavePool.MinHealthFactor) * 10000n / 100n;
-  const defaultLTV = BigInt(config.AavePool.DefaultLTV) * 10000n / 100n;
-  const aavePool = (await verifier.deployX(
-    "LiquidityPoolAave",
+  console.log("Deploying Aave USDC Long Term Liquidity Pool");
+  const minHealthFactor = BigInt(config.AavePoolLongTerm.MinHealthFactor) * 10000n / 100n;
+  const defaultLTV = BigInt(config.AavePoolLongTerm.DefaultLTV) * 10000n / 100n;
+  const aavePoolLongTerm = (await verifier.deployX(
+    "LiquidityPoolAaveLongTerm",
     deployer,
     {},
     [
       config.USDC,
-      config.AavePool.AaveAddressesProvider,
+      config.AavePoolLongTerm.AaveAddressesProvider,
       deployer,
       config.MpcAddress,
       minHealthFactor,
@@ -56,25 +56,25 @@ export async function main() {
       config.WrappedNativeToken,
     ],
     id,
-  )) as LiquidityPoolAave;
+  )) as LiquidityPoolAaveLongTerm;
 
-  if (config.AavePool.TokenLTVs) {
-    const tokens = Object.keys(config.AavePool.TokenLTVs);
-    const LTVs = Object.values(config.AavePool.TokenLTVs);
-    await aavePool.setBorrowTokenLTVs(
+  if (config.AavePoolLongTerm.TokenLTVs) {
+    const tokens = Object.keys(config.AavePoolLongTerm.TokenLTVs);
+    const LTVs = Object.values(config.AavePoolLongTerm.TokenLTVs);
+    await aavePoolLongTerm.setBorrowTokenLTVs(
       tokens,
       percentsToBps(LTVs),
     );
   }
-  console.log(`${id}: ${aavePool.target}`);
+  console.log(`${id}: ${aavePoolLongTerm.target}`);
 
-  await aavePool.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
-  await aavePool.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
-  await aavePool.grantRole(PAUSER_ROLE, config.Pauser);
+  await aavePoolLongTerm.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
+  await aavePoolLongTerm.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
+  await aavePoolLongTerm.grantRole(PAUSER_ROLE, config.Pauser);
 
   if (!sameAddress(deployer.address, config.Admin)) {
-    await aavePool.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-    await aavePool.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    await aavePoolLongTerm.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
+    await aavePoolLongTerm.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
   }
 
   console.log("Access control setup complete.");

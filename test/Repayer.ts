@@ -1338,7 +1338,7 @@ describe("Repayer", function () {
       [true],
       ALLOWED
     );
-    const amount = 40000n * USDC_DEC;
+    const amount = 400n * USDC_DEC;
     const minAmount = amount * 998n / 1000n;
     const extraData = AbiCoder.defaultAbiCoder().encode(
       ["address", "uint256"], [stargatePoolUsdcAddress, minAmount]

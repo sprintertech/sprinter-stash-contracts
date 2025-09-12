@@ -162,8 +162,9 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
     ) external override whenNotPaused() whenBorrowNotPaused() {
         // - Validate MPC signature
         _validateMPCSignatureWithCaller(borrowToken, amount, target, targetCallData, nonce, deadline, signature);
-        (uint256 nativeValue, address actualBorrowToken) = _borrow(borrowToken, amount, target, NATIVE_ALLOWED);
-        _afterBorrowLogic(actualBorrowToken, target);
+        (uint256 nativeValue, address actualBorrowToken, bytes memory context) =
+            _borrow(borrowToken, amount, target, NATIVE_ALLOWED, "");
+        _afterBorrowLogic(actualBorrowToken, context);
         _unwrapNative(nativeValue);
         _finalizeBorrow(target, nativeValue, targetCallData);
     }
@@ -181,10 +182,10 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
     ) external override whenNotPaused() whenBorrowNotPaused() {
         // - Validate MPC signature
         _validateMPCSignatureWithCaller(borrowTokens, amounts, target, targetCallData, nonce, deadline, signature);
-        (uint256 nativeValue, address[] memory actualBorrowTokens) = _borrowMany(
+        (uint256 nativeValue, address[] memory actualBorrowTokens, bytes memory context) = _borrowMany(
             borrowTokens, amounts, target, NATIVE_ALLOWED
         );
-        _afterBorrowManyLogic(actualBorrowTokens, target);
+        _afterBorrowManyLogic(actualBorrowTokens, context);
         _unwrapNative(nativeValue);
         _finalizeBorrow(target, nativeValue, targetCallData);
     }
@@ -228,8 +229,8 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
     ) external override whenNotPaused() whenBorrowNotPaused() {
         _validateMPCSignatureWithCaller(borrowToken, amount, target, targetCallData, nonce, deadline, signature);
         // Native borrowing is denied because swap() is not payable.
-        _borrow(borrowToken, amount, _msgSender(), NATIVE_DENIED);
-        _afterBorrowLogic(borrowToken, _msgSender());
+        (,, bytes memory context) = _borrow(borrowToken, amount, _msgSender(), NATIVE_DENIED, "");
+        _afterBorrowLogic(borrowToken, context);
         uint256 nativeBalanceBefore = _prepareNativeFill(swap.fillToken);
         // Call the swap function on caller
         IBorrower(_msgSender()).swap(borrowToken, amount, swap.fillToken, swap.fillAmount, swap.swapData);
@@ -253,8 +254,8 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
     ) external override whenNotPaused()  whenBorrowNotPaused() {
         _validateMPCSignatureWithCaller(borrowTokens, amounts, target, targetCallData, nonce, deadline, signature);
         // Native borrowing is denied because swapMany() is not payable.
-        _borrowMany(borrowTokens, amounts, _msgSender(), NATIVE_DENIED);
-        _afterBorrowManyLogic(borrowTokens, _msgSender());
+        (,, bytes memory context) = _borrowMany(borrowTokens, amounts, _msgSender(), NATIVE_DENIED);
+        _afterBorrowManyLogic(borrowTokens, context);
         uint256 nativeBalanceBefore = _prepareNativeFill(swap.fillToken);
         // Call the swap function on caller
         IBorrower(_msgSender()).swapMany(borrowTokens, amounts, swap.fillToken, swap.fillAmount, swap.swapData);
@@ -353,16 +354,17 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         uint256[] calldata amounts,
         address target,
         bool nativeAllowed
-    ) private returns (uint256, address[] memory) {
+    ) private returns (uint256, address[] memory, bytes memory context) {
         uint256 totalNativeValue = 0;
         address[] memory actualBorrowTokens = new address[](tokens.length);
         uint256 length = HelperLib.validatePositiveLength(tokens.length, amounts.length);
         for (uint256 i = 0; i < length; ++i) {
             uint256 nativeValue = 0;
-            (nativeValue, actualBorrowTokens[i]) = _borrow(tokens[i], amounts[i], target, nativeAllowed);
+            (nativeValue, actualBorrowTokens[i], context) =
+                _borrow(tokens[i], amounts[i], target, nativeAllowed, context);
             totalNativeValue += nativeValue;
         }
-        return (totalNativeValue, actualBorrowTokens);
+        return (totalNativeValue, actualBorrowTokens, context);
     }
 
     function _finalizeSwap(
@@ -445,19 +447,20 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         address borrowToken,
         uint256 amount,
         address target,
-        bool nativeAllowed
-    ) private returns (uint256 nativeAmount, address actualBorrowToken) {
+        bool nativeAllowed,
+        bytes memory context
+    ) private returns (uint256 nativeAmount, address actualBorrowToken, bytes memory) {
         bool isNative = borrowToken == address(NATIVE_TOKEN);
         actualBorrowToken = isNative ? address(WRAPPED_NATIVE_TOKEN) : borrowToken;
         _wrapIfNative(IERC20(actualBorrowToken));
-        _borrowLogic(actualBorrowToken, amount, target);
+        context = _borrowLogic(actualBorrowToken, amount, context);
         if (isNative) {
             require(nativeAllowed, NativeBorrowDenied());
             nativeAmount = amount;
         } else {
             IERC20(borrowToken).forceApprove(target, amount);
         }
-        return (nativeAmount, actualBorrowToken);
+        return (nativeAmount, actualBorrowToken, context);
     }
 
     function _wrapIfNative(IERC20 token) internal {
@@ -470,15 +473,18 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         return;
     }
 
-    function _borrowLogic(address borrowToken, uint256 /*amount*/, address /*target*/) internal virtual {
+    function _borrowLogic(address borrowToken, uint256 /*amount*/, bytes memory context)
+        internal virtual returns (bytes memory)
+    {
         require(borrowToken == address(ASSETS), InvalidBorrowToken());
+        return context;
     }
 
-    function _afterBorrowLogic(address /*borrowToken*/, address /*target*/) internal virtual {
+    function _afterBorrowLogic(address /*borrowToken*/, bytes memory /*context*/) internal virtual {
         return;
     }
 
-    function _afterBorrowManyLogic(address[] memory /*borrowTokens*/, address /*target*/) internal virtual {
+    function _afterBorrowManyLogic(address[] memory /*borrowTokens*/, bytes memory /*context*/) internal virtual {
         return;
     }
 

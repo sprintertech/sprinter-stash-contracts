@@ -23,8 +23,10 @@ contract LiquidityPoolStablecoin is LiquidityPool {
         return;
     }
 
-    function _borrowLogic(address /*borrowToken*/, uint256 /*amount*/, address /*target*/) internal pure override {
-        return;
+    function _borrowLogic(address /*borrowToken*/, uint256 /*amount*/, bytes memory context)
+        internal pure override returns (bytes memory)
+    {
+        return context;
     }
 
     function _withdrawProfitLogic(IERC20 token) internal view override returns (uint256) {

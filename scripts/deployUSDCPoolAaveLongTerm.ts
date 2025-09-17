@@ -13,6 +13,8 @@ export async function main() {
   const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
   const WITHDRAW_PROFIT_ROLE = toBytes32("WITHDRAW_PROFIT_ROLE");
   const PAUSER_ROLE = toBytes32("PAUSER_ROLE");
+  const BORROW_LONG_TERM_ROLE = toBytes32("BORROW_LONG_TERM_ROLE");
+  const REPAYER_ROLE = toBytes32("REPAYER_ROLE");
 
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
   const verifier = getVerifier(process.env.DEPLOY_ID);
@@ -35,6 +37,8 @@ export async function main() {
   assertAddress(config.USDC, "USDC must be an address");
   assertAddress(config.MpcAddress, "MpcAddress must be an address");
   assertAddress(config.WrappedNativeToken, "WrappedNativeToken must be an address");
+  assertAddress(config.AavePoolLongTerm.BorrowLongTermAdmin, "BorrowLongTermAdmin must be an address");
+  assertAddress(config.AavePoolLongTerm.RepayCaller, "RepayCaller must be an address");
 
   const rebalancer = await resolveProxyXAddress("Rebalancer");
   console.log(`Rebalancer: ${rebalancer}`);
@@ -71,6 +75,8 @@ export async function main() {
   await aavePoolLongTerm.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
   await aavePoolLongTerm.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
   await aavePoolLongTerm.grantRole(PAUSER_ROLE, config.Pauser);
+  await aavePoolLongTerm.grantRole(BORROW_LONG_TERM_ROLE, config.AavePoolLongTerm.BorrowLongTermAdmin);
+  await aavePoolLongTerm.grantRole(REPAYER_ROLE, config.AavePoolLongTerm.RepayCaller);
 
   if (!sameAddress(deployer.address, config.Admin)) {
     await aavePoolLongTerm.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);

@@ -4,14 +4,19 @@ pragma solidity 0.8.28;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {LiquidityPoolAave} from "./LiquidityPoolAave.sol";
 import {AaveDataTypes} from "./interfaces/IAavePool.sol";
+import {ILiquidityPoolLongTerm} from "./interfaces/ILiquidityPoolLongTerm.sol";
 
 /// @title Same as LiquidityPoolAave, but when borrowing the contract will first try to fulfill
 /// the request with own funds, in which case health factor and ltv are not checked.
 /// If there are not enough funds, the contract will borrow from Aave.
 /// @author Oleksii Matiiasevych <oleksii@sprinter.tech>
-contract LiquidityPoolAaveLongTerm is LiquidityPoolAave {
+contract LiquidityPoolAaveLongTerm is LiquidityPoolAave, ILiquidityPoolLongTerm {
     bytes32 constant public REPAYER_ROLE = "REPAYER_ROLE";
     bytes32 constant public BORROW_LONG_TERM_ROLE = "BORROW_LONG_TERM_ROLE";
+
+    error CollateralLongTermBorrowNotAllowed();
+
+    event BorrowLongTerm(address token, uint256 amount);
 
     constructor(
         address liquidityToken,
@@ -37,7 +42,7 @@ contract LiquidityPoolAaveLongTerm is LiquidityPoolAave {
     }
 
     /// @notice Could be used to increase health factor without full repayment.
-    function repayPartial(address[] calldata borrowTokens, uint256[] calldata amounts) external {
+    function repayPartial(address[] calldata borrowTokens, uint256[] calldata amounts) external override {
         _repayAccessCheck();
         require(borrowTokens.length == amounts.length, InvalidLength());
         bool success;
@@ -49,10 +54,13 @@ contract LiquidityPoolAaveLongTerm is LiquidityPoolAave {
 
     /// @notice Prepare funds on the contract for future borrow() calls.
     function borrowLongTerm(address borrowToken, uint256 amount)
-        external whenNotPaused() onlyRole(BORROW_LONG_TERM_ROLE)
+        external override whenNotPaused() onlyRole(BORROW_LONG_TERM_ROLE)
     {
+        require(borrowToken != address(ASSETS), CollateralLongTermBorrowNotAllowed());
         bytes memory context = super._borrowLogic(borrowToken, amount, "");
         super._afterBorrowLogic(borrowToken, context);
+
+        emit BorrowLongTerm(borrowToken, amount);
     }
     
     /// @dev borrowMany() might fail if trying to borrow duplicate tokens.

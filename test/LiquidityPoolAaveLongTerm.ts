@@ -23,10 +23,11 @@ function expectAlmostEqual(a: bigint, b: bigint, maxDiff: bigint = 2n): void {
   expect(absDiff).to.be.lessThanOrEqual(maxDiff, `Expected ${a} to almost equal ${b}`);
 }
 
-describe.only("LiquidityPoolAaveLongTerm", function () {
+describe("LiquidityPoolAaveLongTerm", function () {
   const deployAll = async () => {
     const [
-      deployer, admin, user, user2, mpc_signer, liquidityAdmin, withdrawProfit, pauser
+      deployer, admin, user, user2, mpc_signer, liquidityAdmin, withdrawProfit, pauser,
+      borrowAdmin,
     ] = await hre.ethers.getSigners();
     await setCode(user2.address, "0x00");
 
@@ -117,13 +118,14 @@ describe.only("LiquidityPoolAaveLongTerm", function () {
     await liquidityPool.connect(admin).grantRole(REPAYER_ROLE, user);
 
     const BORROW_LONG_TERM_ROLE = encodeBytes32String("BORROW_LONG_TERM_ROLE");
+    await liquidityPool.connect(admin).grantRole(BORROW_LONG_TERM_ROLE, borrowAdmin);
 
     return {
       deployer, admin, user, user2, mpc_signer, usdc, usdcOwner, gho, ghoOwner, eurc, eurcOwner,
       liquidityPool, mockTarget, mockBorrowSwap, USDC_DEC, GHO_DEC, EURC_DEC, AAVE_POOL_PROVIDER,
       healthFactor, defaultLtv, aavePool, aToken, ghoDebtToken, eurcDebtToken, usdcDebtToken,
       nonSupportedToken, nonSupportedTokenOwner, liquidityAdmin, withdrawProfit, pauser, weth,
-      wethOwner, WETH_DEC, wethDebtToken, REPAYER_ROLE, BORROW_LONG_TERM_ROLE,
+      wethOwner, WETH_DEC, wethDebtToken, REPAYER_ROLE, BORROW_LONG_TERM_ROLE, borrowAdmin,
     };
   };
 
@@ -3655,7 +3657,7 @@ describe.only("LiquidityPoolAaveLongTerm", function () {
       expect(await eurc.balanceOf(user)).to.eq(amountEURC);
     });
 
-    it.only("Should withdraw profit if the token balance is greater than debt", async function () {
+    it("Should withdraw profit if the token balance is greater than debt", async function () {
       const {
         liquidityPool, usdc, usdcOwner, USDC_DEC, gho, GHO_DEC, mpc_signer,
         liquidityAdmin, withdrawProfit, user, user2, ghoDebtToken, eurc, ghoOwner,
@@ -4184,6 +4186,207 @@ describe.only("LiquidityPoolAaveLongTerm", function () {
       const {liquidityPool, admin} = await loadFixture(deployAll);
       await expect(liquidityPool.connect(admin).pause())
         .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
+    });
+
+    it("Should borrow a token long term", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, gho, GHO_DEC, usdcOwner, liquidityAdmin, borrowAdmin
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
+        .to.emit(liquidityPool, "SuppliedToAave");
+
+      const amountToBorrow = 2n * GHO_DEC;
+      await liquidityPool.connect(borrowAdmin).borrowLongTerm(gho, amountToBorrow);
+      expect(await gho.balanceOf(liquidityPool)).to.eq(amountToBorrow);
+    });
+
+    it("Should borrow a wrapped native token long term", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, weth, WETH_DEC, usdcOwner, liquidityAdmin, borrowAdmin
+      } = await loadFixture(deployAll);
+      const amountCollateral = 100000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
+        .to.emit(liquidityPool, "SuppliedToAave");
+
+      const amountToBorrow = 1n * WETH_DEC;
+      await liquidityPool.connect(borrowAdmin).borrowLongTerm(weth, amountToBorrow);
+      expect(await weth.balanceOf(liquidityPool)).to.eq(amountToBorrow);
+    });
+
+    it("Should borrow many tokens long term", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, gho, GHO_DEC, weth, WETH_DEC, usdcOwner, liquidityAdmin, borrowAdmin
+      } = await loadFixture(deployAll);
+      const amountCollateral = 100000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
+        .to.emit(liquidityPool, "SuppliedToAave");
+
+      const amountToBorrow = 2n * GHO_DEC;
+      const amountToBorrow2 = 1n * WETH_DEC;
+      await liquidityPool.connect(borrowAdmin).borrowLongTerm(gho, amountToBorrow);
+      await liquidityPool.connect(borrowAdmin).borrowLongTerm(weth, amountToBorrow2);
+      expect(await gho.balanceOf(liquidityPool)).to.eq(amountToBorrow);
+      expect(await weth.balanceOf(liquidityPool)).to.eq(amountToBorrow2);
+    });
+
+    it("Should borrow a token long term many times", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, gho, GHO_DEC, usdcOwner, liquidityAdmin, borrowAdmin
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
+        .to.emit(liquidityPool, "SuppliedToAave");
+
+      const amountToBorrow = 2n * GHO_DEC;
+      const amountToBorrow2 = 3n * GHO_DEC;
+      await liquidityPool.connect(borrowAdmin).borrowLongTerm(gho, amountToBorrow);
+      await liquidityPool.connect(borrowAdmin).borrowLongTerm(gho, amountToBorrow2);
+      expect(await gho.balanceOf(liquidityPool)).to.eq(amountToBorrow + amountToBorrow2);
+    });
+
+    it("Should borrow a token long term if borrowing is paused", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, gho, GHO_DEC, usdcOwner, liquidityAdmin, borrowAdmin, withdrawProfit,
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
+        .to.emit(liquidityPool, "SuppliedToAave");
+
+      await liquidityPool.connect(withdrawProfit).pauseBorrow();
+
+      const amountToBorrow = 2n * GHO_DEC;
+      await liquidityPool.connect(borrowAdmin).borrowLongTerm(gho, amountToBorrow);
+      expect(await gho.balanceOf(liquidityPool)).to.eq(amountToBorrow);
+    });
+
+    it("Should NOT borrow a native token long term", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, usdcOwner, liquidityAdmin, borrowAdmin,
+      } = await loadFixture(deployAll);
+      const amountCollateral = 100000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
+        .to.emit(liquidityPool, "SuppliedToAave");
+
+      const amountToBorrow = 1n * ETH;
+      await expect(liquidityPool.connect(borrowAdmin).borrowLongTerm(NATIVE_TOKEN, amountToBorrow))
+        .to.be.reverted;
+    });
+
+    it("Should NOT borrow a collateral token long term", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, usdcOwner, liquidityAdmin, borrowAdmin,
+      } = await loadFixture(deployAll);
+      const amountCollateral = 100000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
+        .to.emit(liquidityPool, "SuppliedToAave");
+
+      const amountToBorrow = 1n * USDC_DEC;
+      await expect(liquidityPool.connect(borrowAdmin).borrowLongTerm(usdc, amountToBorrow))
+        .to.be.revertedWithCustomError(liquidityPool, "CollateralLongTermBorrowNotAllowed()");
+    });
+
+    it("Should NOT borrow a token long term if the contract is paused", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, usdcOwner, liquidityAdmin, borrowAdmin, pauser, GHO_DEC, gho,
+      } = await loadFixture(deployAll);
+      const amountCollateral = 100000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
+        .to.emit(liquidityPool, "SuppliedToAave");
+
+      await liquidityPool.connect(pauser).pause();
+
+      const amountToBorrow = 1n * GHO_DEC;
+      await expect(liquidityPool.connect(borrowAdmin).borrowLongTerm(gho, amountToBorrow))
+        .to.be.revertedWithCustomError(liquidityPool, "EnforcedPause()");
+    });
+
+    it("Should NOT borrow a token long term without borrow long term role", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, usdcOwner, liquidityAdmin, user, gho, GHO_DEC,
+      } = await loadFixture(deployAll);
+      const amountCollateral = 100000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
+        .to.emit(liquidityPool, "SuppliedToAave");
+
+      const amountToBorrow = 1n * GHO_DEC;
+      await expect(liquidityPool.connect(user).borrowLongTerm(gho, amountToBorrow))
+        .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
+    });
+
+    it("Should NOT borrow a token long term if token ltv is exceeded", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, usdcOwner, liquidityAdmin, borrowAdmin, EURC_DEC, eurc,
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
+        .to.emit(liquidityPool, "SuppliedToAave");
+
+      const amountToBorrow = 100n * EURC_DEC;
+      await expect(liquidityPool.connect(borrowAdmin).borrowLongTerm(eurc, amountToBorrow))
+        .to.be.revertedWithCustomError(liquidityPool, "TokenLtvExceeded()");
+    });
+
+    it("Should NOT borrow a token long term if token ltv is exceeded after other borrows", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, usdcOwner, liquidityAdmin, borrowAdmin, EURC_DEC, eurc,
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
+        .to.emit(liquidityPool, "SuppliedToAave");
+
+      const amountToBorrow = 1n * EURC_DEC;
+      const amountToBorrow2 = 99n * EURC_DEC;
+      await liquidityPool.connect(borrowAdmin).borrowLongTerm(eurc, amountToBorrow);
+      await expect(liquidityPool.connect(borrowAdmin).borrowLongTerm(eurc, amountToBorrow2))
+        .to.be.revertedWithCustomError(liquidityPool, "TokenLtvExceeded()");
+    });
+
+    it("Should NOT borrow a token long term if health factor is too low", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, usdcOwner, liquidityAdmin, borrowAdmin, EURC_DEC, eurc, admin,
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
+        .to.emit(liquidityPool, "SuppliedToAave");
+
+      await expect(liquidityPool.connect(admin).setMinHealthFactor(5000n * 10000n / 100n))
+        .to.emit(liquidityPool, "HealthFactorSet");
+
+      const amountToBorrow = 20n * EURC_DEC;
+      await expect(liquidityPool.connect(borrowAdmin).borrowLongTerm(eurc, amountToBorrow))
+        .to.be.revertedWithCustomError(liquidityPool, "HealthFactorTooLow()");
+    });
+
+    it("Should NOT borrow a token long term if health factor is too low after other borrows", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, usdcOwner, liquidityAdmin, borrowAdmin, EURC_DEC, eurc, admin,
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
+        .to.emit(liquidityPool, "SuppliedToAave");
+
+      await expect(liquidityPool.connect(admin).setMinHealthFactor(5000n * 10000n / 100n))
+        .to.emit(liquidityPool, "HealthFactorSet");
+
+      const amountToBorrow = 1n * EURC_DEC;
+      const amountToBorrow2 = 19n * EURC_DEC;
+      await liquidityPool.connect(borrowAdmin).borrowLongTerm(eurc, amountToBorrow);
+      await expect(liquidityPool.connect(borrowAdmin).borrowLongTerm(eurc, amountToBorrow2))
+        .to.be.revertedWithCustomError(liquidityPool, "HealthFactorTooLow()");
     });
   });
 });

@@ -509,6 +509,16 @@ export const networkConfig: NetworksConfig = {
         },
       },
       USDCPool: true,
+      AavePoolLongTerm: {
+        AaveAddressesProvider: AAVEPools.AaveV3Arbitrum.POOL_ADDRESSES_PROVIDER,
+        MinHealthFactor: 300,
+        DefaultLTV: 0,
+        TokenLTVs: {
+          "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f": 50, // WBTC
+        },
+        BorrowLongTermAdmin: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+        RepayCaller: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      },
     },
   },
   BASE: {

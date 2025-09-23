@@ -81,6 +81,11 @@ interface AavePoolConfig {
   };
 };
 
+interface AavePoolLongTermConfig extends AavePoolConfig {
+  BorrowLongTermAdmin: string;
+  RepayCaller: string;
+};
+
 // Liquidity mining tiers.
 // period is in seconds.
 // multiplier will be divided by 1000,000,000. So 1750000000 will result in 1.75x.
@@ -119,7 +124,7 @@ export interface NetworkConfig {
   MpcAddress: string;
   Hub?: HubConfig;
   AavePool?: AavePoolConfig;
-  AavePoolLongTerm?: AavePoolConfig;
+  AavePoolLongTerm?: AavePoolLongTermConfig;
   USDCPool?: boolean;
   USDCStablecoinPool?: boolean;
   Stage?: NetworkConfig;

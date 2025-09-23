@@ -75,10 +75,11 @@ contract LiquidityPoolAave is LiquidityPool {
     }
 
     function repay(address[] calldata borrowTokens) external override {
+        _repayAccessCheck();
         // Repay token to aave
         bool success;
         for (uint256 i = 0; i < borrowTokens.length; i++) {
-            success = _repay(borrowTokens[i]) || success;
+            success = _repay(borrowTokens[i], type(uint256).max) || success;
         }
         require(success, NothingToRepay());
     }
@@ -187,7 +188,7 @@ contract LiquidityPoolAave is LiquidityPool {
         emit WithdrawnFromAave(to, amount);
     }
 
-    function _withdrawProfitLogic(IERC20 token) internal override returns (uint256) {
+    function _withdrawProfitLogic(IERC20 token) internal virtual override returns (uint256) {
         // Check that not aToken
         require(token != ATOKEN, CannotWithdrawAToken());
         // Check that the token doesn't have debt
@@ -208,7 +209,7 @@ contract LiquidityPoolAave is LiquidityPool {
         return totalBalance;
     }
 
-    function _repay(address borrowToken)
+    function _repay(address borrowToken, uint256 maxRepayAmount)
         internal
         returns(bool success)
     {
@@ -219,10 +220,12 @@ contract LiquidityPoolAave is LiquidityPool {
         if (totalBorrowed == 0) return false;
         uint256 borrowTokenBalance = IERC20(borrowToken).balanceOf(address(this));
         if (borrowTokenBalance == 0) return false;
-        IERC20(borrowToken).forceApprove(address(AAVE_POOL), Math.min(borrowTokenBalance, totalBorrowed));
+        uint256 repayAmount = Math.min(Math.min(borrowTokenBalance, maxRepayAmount), totalBorrowed);
+        if (repayAmount == 0) return false;
+        IERC20(borrowToken).forceApprove(address(AAVE_POOL), repayAmount);
         uint256 repaidAmount = AAVE_POOL.repay(
             borrowToken,
-            borrowTokenBalance,
+            repayAmount,
             2,
             address(this)
         );
@@ -285,7 +288,7 @@ contract LiquidityPoolAave is LiquidityPool {
         return totalAvailableBorrowsBase;
     }
 
-    function _balance(IERC20 token) internal view override returns (uint256) {
+    function _balance(IERC20 token) internal view virtual override returns (uint256) {
         address reserveAToken = AAVE_POOL.getReserveAToken(address(token));
         if (reserveAToken == address(0)) {
             return 0;
@@ -303,5 +306,10 @@ contract LiquidityPoolAave is LiquidityPool {
         uint256 availableTokenBorrowBase = Math.min(maxBorrowsByMinHealthFactor, maxBorrowByTokenLTV);
 
         return Math.min(availableTokenBorrowBase * tokenUnit / tokenPrice, maxBorrowByAaveReserves);
+    }
+
+    function _repayAccessCheck() internal view virtual {
+        // Public access.
+        return;
     }
 }

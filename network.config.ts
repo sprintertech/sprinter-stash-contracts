@@ -511,7 +511,7 @@ export const networkConfig: NetworksConfig = {
       USDCPool: true,
       AavePoolLongTerm: {
         AaveAddressesProvider: AAVEPools.AaveV3Arbitrum.POOL_ADDRESSES_PROVIDER,
-        MinHealthFactor: 300,
+        MinHealthFactor: 150,
         DefaultLTV: 0,
         TokenLTVs: {
           "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f": 50, // WBTC

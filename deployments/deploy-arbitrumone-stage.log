@@ -67,3 +67,10 @@ RepayerRoutes:
 │ 7       │ '0xa21007B5BC5E2B488063752d1BE43C0f3f376743' │ 'OP_MAINNET'   │ 'STARGATE'  │ true              │
 │ 8       │ '0xa21007B5BC5E2B488063752d1BE43C0f3f376743' │ 'OP_MAINNET'   │ 'EVERCLEAR' │ true              │
 └─────────┴──────────────────────────────────────────────┴────────────────┴─────────────┴───────────────────┘
+
+Deployment ID: MVP
+Deploying Aave USDC Long Term Pool
+Using config for: stage, ARBITRUM_ONE
+Rebalancer: 0x34Df9cD75fA0b4d8fF300AeDf7591f79dFdd61C9
+Deploying Aave USDC Long Term Liquidity Pool
+LiquidityPoolAaveUSDCLongTerm: 0xd1A7cC673D4cE966AD31FcD8Daccf1C2B5969dA4

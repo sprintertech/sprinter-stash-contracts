@@ -327,6 +327,9 @@ export const networkConfig: NetworksConfig = {
           [Network.BASE]: [Provider.CCTP],
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
         },
+        [LiquidityPoolAaveUSDCLongTerm]: {
+          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+        },
       },
       RepayerRoutes: {
         [LiquidityPoolAaveUSDC]: {
@@ -341,6 +344,12 @@ export const networkConfig: NetworksConfig = {
           Domains: {
             [Network.ARBITRUM_ONE]: [Provider.CCTP],
             [Network.BASE]: [Provider.CCTP],
+          },
+        },
+        [LiquidityPoolAaveUSDCLongTerm]: {
+          SupportsAllTokens: true,
+          Domains: {
+            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
           },
         },
       },
@@ -509,6 +518,16 @@ export const networkConfig: NetworksConfig = {
         },
       },
       USDCPool: true,
+      AavePoolLongTerm: {
+        AaveAddressesProvider: AAVEPools.AaveV3Arbitrum.POOL_ADDRESSES_PROVIDER,
+        MinHealthFactor: 150,
+        DefaultLTV: 0,
+        TokenLTVs: {
+          "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f": 100, // WBTC
+        },
+        BorrowLongTermAdmin: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+        RepayCaller: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      },
     },
   },
   BASE: {
@@ -632,6 +651,9 @@ export const networkConfig: NetworksConfig = {
           [Network.OP_MAINNET]: [Provider.CCTP],
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
         },
+        [LiquidityPoolAaveUSDCLongTerm]: {
+          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+        },
       },
       RepayerRoutes: {
         [LiquidityPoolAaveUSDC]: {
@@ -646,6 +668,12 @@ export const networkConfig: NetworksConfig = {
           Domains: {
             [Network.OP_MAINNET]: [Provider.CCTP],
             [Network.ARBITRUM_ONE]: [Provider.CCTP],
+          },
+        },
+        [LiquidityPoolAaveUSDCLongTerm]: {
+          SupportsAllTokens: true,
+          Domains: {
+            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
           },
         },
       },

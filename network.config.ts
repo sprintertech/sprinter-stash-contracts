@@ -327,6 +327,9 @@ export const networkConfig: NetworksConfig = {
           [Network.BASE]: [Provider.CCTP],
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
         },
+        [LiquidityPoolAaveUSDCLongTerm]: {
+          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+        },
       },
       RepayerRoutes: {
         [LiquidityPoolAaveUSDC]: {
@@ -341,6 +344,12 @@ export const networkConfig: NetworksConfig = {
           Domains: {
             [Network.ARBITRUM_ONE]: [Provider.CCTP],
             [Network.BASE]: [Provider.CCTP],
+          },
+        },
+        [LiquidityPoolAaveUSDCLongTerm]: {
+          SupportsAllTokens: true,
+          Domains: {
+            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
           },
         },
       },
@@ -642,6 +651,9 @@ export const networkConfig: NetworksConfig = {
           [Network.OP_MAINNET]: [Provider.CCTP],
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
         },
+        [LiquidityPoolAaveUSDCLongTerm]: {
+          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+        },
       },
       RepayerRoutes: {
         [LiquidityPoolAaveUSDC]: {
@@ -656,6 +668,12 @@ export const networkConfig: NetworksConfig = {
           Domains: {
             [Network.OP_MAINNET]: [Provider.CCTP],
             [Network.ARBITRUM_ONE]: [Provider.CCTP],
+          },
+        },
+        [LiquidityPoolAaveUSDCLongTerm]: {
+          SupportsAllTokens: true,
+          Domains: {
+            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
           },
         },
       },

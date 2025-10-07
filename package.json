@@ -52,6 +52,7 @@
     "upgrade-repayer-base-stage": "DEPLOY_TYPE=STAGE hardhat run ./scripts/upgradeRepayer.ts --network BASE",
     "upgrade-repayer-arbitrumone-stage": "DEPLOY_TYPE=STAGE hardhat run ./scripts/upgradeRepayer.ts --network ARBITRUM_ONE",
     "upgrade-repayer-opmainnet-stage": "DEPLOY_TYPE=STAGE hardhat run ./scripts/upgradeRepayer.ts --network OP_MAINNET",
+    "update-routes": "hardhat update-routes-rebalancer --network ETHEREUM && hardhat update-routes-rebalancer --network BASE && hardhat update-routes-rebalancer --network ARBITRUM_ONE && hardhat update-routes-rebalancer --network OP_MAINNET && hardhat update-routes-rebalancer --network UNICHAIN && hardhat update-routes-repayer --network ETHEREUM && hardhat update-routes-repayer --network BASE && hardhat update-routes-repayer --network ARBITRUM_ONE && hardhat update-routes-repayer --network OP_MAINNET && hardhat update-routes-repayer --network POLYGON_MAINNET && hardhat update-routes-repayer --network UNICHAIN",
     "node": "hardhat node",
     "hardhat": "hardhat",
     "dry:deploy-basesepolia": "DRY_RUN=BASE_SEPOLIA VERIFY=false ts-node --files ./scripts/deploy.ts",

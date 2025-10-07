@@ -783,11 +783,11 @@ export const networkConfig: NetworksConfig = {
         }
       },
     },
-    AavePool: {
-      AaveAddressesProvider: AAVEPools.AaveV3Polygon.POOL_ADDRESSES_PROVIDER,
-      MinHealthFactor: 300,
-      DefaultLTV: 0,
-    },
+    // AavePool: { // Not deployed yet.
+    //   AaveAddressesProvider: AAVEPools.AaveV3Polygon.POOL_ADDRESSES_PROVIDER,
+    //   MinHealthFactor: 300,
+    //   DefaultLTV: 0,
+    // },
   },
   UNICHAIN: {
     ChainId: 130,

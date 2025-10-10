@@ -18,8 +18,7 @@ abstract contract CCTPAdapter is AdapterHelper {
         address cctpTokenMessenger,
         address cctpMessageTransmitter
     ) {
-        require(cctpTokenMessenger != address(0), ZeroAddress());
-        require(cctpMessageTransmitter != address(0), ZeroAddress());
+        // No check for address(0) to allow deployment on chains where CCTV V1 is not available
         CCTP_TOKEN_MESSENGER = ICCTPTokenMessenger(cctpTokenMessenger);
         CCTP_MESSAGE_TRANSMITTER = ICCTPMessageTransmitter(cctpMessageTransmitter);
     }

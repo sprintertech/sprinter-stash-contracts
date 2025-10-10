@@ -56,6 +56,13 @@ export async function main() {
   assert(isAddress(config.MpcAddress), "MpcAddress must be an address");
   assert(isAddress(config.WrappedNativeToken), "WrappedNativeToken must be an address");
 
+  if (!config.CCTP) {
+    config.CCTP = {
+      TokenMessenger: ZERO_ADDRESS,
+      MessageTransmitter: ZERO_ADDRESS,
+    };
+  }
+
   if (config.Hub) {
     assert(config.Hub.Tiers.length > 0, "Empty liquidity mining tiers configuration.");
     assert(config.Hub.AssetsLimit <= MaxUint256 / 10n ** 12n, "Assets limit is too high");

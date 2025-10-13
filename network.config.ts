@@ -911,7 +911,15 @@ export const networkConfig: NetworksConfig = {
       [LiquidityPoolUSDC]: {
         SupportsAllTokens: false,
         Domains: {
+          [Network.ARBITRUM_ONE]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
           [Network.BASE]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+          [Network.ETHEREUM]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+          [Network.OP_MAINNET]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+        },
+      },
+      [LiquidityPoolUSDCStablecoin]: {
+        SupportsAllTokens: true,
+        Domains: {
           [Network.ETHEREUM]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
         },
       },
@@ -948,7 +956,15 @@ export const networkConfig: NetworksConfig = {
       [LiquidityPoolUSDC]: {
         SupportsAllTokens: false,
         Domains: {
+          [Network.ARBITRUM_ONE]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
           [Network.BASE]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+          [Network.ETHEREUM]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+          [Network.OP_MAINNET]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+        },
+      },
+      [LiquidityPoolUSDCStablecoin]: {
+        SupportsAllTokens: true,
+        Domains: {
           [Network.ETHEREUM]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
         },
       },

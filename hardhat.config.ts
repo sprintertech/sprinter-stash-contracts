@@ -662,6 +662,14 @@ const config: HardhatUserConfig = {
           browserURL: "https://uniscan.xyz"
         },
       },
+      {
+        network: "linea",
+        chainId: networkConfig.LINEA.ChainId,
+        urls: {
+          apiURL: "https://api.etherscan.io/v2/api",
+          browserURL: "https://lineascan.build/"
+        },
+      },
     ],
   },
   warnings: {

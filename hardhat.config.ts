@@ -562,7 +562,7 @@ const config: HardhatUserConfig = {
     },
     [Network.AVALANCHE]: {
       chainId: networkConfig.AVALANCHE.ChainId,
-      url: process.env.AVALANCHE_RPC || "https://avalanche.therpc.io",
+      url: process.env.AVALANCHE_RPC || "https://avalanche-c-chain-rpc.publicnode.com",
       accounts,
     },
     [Network.BASE_SEPOLIA]: {

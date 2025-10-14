@@ -211,6 +211,7 @@ export const networkConfig: NetworksConfig = {
       BorrowLongTermAdmin: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
       RepayCaller: "0x9A5B33bd11329116A55F764c604a5152eE8Ca292",
     },
+    USDCPool: true,
   },
   AVALANCHE: {
     ChainId: 43114,
@@ -262,6 +263,7 @@ export const networkConfig: NetworksConfig = {
       [LiquidityPoolUSDC]: {
         [Network.BASE]: [Provider.CCTP],
         [Network.ARBITRUM_ONE]: [Provider.CCTP],
+        [Network.ETHEREUM]: [Provider.CCTP],
       },
       [LiquidityPoolUSDCStablecoin]: {
         [Network.ETHEREUM]: [Provider.CCTP],
@@ -284,6 +286,7 @@ export const networkConfig: NetworksConfig = {
         Domains: {
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
           [Network.BASE]: [Provider.CCTP],
+          [Network.ETHEREUM]: [Provider.CCTP],
         },
       },
       [LiquidityPoolUSDCStablecoin]: {
@@ -421,6 +424,7 @@ export const networkConfig: NetworksConfig = {
       [LiquidityPoolUSDC]: {
         [Network.BASE]: [Provider.CCTP],
         [Network.OP_MAINNET]: [Provider.CCTP],
+        [Network.ETHEREUM]: [Provider.CCTP],
       },
       [LiquidityPoolUSDCStablecoin]: {
         [Network.ETHEREUM]: [Provider.CCTP],
@@ -443,6 +447,7 @@ export const networkConfig: NetworksConfig = {
         Domains: {
           [Network.OP_MAINNET]: [Provider.CCTP],
           [Network.BASE]: [Provider.CCTP],
+          [Network.ETHEREUM]: [Provider.CCTP],
         },
       },
       [LiquidityPoolUSDCStablecoin]: {
@@ -596,6 +601,7 @@ export const networkConfig: NetworksConfig = {
       [LiquidityPoolUSDC]: {
         [Network.OP_MAINNET]: [Provider.CCTP],
         [Network.ARBITRUM_ONE]: [Provider.CCTP],
+        [Network.ETHEREUM]: [Provider.CCTP],
       },
       [LiquidityPoolUSDCStablecoin]: {
         [Network.ETHEREUM]: [Provider.CCTP],
@@ -618,6 +624,7 @@ export const networkConfig: NetworksConfig = {
         Domains: {
           [Network.OP_MAINNET]: [Provider.CCTP],
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
+          [Network.ETHEREUM]: [Provider.CCTP],
         },
       },
       [LiquidityPoolUSDCStablecoin]: {
@@ -767,6 +774,7 @@ export const networkConfig: NetworksConfig = {
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
           [Network.BASE]: [Provider.CCTP],
           [Network.OP_MAINNET]: [Provider.CCTP],
+          [Network.ETHEREUM]: [Provider.CCTP],
         },
       },
       [LiquidityPoolUSDCStablecoin]: {
@@ -817,6 +825,7 @@ export const networkConfig: NetworksConfig = {
         [Network.OP_MAINNET]: [Provider.CCTP],
         [Network.ARBITRUM_ONE]: [Provider.CCTP],
         [Network.BASE]: [Provider.CCTP],
+        [Network.ETHEREUM]: [Provider.CCTP],
       },
       [LiquidityPoolUSDCStablecoin]: {
         [Network.ETHEREUM]: [Provider.CCTP],
@@ -840,6 +849,7 @@ export const networkConfig: NetworksConfig = {
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
           [Network.BASE]: [Provider.CCTP],
           [Network.OP_MAINNET]: [Provider.CCTP],
+          [Network.ETHEREUM]: [Provider.CCTP],
         },
       },
       [LiquidityPoolUSDCStablecoin]: {

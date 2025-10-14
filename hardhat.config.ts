@@ -560,6 +560,11 @@ const config: HardhatUserConfig = {
     localhost: {
       url: "http://127.0.0.1:8545/",
     },
+    [Network.AVALANCHE]: {
+      chainId: networkConfig.AVALANCHE.ChainId,
+      url: process.env.AVALANCHE_RPC || "https://avalanche.therpc.io",
+      accounts,
+    },
     [Network.BASE_SEPOLIA]: {
       chainId: networkConfig.BASE_SEPOLIA.ChainId,
       url: process.env.BASE_SEPOLIA_RPC || "https://sepolia.base.org",
@@ -608,6 +613,16 @@ const config: HardhatUserConfig = {
     [Network.UNICHAIN]: {
       chainId: networkConfig.UNICHAIN.ChainId,
       url: process.env.UNICHAIN_RPC || "https://mainnet.unichain.org",
+      accounts,
+    },
+    [Network.BSC]: {
+      chainId: networkConfig.BSC.ChainId,
+      url: process.env.BSC_RPC || "https://bsc-mainnet.public.blastapi.io",
+      accounts,
+    },
+    [Network.LINEA]: {
+      chainId: networkConfig.LINEA.ChainId,
+      url: process.env.LINEA_RPC || "https://linea-rpc.publicnode.com",
       accounts,
     },
     hardhat: {

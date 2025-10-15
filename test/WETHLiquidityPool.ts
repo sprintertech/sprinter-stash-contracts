@@ -1,6 +1,5 @@
 import {
-  loadFixture, time, setBalance, setCode,
-  impersonateAccount
+  loadFixture, time, setBalance, setCode
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {expect} from "chai";
 import hre from "hardhat";

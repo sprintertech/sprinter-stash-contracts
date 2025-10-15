@@ -7,13 +7,13 @@ contract MockSignerTrue is ISigner{
     // bytes4(keccak256("isValidSignature(bytes32,bytes)")
     bytes4 constant internal MAGICVALUE = 0x1626ba7e;
 
-    function isValidSignature(bytes32, bytes calldata) external view override returns (bytes4) {
+    function isValidSignature(bytes32, bytes calldata) external pure override returns (bytes4) {
         return MAGICVALUE;
     }
 }
 
 contract MockSignerFalse is ISigner{
-    function isValidSignature(bytes32, bytes calldata) external view override returns (bytes4) {
+    function isValidSignature(bytes32, bytes calldata) external pure override returns (bytes4) {
         return 0xffffffff;
     }
 }

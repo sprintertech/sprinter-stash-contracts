@@ -320,6 +320,7 @@ export async function getHardhatNetworkConfig() {
   config.RebalanceCaller = opsAdmin.address;
   config.RepayerCaller = opsAdmin.address;
   config.MpcAddress = mpc.address;
+  config.SignerAddress = opsAdmin.address;
   config.USDCStablecoinPool = true;
   if (!config.AavePoolLongTerm) {
     if (config.AavePool) {

@@ -54,6 +54,7 @@ export async function main() {
   assert(isAddress(config.RebalanceCaller), "RebalanceCaller must be an address");
   assert(isAddress(config.RepayerCaller), "RepayerCaller must be an address");
   assert(isAddress(config.MpcAddress), "MpcAddress must be an address");
+  assert(isAddress(config.SignerAddress), "SignerAddress must be an address");
   assert(isAddress(config.WrappedNativeToken), "WrappedNativeToken must be an address");
 
   if (config.Hub) {
@@ -129,6 +130,7 @@ export async function main() {
         minHealthFactor,
         defaultLTV,
         config.WrappedNativeToken,
+        config.SignerAddress,
       ],
       id,
     )) as LiquidityPoolAaveLongTerm;
@@ -173,6 +175,7 @@ export async function main() {
         minHealthFactor,
         defaultLTV,
         config.WrappedNativeToken,
+        config.SignerAddress,
       ],
       id,
     )) as LiquidityPoolAave;
@@ -209,7 +212,7 @@ export async function main() {
       "LiquidityPool",
       deployer,
       {},
-      [config.USDC, deployer, config.MpcAddress, config.WrappedNativeToken],
+      [config.USDC, deployer, config.MpcAddress, config.WrappedNativeToken, config.SignerAddress],
       id,
     )) as LiquidityPool;
     console.log(`${id}: ${usdcPool.target}`);
@@ -236,7 +239,7 @@ export async function main() {
       "LiquidityPoolStablecoin",
       deployer,
       {},
-      [config.USDC, deployer, config.MpcAddress, config.WrappedNativeToken],
+      [config.USDC, deployer, config.MpcAddress, config.WrappedNativeToken, config.SignerAddress],
       id,
     )) as LiquidityPool;
     console.log(`${id}: ${usdcStablecoinPool.target}`);
@@ -441,6 +444,7 @@ export async function main() {
   console.log(`LiquidityPool Pauser: ${config.Pauser}`);
   console.log(`MPC Address: ${config.MpcAddress}`);
   console.log(`USDC: ${config.USDC}`);
+  console.log(`Signer Address: ${config.SignerAddress}`);
   console.log(`Rebalancer: ${rebalancer.target}`);
   console.log(`RebalancerProxyAdmin: ${rebalancerAdmin.target}`);
   if (rebalancerRoutes.Pools.length > 0) {

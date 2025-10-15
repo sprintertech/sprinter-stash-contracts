@@ -9,7 +9,7 @@ import {
 import {ZERO_ADDRESS, NATIVE_TOKEN, ETH} from "../scripts/common";
 import {encodeBytes32String, AbiCoder, Interface, Contract, solidityPacked} from "ethers";
 import {
-  MockTarget, MockBorrowSwap, LiquidityPoolStablecoin, CensoredTransferFromMulticall
+  MockTarget, MockBorrowSwap, LiquidityPoolStablecoin, CensoredTransferFromMulticall, MockSignerTrue
 } from "../typechain-types";
 import {networkConfig} from "../network.config";
 
@@ -56,12 +56,6 @@ describe("LiquidityPoolStablecoin", function () {
     const wethOwner = await hre.ethers.getImpersonatedSigner(WETH_OWNER_ADDRESS);
     const WETH_DEC = 10n ** (await weth.decimals());
 
-    const liquidityPool = (
-      await deploy("LiquidityPoolStablecoin", deployer, {},
-        usdc, admin, mpc_signer, forkNetworkConfig.WrappedNativeToken
-      )
-    ) as LiquidityPoolStablecoin;
-
     const mockTarget = (
       await deploy("MockTarget", deployer)
     ) as MockTarget;
@@ -69,6 +63,16 @@ describe("LiquidityPoolStablecoin", function () {
     const mockBorrowSwap = (
       await deploy("MockBorrowSwap", deployer)
     ) as MockBorrowSwap;
+
+    const mockSigner = (
+      await deploy("MockSignerTrue", deployer)
+    ) as MockSignerTrue;
+
+    const liquidityPool = (
+      await deploy("LiquidityPoolStablecoin", deployer, {},
+        usdc, admin, mpc_signer, forkNetworkConfig.WrappedNativeToken, mockSigner
+      )
+    ) as LiquidityPoolStablecoin;
 
     const LIQUIDITY_ADMIN_ROLE = encodeBytes32String("LIQUIDITY_ADMIN_ROLE");
     await liquidityPool.connect(admin).grantRole(LIQUIDITY_ADMIN_ROLE, liquidityAdmin);
@@ -81,36 +85,38 @@ describe("LiquidityPoolStablecoin", function () {
 
     return {deployer, admin, user, user2, mpc_signer, usdc, usdcOwner, gho, ghoOwner, eurc, eurcOwner,
       liquidityPool, mockTarget, mockBorrowSwap, USDC_DEC, GHO_DEC, EURC_DEC, WETH_DEC, weth, wethOwner,
-      liquidityAdmin, withdrawProfit, pauser};
+      liquidityAdmin, withdrawProfit, pauser, mockSigner};
   };
 
   describe("Initialization", function () {
     it("Should initialize the contract with correct values", async function () {
-      const {liquidityPool, usdc, mpc_signer} = await loadFixture(deployAll);
+      const {liquidityPool, usdc, mpc_signer, mockSigner} = await loadFixture(deployAll);
       expect(await liquidityPool.ASSETS())
         .to.be.eq(usdc.target);
       expect(await liquidityPool.mpcAddress())
         .to.be.eq(mpc_signer);
+      expect(await liquidityPool.signerAddress())
+        .to.be.eq(mockSigner);
     });
 
     it("Should NOT deploy the contract if liquidity token address is 0", async function () {
-      const {deployer, liquidityPool, admin, mpc_signer} = await loadFixture(deployAll);
+      const {deployer, liquidityPool, admin, mpc_signer, mockSigner} = await loadFixture(deployAll);
       await expect(deploy("LiquidityPool", deployer, {},
-        ZERO_ADDRESS, admin, mpc_signer, networkConfig.BASE.WrappedNativeToken
+        ZERO_ADDRESS, admin, mpc_signer, networkConfig.BASE.WrappedNativeToken, mockSigner
       )).to.be.revertedWithCustomError(liquidityPool, "ZeroAddress");
     });
 
     it("Should NOT deploy the contract if admin address is 0", async function () {
-      const {deployer, liquidityPool, usdc, mpc_signer} = await loadFixture(deployAll);
+      const {deployer, liquidityPool, usdc, mpc_signer, mockSigner} = await loadFixture(deployAll);
       await expect(deploy("LiquidityPool", deployer, {},
-        usdc, ZERO_ADDRESS, mpc_signer, networkConfig.BASE.WrappedNativeToken
+        usdc, ZERO_ADDRESS, mpc_signer, networkConfig.BASE.WrappedNativeToken, mockSigner 
       )).to.be.revertedWithCustomError(liquidityPool, "ZeroAddress");
     });
 
     it("Should NOT deploy the contract if MPC address is 0", async function () {
-      const {deployer, liquidityPool, usdc, admin} = await loadFixture(deployAll);
+      const {deployer, liquidityPool, usdc, admin, mockSigner} = await loadFixture(deployAll);
       await expect(deploy("LiquidityPool", deployer, {},
-        usdc, admin, ZERO_ADDRESS, networkConfig.BASE.WrappedNativeToken
+        usdc, admin, ZERO_ADDRESS, networkConfig.BASE.WrappedNativeToken, mockSigner
       )).to.be.revertedWithCustomError(liquidityPool, "ZeroAddress");
     });
   });

@@ -9,7 +9,7 @@ import {
 import {ZERO_ADDRESS, NATIVE_TOKEN, ETH} from "../scripts/common";
 import {encodeBytes32String, AbiCoder} from "ethers";
 import {
-  MockTarget, MockBorrowSwap, LiquidityPool
+  MockTarget, MockBorrowSwap, LiquidityPool, MockSignerTrue
 } from "../typechain-types";
 import {networkConfig} from "../network.config";
 
@@ -47,12 +47,6 @@ describe("WETHLiquidityPool", function () {
     const GHO_DEC = 10n ** (await gho.decimals());
     const WETH_DEC = 10n ** (await weth.decimals());
 
-    const liquidityPool = (
-      await deploy("LiquidityPool", deployer, {},
-        weth, admin, mpc_signer, weth
-      )
-    ) as LiquidityPool;
-
     const mockTarget = (
       await deploy("MockTarget", deployer)
     ) as MockTarget;
@@ -60,6 +54,16 @@ describe("WETHLiquidityPool", function () {
     const mockBorrowSwap = (
       await deploy("MockBorrowSwap", deployer)
     ) as MockBorrowSwap;
+
+    const mockSigner = (
+      await deploy("MockSignerTrue", deployer)
+    ) as MockSignerTrue;
+
+    const liquidityPool = (
+      await deploy("LiquidityPool", deployer, {},
+        weth, admin, mpc_signer, weth, mockSigner
+      )
+    ) as LiquidityPool;
 
     const LIQUIDITY_ADMIN_ROLE = encodeBytes32String("LIQUIDITY_ADMIN_ROLE");
     await liquidityPool.connect(admin).grantRole(LIQUIDITY_ADMIN_ROLE, liquidityAdmin);
@@ -72,16 +76,18 @@ describe("WETHLiquidityPool", function () {
 
     return {deployer, admin, user, user2, mpc_signer, weth, wethOwner, gho, ghoOwner, eurc, eurcOwner,
       liquidityPool, mockTarget, mockBorrowSwap, EURC_DEC, GHO_DEC, WETH_DEC,
-      liquidityAdmin, withdrawProfit, pauser};
+      liquidityAdmin, withdrawProfit, pauser, mockSigner};
   };
 
   describe("Initialization", function () {
     it("Should initialize the contract with correct values", async function () {
-      const {liquidityPool, weth, mpc_signer} = await loadFixture(deployAll);
+      const {liquidityPool, weth, mpc_signer, mockSigner} = await loadFixture(deployAll);
       expect(await liquidityPool.ASSETS())
         .to.be.eq(weth.target);
       expect(await liquidityPool.mpcAddress())
         .to.be.eq(mpc_signer);
+      expect(await liquidityPool.signerAddress())
+        .to.be.eq(mockSigner);
       expect(await liquidityPool.WRAPPED_NATIVE_TOKEN())
         .to.be.eq(weth.target);
     });

@@ -12,6 +12,7 @@ import {IBorrower} from "./interfaces/IBorrower.sol";
 import {IWrappedNativeToken} from "./interfaces/IWrappedNativeToken.sol";
 import {HelperLib} from "./utils/HelperLib.sol";
 import {NATIVE_TOKEN} from "./utils/Constants.sol";
+import {ISigner} from "./interfaces/ISigner.sol";
 
 /// @title Liquidity pool contract holds the liquidity asset and allows solvers to borrow
 /// the asset from the pool and to perform an external function call upon providing the MPC signature.
@@ -23,7 +24,7 @@ import {NATIVE_TOKEN} from "./utils/Constants.sol";
 /// Borrowing can be paused by the WITHDRAW_PROFIT_ROLE before withdrawing the profit.
 /// The contract is pausable by the PAUSER_ROLE.
 /// @author Tanya Bushenyova <tanya@chainsafe.io>
-contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
+contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     using SafeERC20 for IERC20;
     using ECDSA for bytes32;
     using BitMaps for BitMaps.BitMap;
@@ -64,10 +65,14 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
     bool public borrowPaused;
     address public mpcAddress;
 
-    bytes32 public constant LIQUIDITY_ADMIN_ROLE = "LIQUIDITY_ADMIN_ROLE";
-    bytes32 public constant WITHDRAW_PROFIT_ROLE = "WITHDRAW_PROFIT_ROLE";
-    bytes32 public constant PAUSER_ROLE = "PAUSER_ROLE";
+    bytes32 private constant LIQUIDITY_ADMIN_ROLE = "LIQUIDITY_ADMIN_ROLE";
+    bytes32 private constant WITHDRAW_PROFIT_ROLE = "WITHDRAW_PROFIT_ROLE";
+    bytes32 private constant PAUSER_ROLE = "PAUSER_ROLE";
+    // bytes4(keccak256("isValidSignature(bytes32,bytes)")
+    bytes4 constant internal MAGICVALUE = 0x1626ba7e;
     IWrappedNativeToken immutable public WRAPPED_NATIVE_TOKEN;
+
+    address public signerAddress;
 
     error ZeroAddress();
     error InvalidSignature();
@@ -91,6 +96,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
     event BorrowPaused();
     event BorrowUnpaused();
     event MPCAddressSet(address oldMPCAddress, address newMPCAddress);
+    event SignerAddressSet(address oldSignerAddress, address newSignerAddress);
     event Paused(address account);
     event Unpaused(address account);
 
@@ -113,7 +119,8 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         address liquidityToken,
         address admin,
         address mpcAddress_,
-        address wrappedNativeToken
+        address wrappedNativeToken,
+        address signerAddress_
     ) EIP712("LiquidityPool", "1.0.0") {
         require(liquidityToken != address(0), ZeroAddress());
         ASSETS = IERC20(liquidityToken);
@@ -122,6 +129,8 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         require(mpcAddress_ != address(0), ZeroAddress());
         mpcAddress = mpcAddress_;
         WRAPPED_NATIVE_TOKEN = IWrappedNativeToken(wrappedNativeToken);
+        require(signerAddress_ != address(0), ZeroAddress());
+        signerAddress = signerAddress_;
     }
 
     receive() external payable {
@@ -307,6 +316,12 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
         address oldMPCAddress = mpcAddress;
         mpcAddress = mpcAddress_;
         emit MPCAddressSet(oldMPCAddress, mpcAddress_);
+    }
+
+    function setSignerAddress(address signerAddress_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        address oldSignerAddress = signerAddress;
+        signerAddress = signerAddress_;
+        emit SignerAddressSet(oldSignerAddress, signerAddress_);
     }
 
     function pauseBorrow() external override onlyRole(WITHDRAW_PROFIT_ROLE) {
@@ -529,5 +544,16 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712 {
 
     function notPassed(uint256 timestamp) internal view returns (bool) {
         return !passed(timestamp);
+    }
+
+    function isValidSignature(bytes32 hash, bytes memory signature) external view returns (bytes4 magicValue) {
+        if (signerAddress.code.length == 0) {
+            // EOA
+            address signerAddressRecovered = ECDSA.recover(hash, signature);
+            if (signerAddressRecovered == signerAddress) return MAGICVALUE;
+            else return 0xffffffff;
+        }
+        // Contract
+        return ISigner(signerAddress).isValidSignature(hash, signature);
     }
 }

@@ -16,9 +16,17 @@ contract EchidnaLiquidityPool {
         liquidityToken = new TestUSDC();
         liquidityToken.mint(address(this), 1e18);
 
-        pool = new LiquidityPool(address(liquidityToken), address(this), address(this), address(new TestWETH()));
-        pool.grantRole(pool.LIQUIDITY_ADMIN_ROLE(), address(this));
-        pool.grantRole(pool.WITHDRAW_PROFIT_ROLE(), address(this));
+        pool = new LiquidityPool(
+            address(liquidityToken),
+            address(this),
+            address(this),
+            address(new TestWETH()),
+            address(this)
+        );
+        bytes32 liquidityAdminRole = "LIQUIDITY_ADMIN_ROLE";
+        bytes32 withdrawProfitRole = "WITHDRAW_PROFIT_ROLE";
+        pool.grantRole(liquidityAdminRole, address(this));
+        pool.grantRole(withdrawProfitRole, address(this));
     }
 
     function deposit(uint256 amountDeposit) public {

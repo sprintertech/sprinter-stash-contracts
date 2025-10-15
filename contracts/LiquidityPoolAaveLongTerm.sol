@@ -3,16 +3,16 @@ pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {LiquidityPoolAave} from "./LiquidityPoolAave.sol";
-import {AaveDataTypes} from "./interfaces/IAavePool.sol";
 import {ILiquidityPoolLongTerm} from "./interfaces/ILiquidityPoolLongTerm.sol";
+import {HelperLib} from "./utils/HelperLib.sol";
 
 /// @title Same as LiquidityPoolAave, but when borrowing the contract will first try to fulfill
 /// the request with own funds, in which case health factor and ltv are not checked.
 /// If there are not enough funds, the contract will borrow from Aave.
 /// @author Oleksii Matiiasevych <oleksii@sprinter.tech>
 contract LiquidityPoolAaveLongTerm is LiquidityPoolAave, ILiquidityPoolLongTerm {
-    bytes32 constant public REPAYER_ROLE = "REPAYER_ROLE";
-    bytes32 constant public BORROW_LONG_TERM_ROLE = "BORROW_LONG_TERM_ROLE";
+    bytes32 private constant REPAYER_ROLE = "REPAYER_ROLE";
+    bytes32 private constant BORROW_LONG_TERM_ROLE = "BORROW_LONG_TERM_ROLE";
 
     error CollateralLongTermBorrowNotAllowed();
 
@@ -25,7 +25,8 @@ contract LiquidityPoolAaveLongTerm is LiquidityPoolAave, ILiquidityPoolLongTerm 
         address mpcAddress_,
         uint32 minHealthFactor_,
         uint32 defaultLTV_,
-        address wrappedNativeToken
+        address wrappedNativeToken,
+        address signerAddress_
     ) LiquidityPoolAave(
         liquidityToken,
         aavePoolProvider,
@@ -33,7 +34,8 @@ contract LiquidityPoolAaveLongTerm is LiquidityPoolAave, ILiquidityPoolLongTerm 
         mpcAddress_,
         minHealthFactor_,
         defaultLTV_,
-        wrappedNativeToken
+        wrappedNativeToken,
+        signerAddress_
     ) {}
 
     function _repayAccessCheck() internal view override onlyRole(REPAYER_ROLE) {
@@ -44,9 +46,9 @@ contract LiquidityPoolAaveLongTerm is LiquidityPoolAave, ILiquidityPoolLongTerm 
     /// @notice Could be used to increase health factor without full repayment.
     function repayPartial(address[] calldata borrowTokens, uint256[] calldata amounts) external override {
         _repayAccessCheck();
-        require(borrowTokens.length == amounts.length, InvalidLength());
+        uint256 length = HelperLib.validatePositiveLength(borrowTokens.length, amounts.length);
         bool success;
-        for (uint256 i = 0; i < borrowTokens.length; i++) {
+        for (uint256 i = 0; i < length; i++) {
             success = _repay(borrowTokens[i], amounts[i]) || success;
         }
         require(success, NothingToRepay());
@@ -113,9 +115,9 @@ contract LiquidityPoolAaveLongTerm is LiquidityPoolAave, ILiquidityPoolLongTerm 
             }
         }
         // If there is debt, subtract it from profit
-        AaveDataTypes.ReserveData memory tokenData = AAVE_POOL.getReserveData(address(token));
-        if (tokenData.variableDebtTokenAddress != address(0)) {
-            uint256 debt = IERC20(tokenData.variableDebtTokenAddress).balanceOf(address(this));
+        address variableDebtTokenAddress = AAVE_POOL.getReserveData(address(token)).variableDebtTokenAddress;
+        if (variableDebtTokenAddress != address(0)) {
+            uint256 debt = IERC20(variableDebtTokenAddress).balanceOf(address(this));
             if (totalBalance > debt) {
                 totalBalance -= debt;
             } else {

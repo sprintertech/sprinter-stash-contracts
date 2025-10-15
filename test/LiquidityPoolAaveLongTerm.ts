@@ -9,7 +9,7 @@ import {
 import {ZERO_ADDRESS, ETH, NATIVE_TOKEN} from "../scripts/common";
 import {encodeBytes32String, AbiCoder} from "ethers";
 import {
-  MockTarget, MockBorrowSwap, LiquidityPoolAaveLongTerm
+  MockTarget, MockBorrowSwap, LiquidityPoolAaveLongTerm, MockSignerTrue
 } from "../typechain-types";
 import {networkConfig} from "../network.config";
 
@@ -27,7 +27,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
   const deployAll = async () => {
     const [
       deployer, admin, user, user2, mpc_signer, liquidityAdmin, withdrawProfit, pauser,
-      borrowAdmin,
+      borrowAdmin
     ] = await hre.ethers.getSigners();
     await setCode(user2.address, "0x00");
 
@@ -91,11 +91,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
     const healthFactor = 500n * 10000n / 100n;
     // Initialize token LTV as 5%
     const defaultLtv = 5n * 10000n / 100n;
-    const liquidityPool = (
-      await deploy("LiquidityPoolAaveLongTerm", deployer, {},
-        usdc, AAVE_POOL_PROVIDER, admin, mpc_signer, healthFactor, defaultLtv, weth
-      )
-    ) as LiquidityPoolAaveLongTerm;
 
     const mockTarget = (
       await deploy("MockTarget", deployer)
@@ -104,6 +99,16 @@ describe("LiquidityPoolAaveLongTerm", function () {
     const mockBorrowSwap = (
       await deploy("MockBorrowSwap", deployer)
     ) as MockBorrowSwap;
+
+    const mockSigner = (
+      await deploy("MockSignerTrue", deployer)
+    ) as MockSignerTrue;
+
+    const liquidityPool = (
+      await deploy("LiquidityPoolAaveLongTerm", deployer, {},
+        usdc, AAVE_POOL_PROVIDER, admin, mpc_signer, healthFactor, defaultLtv, weth, mockSigner
+      )
+    ) as LiquidityPoolAaveLongTerm;
 
     const LIQUIDITY_ADMIN_ROLE = encodeBytes32String("LIQUIDITY_ADMIN_ROLE");
     await liquidityPool.connect(admin).grantRole(LIQUIDITY_ADMIN_ROLE, liquidityAdmin);
@@ -125,7 +130,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
       liquidityPool, mockTarget, mockBorrowSwap, USDC_DEC, GHO_DEC, EURC_DEC, AAVE_POOL_PROVIDER,
       healthFactor, defaultLtv, aavePool, aToken, ghoDebtToken, eurcDebtToken, usdcDebtToken,
       nonSupportedToken, nonSupportedTokenOwner, liquidityAdmin, withdrawProfit, pauser, weth,
-      wethOwner, WETH_DEC, wethDebtToken, REPAYER_ROLE, BORROW_LONG_TERM_ROLE, borrowAdmin,
+      wethOwner, WETH_DEC, wethDebtToken, REPAYER_ROLE, BORROW_LONG_TERM_ROLE, borrowAdmin, mockSigner
     };
   };
 
@@ -133,7 +138,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
     it("Should initialize the contract with correct values", async function () {
       const {
         liquidityPool, usdc, AAVE_POOL_PROVIDER, healthFactor, defaultLtv, mpc_signer,
-        aavePool, aToken, REPAYER_ROLE, BORROW_LONG_TERM_ROLE,
+        aavePool, aToken, mockSigner
       } = await loadFixture(deployAll);
       expect(await liquidityPool.ASSETS())
         .to.be.eq(usdc.target);
@@ -149,19 +154,18 @@ describe("LiquidityPoolAaveLongTerm", function () {
         .to.be.eq(defaultLtv);
       expect(await liquidityPool.mpcAddress())
         .to.be.eq(mpc_signer);
-      expect(await liquidityPool.REPAYER_ROLE())
-        .to.be.eq(REPAYER_ROLE);
-      expect(await liquidityPool.BORROW_LONG_TERM_ROLE())
-        .to.be.eq(BORROW_LONG_TERM_ROLE);
+      expect(await liquidityPool.signerAddress())
+        .to.be.eq(mockSigner);
     });
 
     it("Should NOT deploy the contract if token cannot be used as collateral", async function () {
       const {
-        deployer, AAVE_POOL_PROVIDER, liquidityPool, gho, admin, mpc_signer, healthFactor, defaultLtv, weth
+        deployer, AAVE_POOL_PROVIDER, liquidityPool, gho, admin, mpc_signer, healthFactor, defaultLtv, weth,
+        mockSigner
       } = await loadFixture(deployAll);
       const startingNonce = await deployer.getNonce();
       await expect(deploy("LiquidityPoolAaveLongTerm", deployer, {nonce: startingNonce},
-        gho, AAVE_POOL_PROVIDER, admin, mpc_signer, healthFactor, defaultLtv, weth
+        gho, AAVE_POOL_PROVIDER, admin, mpc_signer, healthFactor, defaultLtv, weth, mockSigner
       )).to.be.revertedWithCustomError(liquidityPool, "CollateralNotSupported");
     });
   });

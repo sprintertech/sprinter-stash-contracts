@@ -12,7 +12,7 @@ contract MockSignerTrue is ISigner{
     }
 }
 
-contract MockSignerFalse is ISigner{
+contract MockSignerFalse is ISigner {
     function isValidSignature(bytes32, bytes calldata) external pure override returns (bytes4) {
         return 0xffffffff;
     }

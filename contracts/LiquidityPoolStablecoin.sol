@@ -18,9 +18,9 @@ contract LiquidityPoolStablecoin is LiquidityPool {
         address liquidityToken,
         address admin,
         address mpcAddress_,
-        address wrappedNativeToken
-    ) LiquidityPool(liquidityToken, admin, mpcAddress_, wrappedNativeToken) {
-        return;
+        address wrappedNativeToken,
+        address signerAddress_
+    ) LiquidityPool(liquidityToken, admin, mpcAddress_, wrappedNativeToken, signerAddress_) {
     }
 
     function _borrowLogic(address /*borrowToken*/, uint256 /*amount*/, bytes memory context)

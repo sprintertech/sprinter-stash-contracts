@@ -35,7 +35,17 @@ export async function main() {
 
   console.log("Deploying USDC Liquidity Pool");
   const usdcPool: LiquidityPool = (await verifier.deployX(
-    "LiquidityPool", deployer, {}, [config.USDC, deployer, config.MpcAddress, config.WrappedNativeToken], id
+    "LiquidityPool",
+    deployer,
+    {},
+    [
+      config.USDC,
+      deployer,
+      config.MpcAddress,
+      config.WrappedNativeToken,
+      config.SignerAddress,
+    ],
+    id
   )) as LiquidityPool;
   console.log(`${id}: ${usdcPool.target}`);
 

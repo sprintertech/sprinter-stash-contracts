@@ -10,6 +10,7 @@ import {IAavePool, AaveDataTypes, NO_REFERRAL, INTEREST_RATE_MODE_VARIABLE} from
 import {IAaveOracle} from "./interfaces/IAaveOracle.sol";
 import {IAavePoolDataProvider} from "./interfaces/IAavePoolDataProvider.sol";
 import {LiquidityPool} from "./LiquidityPool.sol";
+import {HelperLib} from "./utils/HelperLib.sol";
 
 /// @title A version of the liquidity pool contract that uses Aave pool.
 /// Deposits of the liquidity token are supplied to Aave as collateral.
@@ -58,8 +59,9 @@ contract LiquidityPoolAave is LiquidityPool {
         address mpcAddress_,
         uint32 minHealthFactor_,
         uint32 defaultLTV_,
-        address wrappedNativeToken
-    ) LiquidityPool(liquidityToken, admin, mpcAddress_, wrappedNativeToken) {
+        address wrappedNativeToken,
+        address signerAddress_
+    ) LiquidityPool(liquidityToken, admin, mpcAddress_, wrappedNativeToken, signerAddress_) {
         ASSETS_DECIMALS = IERC20Metadata(liquidityToken).decimals();
         require(aavePoolProvider != address(0), ZeroAddress());
         IAavePoolAddressesProvider provider = IAavePoolAddressesProvider(aavePoolProvider);
@@ -90,8 +92,8 @@ contract LiquidityPoolAave is LiquidityPool {
         address[] calldata tokens,
         uint32[] calldata ltvs
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(tokens.length == ltvs.length, InvalidLength());
-        for (uint256 i = 0; i < tokens.length; ++i) {
+        uint256 length = HelperLib.validatePositiveLength(tokens.length, ltvs.length);
+        for (uint256 i = 0; i < length; ++i) {
             address token = tokens[i];
             uint256 ltv = ltvs[i];
             uint256 oldLTV = borrowTokenLTV[token];

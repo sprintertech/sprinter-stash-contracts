@@ -395,6 +395,17 @@ export const networkConfig: NetworksConfig = {
         [LiquidityPoolAaveUSDCLongTerm]: {
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
         },
+        [LiquidityPoolAaveUSDCV3]: {
+          [Network.BASE]: [Provider.CCTP],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+        },
+        [LiquidityPoolUSDCV3]: {
+          [Network.BASE]: [Provider.CCTP],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+        },
+        [LiquidityPoolAaveUSDCLongTermV2]: {
+          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+        },
       },
       RepayerRoutes: {
         [LiquidityPoolAaveUSDC]: {
@@ -412,6 +423,26 @@ export const networkConfig: NetworksConfig = {
           },
         },
         [LiquidityPoolAaveUSDCLongTerm]: {
+          SupportsAllTokens: true,
+          Domains: {
+            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          },
+        },
+        [LiquidityPoolAaveUSDCV3]: {
+          SupportsAllTokens: true,
+          Domains: {
+            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          },
+        },
+        [LiquidityPoolUSDCV3]: {
+          SupportsAllTokens: false,
+          Domains: {
+            [Network.ARBITRUM_ONE]: [Provider.CCTP],
+            [Network.BASE]: [Provider.CCTP],
+          },
+        },
+        [LiquidityPoolAaveUSDCLongTermV2]: {
           SupportsAllTokens: true,
           Domains: {
             [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
@@ -557,6 +588,14 @@ export const networkConfig: NetworksConfig = {
           [Network.BASE]: [Provider.CCTP],
           [Network.OP_MAINNET]: [Provider.CCTP],
         },
+        [LiquidityPoolAaveUSDCV3]: {
+          [Network.BASE]: [Provider.CCTP],
+          [Network.OP_MAINNET]: [Provider.CCTP],
+        },
+        [LiquidityPoolUSDCV3]: {
+          [Network.BASE]: [Provider.CCTP],
+          [Network.OP_MAINNET]: [Provider.CCTP],
+        },
       },
       RepayerRoutes: {
         [LiquidityPoolAaveUSDC]: {
@@ -567,6 +606,20 @@ export const networkConfig: NetworksConfig = {
           },
         },
         [LiquidityPoolUSDC]: {
+          SupportsAllTokens: false,
+          Domains: {
+            [Network.OP_MAINNET]: [Provider.CCTP],
+            [Network.BASE]: [Provider.CCTP],
+          },
+        },
+        [LiquidityPoolAaveUSDCV3]: {
+          SupportsAllTokens: true,
+          Domains: {
+            [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          },
+        },
+        [LiquidityPoolUSDCV3]: {
           SupportsAllTokens: false,
           Domains: {
             [Network.OP_MAINNET]: [Provider.CCTP],
@@ -745,6 +798,17 @@ export const networkConfig: NetworksConfig = {
         [LiquidityPoolAaveUSDCLongTerm]: {
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
         },
+        [LiquidityPoolAaveUSDCV3]: {
+          [Network.OP_MAINNET]: [Provider.CCTP],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+        },
+        [LiquidityPoolUSDCV3]: {
+          [Network.OP_MAINNET]: [Provider.CCTP],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+        },
+        [LiquidityPoolAaveUSDCLongTermV2]: {
+          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+        },
       },
       RepayerRoutes: {
         [LiquidityPoolAaveUSDC]: {
@@ -762,6 +826,26 @@ export const networkConfig: NetworksConfig = {
           },
         },
         [LiquidityPoolAaveUSDCLongTerm]: {
+          SupportsAllTokens: true,
+          Domains: {
+            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          },
+        },
+        [LiquidityPoolAaveUSDCV3]: {
+          SupportsAllTokens: true,
+          Domains: {
+            [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          },
+        },
+        [LiquidityPoolUSDCV3]: {
+          SupportsAllTokens: false,
+          Domains: {
+            [Network.OP_MAINNET]: [Provider.CCTP],
+            [Network.ARBITRUM_ONE]: [Provider.CCTP],
+          },
+        },
+        [LiquidityPoolAaveUSDCLongTermV2]: {
           SupportsAllTokens: true,
           Domains: {
             [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],

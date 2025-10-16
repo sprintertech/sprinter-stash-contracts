@@ -242,6 +242,7 @@ export const networkConfig: NetworksConfig = {
     RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerCaller: "0x9A5B33bd11329116A55F764c604a5152eE8Ca292",
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
+    SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerRoutes: {
       [LiquidityPoolAaveUSDC]: {
         SupportsAllTokens: true,
@@ -274,7 +275,6 @@ export const networkConfig: NetworksConfig = {
         },
       },
     },
-    SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
   },
   OP_MAINNET: {
     ChainId: 10,
@@ -929,6 +929,7 @@ export const networkConfig: NetworksConfig = {
     RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerCaller: "0x9A5B33bd11329116A55F764c604a5152eE8Ca292",
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
+    SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerRoutes: {
       [LiquidityPoolAaveUSDC]: {
         SupportsAllTokens: true,
@@ -975,6 +976,7 @@ export const networkConfig: NetworksConfig = {
     RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerCaller: "0x9A5B33bd11329116A55F764c604a5152eE8Ca292",
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
+    SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerRoutes: {
       [LiquidityPoolAaveUSDC]: {
         SupportsAllTokens: true,

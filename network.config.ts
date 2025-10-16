@@ -273,6 +273,7 @@ export const networkConfig: NetworksConfig = {
           [Network.ETHEREUM]: [Provider.CCTP, Provider.EVERCLEAR, Provider.STARGATE],
         },
       },
+    },
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
   },
   OP_MAINNET: {

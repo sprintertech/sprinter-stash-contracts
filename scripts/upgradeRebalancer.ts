@@ -4,7 +4,7 @@ import hre from "hardhat";
 import {isAddress} from "ethers";
 import {getVerifier, upgradeProxyX, getHardhatNetworkConfig, getNetworkConfig} from "./helpers";
 import {getDeployProxyXAddress} from "../test/helpers";
-import {isSet, assert, DomainSolidity} from "./common";
+import {isSet, assert, DomainSolidity, ZERO_ADDRESS} from "./common";
 import {Rebalancer} from "../typechain-types";
 import {Network, NetworkConfig} from "../network.config";
 
@@ -26,8 +26,12 @@ export async function main() {
   }
 
   assert(isAddress(config.USDC), "USDC must be an address");
-  assert(isAddress(config.CCTP.TokenMessenger), "CCTP TokenMessenger must be an address");
-  assert(isAddress(config.CCTP.MessageTransmitter), "CCTP MessageTransmitter must be an address");
+  if (!config.CCTP) {
+    config.CCTP = {
+      TokenMessenger: ZERO_ADDRESS,
+      MessageTransmitter: ZERO_ADDRESS,
+    };
+  }
 
   const rebalancerAddress = await getDeployProxyXAddress("Rebalancer");
   const rebalancerVersion = config.IsTest ? "TestRebalancer" : "Rebalancer";

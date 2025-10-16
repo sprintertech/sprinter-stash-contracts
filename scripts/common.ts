@@ -51,6 +51,8 @@ export const DomainSolidity = {
   BASE_SEPOLIA: 10n,
   POLYGON_AMOY: 11n,
   UNICHAIN: 12n,
+  BSC: 13n,
+  LINEA: 14n,
 };
 
 export const SolidityDomain: { [n: number]: Network } = {
@@ -67,6 +69,8 @@ export const SolidityDomain: { [n: number]: Network } = {
   10: Network.BASE_SEPOLIA,
   11: Network.POLYGON_AMOY,
   12: Network.UNICHAIN,
+  13: Network.BSC,
+  14: Network.LINEA,
 };
 
 export const SolidityProvider: { [n: number]: Provider } = {

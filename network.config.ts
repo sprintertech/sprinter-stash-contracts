@@ -8,13 +8,13 @@ export const LiquidityPoolAaveUSDC: string = "LiquidityPoolAaveUSDC";
 export const LiquidityPoolUSDC: string = "LiquidityPoolUSDC";
 export const LiquidityPoolUSDCStablecoin: string = "LiquidityPoolUSDCStablecoin";
 export const LiquidityPoolAaveUSDCLongTerm: string = "LiquidityPoolAaveUSDCLongTerm";
-export const LiquidityPoolAaveUSDCLongTermV2: string = "LiquidityPoolAaveUSDCLongTerm-V2-8ec44b8";
+export const LiquidityPoolAaveUSDCLongTermV2: string = "LiquidityPoolAaveUSDCLongTerm-V2-e09cc75";
 export const LiquidityPoolAaveUSDCV2: string = "LiquidityPoolAaveUSDC-V2-3601cc4";
 export const LiquidityPoolUSDCV2: string = "LiquidityPoolUSDC-V2-3601cc4";
 export const LiquidityPoolUSDCStablecoinV2: string = "LiquidityPoolUSDCStablecoin-V2-3601cc4";
-export const LiquidityPoolAaveUSDCV3: string = "LiquidityPoolAaveUSDC-V3-8ec44b8";
-export const LiquidityPoolUSDCV3: string = "LiquidityPoolUSDC-V3-8ec44b8";
-export const LiquidityPoolUSDCStablecoinV3: string = "LiquidityPoolUSDCStablecoin-V3-8ec44b8";
+export const LiquidityPoolAaveUSDCV3: string = "LiquidityPoolAaveUSDC-V3-e09cc75";
+export const LiquidityPoolUSDCV3: string = "LiquidityPoolUSDC-V3-e09cc75";
+export const LiquidityPoolUSDCStablecoinV3: string = "LiquidityPoolUSDCStablecoin-V3-e09cc75";
 export const LiquidityPoolAaveUSDCLongTermVersions: string[] = [
   LiquidityPoolAaveUSDCLongTerm,
   LiquidityPoolAaveUSDCLongTermV2,
@@ -392,7 +392,7 @@ export const networkConfig: NetworksConfig = {
       AavePool: {
         AaveAddressesProvider: AAVEPools.AaveV3Optimism.POOL_ADDRESSES_PROVIDER,
         MinHealthFactor: 300,
-        DefaultLTV: 0,
+        DefaultLTV: 50,
         TokenLTVs: {
           "0x1f32b1c2345538c0c6f582fcb022739c4a194ebb": 50, // wstETH
           "0x4200000000000000000000000000000000000006": 50, // WETH
@@ -548,7 +548,7 @@ export const networkConfig: NetworksConfig = {
       AavePool: {
         AaveAddressesProvider: AAVEPools.AaveV3Arbitrum.POOL_ADDRESSES_PROVIDER,
         MinHealthFactor: 300,
-        DefaultLTV: 0,
+        DefaultLTV: 50,
         TokenLTVs: {
           "0xaf88d065e77c8cc2239327c5edb3a432268e5831": 100, // USDC
           "0x82af49447d8a07e3bd95bd0d56f35241523fbab1": 50, // WETH
@@ -742,7 +742,7 @@ export const networkConfig: NetworksConfig = {
       AavePool: {
         AaveAddressesProvider: AAVEPools.AaveV3Base.POOL_ADDRESSES_PROVIDER,
         MinHealthFactor: 300,
-        DefaultLTV: 0,
+        DefaultLTV: 50,
         TokenLTVs: {
           "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": 100, // USDC
           "0x4200000000000000000000000000000000000006": 50, // WETH

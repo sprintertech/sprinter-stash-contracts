@@ -24,6 +24,12 @@ abstract contract AdapterHelper is IRoute {
         } else
         if (destinationDomain == Domain.POLYGON_MAINNET) {
             return 137;
+        } else
+        if (destinationDomain == Domain.BSC) {
+            return 56;
+        } else
+        if (destinationDomain == Domain.LINEA) {
+            return 59144;
         } else {
             revert UnsupportedDomain();
         }

@@ -26,9 +26,13 @@ export async function main() {
   }
 
   assert(isAddress(config.USDC), "USDC must be an address");
-  assert(isAddress(config.CCTP.TokenMessenger), "CCTP TokenMessenger must be an address");
-  assert(isAddress(config.CCTP.MessageTransmitter), "CCTP MessageTransmitter must be an address");
   assert(isAddress(config.WrappedNativeToken), "WrappedNativeToken must be an address");
+  if (!config.CCTP) {
+    config.CCTP = {
+      TokenMessenger: ZERO_ADDRESS,
+      MessageTransmitter: ZERO_ADDRESS,
+    };
+  }
   if (!config.AcrossV3SpokePool) {
     config.AcrossV3SpokePool = ZERO_ADDRESS;
   }

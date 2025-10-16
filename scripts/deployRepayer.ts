@@ -30,8 +30,6 @@ export async function main() {
   assert(isAddress(config.USDC), "USDC must be an address");
   assert(isAddress(config.Admin), "Admin must be an address");
   assert(isAddress(config.RepayerCaller), "RepayerCaller must be an address");
-  assert(isAddress(config.CCTP.TokenMessenger), "CCTP TokenMessenger must be an address");
-  assert(isAddress(config.CCTP.MessageTransmitter), "CCTP MessageTransmitter must be an address");
   assert(isAddress(config.WrappedNativeToken), "WrappedNativeToken must be an address");
 
   const repayerRoutes: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens: boolean}[] = [];
@@ -49,6 +47,12 @@ export async function main() {
   }
   await addLocalPools(config, network, repayerRoutes);
 
+  if (!config.CCTP) {
+    config.CCTP = {
+      TokenMessenger: ZERO_ADDRESS,
+      MessageTransmitter: ZERO_ADDRESS,
+    };
+  }
   if (!config.AcrossV3SpokePool) {
     config.AcrossV3SpokePool = ZERO_ADDRESS;
   }

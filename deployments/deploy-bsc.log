@@ -1,0 +1,36 @@
+Deployment ID: MVP
+Deploying Repayer
+Using config for: BSC
+Repayer: 0x36364Acc7B9c67692CA215af09A41CBd10439511
+RepayerProxyAdmin: 0x2B5D04eF6b3279bCdA4B219b02FAF627dA1664CB
+RepayerRoutes:
+┌─────────┬──────────────────────────────────────────────┬────────────────┬─────────────┬───────────────────┐
+│ (index) │ Pool                                         │ Domain         │ Provider    │ SupportsAllTokens │
+├─────────┼──────────────────────────────────────────────┼────────────────┼─────────────┼───────────────────┤
+│ 0       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'ARBITRUM_ONE' │ 'ACROSS'    │ true              │
+│ 1       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'ARBITRUM_ONE' │ 'EVERCLEAR' │ true              │
+│ 2       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'ARBITRUM_ONE' │ 'STARGATE'  │ true              │
+│ 3       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'BASE'         │ 'ACROSS'    │ true              │
+│ 4       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'BASE'         │ 'EVERCLEAR' │ true              │
+│ 5       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'BASE'         │ 'STARGATE'  │ true              │
+│ 6       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'OP_MAINNET'   │ 'ACROSS'    │ true              │
+│ 7       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'OP_MAINNET'   │ 'EVERCLEAR' │ true              │
+│ 8       │ '0x7C255279c098fdF6c3116D2BecD9978002c09f4b' │ 'OP_MAINNET'   │ 'STARGATE'  │ true              │
+│ 9       │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'ARBITRUM_ONE' │ 'ACROSS'    │ false             │
+│ 10      │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'ARBITRUM_ONE' │ 'EVERCLEAR' │ false             │
+│ 11      │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'ARBITRUM_ONE' │ 'STARGATE'  │ false             │
+│ 12      │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'BASE'         │ 'ACROSS'    │ false             │
+│ 13      │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'BASE'         │ 'EVERCLEAR' │ false             │
+│ 14      │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'BASE'         │ 'STARGATE'  │ false             │
+│ 15      │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'ETHEREUM'     │ 'ACROSS'    │ false             │
+│ 16      │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'ETHEREUM'     │ 'EVERCLEAR' │ false             │
+│ 17      │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'ETHEREUM'     │ 'STARGATE'  │ false             │
+│ 18      │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'OP_MAINNET'   │ 'ACROSS'    │ false             │
+│ 19      │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'OP_MAINNET'   │ 'EVERCLEAR' │ false             │
+│ 20      │ '0xB58Bb9643884abbbad64FA7eBc874c5481E5c032' │ 'OP_MAINNET'   │ 'STARGATE'  │ false             │
+│ 21      │ '0x2781650E1d76b56b3BCD9836e4d16E04c86d3D07' │ 'ETHEREUM'     │ 'ACROSS'    │ true              │
+│ 22      │ '0x2781650E1d76b56b3BCD9836e4d16E04c86d3D07' │ 'ETHEREUM'     │ 'EVERCLEAR' │ true              │
+│ 23      │ '0x2781650E1d76b56b3BCD9836e4d16E04c86d3D07' │ 'ETHEREUM'     │ 'STARGATE'  │ true              │
+│ 24      │ '0x5E8da448f3F7290cA355BbF7EF9F323ab8fDE422' │ 'ETHEREUM'     │ 'EVERCLEAR' │ true              │
+│ 25      │ '0x5E8da448f3F7290cA355BbF7EF9F323ab8fDE422' │ 'ETHEREUM'     │ 'STARGATE'  │ true              │
+└─────────┴──────────────────────────────────────────────┴────────────────┴─────────────┴───────────────────┘

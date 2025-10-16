@@ -560,6 +560,11 @@ const config: HardhatUserConfig = {
     localhost: {
       url: "http://127.0.0.1:8545/",
     },
+    [Network.AVALANCHE]: {
+      chainId: networkConfig.AVALANCHE.ChainId,
+      url: process.env.AVALANCHE_RPC || "https://avalanche-c-chain-rpc.publicnode.com",
+      accounts,
+    },
     [Network.BASE_SEPOLIA]: {
       chainId: networkConfig.BASE_SEPOLIA.ChainId,
       url: process.env.BASE_SEPOLIA_RPC || "https://sepolia.base.org",
@@ -610,6 +615,16 @@ const config: HardhatUserConfig = {
       url: process.env.UNICHAIN_RPC || "https://mainnet.unichain.org",
       accounts,
     },
+    [Network.BSC]: {
+      chainId: networkConfig.BSC.ChainId,
+      url: process.env.BSC_RPC || "https://bsc-mainnet.public.blastapi.io",
+      accounts,
+    },
+    [Network.LINEA]: {
+      chainId: networkConfig.LINEA.ChainId,
+      url: process.env.LINEA_RPC || "https://linea-rpc.publicnode.com",
+      accounts,
+    },
     hardhat: {
       forking: {
         url: isSet(process.env.DRY_RUN) || isSet(process.env.FORK_TEST)
@@ -645,6 +660,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://uniscan.xyz/api",
           browserURL: "https://uniscan.xyz"
+        },
+      },
+      {
+        network: "linea",
+        chainId: networkConfig.LINEA.ChainId,
+        urls: {
+          apiURL: "https://api.etherscan.io/v2/api",
+          browserURL: "https://lineascan.build/"
         },
       },
     ],

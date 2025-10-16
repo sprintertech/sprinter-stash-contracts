@@ -7,9 +7,10 @@ import {
   deploy, signBorrow, signBorrowMany, getBalance
 } from "./helpers";
 import {ZERO_ADDRESS, NATIVE_TOKEN, ETH} from "../scripts/common";
-import {encodeBytes32String, AbiCoder, Interface, Contract, solidityPacked} from "ethers";
+import {encodeBytes32String, AbiCoder, Interface, Contract, solidityPacked, hashMessage, Wallet} from "ethers";
 import {
-  MockTarget, MockBorrowSwap, LiquidityPoolStablecoin, CensoredTransferFromMulticall
+  MockTarget, MockBorrowSwap, LiquidityPoolStablecoin, CensoredTransferFromMulticall,
+  MockSignerTrue, MockSignerFalse
 } from "../typechain-types";
 import {networkConfig} from "../network.config";
 
@@ -56,12 +57,6 @@ describe("LiquidityPoolStablecoin", function () {
     const wethOwner = await hre.ethers.getImpersonatedSigner(WETH_OWNER_ADDRESS);
     const WETH_DEC = 10n ** (await weth.decimals());
 
-    const liquidityPool = (
-      await deploy("LiquidityPoolStablecoin", deployer, {},
-        usdc, admin, mpc_signer, forkNetworkConfig.WrappedNativeToken
-      )
-    ) as LiquidityPoolStablecoin;
-
     const mockTarget = (
       await deploy("MockTarget", deployer)
     ) as MockTarget;
@@ -69,6 +64,20 @@ describe("LiquidityPoolStablecoin", function () {
     const mockBorrowSwap = (
       await deploy("MockBorrowSwap", deployer)
     ) as MockBorrowSwap;
+
+    const mockSignerTrue = (
+      await deploy("MockSignerTrue", deployer)
+    ) as MockSignerTrue;
+
+    const mockSignerFalse = (
+      await deploy("MockSignerFalse", deployer)
+    ) as MockSignerFalse;
+
+    const liquidityPool = (
+      await deploy("LiquidityPoolStablecoin", deployer, {},
+        usdc, admin, mpc_signer, forkNetworkConfig.WrappedNativeToken, mockSignerTrue
+      )
+    ) as LiquidityPoolStablecoin;
 
     const LIQUIDITY_ADMIN_ROLE = encodeBytes32String("LIQUIDITY_ADMIN_ROLE");
     await liquidityPool.connect(admin).grantRole(LIQUIDITY_ADMIN_ROLE, liquidityAdmin);
@@ -81,36 +90,38 @@ describe("LiquidityPoolStablecoin", function () {
 
     return {deployer, admin, user, user2, mpc_signer, usdc, usdcOwner, gho, ghoOwner, eurc, eurcOwner,
       liquidityPool, mockTarget, mockBorrowSwap, USDC_DEC, GHO_DEC, EURC_DEC, WETH_DEC, weth, wethOwner,
-      liquidityAdmin, withdrawProfit, pauser};
+      liquidityAdmin, withdrawProfit, pauser, mockSignerTrue, mockSignerFalse};
   };
 
   describe("Initialization", function () {
     it("Should initialize the contract with correct values", async function () {
-      const {liquidityPool, usdc, mpc_signer} = await loadFixture(deployAll);
+      const {liquidityPool, usdc, mpc_signer, mockSignerTrue} = await loadFixture(deployAll);
       expect(await liquidityPool.ASSETS())
         .to.be.eq(usdc.target);
       expect(await liquidityPool.mpcAddress())
         .to.be.eq(mpc_signer);
+      expect(await liquidityPool.signerAddress())
+        .to.be.eq(mockSignerTrue);
     });
 
     it("Should NOT deploy the contract if liquidity token address is 0", async function () {
-      const {deployer, liquidityPool, admin, mpc_signer} = await loadFixture(deployAll);
+      const {deployer, liquidityPool, admin, mpc_signer, mockSignerTrue} = await loadFixture(deployAll);
       await expect(deploy("LiquidityPool", deployer, {},
-        ZERO_ADDRESS, admin, mpc_signer, networkConfig.BASE.WrappedNativeToken
+        ZERO_ADDRESS, admin, mpc_signer, networkConfig.BASE.WrappedNativeToken, mockSignerTrue
       )).to.be.revertedWithCustomError(liquidityPool, "ZeroAddress");
     });
 
     it("Should NOT deploy the contract if admin address is 0", async function () {
-      const {deployer, liquidityPool, usdc, mpc_signer} = await loadFixture(deployAll);
+      const {deployer, liquidityPool, usdc, mpc_signer, mockSignerTrue} = await loadFixture(deployAll);
       await expect(deploy("LiquidityPool", deployer, {},
-        usdc, ZERO_ADDRESS, mpc_signer, networkConfig.BASE.WrappedNativeToken
+        usdc, ZERO_ADDRESS, mpc_signer, networkConfig.BASE.WrappedNativeToken, mockSignerTrue
       )).to.be.revertedWithCustomError(liquidityPool, "ZeroAddress");
     });
 
     it("Should NOT deploy the contract if MPC address is 0", async function () {
-      const {deployer, liquidityPool, usdc, admin} = await loadFixture(deployAll);
+      const {deployer, liquidityPool, usdc, admin, mockSignerTrue} = await loadFixture(deployAll);
       await expect(deploy("LiquidityPool", deployer, {},
-        usdc, admin, ZERO_ADDRESS, networkConfig.BASE.WrappedNativeToken
+        usdc, admin, ZERO_ADDRESS, networkConfig.BASE.WrappedNativeToken, mockSignerTrue
       )).to.be.revertedWithCustomError(liquidityPool, "ZeroAddress");
     });
   });
@@ -1846,6 +1857,54 @@ describe("LiquidityPoolStablecoin", function () {
       expect(await getBalance(liquidityPool)).to.eq(returnedAmount - fillAmount);
       expect(await getBalance(mockTarget)).to.eq(fillAmount);
       expect(await getBalance(mockBorrowSwap)).to.eq(0);
+    });
+  });
+
+  describe("Signature checking", function () {
+    const MAGICVALUE = "0x1626ba7e";
+
+    it("Should return MAGICVALUE if a contract signature is validated", async function () {
+      const {liquidityPool} = await loadFixture(deployAll);
+      const data = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
+      expect(await liquidityPool.isValidSignature(data, data))
+        .to.eq(MAGICVALUE);
+    });
+
+    it("Should NOT return MAGICVALUE if a contract signature is invalid", async function () {
+      const {liquidityPool, admin, mockSignerTrue, mockSignerFalse} = await loadFixture(deployAll);
+      await expect(liquidityPool.connect(admin).setSignerAddress(mockSignerFalse))
+        .to.emit(liquidityPool, "SignerAddressSet")
+        .withArgs(mockSignerTrue, mockSignerFalse);
+      const data = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
+      expect(await liquidityPool.isValidSignature(data, data))
+        .to.not.eq(MAGICVALUE);
+    });
+
+    it("Should return MAGICVALUE if an EOA signature is validated", async function () {
+      const {liquidityPool, admin, mockSignerTrue} = await loadFixture(deployAll);
+      const signer = Wallet.createRandom().connect(hre.ethers.provider);
+      await expect(liquidityPool.connect(admin).setSignerAddress(signer))
+        .to.emit(liquidityPool, "SignerAddressSet")
+        .withArgs(mockSignerTrue, signer);
+      const data = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
+      const message = hashMessage(data);
+      const signature = await signer.signMessage(data);
+      expect(await liquidityPool.isValidSignature(message, signature))
+        .to.eq(MAGICVALUE);
+    });
+
+    it("Should NOT return MAGICVALUE if an EOA signature is invalid", async function () {
+      const {liquidityPool, admin, mockSignerTrue} = await loadFixture(deployAll);
+      const signer = Wallet.createRandom().connect(hre.ethers.provider);
+      await expect(liquidityPool.connect(admin).setSignerAddress(signer))
+        .to.emit(liquidityPool, "SignerAddressSet")
+        .withArgs(mockSignerTrue, signer);
+      const data = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
+      const wrongData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdeff";
+      const wrongMessage = hashMessage(wrongData);
+      const signature = await signer.signMessage(data);
+      expect(await liquidityPool.isValidSignature(wrongMessage, signature))
+        .to.not.eq(MAGICVALUE);
     });
   });
 

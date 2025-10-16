@@ -37,6 +37,7 @@ export async function main() {
   assertAddress(config.USDC, "USDC must be an address");
   assertAddress(config.MpcAddress, "MpcAddress must be an address");
   assertAddress(config.WrappedNativeToken, "WrappedNativeToken must be an address");
+  assertAddress(config.SignerAddress, "SignerAddress must be an address");
   assertAddress(config.AavePoolLongTerm.BorrowLongTermAdmin, "BorrowLongTermAdmin must be an address");
   assertAddress(config.AavePoolLongTerm.RepayCaller, "RepayCaller must be an address");
 
@@ -58,6 +59,7 @@ export async function main() {
       minHealthFactor,
       defaultLTV,
       config.WrappedNativeToken,
+      config.SignerAddress,
     ],
     id,
   )) as LiquidityPoolAaveLongTerm;

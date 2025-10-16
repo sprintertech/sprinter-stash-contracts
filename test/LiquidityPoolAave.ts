@@ -7,9 +7,9 @@ import {
   deploy, signBorrow, getBalance, signBorrowMany,
 } from "./helpers";
 import {ZERO_ADDRESS, ETH, NATIVE_TOKEN} from "../scripts/common";
-import {encodeBytes32String, AbiCoder} from "ethers";
+import {encodeBytes32String, AbiCoder, hashMessage, Wallet} from "ethers";
 import {
-  MockTarget, MockBorrowSwap, LiquidityPoolAave
+  MockTarget, MockBorrowSwap, LiquidityPoolAave, MockSignerTrue, MockSignerFalse
 } from "../typechain-types";
 import {networkConfig} from "../network.config";
 
@@ -88,11 +88,6 @@ describe("LiquidityPoolAave", function () {
     const healthFactor = 500n * 10000n / 100n;
     // Initialize token LTV as 5%
     const defaultLtv = 5n * 10000n / 100n;
-    const liquidityPool = (
-      await deploy("LiquidityPoolAave", deployer, {},
-        usdc, AAVE_POOL_PROVIDER, admin, mpc_signer, healthFactor, defaultLtv, weth
-      )
-    ) as LiquidityPoolAave;
 
     const mockTarget = (
       await deploy("MockTarget", deployer)
@@ -101,6 +96,20 @@ describe("LiquidityPoolAave", function () {
     const mockBorrowSwap = (
       await deploy("MockBorrowSwap", deployer)
     ) as MockBorrowSwap;
+
+    const mockSignerTrue = (
+      await deploy("MockSignerTrue", deployer)
+    ) as MockSignerTrue;
+
+    const mockSignerFalse = (
+      await deploy("MockSignerFalse", deployer)
+    ) as MockSignerFalse;
+
+    const liquidityPool = (
+      await deploy("LiquidityPoolAave", deployer, {},
+        usdc, AAVE_POOL_PROVIDER, admin, mpc_signer, healthFactor, defaultLtv, weth, mockSignerTrue
+      )
+    ) as LiquidityPoolAave;
 
     const LIQUIDITY_ADMIN_ROLE = encodeBytes32String("LIQUIDITY_ADMIN_ROLE");
     await liquidityPool.connect(admin).grantRole(LIQUIDITY_ADMIN_ROLE, liquidityAdmin);
@@ -116,7 +125,7 @@ describe("LiquidityPoolAave", function () {
       liquidityPool, mockTarget, mockBorrowSwap, USDC_DEC, GHO_DEC, EURC_DEC, AAVE_POOL_PROVIDER,
       healthFactor, defaultLtv, aavePool, aToken, ghoDebtToken, eurcDebtToken, usdcDebtToken,
       nonSupportedToken, nonSupportedTokenOwner, liquidityAdmin, withdrawProfit, pauser, weth,
-      wethOwner, WETH_DEC,
+      wethOwner, WETH_DEC, mockSignerTrue, mockSignerFalse
     };
   };
 
@@ -124,7 +133,7 @@ describe("LiquidityPoolAave", function () {
     it("Should initialize the contract with correct values", async function () {
       const {
         liquidityPool, usdc, AAVE_POOL_PROVIDER, healthFactor, defaultLtv, mpc_signer,
-        aavePool, aToken,
+        aavePool, aToken, mockSignerTrue
       } = await loadFixture(deployAll);
       expect(await liquidityPool.ASSETS())
         .to.be.eq(usdc.target);
@@ -140,15 +149,18 @@ describe("LiquidityPoolAave", function () {
         .to.be.eq(defaultLtv);
       expect(await liquidityPool.mpcAddress())
         .to.be.eq(mpc_signer);
+      expect(await liquidityPool.signerAddress())
+        .to.be.eq(mockSignerTrue);
     });
 
     it("Should NOT deploy the contract if token cannot be used as collateral", async function () {
       const {
-        deployer, AAVE_POOL_PROVIDER, liquidityPool, gho, admin, mpc_signer, healthFactor, defaultLtv, weth
+        deployer, AAVE_POOL_PROVIDER, liquidityPool, gho, admin, mpc_signer, healthFactor, defaultLtv, weth,
+        mockSignerTrue
       } = await loadFixture(deployAll);
       const startingNonce = await deployer.getNonce();
       await expect(deploy("LiquidityPoolAave", deployer, {nonce: startingNonce},
-        gho, AAVE_POOL_PROVIDER, admin, mpc_signer, healthFactor, defaultLtv, weth
+        gho, AAVE_POOL_PROVIDER, admin, mpc_signer, healthFactor, defaultLtv, weth, mockSignerTrue
       )).to.be.revertedWithCustomError(liquidityPool, "CollateralNotSupported");
     });
   });
@@ -2993,6 +3005,54 @@ describe("LiquidityPoolAave", function () {
       const availableEURCAfter = await liquidityPool.balance(eurc);
       expectAlmostEqual(availableUSDCAfter, availableUSDCBefore);
       expectAlmostEqual(availableEURCAfter, availableEURCBefore);
+    });
+  });
+
+  describe("Signature checking", function () {
+    const MAGICVALUE = "0x1626ba7e";
+
+    it("Should return MAGICVALUE if a contract signature is validated", async function () {
+      const {liquidityPool} = await loadFixture(deployAll);
+      const data = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
+      expect(await liquidityPool.isValidSignature(data, data))
+        .to.eq(MAGICVALUE);
+    });
+
+    it("Should NOT return MAGICVALUE if a contract signature is invalid", async function () {
+      const {liquidityPool, admin, mockSignerTrue, mockSignerFalse} = await loadFixture(deployAll);
+      await expect(liquidityPool.connect(admin).setSignerAddress(mockSignerFalse))
+        .to.emit(liquidityPool, "SignerAddressSet")
+        .withArgs(mockSignerTrue, mockSignerFalse);
+      const data = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
+      expect(await liquidityPool.isValidSignature(data, data))
+        .to.not.eq(MAGICVALUE);
+    });
+
+    it("Should return MAGICVALUE if an EOA signature is validated", async function () {
+      const {liquidityPool, admin, mockSignerTrue} = await loadFixture(deployAll);
+      const signer = Wallet.createRandom().connect(hre.ethers.provider);
+      await expect(liquidityPool.connect(admin).setSignerAddress(signer))
+        .to.emit(liquidityPool, "SignerAddressSet")
+        .withArgs(mockSignerTrue, signer);
+      const data = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
+      const message = hashMessage(data);
+      const signature = await signer.signMessage(data);
+      expect(await liquidityPool.isValidSignature(message, signature))
+        .to.eq(MAGICVALUE);
+    });
+
+    it("Should NOT return MAGICVALUE if an EOA signature is invalid", async function () {
+      const {liquidityPool, admin, mockSignerTrue} = await loadFixture(deployAll);
+      const signer = Wallet.createRandom().connect(hre.ethers.provider);
+      await expect(liquidityPool.connect(admin).setSignerAddress(signer))
+        .to.emit(liquidityPool, "SignerAddressSet")
+        .withArgs(mockSignerTrue, signer);
+      const data = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
+      const wrongData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdeff";
+      const wrongMessage = hashMessage(wrongData);
+      const signature = await signer.signMessage(data);
+      expect(await liquidityPool.isValidSignature(wrongMessage, signature))
+        .to.not.eq(MAGICVALUE);
     });
   });
 

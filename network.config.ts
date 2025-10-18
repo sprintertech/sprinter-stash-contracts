@@ -4,36 +4,36 @@ import * as AAVEPools from "@bgd-labs/aave-address-book";
 // Subsequent implementation just use UPGRADE_ID env variable.
 // Immutable contracts are deployed first with the name-derived unique id.
 // Subsequent versions use version suffix plus a git commit from the main branch.
-export const LiquidityPoolAaveUSDC: string = "LiquidityPoolAaveUSDC";
-export const LiquidityPoolUSDC: string = "LiquidityPoolUSDC";
-export const LiquidityPoolUSDCStablecoin: string = "LiquidityPoolUSDCStablecoin";
-export const LiquidityPoolAaveUSDCLongTerm: string = "LiquidityPoolAaveUSDCLongTerm";
-export const LiquidityPoolAaveUSDCLongTermV2: string = "LiquidityPoolAaveUSDCLongTerm-V2-e09cc75";
-export const LiquidityPoolAaveUSDCV2: string = "LiquidityPoolAaveUSDC-V2-3601cc4";
-export const LiquidityPoolUSDCV2: string = "LiquidityPoolUSDC-V2-3601cc4";
-export const LiquidityPoolUSDCStablecoinV2: string = "LiquidityPoolUSDCStablecoin-V2-3601cc4";
-export const LiquidityPoolAaveUSDCV3: string = "LiquidityPoolAaveUSDC-V3-e09cc75";
-export const LiquidityPoolUSDCV3: string = "LiquidityPoolUSDC-V3-e09cc75";
-export const LiquidityPoolUSDCStablecoinV3: string = "LiquidityPoolUSDCStablecoin-V3-e09cc75";
-export const LiquidityPoolAaveUSDCLongTermVersions: string[] = [
+export const LiquidityPoolAaveUSDC = "LiquidityPoolAaveUSDC";
+export const LiquidityPoolUSDC = "LiquidityPoolUSDC";
+export const LiquidityPoolUSDCStablecoin = "LiquidityPoolUSDCStablecoin";
+export const LiquidityPoolAaveUSDCLongTerm = "LiquidityPoolAaveUSDCLongTerm";
+export const LiquidityPoolAaveUSDCLongTermV2 = "LiquidityPoolAaveUSDCLongTerm-V2-e09cc75";
+export const LiquidityPoolAaveUSDCV2 = "LiquidityPoolAaveUSDC-V2-3601cc4";
+export const LiquidityPoolUSDCV2 = "LiquidityPoolUSDC-V2-3601cc4";
+export const LiquidityPoolUSDCStablecoinV2 = "LiquidityPoolUSDCStablecoin-V2-3601cc4";
+export const LiquidityPoolAaveUSDCV3 = "LiquidityPoolAaveUSDC-V3-e09cc75";
+export const LiquidityPoolUSDCV3 = "LiquidityPoolUSDC-V3-e09cc75";
+export const LiquidityPoolUSDCStablecoinV3 = "LiquidityPoolUSDCStablecoin-V3-e09cc75";
+export const LiquidityPoolAaveUSDCLongTermVersions = [
   LiquidityPoolAaveUSDCLongTerm,
   LiquidityPoolAaveUSDCLongTermV2,
-];
-export const LiquidityPoolAaveUSDCVersions: string[] = [
+] as const;
+export const LiquidityPoolAaveUSDCVersions = [
   LiquidityPoolAaveUSDC,
   LiquidityPoolAaveUSDCV2,
   LiquidityPoolAaveUSDCV3,
-];
-export const LiquidityPoolUSDCVersions: string[] = [
+] as const;
+export const LiquidityPoolUSDCVersions = [
   LiquidityPoolUSDC,
   LiquidityPoolUSDCV2,
   LiquidityPoolUSDCV3,
-];
-export const LiquidityPoolUSDCStablecoinVersions: string[] = [
+] as const;
+export const LiquidityPoolUSDCStablecoinVersions = [
   LiquidityPoolUSDCStablecoin,
   LiquidityPoolUSDCStablecoinV2,
   LiquidityPoolUSDCStablecoinV3,
-];
+] as const;
 
 export enum Network {
   ETHEREUM = "ETHEREUM",
@@ -112,6 +112,10 @@ interface HubConfig {
   AssetsLimitSetter: string; // Address that can set assets limit.
   AssetsLimit: number; // Deposits to Liquidity Hub are only allowed till this limit is reached.
   Tiers: Tier[];
+  Pool?: (typeof LiquidityPoolUSDCVersions)[number] 
+    | (typeof LiquidityPoolAaveUSDCVersions)[number]
+    | (typeof LiquidityPoolUSDCStablecoinVersions)[number]
+    | (typeof LiquidityPoolAaveUSDCLongTermVersions)[number];
 };
 
 export interface NetworkConfig {
@@ -731,7 +735,8 @@ export const networkConfig: NetworksConfig = {
           {period: 7776000n, multiplier: 400000000n},
           {period: 15552000n, multiplier: 1000000000n},
           {period: 31104000n, multiplier: 2200000000n},
-        ]
+        ],
+        Pool: LiquidityPoolAaveUSDCV3,
       },
       RebalancerRoutes: {
         [LiquidityPoolAaveUSDCV3]: {

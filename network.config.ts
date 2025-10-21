@@ -4,36 +4,36 @@ import * as AAVEPools from "@bgd-labs/aave-address-book";
 // Subsequent implementation just use UPGRADE_ID env variable.
 // Immutable contracts are deployed first with the name-derived unique id.
 // Subsequent versions use version suffix plus a git commit from the main branch.
-export const LiquidityPoolAaveUSDC: string = "LiquidityPoolAaveUSDC";
-export const LiquidityPoolUSDC: string = "LiquidityPoolUSDC";
-export const LiquidityPoolUSDCStablecoin: string = "LiquidityPoolUSDCStablecoin";
-export const LiquidityPoolAaveUSDCLongTerm: string = "LiquidityPoolAaveUSDCLongTerm";
-export const LiquidityPoolAaveUSDCLongTermV2: string = "LiquidityPoolAaveUSDCLongTerm-V2-8ec44b8";
-export const LiquidityPoolAaveUSDCV2: string = "LiquidityPoolAaveUSDC-V2-3601cc4";
-export const LiquidityPoolUSDCV2: string = "LiquidityPoolUSDC-V2-3601cc4";
-export const LiquidityPoolUSDCStablecoinV2: string = "LiquidityPoolUSDCStablecoin-V2-3601cc4";
-export const LiquidityPoolAaveUSDCV3: string = "LiquidityPoolAaveUSDC-V3-8ec44b8";
-export const LiquidityPoolUSDCV3: string = "LiquidityPoolUSDC-V3-8ec44b8";
-export const LiquidityPoolUSDCStablecoinV3: string = "LiquidityPoolUSDCStablecoin-V3-8ec44b8";
-export const LiquidityPoolAaveUSDCLongTermVersions: string[] = [
+export const LiquidityPoolAaveUSDC = "LiquidityPoolAaveUSDC";
+export const LiquidityPoolUSDC = "LiquidityPoolUSDC";
+export const LiquidityPoolUSDCStablecoin = "LiquidityPoolUSDCStablecoin";
+export const LiquidityPoolAaveUSDCLongTerm = "LiquidityPoolAaveUSDCLongTerm";
+export const LiquidityPoolAaveUSDCLongTermV2 = "LiquidityPoolAaveUSDCLongTerm-V2-e09cc75";
+export const LiquidityPoolAaveUSDCV2 = "LiquidityPoolAaveUSDC-V2-3601cc4";
+export const LiquidityPoolUSDCV2 = "LiquidityPoolUSDC-V2-3601cc4";
+export const LiquidityPoolUSDCStablecoinV2 = "LiquidityPoolUSDCStablecoin-V2-3601cc4";
+export const LiquidityPoolAaveUSDCV3 = "LiquidityPoolAaveUSDC-V3-e09cc75";
+export const LiquidityPoolUSDCV3 = "LiquidityPoolUSDC-V3-e09cc75";
+export const LiquidityPoolUSDCStablecoinV3 = "LiquidityPoolUSDCStablecoin-V3-e09cc75";
+export const LiquidityPoolAaveUSDCLongTermVersions = [
   LiquidityPoolAaveUSDCLongTerm,
   LiquidityPoolAaveUSDCLongTermV2,
-];
-export const LiquidityPoolAaveUSDCVersions: string[] = [
+] as const;
+export const LiquidityPoolAaveUSDCVersions = [
   LiquidityPoolAaveUSDC,
   LiquidityPoolAaveUSDCV2,
   LiquidityPoolAaveUSDCV3,
-];
-export const LiquidityPoolUSDCVersions: string[] = [
+] as const;
+export const LiquidityPoolUSDCVersions = [
   LiquidityPoolUSDC,
   LiquidityPoolUSDCV2,
   LiquidityPoolUSDCV3,
-];
-export const LiquidityPoolUSDCStablecoinVersions: string[] = [
+] as const;
+export const LiquidityPoolUSDCStablecoinVersions = [
   LiquidityPoolUSDCStablecoin,
   LiquidityPoolUSDCStablecoinV2,
   LiquidityPoolUSDCStablecoinV3,
-];
+] as const;
 
 export enum Network {
   ETHEREUM = "ETHEREUM",
@@ -112,6 +112,10 @@ interface HubConfig {
   AssetsLimitSetter: string; // Address that can set assets limit.
   AssetsLimit: number; // Deposits to Liquidity Hub are only allowed till this limit is reached.
   Tiers: Tier[];
+  Pool?: (typeof LiquidityPoolUSDCVersions)[number] 
+    | (typeof LiquidityPoolAaveUSDCVersions)[number]
+    | (typeof LiquidityPoolUSDCStablecoinVersions)[number]
+    | (typeof LiquidityPoolAaveUSDCLongTermVersions)[number];
 };
 
 export interface NetworkConfig {
@@ -384,34 +388,34 @@ export const networkConfig: NetworksConfig = {
       MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
       SignerAddress: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
       RebalancerRoutes: {
-        [LiquidityPoolAaveUSDC]: {
+        [LiquidityPoolAaveUSDCV3]: {
           [Network.BASE]: [Provider.CCTP],
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
         },
-        [LiquidityPoolUSDC]: {
+        [LiquidityPoolUSDCV3]: {
           [Network.BASE]: [Provider.CCTP],
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
         },
-        [LiquidityPoolAaveUSDCLongTerm]: {
+        [LiquidityPoolAaveUSDCLongTermV2]: {
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
         },
       },
       RepayerRoutes: {
-        [LiquidityPoolAaveUSDC]: {
+        [LiquidityPoolAaveUSDCV3]: {
           SupportsAllTokens: true,
           Domains: {
             [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
             [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
           },
         },
-        [LiquidityPoolUSDC]: {
+        [LiquidityPoolUSDCV3]: {
           SupportsAllTokens: false,
           Domains: {
             [Network.ARBITRUM_ONE]: [Provider.CCTP],
             [Network.BASE]: [Provider.CCTP],
           },
         },
-        [LiquidityPoolAaveUSDCLongTerm]: {
+        [LiquidityPoolAaveUSDCLongTermV2]: {
           SupportsAllTokens: true,
           Domains: {
             [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
@@ -421,7 +425,7 @@ export const networkConfig: NetworksConfig = {
       AavePool: {
         AaveAddressesProvider: AAVEPools.AaveV3Optimism.POOL_ADDRESSES_PROVIDER,
         MinHealthFactor: 300,
-        DefaultLTV: 0,
+        DefaultLTV: 50,
         TokenLTVs: {
           "0x1f32b1c2345538c0c6f582fcb022739c4a194ebb": 50, // wstETH
           "0x4200000000000000000000000000000000000006": 50, // WETH
@@ -549,24 +553,24 @@ export const networkConfig: NetworksConfig = {
       MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
       SignerAddress: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
       RebalancerRoutes: {
-        [LiquidityPoolAaveUSDC]: {
+        [LiquidityPoolAaveUSDCV3]: {
           [Network.BASE]: [Provider.CCTP],
           [Network.OP_MAINNET]: [Provider.CCTP],
         },
-        [LiquidityPoolUSDC]: {
+        [LiquidityPoolUSDCV3]: {
           [Network.BASE]: [Provider.CCTP],
           [Network.OP_MAINNET]: [Provider.CCTP],
         },
       },
       RepayerRoutes: {
-        [LiquidityPoolAaveUSDC]: {
+        [LiquidityPoolAaveUSDCV3]: {
           SupportsAllTokens: true,
           Domains: {
             [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
             [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
           },
         },
-        [LiquidityPoolUSDC]: {
+        [LiquidityPoolUSDCV3]: {
           SupportsAllTokens: false,
           Domains: {
             [Network.OP_MAINNET]: [Provider.CCTP],
@@ -577,7 +581,7 @@ export const networkConfig: NetworksConfig = {
       AavePool: {
         AaveAddressesProvider: AAVEPools.AaveV3Arbitrum.POOL_ADDRESSES_PROVIDER,
         MinHealthFactor: 300,
-        DefaultLTV: 0,
+        DefaultLTV: 50,
         TokenLTVs: {
           "0xaf88d065e77c8cc2239327c5edb3a432268e5831": 100, // USDC
           "0x82af49447d8a07e3bd95bd0d56f35241523fbab1": 50, // WETH
@@ -731,37 +735,38 @@ export const networkConfig: NetworksConfig = {
           {period: 7776000n, multiplier: 400000000n},
           {period: 15552000n, multiplier: 1000000000n},
           {period: 31104000n, multiplier: 2200000000n},
-        ]
+        ],
+        Pool: LiquidityPoolAaveUSDCV3,
       },
       RebalancerRoutes: {
-        [LiquidityPoolAaveUSDC]: {
+        [LiquidityPoolAaveUSDCV3]: {
           [Network.OP_MAINNET]: [Provider.CCTP],
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
         },
-        [LiquidityPoolUSDC]: {
+        [LiquidityPoolUSDCV3]: {
           [Network.OP_MAINNET]: [Provider.CCTP],
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
         },
-        [LiquidityPoolAaveUSDCLongTerm]: {
+        [LiquidityPoolAaveUSDCLongTermV2]: {
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
         },
       },
       RepayerRoutes: {
-        [LiquidityPoolAaveUSDC]: {
+        [LiquidityPoolAaveUSDCV3]: {
           SupportsAllTokens: true,
           Domains: {
             [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
             [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
           },
         },
-        [LiquidityPoolUSDC]: {
+        [LiquidityPoolUSDCV3]: {
           SupportsAllTokens: false,
           Domains: {
             [Network.OP_MAINNET]: [Provider.CCTP],
             [Network.ARBITRUM_ONE]: [Provider.CCTP],
           },
         },
-        [LiquidityPoolAaveUSDCLongTerm]: {
+        [LiquidityPoolAaveUSDCLongTermV2]: {
           SupportsAllTokens: true,
           Domains: {
             [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
@@ -771,7 +776,7 @@ export const networkConfig: NetworksConfig = {
       AavePool: {
         AaveAddressesProvider: AAVEPools.AaveV3Base.POOL_ADDRESSES_PROVIDER,
         MinHealthFactor: 300,
-        DefaultLTV: 0,
+        DefaultLTV: 50,
         TokenLTVs: {
           "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": 100, // USDC
           "0x4200000000000000000000000000000000000006": 50, // WETH

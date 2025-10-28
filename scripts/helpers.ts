@@ -241,7 +241,10 @@ export async function addLocalPool(
   condition: any,
   network: Network,
   routes: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens?: boolean}[],
-  versions: string[],
+  versions: (typeof LiquidityPoolUSDCVersions)
+    | (typeof LiquidityPoolAaveUSDCVersions)
+    | (typeof LiquidityPoolUSDCStablecoinVersions)
+    | (typeof LiquidityPoolAaveUSDCLongTermVersions),
   supportsAllTokens: boolean,
   poolName: string,
 ): Promise<void> {
@@ -320,6 +323,7 @@ export async function getHardhatNetworkConfig() {
   config.RebalanceCaller = opsAdmin.address;
   config.RepayerCaller = opsAdmin.address;
   config.MpcAddress = mpc.address;
+  config.SignerAddress = opsAdmin.address;
   config.USDCStablecoinPool = true;
   if (!config.AavePoolLongTerm) {
     if (config.AavePool) {

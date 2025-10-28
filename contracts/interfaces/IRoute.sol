@@ -16,7 +16,9 @@ interface IRoute {
         ARBITRUM_SEPOLIA,
         BASE_SEPOLIA,
         POLYGON_AMOY,
-        UNICHAIN
+        UNICHAIN,
+        BSC,
+        LINEA
     }
 
     enum Provider {

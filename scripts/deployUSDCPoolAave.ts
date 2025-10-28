@@ -35,6 +35,7 @@ export async function main() {
   assertAddress(config.USDC, "USDC must be an address");
   assertAddress(config.MpcAddress, "MpcAddress must be an address");
   assertAddress(config.WrappedNativeToken, "WrappedNativeToken must be an address");
+  assertAddress(config.SignerAddress, "SignerAddress must be an address");
 
   const rebalancer = await resolveProxyXAddress("Rebalancer");
   console.log(`Rebalancer: ${rebalancer}`);
@@ -54,6 +55,7 @@ export async function main() {
       minHealthFactor,
       defaultLTV,
       config.WrappedNativeToken,
+      config.SignerAddress,
     ],
     id,
   )) as LiquidityPoolAave;

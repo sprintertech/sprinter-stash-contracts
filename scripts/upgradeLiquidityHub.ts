@@ -2,10 +2,10 @@ import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {getVerifier, upgradeProxyX, getHardhatNetworkConfig, getNetworkConfig} from "./helpers";
-import {getDeployProxyXAddress, getContractAt} from "../test/helpers";
+import {getDeployProxyXAddress, getContractAt, resolveXAddress} from "../test/helpers";
 import {isSet, assert} from "./common";
 import {LiquidityHub} from "../typechain-types";
-import {Network} from "../network.config";
+import {Network, NetworkConfig} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -17,17 +17,26 @@ export async function main() {
   console.log(`Upgrade ID: ${process.env.UPGRADE_ID}`);
 
   let network: Network;
+  let config: NetworkConfig;
   console.log("Upgrading Liquidity Hub");
-  ({network} = await getNetworkConfig());
+  ({network, config} = await getNetworkConfig());
   if (!network) {
-    ({network} = await getHardhatNetworkConfig());
+    ({network, config} = await getHardhatNetworkConfig());
   }
+
+  assert(config.Hub, "LiquidityHub must be defined");
 
   const liquidityHubAddress = await getDeployProxyXAddress("LiquidityHub");
 
   const liquidityHub = (await getContractAt("LiquidityHub", liquidityHubAddress)) as LiquidityHub;
   const lpToken = await liquidityHub.SHARES();
-  const liquidityPool = await liquidityHub.LIQUIDITY_POOL();
+
+  let liquidityPool = await liquidityHub.LIQUIDITY_POOL();
+
+  if (config.Hub.Pool) {
+    liquidityPool = await resolveXAddress(config.Hub.Pool);
+  }
+  console.log(`Liquidity Pool: ${liquidityPool}`);
 
   await upgradeProxyX<LiquidityHub>(
     verifier.deployX,

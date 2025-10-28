@@ -137,14 +137,14 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         // Allow native token transfers.
     }
 
-    function deposit(uint256 amount) external override onlyRole(LIQUIDITY_ADMIN_ROLE) {
+    function deposit(uint256 amount) external virtual override onlyRole(LIQUIDITY_ADMIN_ROLE) {
         // called after receiving deposit in USDC
         uint256 newBalance = ASSETS.balanceOf(address(this));
         require(newBalance >= amount, NotEnoughToDeposit());
         _deposit(_msgSender(), amount);
     }
 
-    function depositWithPull(uint256 amount) external override {
+    function depositWithPull(uint256 amount) external virtual override {
         // pulls USDC from the sender
         ASSETS.safeTransferFrom(_msgSender(), address(this), amount);
         _deposit(_msgSender(), amount);
@@ -281,6 +281,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     /// a withdrawProfit().
     function withdraw(address to, uint256 amount)
         external
+        virtual
         override
         onlyRole(LIQUIDITY_ADMIN_ROLE)
         whenNotPaused()

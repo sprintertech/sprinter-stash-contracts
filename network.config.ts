@@ -259,10 +259,10 @@ export const networkConfig: NetworksConfig = {
       [LiquidityPoolUSDC]: {
         SupportsAllTokens: false,
         Domains: {
-          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.EVERCLEAR, Provider.STARGATE],
-          [Network.BASE]: [Provider.CCTP, Provider.EVERCLEAR, Provider.STARGATE],
-          [Network.ETHEREUM]: [Provider.CCTP, Provider.EVERCLEAR, Provider.STARGATE],
-          [Network.OP_MAINNET]: [Provider.CCTP, Provider.EVERCLEAR, Provider.STARGATE],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+          [Network.BASE]: [Provider.CCTP],
+          [Network.ETHEREUM]: [Provider.CCTP],
+          [Network.OP_MAINNET]: [Provider.CCTP],
         },
       },
       [LiquidityPoolUSDCStablecoin]: {

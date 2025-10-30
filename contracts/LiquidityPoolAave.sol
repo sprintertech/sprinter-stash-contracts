@@ -148,7 +148,7 @@ contract LiquidityPoolAave is LiquidityPool {
         require(currentLtv <= ltv, TokenLtvExceeded());
     }
 
-    function _depositLogic(address /*caller*/, uint256 amount) internal override {
+    function _depositLogic(uint256 amount) internal override {
         ASSETS.forceApprove(address(AAVE_POOL), amount);
         AAVE_POOL.supply(address(ASSETS), amount, address(this), NO_REFERRAL);
         emit SuppliedToAave(amount);

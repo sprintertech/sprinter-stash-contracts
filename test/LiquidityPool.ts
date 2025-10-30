@@ -737,7 +737,7 @@ describe("LiquidityPool", function () {
       expect(await liquidityPool.balance(usdc)).to.eq(amountLiquidity);
     });
 
-    it("Should withdraw all available balance as profit ", async function () {
+    it("Should withdraw all available balance as profit", async function () {
       const {liquidityPool, usdc, USDC_DEC, usdcOwner, withdrawProfit, user} = await loadFixture(deployAll);
       const amount = 2n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, amount);

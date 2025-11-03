@@ -6,7 +6,7 @@ import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
-import {ILiquidityPool} from "./interfaces/ILiquidityPool.sol";
+import {ILiquidityPoolBase} from "./interfaces/ILiquidityPoolBase.sol";
 import {IRebalancer} from "./interfaces/IRebalancer.sol";
 import {CCTPAdapter} from "./utils/CCTPAdapter.sol";
 
@@ -105,7 +105,7 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable, CCTPAdapter {
             require(pool != address(0), ZeroAddress());
             if (domain == DOMAIN) {
                 require(provider == Provider.LOCAL, UnsupportedProvider());
-                require(ILiquidityPool(pool).ASSETS() == ASSETS, InvalidPoolAssets());
+                require(ILiquidityPoolBase(pool).ASSETS() == ASSETS, InvalidPoolAssets());
             } else {
                 require(provider != Provider.LOCAL, UnsupportedProvider());
             }
@@ -170,7 +170,7 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable, CCTPAdapter {
         require(isRouteAllowed(destinationPool, destinationDomain, provider), RouteDenied());
 
         emit InitiateRebalance(amount, sourcePool, destinationPool, destinationDomain, provider);
-        ILiquidityPool(sourcePool).withdraw(address(this), amount);
+        ILiquidityPoolBase(sourcePool).withdraw(address(this), amount);
 
         if (provider == Provider.LOCAL) {
             // This should always pass because isRouteAllowed check will fail earlier.
@@ -197,7 +197,7 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable, CCTPAdapter {
         uint256 depositAmount = 0;
         if (provider == Provider.CCTP) {
             depositAmount = processTransferCCTP(ASSETS, destinationPool, extraData);
-            ILiquidityPool(destinationPool).deposit(depositAmount);
+            ILiquidityPoolBase(destinationPool).deposit(depositAmount);
         } else {
             // Unreachable atm, but could become so when more providers are added to enum.
             revert UnsupportedProvider();
@@ -211,7 +211,7 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable, CCTPAdapter {
         address destinationPool
     ) internal {
         ASSETS.safeTransfer(destinationPool, amount);
-        ILiquidityPool(destinationPool).deposit(amount);
+        ILiquidityPoolBase(destinationPool).deposit(amount);
 
         emit ProcessRebalance(amount, destinationPool, Provider.LOCAL);
     }

@@ -40,6 +40,7 @@ contract ERC4626Adapter is ILiquidityPoolBase, AccessControl {
     constructor(address assets, address targetVault, address admin) {
         require(assets != address(0), ZeroAddress());
         require(targetVault != address(0), ZeroAddress());
+        require(admin != address(0), ZeroAddress());
         require(assets == IERC4626(targetVault).asset(), IncompatibleAssets());
         TARGET_VAULT = IERC4626(targetVault);
         ASSETS = IERC20(assets);
@@ -56,11 +57,11 @@ contract ERC4626Adapter is ILiquidityPoolBase, AccessControl {
         _;
     }
 
-    function deposit(uint256 amount) external override onlyRole(LIQUIDITY_ADMIN_ROLE) {
+    function deposit(uint256 amount) external override onlyRole(LIQUIDITY_ADMIN_ROLE) whenNotPaused() {
         _deposit(_msgSender(), amount);
     }
 
-    function depositWithPull(uint256 amount) external override {
+    function depositWithPull(uint256 amount) external override whenNotPaused() {
         ASSETS.safeTransferFrom(_msgSender(), address(this), amount);
         _deposit(_msgSender(), amount);
     }
@@ -114,14 +115,15 @@ contract ERC4626Adapter is ILiquidityPoolBase, AccessControl {
 
     function _withdrawProfitLogic(IERC20 token) internal returns (uint256) {
         require(token != IERC20(TARGET_VAULT), InvalidToken());
+        uint256 localBalance = token.balanceOf(address(this));
         if (token == ASSETS) {
             uint256 deposited = totalDeposited;
-            uint256 totalBalance = TARGET_VAULT.maxWithdraw(address(this));
-            if (totalBalance < deposited) return 0;
-            uint256 profit = totalBalance - deposited;
+            uint256 vaultBalance = TARGET_VAULT.maxWithdraw(address(this));
+            if (vaultBalance < deposited) return localBalance;
+            uint256 profit = vaultBalance - deposited;
             TARGET_VAULT.withdraw(profit, address(this), address(this));
-            return profit;
+            return profit + localBalance;
         }
-        return token.balanceOf(address(this));
+        return localBalance;
     }
 }

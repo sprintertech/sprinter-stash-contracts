@@ -15,6 +15,8 @@ interface ILiquidityPoolBase {
         address to
     ) external;
 
+    function totalDeposited() external view returns (uint256);
+
     function paused() external view returns (bool);
 
     function pause() external;

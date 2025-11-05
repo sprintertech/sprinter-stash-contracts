@@ -59,11 +59,12 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     IERC20 immutable public ASSETS;
 
     BitMaps.BitMap private _usedNonces;
-    uint256 public totalDeposited;
+    uint256 internal _totalDeposited;
 
     bool public paused;
     bool public borrowPaused;
     address public mpcAddress;
+    address public signerAddress;
 
     bytes32 private constant LIQUIDITY_ADMIN_ROLE = "LIQUIDITY_ADMIN_ROLE";
     bytes32 private constant WITHDRAW_PROFIT_ROLE = "WITHDRAW_PROFIT_ROLE";
@@ -71,8 +72,6 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     // bytes4(keccak256("isValidSignature(bytes32,bytes)")
     bytes4 constant internal MAGICVALUE = 0x1626ba7e;
     IWrappedNativeToken immutable public WRAPPED_NATIVE_TOKEN;
-
-    address public signerAddress;
 
     error ZeroAddress();
     error InvalidSignature();
@@ -279,7 +278,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
 
     // Admin functions
 
-    /// @notice Can withdraw a maximum of totalDeposited. If anything is left, it is meant to be withdrawn through
+    /// @notice Can withdraw a maximum of _totalDeposited. If anything is left, it is meant to be withdrawn through
     /// a withdrawProfit().
     function withdraw(address to, uint256 amount)
         external
@@ -289,9 +288,9 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         whenNotPaused()
     {
         require(to != address(0), ZeroAddress());
-        uint256 deposited = totalDeposited;
+        uint256 deposited = _totalDeposited;
         require(deposited >= amount, InsufficientLiquidity());
-        totalDeposited = deposited - amount;
+        _totalDeposited = deposited - amount;
         _withdrawLogic(to, amount);
         emit Withdraw(_msgSender(), to, amount);
     }
@@ -362,7 +361,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     }
 
     function _deposit(address caller, uint256 amount) private {
-        totalDeposited += amount;
+        _totalDeposited += amount;
         _depositLogic(amount);
         emit Deposit(caller, amount);
     }
@@ -521,7 +520,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     function _withdrawProfitLogic(IERC20 token) internal virtual returns (uint256) {
         uint256 totalBalance = token.balanceOf(address(this));
         if (token == ASSETS) {
-            uint256 deposited = totalDeposited;
+            uint256 deposited = _totalDeposited;
             if (totalBalance < deposited) return 0;
             return totalBalance - deposited;
         }
@@ -538,6 +537,10 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     }
 
     // View functions
+
+    function totalDeposited() external view virtual override returns (uint256) {
+        return _totalDeposited;
+    }
 
     function balance(IERC20 token) external view override returns (uint256) {
         if (token == NATIVE_TOKEN) token = WRAPPED_NATIVE_TOKEN;

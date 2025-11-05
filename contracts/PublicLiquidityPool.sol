@@ -19,10 +19,11 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
     using Math for uint256;
     using SafeCast for uint256;
 
-    uint256 private constant MULTIPLIER = 10000;
+    uint256 private constant RATE_DENOMINATOR = 10000;
     bytes32 private constant FEE_SETTER_ROLE = "FEE_SETTER_ROLE";
 
-    uint128 private assetsWithLent;
+    // Balance of the assets in the pool with fees, after all repayments will be done.
+    uint128 private _virtualBalance;
     uint112 public protocolFee;
     uint16 public protocolFeeRate;
 
@@ -89,12 +90,16 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
         revert NotImplemented();
     }
 
+    function totalDeposited() external view virtual override returns (uint256) {
+        return _virtualBalance;
+    }
+
     function totalAssets() public view virtual override returns (uint256) {
-        return assetsWithLent;
+        return _virtualBalance - protocolFee;
     }
 
     function _setProtocolFeeRate(uint16 protocolFeeRate_) internal {
-        require(protocolFeeRate_ <= MULTIPLIER, InvalidProtocolFeeRate());
+        require(protocolFeeRate_ <= RATE_DENOMINATOR, InvalidProtocolFeeRate());
         protocolFeeRate = protocolFeeRate_;
 
         emit ProtocolFeeRateSet(protocolFeeRate_);
@@ -125,7 +130,7 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal override {
         require(receiver != address(0), ZeroAddress());
         super._deposit(caller, receiver, assets, shares);
-        assetsWithLent = (uint256(assetsWithLent) + assets).toUint128();
+        _virtualBalance = (uint256(_virtualBalance) + assets).toUint128();
     }
 
     function _withdraw(
@@ -136,7 +141,7 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
         uint256 shares
     ) internal override whenNotPaused() {
         require(receiver != address(0), ZeroAddress());
-        assetsWithLent = (uint256(assetsWithLent) - assets).toUint128();
+        _virtualBalance = (uint256(_virtualBalance) - assets).toUint128();
         super._withdraw(caller, receiver, owner, assets, shares);
     }
 
@@ -144,15 +149,12 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
         uint256 totalBalance = token.balanceOf(address(this));
         if (token == ASSETS) {
             uint256 profit = protocolFee;
-            if (profit > 0) {
-                protocolFee = 0;
-                return profit;
-            }
-            if (totalBalance > assetsWithLent) {
+            protocolFee = 0;
+            if (totalBalance > _virtualBalance) {
                 // In case there are donations sent to the pool.
-                return totalBalance - assetsWithLent;
+                profit += totalBalance - _virtualBalance;
             }
-            return 0;
+            return profit;
         }
         return totalBalance;
     }
@@ -165,9 +167,9 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
         require(amountToReceive <= amount, InvalidFillAmount());
         uint256 totalFee = amount - amountToReceive;
         if (totalFee > 0) {
-            uint256 protocolFeeIncrease = totalFee.mulDiv(protocolFeeRate, MULTIPLIER, Math.Rounding.Ceil);
+            uint256 protocolFeeIncrease = totalFee.mulDiv(protocolFeeRate, RATE_DENOMINATOR, Math.Rounding.Ceil);
             protocolFee = (uint256(protocolFee) + protocolFeeIncrease).toUint112();
-            assetsWithLent = (uint256(assetsWithLent) + (totalFee - protocolFeeIncrease)).toUint128();
+            _virtualBalance = (uint256(_virtualBalance) + totalFee).toUint128();
         }
         return amountToReceive;
     }

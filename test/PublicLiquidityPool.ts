@@ -183,7 +183,7 @@ describe("PublicLiquidityPool", function () {
       await usdc.connect(lp).approve(liquidityPool, amount);
       await expect(liquidityPool.connect(lp)[ERC4626Deposit](amount, lp))
         .to.emit(liquidityPool, ERC4626DepositEvent).withArgs(lp, lp, amount, amount);
-      expect(await liquidityPool.totalDeposited()).to.eq(0);
+      expect(await liquidityPool.totalDeposited()).to.eq(amount);
       expect(await liquidityPool.totalAssets()).to.eq(amount);
       expect(await liquidityPool.totalSupply()).to.eq(amount);
       expect(await liquidityPool.balance(usdc)).to.eq(amount);
@@ -223,7 +223,7 @@ describe("PublicLiquidityPool", function () {
       expect(await usdc.balanceOf(user2)).to.eq(0n);
       await expect(liquidityPool.connect(user)[ERC4626Deposit](amount3, user))
         .to.emit(liquidityPool, ERC4626DepositEvent).withArgs(user, user, amount3, amount3);
-      expect(await liquidityPool.totalDeposited()).to.eq(0);
+      expect(await liquidityPool.totalDeposited()).to.eq(amount + amount2 + amount3);
       expect(await liquidityPool.totalAssets()).to.eq(amount + amount2 + amount3);
       expect(await liquidityPool.totalSupply()).to.eq(amount + amount2 + amount3);
       expect(await liquidityPool.balance(usdc)).to.eq(amount + amount2 + amount3);
@@ -241,7 +241,7 @@ describe("PublicLiquidityPool", function () {
       await usdc.connect(lp).approve(liquidityPool, amount);
       await expect(liquidityPool.connect(lp).mint(amount, lp))
         .to.emit(liquidityPool, ERC4626DepositEvent).withArgs(lp, lp, amount, amount);
-      expect(await liquidityPool.totalDeposited()).to.eq(0);
+      expect(await liquidityPool.totalDeposited()).to.eq(amount);
       expect(await liquidityPool.totalAssets()).to.eq(amount);
       expect(await liquidityPool.totalSupply()).to.eq(amount);
       expect(await liquidityPool.balance(usdc)).to.eq(amount);
@@ -286,7 +286,7 @@ describe("PublicLiquidityPool", function () {
         permitSig.s,
       );
       await expect(tx).to.emit(liquidityPool, ERC4626DepositEvent).withArgs(lp, user, amount, amount);
-      expect(await liquidityPool.totalDeposited()).to.eq(0);
+      expect(await liquidityPool.totalDeposited()).to.eq(amount);
       expect(await liquidityPool.totalAssets()).to.eq(amount);
       expect(await liquidityPool.totalSupply()).to.eq(amount);
       expect(await liquidityPool.balance(usdc)).to.eq(amount);
@@ -348,7 +348,7 @@ describe("PublicLiquidityPool", function () {
       expect(await usdc.balanceOf(liquidityPool)).to.eq(amountLiquidity - amountToReceive);
       expect(await usdc.balanceOf(mockTarget)).to.eq(amountToReceive);
       expect(await usdc.allowance(liquidityPool, mockTarget)).to.eq(0);
-      expect(await liquidityPool.totalDeposited()).to.eq(0);
+      expect(await liquidityPool.totalDeposited()).to.eq(amountLiquidity + fee);
       expect(await liquidityPool.totalAssets()).to.eq(amountLiquidity + fee - protocolFee);
       expect(await liquidityPool.protocolFee()).to.eq(protocolFee);
       expect(await liquidityPool.totalSupply()).to.eq(amountLiquidity);
@@ -412,7 +412,7 @@ describe("PublicLiquidityPool", function () {
       expect(await usdc.allowance(liquidityPool, mockTarget)).to.eq(0);
       expect(await eurc.balanceOf(liquidityPool)).to.eq(0);
       expect(await eurc.balanceOf(mockTarget)).to.eq(fillAmount);
-      expect(await liquidityPool.totalDeposited()).to.eq(0);
+      expect(await liquidityPool.totalDeposited()).to.eq(amountLiquidity + fee);
       expect(await liquidityPool.totalAssets()).to.eq(amountLiquidity + fee - protocolFee);
       expect(await liquidityPool.protocolFee()).to.eq(protocolFee);
       expect(await liquidityPool.totalSupply()).to.eq(amountLiquidity);
@@ -476,7 +476,7 @@ describe("PublicLiquidityPool", function () {
       expect(await usdc.balanceOf(liquidityPool)).to.eq(amountLiquidity - amountToReceive);
       expect(await usdc.balanceOf(mockBorrowSwap)).to.eq(amountToReceive);
       expect(await usdc.allowance(liquidityPool, mockTarget)).to.eq(0);
-      expect(await liquidityPool.totalDeposited()).to.eq(0);
+      expect(await liquidityPool.totalDeposited()).to.eq(amountLiquidity + fee);
       expect(await liquidityPool.totalAssets()).to.eq(amountLiquidity + fee - protocolFee);
       expect(await liquidityPool.protocolFee()).to.eq(protocolFee);
       expect(await liquidityPool.totalSupply()).to.eq(amountLiquidity);
@@ -596,7 +596,7 @@ describe("PublicLiquidityPool", function () {
       expect(await usdc.balanceOf(liquidityPool)).to.eq(amountLiquidity - amountToReceive);
       expect(await usdc.balanceOf(mockBorrowSwap)).to.eq(amountToReceive);
       expect(await usdc.allowance(liquidityPool, mockTarget)).to.eq(0);
-      expect(await liquidityPool.totalDeposited()).to.eq(0);
+      expect(await liquidityPool.totalDeposited()).to.eq(amountLiquidity + fee);
       expect(await liquidityPool.totalAssets()).to.eq(amountLiquidity + fee - protocolFee);
       expect(await liquidityPool.protocolFee()).to.eq(protocolFee);
       expect(await liquidityPool.totalSupply()).to.eq(amountLiquidity);
@@ -704,7 +704,7 @@ describe("PublicLiquidityPool", function () {
       await usdc.connect(usdcOwner).approve(liquidityPool, amountLiquidity);
       await expect(liquidityPool.connect(usdcOwner)[ERC4626Deposit](amountLiquidity, usdcOwner))
         .to.emit(liquidityPool, ERC4626DepositEvent).withArgs(usdcOwner, usdcOwner, amountLiquidity, amountLiquidity);
-      expect(await liquidityPool.totalDeposited()).to.eq(0);
+      expect(await liquidityPool.totalDeposited()).to.eq(amountLiquidity + amountLiquidity);
       expect(await liquidityPool.totalAssets()).to.eq(amountLiquidity + amountLiquidity);
       expect(await liquidityPool.totalSupply()).to.eq(amountLiquidity + amountLiquidity);
       expect(await liquidityPool.balance(usdc)).to.eq(amountLiquidity + amountLiquidity);
@@ -830,7 +830,7 @@ describe("PublicLiquidityPool", function () {
       expect(await usdc.balanceOf(mockTarget)).to.eq(amountToReceive);
       expect(await usdc.balanceOf(user)).to.eq(0);
       expect(await usdc.balanceOf(user2)).to.eq(0);
-      expect(await liquidityPool.totalDeposited()).to.eq(0);
+      expect(await liquidityPool.totalDeposited()).to.eq(totalLiquidity + fee);
       expect(await liquidityPool.totalAssets()).to.eq(totalLiquidity + fee - protocolFee);
       expect(await liquidityPool.protocolFee()).to.eq(protocolFee);
       expect(await liquidityPool.totalSupply()).to.eq(totalLiquidity);
@@ -851,7 +851,7 @@ describe("PublicLiquidityPool", function () {
       expect(await usdc.balanceOf(mockTarget)).to.eq(amountToReceive);
       expect(await usdc.balanceOf(user)).to.eq(2008n * USDC_DEC);
       expect(await usdc.balanceOf(user2)).to.eq(1004n * USDC_DEC);
-      expect(await liquidityPool.totalDeposited()).to.eq(0);
+      expect(await liquidityPool.totalDeposited()).to.eq(1008n * USDC_DEC);
       expect(await liquidityPool.totalAssets()).to.eq(1004n * USDC_DEC);
       expect(await liquidityPool.protocolFee()).to.eq(protocolFee);
       expect(await liquidityPool.totalSupply()).to.eq(1000n * USDC_DEC);
@@ -868,7 +868,7 @@ describe("PublicLiquidityPool", function () {
       expect(await usdc.balanceOf(mockTarget)).to.eq(amountToReceive);
       expect(await usdc.balanceOf(user)).to.eq(2008n * USDC_DEC);
       expect(await usdc.balanceOf(user2)).to.eq(502n * USDC_DEC);
-      expect(await liquidityPool.totalDeposited()).to.eq(0);
+      expect(await liquidityPool.totalDeposited()).to.eq(1510n * USDC_DEC);
       expect(await liquidityPool.totalAssets()).to.eq(1506n * USDC_DEC);
       expect(await liquidityPool.protocolFee()).to.eq(protocolFee);
       expect(await liquidityPool.totalSupply()).to.eq(1500n * USDC_DEC);
@@ -1660,7 +1660,7 @@ describe("PublicLiquidityPool", function () {
       expect(await usdc.balanceOf(liquidityPool)).to.eq(amountLiquidity - amountToReceive);
       expect(await usdc.balanceOf(mockTarget)).to.eq(amountToReceive);
       expect(await usdc.allowance(liquidityPool, mockTarget)).to.eq(0);
-      expect(await liquidityPool.totalDeposited()).to.eq(0);
+      expect(await liquidityPool.totalDeposited()).to.eq(amountLiquidity + fee);
       expect(await liquidityPool.totalAssets()).to.eq(amountLiquidity + fee - protocolFee);
       expect(await liquidityPool.protocolFee()).to.eq(protocolFee);
       expect(await liquidityPool.totalSupply()).to.eq(amountLiquidity);
@@ -1712,7 +1712,7 @@ describe("PublicLiquidityPool", function () {
       expect(await usdc.balanceOf(liquidityPool)).to.eq(amountLiquidity - amountToReceive);
       expect(await usdc.balanceOf(mockTarget)).to.eq(amountToReceive);
       expect(await usdc.allowance(liquidityPool, mockTarget)).to.eq(0);
-      expect(await liquidityPool.totalDeposited()).to.eq(0);
+      expect(await liquidityPool.totalDeposited()).to.eq(amountLiquidity + fee);
       expect(await liquidityPool.totalAssets()).to.eq(amountLiquidity + fee - protocolFee);
       expect(await liquidityPool.protocolFee()).to.eq(protocolFee);
       expect(await liquidityPool.totalSupply()).to.eq(amountLiquidity);
@@ -1764,7 +1764,7 @@ describe("PublicLiquidityPool", function () {
       expect(await usdc.balanceOf(liquidityPool)).to.eq(amountLiquidity - amountToReceive);
       expect(await usdc.balanceOf(mockTarget)).to.eq(amountToReceive);
       expect(await usdc.allowance(liquidityPool, mockTarget)).to.eq(0);
-      expect(await liquidityPool.totalDeposited()).to.eq(0);
+      expect(await liquidityPool.totalDeposited()).to.eq(amountLiquidity + fee);
       expect(await liquidityPool.totalAssets()).to.eq(amountLiquidity + fee - protocolFee);
       expect(await liquidityPool.protocolFee()).to.eq(protocolFee);
       expect(await liquidityPool.totalSupply()).to.eq(amountLiquidity);

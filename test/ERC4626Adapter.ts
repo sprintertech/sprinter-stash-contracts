@@ -7,29 +7,19 @@ import {
   deploy, signBorrow,
 } from "./helpers";
 import {ETH, ZERO_ADDRESS, DEFAULT_ADMIN_ROLE} from "../scripts/common";
-import {encodeBytes32String, AbiCoder, concat} from "ethers";
+import {encodeBytes32String} from "ethers";
 import {
   MockTarget, MockBorrowSwap, PublicLiquidityPool, MockSignerTrue, MockSignerFalse,
   ERC4626Adapter
 } from "../typechain-types";
 import {networkConfig} from "../network.config";
 
-function addAmountToReceive(callData: string, amountToReceive: bigint) {
-  return concat([
-    callData,
-    AbiCoder.defaultAbiCoder().encode(
-      ["uint256"],
-      [amountToReceive]
-    )
-  ]);
-}
-
 const ERC4626Deposit = "deposit(uint256,address)";
 
 describe("ERC4626Adapter", function () {
   const deployAll = async () => {
     const [
-      deployer, admin, user, user2, mpc_signer, liquidityAdmin, withdrawProfit, pauser, lp,
+      deployer, admin, user, user2, mpc_signer, liquidityAdmin, withdrawProfit, pauser, lp, feeSetter,
     ] = await hre.ethers.getSigners();
     await setCode(user2.address, "0x00");
 
@@ -70,7 +60,7 @@ describe("ERC4626Adapter", function () {
     const liquidityPool = (
       await deploy("PublicLiquidityPool", deployer, {},
         usdc, deployer, mpc_signer, networkConfig.BASE.WrappedNativeToken, mockSignerTrue,
-        "Public Liquidity Pool", "PLP", 0
+        "Public Liquidity Pool", "PLP", {flat: 2n * USDC_DEC, rate: 0n, protocolRate: 0n}
       )
     ) as PublicLiquidityPool;
 
@@ -79,6 +69,9 @@ describe("ERC4626Adapter", function () {
         usdc, liquidityPool, admin
       )
     ) as ERC4626Adapter;
+
+    const FEE_SETTER_ROLE = encodeBytes32String("FEE_SETTER_ROLE");
+    await liquidityPool.connect(deployer).grantRole(FEE_SETTER_ROLE, feeSetter);
 
     const LIQUIDITY_ADMIN_ROLE = encodeBytes32String("LIQUIDITY_ADMIN_ROLE");
     await adapter.connect(admin).grantRole(LIQUIDITY_ADMIN_ROLE, liquidityAdmin);
@@ -91,10 +84,9 @@ describe("ERC4626Adapter", function () {
 
     const generateProfit = async (amount: bigint, nonce: bigint = 0n) => {
       const amountToBorrow = amount;
-      const amountToReceive = 0n;
 
+      await liquidityPool.connect(feeSetter).setFeeConfig({flat: amount, rate: 0n, protocolRate: 0n});
       const callData = await mockTarget.fulfillSkip.populateTransaction();
-      const callDataWithAmountToReceive = addAmountToReceive(callData.data, amountToReceive);
 
       const signature = await signBorrow(
         mpc_signer,
@@ -103,7 +95,7 @@ describe("ERC4626Adapter", function () {
         usdc,
         amountToBorrow,
         mockTarget,
-        callDataWithAmountToReceive,
+        callData.data,
         31337,
         nonce
       );
@@ -112,7 +104,7 @@ describe("ERC4626Adapter", function () {
         usdc,
         amountToBorrow,
         mockTarget,
-        callDataWithAmountToReceive,
+        callData.data,
         nonce,
         2000000000n,
         signature);

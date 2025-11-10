@@ -170,6 +170,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     ) external override whenNotPaused() whenBorrowNotPaused() {
         // - Validate MPC signature
         _validateMPCSignatureWithCaller(borrowToken, amount, target, targetCallData, nonce, deadline, signature);
+        amount = _processBorrowAmount(amount, targetCallData);
         (uint256 nativeValue, address actualBorrowToken, bytes memory context) =
             _borrow(borrowToken, amount, target, NATIVE_ALLOWED, "");
         _afterBorrowLogic(actualBorrowToken, context);
@@ -236,6 +237,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         bytes calldata signature
     ) external override whenNotPaused() whenBorrowNotPaused() {
         _validateMPCSignatureWithCaller(borrowToken, amount, target, targetCallData, nonce, deadline, signature);
+        amount = _processBorrowAmount(amount, targetCallData);
         // Native borrowing is denied because swap() is not payable.
         (,, bytes memory context) = _borrow(borrowToken, amount, _msgSender(), NATIVE_DENIED, "");
         _afterBorrowLogic(borrowToken, context);
@@ -493,6 +495,13 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     {
         require(borrowToken == address(ASSETS), InvalidBorrowToken());
         return context;
+    }
+
+    function _processBorrowAmount(
+        uint256 amount,
+        bytes calldata /*targetCallData*/
+    ) internal virtual returns (uint256) {
+        return amount;
     }
 
     function _afterBorrowLogic(address /*borrowToken*/, bytes memory /*context*/) internal virtual {

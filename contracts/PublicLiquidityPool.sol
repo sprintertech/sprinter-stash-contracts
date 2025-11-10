@@ -9,10 +9,9 @@ import {LiquidityPool} from "./LiquidityPool.sol";
 
 /// @title A version of the liquidity pool contract that supports direct liquidity provision for third parties.
 /// Borrowing is managed in the same way as in the base contract, though profits are accounted for differently.
-/// Fee is always accounted in the liquidity token (e.g. USDC) and could be a flat rate or a percentage of the
-/// borrowed amount whichever is higher. Fee does not change the borrowed amount, instead it is applied on top
-/// of it and is assumed to be repayed eventually. Before fee is distributed to the depositors, the protocol
-/// fee is taken based on the protocol rate.
+/// Fee is always accounted in the liquidity token (e.g. USDC) and is derived from the target call data, whcih
+/// is expected to contain the amount to receive as a last 32 bytes. Borrow amount minus the amount to receive
+/// gives the fee. Before fee is distributed to the depositors, the protocol fee is taken based on the rate.
 /// The total assets counter cannot be increased by a donation, making inflation by users impossible.
 /// Borrow many is not supported for this pool because only a single asset can be borrowed.
 /// @author Oleksii Matiiasevych <oleksii@sprinter.tech>
@@ -23,22 +22,15 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
     uint256 private constant RATE_DENOMINATOR = 10000;
     bytes32 private constant FEE_SETTER_ROLE = "FEE_SETTER_ROLE";
 
-    struct Fee {
-        uint128 flat;
-        uint16 rate;
-        uint16 protocolRate;
-    }
-
     // Balance of the assets in the pool with fees, after all repayments will be done.
     uint128 private _virtualBalance;
-    uint128 public protocolFee;
-    Fee public feeConfig;
+    uint112 public protocolFee;
+    uint16 public protocolFeeRate;
 
-    event FeeConfigSet(Fee feeConfig);
+    event ProtocolFeeRateSet(uint16 protocolFeeRate);
 
     error TargetCallDataTooShort();
     error InvalidFillAmount();
-    error InvalidFeeRate();
     error InvalidProtocolFeeRate();
 
     constructor(
@@ -49,17 +41,17 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
         address signerAddress_,
         string memory name_,
         string memory symbol_,
-        Fee memory feeConfig_
+        uint16 protocolFeeRate_
     )
         LiquidityPool(liquidityToken, admin, mpcAddress_, wrappedNativeToken, signerAddress_)
         ERC4626(IERC20(liquidityToken))
         ERC20(name_, symbol_)
     {
-        _setFeeConfig(feeConfig_);
+        _setProtocolFeeRate(protocolFeeRate_);
     }
 
-    function setFeeConfig(Fee memory feeConfig_) external onlyRole(FEE_SETTER_ROLE) {
-        _setFeeConfig(feeConfig_);
+    function setProtocolFeeRate(uint16 protocolFeeRate_) external onlyRole(FEE_SETTER_ROLE) {
+        _setProtocolFeeRate(protocolFeeRate_);
     }
 
     // Note, a malicious actor could frontrun the permit() call in separate transaction, which will
@@ -106,12 +98,11 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
         return _virtualBalance - protocolFee;
     }
 
-    function _setFeeConfig(Fee memory feeConfig_) internal {
-        require(feeConfig_.rate <= RATE_DENOMINATOR, InvalidFeeRate());
-        require(feeConfig_.protocolRate <= RATE_DENOMINATOR, InvalidProtocolFeeRate());
-        feeConfig = feeConfig_;
+    function _setProtocolFeeRate(uint16 protocolFeeRate_) internal {
+        require(protocolFeeRate_ <= RATE_DENOMINATOR, InvalidProtocolFeeRate());
+        protocolFeeRate = protocolFeeRate_;
 
-        emit FeeConfigSet(feeConfig_);
+        emit ProtocolFeeRateSet(protocolFeeRate_);
     }
 
     function _convertToShares(uint256 assets, Math.Rounding rounding) internal view override returns (uint256) {
@@ -168,17 +159,19 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
         return totalBalance;
     }
 
-    function _borrowLogic(address borrowToken, uint256 amount, bytes memory context)
-        internal override returns (bytes memory)
+    function _processBorrowAmount(uint256 amount, bytes calldata targetCallData)
+        internal override returns (uint256)
     {
-        Fee memory config = feeConfig;
-        uint256 totalFee = Math.max(config.flat, amount.mulDiv(config.rate, RATE_DENOMINATOR, Math.Rounding.Ceil));
+        require(targetCallData.length >= 32, TargetCallDataTooShort());
+        uint256 amountToReceive = abi.decode(targetCallData[targetCallData.length - 32:], (uint256));
+        require(amountToReceive <= amount, InvalidFillAmount());
+        uint256 totalFee = amount - amountToReceive;
         if (totalFee > 0) {
-            uint256 protocolFeeIncrease = totalFee.mulDiv(config.protocolRate, RATE_DENOMINATOR, Math.Rounding.Ceil);
-            protocolFee = (uint256(protocolFee) + protocolFeeIncrease).toUint128();
+            uint256 protocolFeeIncrease = totalFee.mulDiv(protocolFeeRate, RATE_DENOMINATOR, Math.Rounding.Ceil);
+            protocolFee = (uint256(protocolFee) + protocolFeeIncrease).toUint112();
             _virtualBalance = (uint256(_virtualBalance) + totalFee).toUint128();
         }
-        return super._borrowLogic(borrowToken, amount, context);
+        return amountToReceive;
     }
 
     /// @dev Borrow many is not supported for this pool because only a single asset can be borrowed.

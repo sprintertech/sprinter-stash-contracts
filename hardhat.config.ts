@@ -316,7 +316,7 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
       }
     }
   }
-  await addLocalPools(config, network, localConfig);
+  await addLocalPools(config, network, localConfig, false);
   sortRoutes(onchainConfig);
   sortRoutes(localConfig);
 

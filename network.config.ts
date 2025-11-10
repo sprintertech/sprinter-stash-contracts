@@ -416,6 +416,9 @@ export const networkConfig: NetworksConfig = {
         [LiquidityPoolAaveUSDCLongTermV2]: {
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
         },
+        [LiquidityPoolPublicUSDC]: {
+          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+        },
       },
       RepayerRoutes: {
         [LiquidityPoolAaveUSDCV3]: {
@@ -771,6 +774,9 @@ export const networkConfig: NetworksConfig = {
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
         },
         [LiquidityPoolAaveUSDCLongTermV2]: {
+          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+        },
+        [LiquidityPoolPublicUSDC]: {
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
         },
       },

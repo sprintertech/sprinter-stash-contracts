@@ -9,7 +9,7 @@ import {LiquidityPool} from "./LiquidityPool.sol";
 
 /// @title A version of the liquidity pool contract that supports direct liquidity provision for third parties.
 /// Borrowing is managed in the same way as in the base contract, though profits are accounted for differently.
-/// Fee is always accounted in the liquidity token (e.g. USDC) and is derived from the target call data, whcih
+/// Fee is always accounted in the liquidity token (e.g. USDC) and is derived from the target call data, which
 /// is expected to contain the amount to receive as a last 32 bytes. Borrow amount minus the amount to receive
 /// gives the fee. Before fee is distributed to the depositors, the protocol fee is taken based on the rate.
 /// The total assets counter cannot be increased by a donation, making inflation by users impossible.

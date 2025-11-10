@@ -90,16 +90,10 @@ export interface RepayerRoutesConfig {
   };
 }
 
-interface FeeConfig {
-  Flat: bigint;
-  Rate: number;
-  ProtocolRate: number;
-}
-
 interface PublicPoolConfig {
   Name: string;
   Symbol: string;
-  FeeConfig: FeeConfig;
+  ProtocolFeeRate: number;
   FeeSetter: string;
 }
 
@@ -636,7 +630,7 @@ export const networkConfig: NetworksConfig = {
       USDCPublicPool: {
         Name: "Sprinter-Lighter Fast Withdrawal Pool",
         Symbol: "SLFWP",
-        FeeConfig: {Flat: 2n * 10n ** 6n, Rate: 0, ProtocolRate: 20},
+        ProtocolFeeRate: 20,
         FeeSetter: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
       },
       ERC4626AdapterUSDCTargetVault: LiquidityPoolPublicUSDC,

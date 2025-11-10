@@ -45,11 +45,7 @@ export async function main() {
       config.SignerAddress,
       config.USDCPublicPool.Name,
       config.USDCPublicPool.Symbol,
-      [
-        config.USDCPublicPool.FeeConfig.Flat,
-        config.USDCPublicPool.FeeConfig.Rate * 10000 / 100,
-        config.USDCPublicPool.FeeConfig.ProtocolRate * 10000 / 100,
-      ],
+      config.USDCPublicPool.ProtocolFeeRate * 10000 / 100,
     ],
     id
   )) as PublicLiquidityPool;

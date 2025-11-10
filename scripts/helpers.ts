@@ -347,7 +347,7 @@ export async function getHardhatNetworkConfig() {
     config.USDCPublicPool = {
       Name: "Public Liquidity Pool USDC",
       Symbol: "PLPUSDC",
-      FeeConfig: {Flat: 2n * 10n ** 6n, Rate: 0, ProtocolRate: 20},
+      ProtocolFeeRate: 20,
       FeeSetter: opsAdmin.address,
     };
   }

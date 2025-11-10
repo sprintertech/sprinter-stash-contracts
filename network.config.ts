@@ -203,9 +203,9 @@ export const networkConfig: NetworksConfig = {
       [LiquidityPoolUSDC]: {
         SupportsAllTokens: false,
         Domains: {
-          [Network.OP_MAINNET]: [Provider.CCTP],
-          [Network.ARBITRUM_ONE]: [Provider.CCTP],
-          [Network.BASE]: [Provider.CCTP],
+          [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
         },
       },
       [LiquidityPoolUSDCStablecoin]: {
@@ -329,9 +329,9 @@ export const networkConfig: NetworksConfig = {
       [LiquidityPoolUSDC]: {
         SupportsAllTokens: false,
         Domains: {
-          [Network.ARBITRUM_ONE]: [Provider.CCTP],
-          [Network.BASE]: [Provider.CCTP],
-          [Network.ETHEREUM]: [Provider.CCTP],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
         },
       },
       [LiquidityPoolUSDCStablecoin]: {
@@ -492,9 +492,9 @@ export const networkConfig: NetworksConfig = {
       [LiquidityPoolUSDC]: {
         SupportsAllTokens: false,
         Domains: {
-          [Network.OP_MAINNET]: [Provider.CCTP],
-          [Network.BASE]: [Provider.CCTP],
-          [Network.ETHEREUM]: [Provider.CCTP],
+          [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
         },
       },
       [LiquidityPoolUSDCStablecoin]: {
@@ -650,7 +650,6 @@ export const networkConfig: NetworksConfig = {
       [LiquidityPoolUSDC]: {
         [Network.OP_MAINNET]: [Provider.CCTP],
         [Network.ARBITRUM_ONE]: [Provider.CCTP],
-        [Network.ETHEREUM]: [Provider.CCTP],
       },
       [LiquidityPoolUSDCStablecoin]: {
         [Network.ETHEREUM]: [Provider.CCTP],
@@ -671,9 +670,9 @@ export const networkConfig: NetworksConfig = {
       [LiquidityPoolUSDC]: {
         SupportsAllTokens: false,
         Domains: {
-          [Network.OP_MAINNET]: [Provider.CCTP],
-          [Network.ARBITRUM_ONE]: [Provider.CCTP],
-          [Network.ETHEREUM]: [Provider.CCTP],
+          [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
         },
       },
       [LiquidityPoolUSDCStablecoin]: {
@@ -823,10 +822,10 @@ export const networkConfig: NetworksConfig = {
       [LiquidityPoolUSDC]: {
         SupportsAllTokens: false,
         Domains: {
-          [Network.ARBITRUM_ONE]: [Provider.CCTP],
-          [Network.BASE]: [Provider.CCTP],
-          [Network.OP_MAINNET]: [Provider.CCTP],
-          [Network.ETHEREUM]: [Provider.CCTP],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
         },
       },
       [LiquidityPoolUSDCStablecoin]: {
@@ -878,7 +877,6 @@ export const networkConfig: NetworksConfig = {
         [Network.OP_MAINNET]: [Provider.CCTP],
         [Network.ARBITRUM_ONE]: [Provider.CCTP],
         [Network.BASE]: [Provider.CCTP],
-        [Network.ETHEREUM]: [Provider.CCTP],
       },
       [LiquidityPoolUSDCStablecoin]: {
         [Network.ETHEREUM]: [Provider.CCTP],
@@ -899,10 +897,10 @@ export const networkConfig: NetworksConfig = {
       [LiquidityPoolUSDC]: {
         SupportsAllTokens: false,
         Domains: {
-          [Network.ARBITRUM_ONE]: [Provider.CCTP],
-          [Network.BASE]: [Provider.CCTP],
-          [Network.OP_MAINNET]: [Provider.CCTP],
-          [Network.ETHEREUM]: [Provider.CCTP],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
         },
       },
       [LiquidityPoolUSDCStablecoin]: {

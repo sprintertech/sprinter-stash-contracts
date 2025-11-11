@@ -416,7 +416,7 @@ export const networkConfig: NetworksConfig = {
         [LiquidityPoolAaveUSDCLongTermV2]: {
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
         },
-        [LiquidityPoolPublicUSDC]: {
+        [ERC4626AdapterUSDC]: {
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
         },
       },
@@ -776,7 +776,7 @@ export const networkConfig: NetworksConfig = {
         [LiquidityPoolAaveUSDCLongTermV2]: {
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
         },
-        [LiquidityPoolPublicUSDC]: {
+        [ERC4626AdapterUSDC]: {
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
         },
       },

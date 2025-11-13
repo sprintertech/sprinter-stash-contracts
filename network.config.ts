@@ -236,7 +236,7 @@ export const networkConfig: NetworksConfig = {
       },
       AcrossV3SpokePool: "0x5c7BCd6E7De5423a257D81B442095A1a6ced35C5",
       StargateTreasurer: "0x1041D127b2d4BC700F0F563883bC689502606918",
-      EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
+      EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
       OptimismStandardBridge: "0x99C9fc46f92E8a1c0deC1b1747d010903E884bE1",
       USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
       WrappedNativeToken: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",

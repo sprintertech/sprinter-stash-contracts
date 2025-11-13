@@ -883,7 +883,7 @@ describe("LiquidityPool", function () {
         amountToBorrow,
         user2,
         "0x",
-        hre.network.config.chainId,
+        undefined,
         0n,
         deadline,
       );
@@ -1259,7 +1259,7 @@ describe("LiquidityPool", function () {
         [amountToBorrow, amountToBorrow],
         user2,
         "0x",
-        hre.network.config.chainId,
+        undefined,
         0n,
         deadline,
       );

@@ -43,7 +43,6 @@ eip155:1:
   env: stage
   name: ETHEREUM
   LiquidityPoolUSDC: "0x578aD20ec27E11B3772F91cc6f435d782cc362EA"
-  LiquidityPoolAaveUSDCLongTerm: "0x4ce56b5D7e79dF121aF2eC055D096eF983F459e6"
   CensoredTransferFromMulticall: "0xd0A630c391daEb244369DB0f75CBDF7dFeEaEaC3"
   USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
   Rebalancer: "0x34Df9cD75fA0b4d8fF300AeDf7591f79dFdd61C9"

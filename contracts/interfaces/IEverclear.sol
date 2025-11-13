@@ -5,7 +5,7 @@ pragma solidity 0.8.28;
  * @title IEverclear
  * @notice Common interface for EverclearHub and EverclearSpoke
  */
-interface IEverclear {
+interface IEverclearV2 {
   /*//////////////////////////////////////////////////////////////
                                 ENUMS
     //////////////////////////////////////////////////////////////*/
@@ -23,7 +23,6 @@ interface IEverclear {
     SETTLED_AND_MANUALLY_EXECUTED, // 7
     UNSUPPORTED, // 8
     UNSUPPORTED_RETURNED // 9
-
   }
 
   /**
@@ -44,13 +43,13 @@ interface IEverclear {
    * @param receiver The address of the intent receiver
    * @param inputAsset The address of the intent asset on origin
    * @param outputAsset The address of the intent asset on destination
-   * @param maxFee The maximum fee that can be taken by solvers
    * @param origin The origin chain of the intent
    * @param destinations The possible destination chains of the intent
    * @param nonce The nonce of the intent
    * @param timestamp The timestamp of the intent
    * @param ttl The time to live of the intent
    * @param amount The amount of the intent asset normalized to 18 decimals
+   * @param amountOutMin The minimum amount of the output asset that the intent solver should return
    * @param data The data of the intent
    */
   struct Intent {
@@ -58,12 +57,12 @@ interface IEverclear {
     bytes32 receiver;
     bytes32 inputAsset;
     bytes32 outputAsset;
-    uint24 maxFee;
     uint32 origin;
     uint64 nonce;
     uint48 timestamp;
     uint48 ttl;
     uint256 amount;
+    uint256 amountOutMin;
     uint32[] destinations;
     bytes data;
   }
@@ -71,17 +70,20 @@ interface IEverclear {
   /**
    * @notice The structure of a fill message
    * @param intentId The ID of the intent
-   * @param solver The address of the intent solver in bytes32 format
-   * @param initiator The address of the intent initiator
-   * @param fee The total fee of the expressed in dbps, represents the solver
-   *        fee plus the sum of protocol fees for the token
+   * @param receiver The address of the intent receiver in bytes32 format
+   * @param intentInputAsset The input asset of the intent (i.e. asset the solver will be repaid in)
+   * @param intentOrigin The origin chain of the intent
+   * @param amountOut The amount being sent to the user by the solver
+   * @param destinations The settlement destinations for the fill
    * @param executionTimestamp The execution timestamp of the intent
    */
   struct FillMessage {
     bytes32 intentId;
-    bytes32 solver;
-    bytes32 initiator;
-    uint24 fee;
+    bytes32 receiver;
+    bytes32 intentInputAsset;
+    uint32 intentOrigin;
+    uint256 amountOut;
+    uint32[] destinations;
     uint48 executionTimestamp;
   }
 
@@ -91,8 +93,7 @@ interface IEverclear {
    * @param amount The amount of the asset
    * @param asset The address of the asset
    * @param recipient The address of the recipient
-   * @param updateVirtualBalance If set to true, the settlement will not be transferred
-   *        to the recipient in spoke domain and the virtual balance will be increased
+   * @param updateVirtualBalance If set to true, the settlement will not be transferred to the recipient in spoke domain and the virtual balance will be increased
    */
   struct Settlement {
     bytes32 intentId;
@@ -103,14 +104,14 @@ interface IEverclear {
   }
 }
 
-interface IFeeAdapter {
+interface IFeeAdapterV2 {
   struct OrderParameters {
     uint32[] destinations;
     address receiver;
     address inputAsset;
     address outputAsset;
     uint256 amount;
-    uint24 maxFee;
+    uint256 amountOutMin;
     uint48 ttl;
     bytes data;
   }
@@ -139,7 +140,7 @@ interface IFeeAdapter {
    * @param _inputAsset Address of the input asset
    * @param _outputAsset Address of the output asset
    * @param _amount Amount of input asset to use for the intent
-   * @param _maxFee Maximum fee percentage allowed for the intent
+   * @param _amountOutMin Amount expected in the outputAsset
    * @param _ttl Time-to-live for the intent in seconds
    * @param _data Additional data for the intent
    * @param _feeParams Fee parameters including fee amount, deadline, and signature
@@ -152,9 +153,9 @@ interface IFeeAdapter {
     address _inputAsset,
     bytes32 _outputAsset,
     uint256 _amount,
-    uint24 _maxFee,
+    uint256 _amountOutMin,
     uint48 _ttl,
     bytes calldata _data,
     FeeParams calldata _feeParams
-  ) external payable returns (bytes32, IEverclear.Intent memory);
+  ) external payable returns (bytes32, IEverclearV2.Intent memory);
 }

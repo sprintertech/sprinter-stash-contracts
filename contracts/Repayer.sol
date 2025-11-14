@@ -67,7 +67,6 @@ contract Repayer is
     error ZeroAmount();
     error InsufficientBalance();
     error RouteDenied();
-    error InvalidRoute();
     error InvalidToken();
     error UnsupportedProvider();
     error InvalidPoolAssets();
@@ -97,6 +96,7 @@ contract Repayer is
         DOMAIN = localDomain;
         ASSETS = assets;
         WRAPPED_NATIVE_TOKEN = IWrappedNativeToken(wrappedNativeToken);
+        _disableInitializers();
     }
 
     receive() external payable {

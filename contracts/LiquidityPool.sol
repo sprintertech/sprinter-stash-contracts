@@ -315,6 +315,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     }
 
     function setMPCAddress(address mpcAddress_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(mpcAddress_ != address(0), ZeroAddress());
         address oldMPCAddress = mpcAddress;
         mpcAddress = mpcAddress_;
         emit MPCAddressSet(oldMPCAddress, mpcAddress_);

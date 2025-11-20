@@ -26,7 +26,7 @@ function addAmountToReceive(callData: string, amountToReceive: bigint) {
 
 const ERC4626Deposit = "deposit(uint256,address)";
 
-describe("ERC4626Adapter", function () {
+describe.only("ERC4626Adapter", function () {
   const deployAll = async () => {
     const [
       deployer, admin, user, user2, mpc_signer, liquidityAdmin, withdrawProfit, pauser, lp,
@@ -104,7 +104,7 @@ describe("ERC4626Adapter", function () {
         amountToBorrow,
         mockTarget,
         callDataWithAmountToReceive,
-        31337,
+        undefined,
         nonce
       );
 

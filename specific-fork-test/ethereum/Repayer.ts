@@ -64,7 +64,7 @@ describe("Repayer", function () {
       "IOptimismStandardBridge",
       forkNetworkConfig.OptimismStandardBridge!
     );
-    const everclearFeeAdapter = await hre.ethers.getContractAt("IFeeAdapter", forkNetworkConfig.EverclearFeeAdapter!);
+    const everclearFeeAdapter = await hre.ethers.getContractAt("IFeeAdapterV2", forkNetworkConfig.EverclearFeeAdapter!);
     const weth = await hre.ethers.getContractAt("IWrappedNativeToken", forkNetworkConfig.WrappedNativeToken);
 
     const USDC_DEC = 10n ** (await usdc.decimals());

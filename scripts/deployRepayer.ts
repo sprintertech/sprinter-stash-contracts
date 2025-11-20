@@ -45,7 +45,7 @@ export async function main() {
       }
     }
   }
-  await addLocalPools(config, network, repayerRoutes);
+  await addLocalPools(config, network, repayerRoutes, false);
 
   if (!config.CCTP) {
     config.CCTP = {

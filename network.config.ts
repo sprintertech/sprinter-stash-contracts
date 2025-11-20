@@ -6,8 +6,10 @@ import * as AAVEPools from "@bgd-labs/aave-address-book";
 // Subsequent versions use version suffix plus a git commit from the main branch.
 export const LiquidityPoolAaveUSDC = "LiquidityPoolAaveUSDC";
 export const LiquidityPoolUSDC = "LiquidityPoolUSDC";
+export const LiquidityPoolPublicUSDC = "LiquidityPoolPublicUSDC";
 export const LiquidityPoolUSDCStablecoin = "LiquidityPoolUSDCStablecoin";
 export const LiquidityPoolAaveUSDCLongTerm = "LiquidityPoolAaveUSDCLongTerm";
+export const ERC4626AdapterUSDC = "ERC4626AdapterUSDC";
 export const LiquidityPoolAaveUSDCLongTermV2 = "LiquidityPoolAaveUSDCLongTerm-V2-e09cc75";
 export const LiquidityPoolAaveUSDCV2 = "LiquidityPoolAaveUSDC-V2-3601cc4";
 export const LiquidityPoolUSDCV2 = "LiquidityPoolUSDC-V2-3601cc4";
@@ -34,6 +36,12 @@ export const LiquidityPoolUSDCStablecoinVersions = [
   LiquidityPoolUSDCStablecoinV2,
   LiquidityPoolUSDCStablecoinV3,
 ] as const;
+export const LiquidityPoolPublicUSDCVersions = [
+  LiquidityPoolPublicUSDC,
+] as const;
+export const ERC4626AdapterUSDCVersions = [
+  ERC4626AdapterUSDC,
+] as const;
 
 export enum Network {
   ETHEREUM = "ETHEREUM",
@@ -51,7 +59,7 @@ export enum Network {
   UNICHAIN = "UNICHAIN",
   BSC = "BSC",
   LINEA = "LINEA",
-};
+}
 
 export enum Provider {
   LOCAL = "LOCAL",
@@ -60,12 +68,12 @@ export enum Provider {
   EVERCLEAR = "EVERCLEAR",
   STARGATE = "STARGATE",
   OPTIMISM_STANDARD_BRIDGE = "OPTIMISM_STANDARD_BRIDGE",
-};
+}
 
 interface CCTPConfig {
   TokenMessenger: string;
   MessageTransmitter: string;
-};
+}
 
 export interface RebalancerRoutesConfig {
   [Pool: string]: {
@@ -82,6 +90,13 @@ export interface RepayerRoutesConfig {
   };
 }
 
+interface PublicPoolConfig {
+  Name: string;
+  Symbol: string;
+  ProtocolFeeRate: number;
+  FeeSetter: string;
+}
+
 interface AavePoolConfig {
   AaveAddressesProvider: string;
   MinHealthFactor: number; // Value 500 will result in health factor 5.
@@ -89,12 +104,12 @@ interface AavePoolConfig {
   TokenLTVs?: {
     [token: string]: number;
   };
-};
+}
 
 interface AavePoolLongTermConfig extends AavePoolConfig {
   BorrowLongTermAdmin: string;
   RepayCaller: string;
-};
+}
 
 // Liquidity mining tiers.
 // period is in seconds.
@@ -104,7 +119,7 @@ interface AavePoolLongTermConfig extends AavePoolConfig {
 interface Tier {
   period: bigint;
   multiplier: bigint;
-};
+}
 
 interface HubConfig {
   AssetsAdjuster: string; // Address that can increase/decrease LP conversion rate.
@@ -116,7 +131,7 @@ interface HubConfig {
     | (typeof LiquidityPoolAaveUSDCVersions)[number]
     | (typeof LiquidityPoolUSDCStablecoinVersions)[number]
     | (typeof LiquidityPoolAaveUSDCLongTermVersions)[number];
-};
+}
 
 export interface NetworkConfig {
   ChainId: number;
@@ -142,8 +157,10 @@ export interface NetworkConfig {
   AavePoolLongTerm?: AavePoolLongTermConfig;
   USDCPool?: boolean;
   USDCStablecoinPool?: boolean;
+  USDCPublicPool?: PublicPoolConfig;
+  ERC4626AdapterUSDCTargetVault?: string;
   Stage?: NetworkConfig;
-};
+}
 
 type NetworksConfig = {
   [key in Network]: NetworkConfig;
@@ -675,6 +692,13 @@ export const networkConfig: NetworksConfig = {
         BorrowLongTermAdmin: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
         RepayCaller: "0xc1d6EEa5ce163d7D9f1952Db220830Aae16Cb607",
       },
+      USDCPublicPool: {
+        Name: "Sprinter-Lighter Fast Withdrawal Pool",
+        Symbol: "SLFWP",
+        ProtocolFeeRate: 20,
+        FeeSetter: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      },
+      ERC4626AdapterUSDCTargetVault: LiquidityPoolPublicUSDC,
     },
   },
   BASE: {

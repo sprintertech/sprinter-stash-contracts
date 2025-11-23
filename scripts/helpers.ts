@@ -1,13 +1,17 @@
 import hre from "hardhat";
-import {Signer, BaseContract, AddressLike, resolveAddress, ContractTransaction, isAddress} from "ethers";
+import axios from "axios";
+import {promises as fs} from "fs";
+import * as path from "path";
+import {Signer, BaseContract, AddressLike, resolveAddress, ContractTransaction,
+  ContractDeployTransaction, isAddress, ZeroAddress} from "ethers";
 import {
   deploy, deployX, getContractAt, getCreateAddress, getDeployXAddressBase,
-  resolveXAddress, resolveProxyXAddress, assertCode,
+  resolveXAddress, resolveProxyXAddress, assertCode, getDeployTx, getDeployXTx
 } from "../test/helpers";
 import {
   TransparentUpgradeableProxy, ProxyAdmin,
 } from "../typechain-types";
-import {sleep, DEFAULT_PROXY_TYPE, assert, assertAddress} from "./common";
+import {sleep, DEFAULT_PROXY_TYPE, assert, assertAddress, isSet} from "./common";
 import {
   networkConfig, Network, NetworkConfig, StandaloneRepayerEnv, StandaloneRepayerConfig,
   repayerConfig,
@@ -46,12 +50,22 @@ interface VerificationInput {
 
 export class Verifier {
   private contracts: VerificationInput[] = [];
+  private transactions: (ContractTransaction | ContractDeployTransaction)[] = [];
   private deployXPrefix: string;
+  private simulate: boolean;
+  private nonce: number = 0;
 
-  constructor(deployXPrefix: string = "") {
+  constructor(deployXPrefix: string = "", simulate: boolean = false) {
     this.deployXPrefix = deployXPrefix;
+    this.simulate = simulate;
   }
 
+  static async initialize(deployer: Signer, deployXPrefix: string = "", simulate: boolean = false): Promise<Verifier> {
+    const verifier = new Verifier(deployXPrefix, simulate);
+    verifier.nonce = await hre.ethers.provider.getTransactionCount(await resolveAddress(deployer));
+    return verifier;
+  }
+  
   deploy = async(
     contractName: string,
     deployer: Signer,
@@ -59,9 +73,18 @@ export class Verifier {
     params: any[] = [],
     contractVerificationName?: string,
   ): Promise<BaseContract> => {
-    const contract = await deploy(contractName, deployer, txParams, ...params);
-    await this.addContractForVerification(contract, params, contractVerificationName);
-    return contract;
+    if (this.simulate) {
+      const {instance, transaction} = await getDeployTx(
+        contractName, deployer, this.nonce, txParams, ...params
+      );
+      this.nonce += 1;
+      this.transactions.push(transaction);
+      return instance;
+    } else {
+      const contract = await deploy(contractName, deployer, txParams, ...params);
+      await this.addContractForVerification(contract, params, contractVerificationName);
+      return contract;
+    }
   }
 
   deployX = async (
@@ -72,9 +95,22 @@ export class Verifier {
     id: string = contractName,
     contractVerificationName?: string,
   ): Promise<BaseContract> => {
-    const contract = await deployX(contractName, deployer, this.deployXPrefix + id, txParams, ...params);
-    await this.addContractForVerification(contract, params, contractVerificationName);
-    return contract;
+    if (this.simulate) {
+      const {instance, transaction} = await getDeployXTx(
+        contractName,
+        deployer,
+        this.deployXPrefix + id,
+        txParams,
+        ...params
+      );
+      this.nonce += 1;
+      this.transactions.push(transaction);
+      return instance;
+    } else {
+      const contract = await deployX(contractName, deployer, this.deployXPrefix + id, txParams, ...params);
+      await this.addContractForVerification(contract, params, contractVerificationName);
+      return contract;
+    }
   }
 
   predictDeployXAddresses = async (
@@ -144,10 +180,74 @@ export class Verifier {
       }
     }
   }
+
+  performSimulation = async (chainId: string, deployer: Signer) => {
+    if (this.simulate) {
+      assert(isSet(process.env.TENDERLY_ACCESS_KEY), "TENDERLY_ACCESS_KEY must be set");
+      assert(isSet(process.env.TENDERLY_PROJECT), "TENDERLY_PROJECT must be set");
+      assert(isSet(process.env.TENDERLY_ACCOUNT), "TENDERLY_ACCOUNT must be set");
+
+      const simulations = [];
+      const blockNumber = await hre.ethers.provider.getBlockNumber();
+
+      for (const tx of this.transactions) {
+        simulations.push({
+          network_id: chainId,
+          from: await deployer.getAddress(),
+          to: (tx as any).to ?? ZeroAddress,
+          input: tx.data,
+          gas: 8000000,
+          block_number: blockNumber,
+          value: "0",
+          save: true,
+          save_if_fails: true,
+          simulation_type: "full"
+        });
+      }
+
+      const url =
+        `https://api.tenderly.co/api/v1/account/${process.env.TENDERLY_ACCOUNT}` +
+        `/project/${process.env.TENDERLY_PROJECT}/simulate-bundle`;
+      const response = await axios.post(
+        url,
+        {
+          simulations
+        },
+        {
+          headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "X-Access-Key": process.env.TENDERLY_ACCESS_KEY
+          }
+        }
+      );
+      try {
+        const dir = path.join(process.cwd(), "./scripts/simulation");
+        await fs.mkdir(dir, {recursive: true});
+
+        const now = new Date();
+        const timestamp = now.toISOString().replace(/[:.]/g, "-");
+        const filename = `sim-${timestamp}.json`;
+        const filepath = path.join(dir, filename);
+        const content = JSON.stringify(response.data.simulation_results, null, 2);
+
+        await fs.writeFile(filepath, content, "utf8");
+        console.log(`Simulation results written to ${filepath}`);
+      } catch (err) {
+        console.error("Failed to write simulation results:", err);
+      }
+    } else {
+      console.log("Simulation skipped.");
+    }
+  }
 }
 
-export function getVerifier(deployXPrefix: string = "") {
-  return new Verifier(deployXPrefix);
+export async function getVerifier(
+  deployer: Signer,
+  deployXPrefix: string = "",
+  simulate: boolean = false
+): Promise<Verifier> {
+  return await Verifier.initialize(deployer, deployXPrefix, simulate);
 }
 
 interface Initializable extends BaseContract {
@@ -172,7 +272,7 @@ export async function deployProxyX<ContractType extends Initializable>(
   contructorArgs: any[] = [],
   initArgs: any[] = [],
   id: string = contractName,
-  verifier?: Verifier,
+  verifier?: Verifier
 ): Promise<{target: ContractType; targetAdmin: ProxyAdmin;}> {
   const targetImpl = (
     await deployFunc(contractName, deployer, {}, contructorArgs, id)

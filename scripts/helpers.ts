@@ -229,7 +229,11 @@ export class Verifier {
         const timestamp = now.toISOString().replace(/[:.]/g, "-");
         const filename = `sim-${timestamp}.json`;
         const filepath = path.join(dir, filename);
-        const content = JSON.stringify(response.data.simulation_results, null, 2);
+        const extracted = response.data.simulation_results.map((entry: any) => ({
+          transaction: entry.transaction,
+          simulation: entry.simulation,
+        }));
+        const content = JSON.stringify(extracted, null, 2);
 
         await fs.writeFile(filepath, content, "utf8");
         console.log(`Simulation results written to ${filepath}`);

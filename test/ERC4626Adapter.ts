@@ -104,7 +104,7 @@ describe("ERC4626Adapter", function () {
         amountToBorrow,
         mockTarget,
         callDataWithAmountToReceive,
-        31337,
+        undefined,
         nonce
       );
 

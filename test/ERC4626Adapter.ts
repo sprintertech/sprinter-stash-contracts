@@ -342,7 +342,7 @@ describe("ERC4626Adapter", function () {
       expect(await adapter.totalDeposited()).to.eq(amount);
       expect(await liquidityPool.balanceOf(adapter)).to.eq(amount);
 
-      const profit = 100n * USDC_DEC;
+      const profit = 1000n * USDC_DEC;
       await generateProfit(profit);
       expect(await adapter.totalDeposited()).to.eq(amount);
       expect(await liquidityPool.balanceOf(adapter)).to.eq(amount);
@@ -472,7 +472,6 @@ describe("ERC4626Adapter", function () {
 
       const profit = 3n + 150n * USDC_DEC;
       await generateProfit(profit);
-      console.log(await liquidityPool.previewWithdraw(amount));
       expect(await adapter.totalDeposited()).to.eq(amount);
       expect(await liquidityPool.balanceOf(adapter)).to.eq(amount);
       expect(await liquidityPool.totalAssets()).to.eq(amountOthers + amount + profit);

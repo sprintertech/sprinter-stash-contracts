@@ -3214,6 +3214,7 @@ describe("LiquidityPoolAave", function () {
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
       expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amount - 2n);
 
+      await time.increase(100);
       await expect(liquidityPool.connect(liquidityAdmin).withdraw(user, amount))
         .to.emit(liquidityPool, "WithdrawnFromAave").withArgs(user.address, amount);
 

@@ -158,7 +158,7 @@ export const networkConfig: NetworksConfig = {
     },
     AcrossV3SpokePool: "0x5c7BCd6E7De5423a257D81B442095A1a6ced35C5",
     StargateTreasurer: "0x1041D127b2d4BC700F0F563883bC689502606918",
-    EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
+    EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
     OptimismStandardBridge: "0x99C9fc46f92E8a1c0deC1b1747d010903E884bE1",
     USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
     WrappedNativeToken: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
@@ -228,6 +228,67 @@ export const networkConfig: NetworksConfig = {
       RepayCaller: "0x9A5B33bd11329116A55F764c604a5152eE8Ca292",
     },
     USDCPool: true,
+    Stage: {
+      ChainId: 1,
+      CCTP: {
+        TokenMessenger: "0xbd3fa81b58ba92a82136038b25adec7066af3155",
+        MessageTransmitter: "0x0a992d191deec32afe36203ad87d7d289a738f81",
+      },
+      AcrossV3SpokePool: "0x5c7BCd6E7De5423a257D81B442095A1a6ced35C5",
+      StargateTreasurer: "0x1041D127b2d4BC700F0F563883bC689502606918",
+      EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
+      OptimismStandardBridge: "0x99C9fc46f92E8a1c0deC1b1747d010903E884bE1",
+      USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      WrappedNativeToken: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+      IsTest: false,
+      Admin: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      WithdrawProfit: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      Pauser: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      RebalanceCaller: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      RepayerCaller: "0xECf983dD6Ecd4245fBAAF608594033AB0660D225",
+      MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
+      SignerAddress: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      RebalancerRoutes: {
+        [LiquidityPoolAaveUSDCV3]: {
+          [Network.BASE]: [Provider.CCTP],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+          [Network.OP_MAINNET]: [Provider.CCTP],
+        },
+        [LiquidityPoolUSDCV3]: {
+          [Network.BASE]: [Provider.CCTP],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+          [Network.OP_MAINNET]: [Provider.CCTP],
+        },
+        [LiquidityPoolAaveUSDCLongTermV2]: {
+          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+        },
+      },
+      RepayerRoutes: {
+        [LiquidityPoolAaveUSDCV3]: {
+          SupportsAllTokens: true,
+          Domains: {
+            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          },
+        },
+        [LiquidityPoolUSDCV3]: {
+          SupportsAllTokens: false,
+          Domains: {
+            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          },
+        },
+        [LiquidityPoolAaveUSDCLongTermV2]: {
+          SupportsAllTokens: true,
+          Domains: {
+            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          },
+        },
+      },
+      USDCPool: true,
+    },
   },
   AVALANCHE: {
     ChainId: 43114,
@@ -236,7 +297,7 @@ export const networkConfig: NetworksConfig = {
       MessageTransmitter: "0x8186359af5f57fbb40c6b14a588d2a59c0c29880",
     },
     StargateTreasurer: "0xC2b638Cb5042c1B3c5d5C969361fB50569840583",
-    EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
+    EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
     USDC: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
     WrappedNativeToken: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",
     IsTest: false,
@@ -288,7 +349,7 @@ export const networkConfig: NetworksConfig = {
     },
     AcrossV3SpokePool: "0x6f26Bf09B1C792e3228e5467807a900A503c0281",
     StargateTreasurer: "0x644abb1e17291b4403966119d15Ab081e4a487e9",
-    EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
+    EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
     OptimismStandardBridge: "0x4200000000000000000000000000000000000010",
     USDC: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
     WrappedNativeToken: "0x4200000000000000000000000000000000000006",
@@ -376,7 +437,7 @@ export const networkConfig: NetworksConfig = {
       },
       AcrossV3SpokePool: "0x6f26Bf09B1C792e3228e5467807a900A503c0281",
       StargateTreasurer: "0x644abb1e17291b4403966119d15Ab081e4a487e9",
-      EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
+      EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
       USDC: "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
       WrappedNativeToken: "0x4200000000000000000000000000000000000006",
       IsTest: false,
@@ -395,6 +456,7 @@ export const networkConfig: NetworksConfig = {
         [LiquidityPoolUSDCV3]: {
           [Network.BASE]: [Provider.CCTP],
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
+          [Network.ETHEREUM]: [Provider.CCTP],
         },
         [LiquidityPoolAaveUSDCLongTermV2]: {
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
@@ -411,8 +473,9 @@ export const networkConfig: NetworksConfig = {
         [LiquidityPoolUSDCV3]: {
           SupportsAllTokens: false,
           Domains: {
-            [Network.ARBITRUM_ONE]: [Provider.CCTP],
-            [Network.BASE]: [Provider.CCTP],
+            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
           },
         },
         [LiquidityPoolAaveUSDCLongTermV2]: {
@@ -452,7 +515,7 @@ export const networkConfig: NetworksConfig = {
     },
     AcrossV3SpokePool: "0xe35e9842fceaCA96570B734083f4a58e8F7C5f2A",
     StargateTreasurer: "0x146c8e409C113ED87C6183f4d25c50251DFfbb3a",
-    EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
+    EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
     USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
     WrappedNativeToken: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
     IsTest: false,
@@ -541,7 +604,7 @@ export const networkConfig: NetworksConfig = {
       },
       AcrossV3SpokePool: "0xe35e9842fceaCA96570B734083f4a58e8F7C5f2A",
       StargateTreasurer: "0x146c8e409C113ED87C6183f4d25c50251DFfbb3a",
-      EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
+      EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
       USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
       WrappedNativeToken: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
       IsTest: false,
@@ -560,6 +623,7 @@ export const networkConfig: NetworksConfig = {
         [LiquidityPoolUSDCV3]: {
           [Network.BASE]: [Provider.CCTP],
           [Network.OP_MAINNET]: [Provider.CCTP],
+          [Network.ETHEREUM]: [Provider.CCTP],
         },
       },
       RepayerRoutes: {
@@ -573,8 +637,9 @@ export const networkConfig: NetworksConfig = {
         [LiquidityPoolUSDCV3]: {
           SupportsAllTokens: false,
           Domains: {
-            [Network.OP_MAINNET]: [Provider.CCTP],
-            [Network.BASE]: [Provider.CCTP],
+            [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
           },
         },
       },
@@ -620,7 +685,7 @@ export const networkConfig: NetworksConfig = {
     },
     AcrossV3SpokePool: "0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64",
     StargateTreasurer: "0xd47b03ee6d86Cf251ee7860FB2ACf9f91B9fD4d7",
-    EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
+    EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
     USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
     WrappedNativeToken: "0x4200000000000000000000000000000000000006",
     IsTest: false,
@@ -714,7 +779,7 @@ export const networkConfig: NetworksConfig = {
       },
       AcrossV3SpokePool: "0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64",
       StargateTreasurer: "0xd47b03ee6d86Cf251ee7860FB2ACf9f91B9fD4d7",
-      EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
+      EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
       USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
       WrappedNativeToken: "0x4200000000000000000000000000000000000006",
       IsTest: false,
@@ -745,6 +810,7 @@ export const networkConfig: NetworksConfig = {
         [LiquidityPoolUSDCV3]: {
           [Network.OP_MAINNET]: [Provider.CCTP],
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
+          [Network.ETHEREUM]: [Provider.CCTP],
         },
         [LiquidityPoolAaveUSDCLongTermV2]: {
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
@@ -761,8 +827,9 @@ export const networkConfig: NetworksConfig = {
         [LiquidityPoolUSDCV3]: {
           SupportsAllTokens: false,
           Domains: {
-            [Network.OP_MAINNET]: [Provider.CCTP],
-            [Network.ARBITRUM_ONE]: [Provider.CCTP],
+            [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
           },
         },
         [LiquidityPoolAaveUSDCLongTermV2]: {
@@ -799,7 +866,7 @@ export const networkConfig: NetworksConfig = {
     },
     AcrossV3SpokePool: "0x9295ee1d8C5b022Be115A2AD3c30C72E34e7F096",
     StargateTreasurer: "0x36ed193dc7160D3858EC250e69D12B03Ca087D08",
-    EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
+    EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
     USDC: "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
     WrappedNativeToken: "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270",
     IsTest: false,
@@ -856,7 +923,7 @@ export const networkConfig: NetworksConfig = {
     },
     AcrossV3SpokePool: "0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64",
     StargateTreasurer: "0x6D205337F45D6850c3c3006e28d5b52c8a432c35",
-    EverclearFeeAdapter: "0x8ad36C1aCB23b47Db6573A51a8a3009D4A4bC3b1",
+    EverclearFeeAdapter: "0x877Fd0A881B63eBE413124EeE6abbCD7E82cf10b",
     USDC: "0x078D782b760474a361dDA0AF3839290b0EF57AD6",
     WrappedNativeToken: "0x4200000000000000000000000000000000000006",
     IsTest: false,
@@ -922,7 +989,7 @@ export const networkConfig: NetworksConfig = {
     ChainId: 56,
     AcrossV3SpokePool: "0x4e8E101924eDE233C13e2D8622DC8aED2872d505",
     StargateTreasurer: "0x0a6A15964fEe494A881338D65940430797F0d97C",
-    EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
+    EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
     USDC: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
     WrappedNativeToken: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
     IsTest: false,
@@ -969,7 +1036,7 @@ export const networkConfig: NetworksConfig = {
     ChainId: 59144,
     AcrossV3SpokePool: "0x7E63A5f1a8F0B4d0934B2f2327DAED3F6bb2ee75",
     StargateTreasurer: "0xf5F74d2508e97A3a7CCA2ccb75c8325D66b46152",
-    EverclearFeeAdapter: "0x1B0Dc9CB7EadDa36f4CcFB8130B0Ad967b0A3508",
+    EverclearFeeAdapter: "0xAa7ee09f745a3c5De329EB0CD67878Ba87B70Ffe",
     USDC: "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
     WrappedNativeToken: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
     IsTest: false,
@@ -1273,7 +1340,7 @@ export const repayerConfig: StandaloneRepayersConfig = {
       },
       AcrossV3SpokePool: "0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64",
       StargateTreasurer: "0xd47b03ee6d86Cf251ee7860FB2ACf9f91B9fD4d7",
-      EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
+      EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
       USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
       WrappedNativeToken: "0x4200000000000000000000000000000000000006",
       RepayerRoutes: {
@@ -1300,7 +1367,7 @@ export const repayerConfig: StandaloneRepayersConfig = {
       },
       AcrossV3SpokePool: "0xe35e9842fceaCA96570B734083f4a58e8F7C5f2A",
       StargateTreasurer: "0x146c8e409C113ED87C6183f4d25c50251DFfbb3a",
-      EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
+      EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
       USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
       WrappedNativeToken: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
       RepayerRoutes: {
@@ -1327,7 +1394,7 @@ export const repayerConfig: StandaloneRepayersConfig = {
       },
       AcrossV3SpokePool: "0x6f26Bf09B1C792e3228e5467807a900A503c0281",
       StargateTreasurer: "0x644abb1e17291b4403966119d15Ab081e4a487e9",
-      EverclearFeeAdapter: "0x15a7cA97D1ed168fB34a4055CEFa2E2f9Bdb6C75",
+      EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
       USDC: "0x0b2c639c533813f4Aa9D7837CAf62653d097Ff85",
       WrappedNativeToken: "0x4200000000000000000000000000000000000006",
       RepayerRoutes: {

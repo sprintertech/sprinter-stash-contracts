@@ -87,7 +87,7 @@ describe("Repayer", function () {
     const WETH_ADDRESS = forkNetworkConfig.WrappedNativeToken;
     const weth = await hre.ethers.getContractAt("IWrappedNativeToken", WETH_ADDRESS);
 
-    const everclearFeeAdapter = await hre.ethers.getContractAt("IFeeAdapter", forkNetworkConfig.EverclearFeeAdapter!);
+    const everclearFeeAdapter = await hre.ethers.getContractAt("IFeeAdapterV2", forkNetworkConfig.EverclearFeeAdapter!);
 
     const repayerImpl = (
       await deployX("Repayer", deployer, "Repayer", {},
@@ -663,14 +663,14 @@ describe("Repayer", function () {
         maxFee: "0"
       })
     })).json()).data;
-    const newIntentSelector = "0x3bd1c754";
+    const newIntentSelector = "0xae9b2bad";
     // API returns selector for a variety of newIntent that takes 'address' as resipient.
-    // We are using a V3 version that expects a 'bytes32' instead. Encoding other data remains the same.
+    // We are using version that expects a 'bytes32' instead. Encoding other data remains the same.
     const apiTx = everclearFeeAdapter.interface.decodeFunctionData("newIntent", newIntentSelector + apiData.substr(10));
 
     const extraData = AbiCoder.defaultAbiCoder().encode(
-      ["bytes32", "uint256", "uint24", "uint48", "tuple(uint256, uint256, bytes)"],
-      [apiTx[3], apiTx[4], apiTx[5], apiTx[6], apiTx[8]]
+      ["bytes32", "uint256", "uint48", "tuple(uint256, uint256, bytes)"],
+      [apiTx[3], apiTx[5], apiTx[6], apiTx[8]]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
       usdc,
@@ -720,17 +720,16 @@ describe("Repayer", function () {
         inputAsset: weth.target,
         amount: amount.toString(),
         callData: "",
-        maxFee: "200"
+        maxFee: "200",
       })
     })).json()).data;
-    const newIntentSelector = "0x3bd1c754";
+    const newIntentSelector = "0xae9b2bad";
     // API returns selector for a variety of newIntent that takes 'address' as resipient.
-    // We are using a V3 version that expects a 'bytes32' instead. Encoding other data remains the same.
+    // We are using version that expects a 'bytes32' instead. Encoding other data remains the same.
     const apiTx = everclearFeeAdapter.interface.decodeFunctionData("newIntent", newIntentSelector + apiData.substr(10));
-
     const extraData = AbiCoder.defaultAbiCoder().encode(
-      ["bytes32", "uint256", "uint24", "uint48", "tuple(uint256, uint256, bytes)"],
-      [apiTx[3], apiTx[4], apiTx[5], apiTx[6], apiTx[8]]
+      ["bytes32", "uint256", "uint48", "tuple(uint256, uint256, bytes)"],
+      [apiTx[3], apiTx[5], apiTx[6], apiTx[8]]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
       weth,
@@ -775,8 +774,8 @@ describe("Repayer", function () {
     const amount = 4n * USDC_DEC;
 
     const extraData = AbiCoder.defaultAbiCoder().encode(
-      ["bytes32", "uint256", "uint24", "uint48", "tuple(uint256, uint256, bytes)"],
-      [ZERO_BYTES32, amount, 0, 0, [0, 0, "0x"]]
+      ["bytes32", "uint256", "uint48", "tuple(uint256, uint256, bytes)"],
+      [ZERO_BYTES32, amount, 0, [0, 0, "0x"]]
     );
     await expect(repayer.connect(repayUser).initiateRepay(
       usdc,

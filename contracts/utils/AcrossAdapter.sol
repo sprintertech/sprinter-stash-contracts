@@ -23,7 +23,7 @@ abstract contract AcrossAdapter is AdapterHelper {
         address destinationPool,
         Domain destinationDomain,
         bytes calldata extraData
-    ) internal {
+    ) internal notPayable {
         require(address(ACROSS_SPOKE_POOL) != address(0), ZeroAddress());
         token.forceApprove(address(ACROSS_SPOKE_POOL), amount);
         (

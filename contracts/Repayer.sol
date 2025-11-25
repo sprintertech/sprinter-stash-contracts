@@ -129,6 +129,7 @@ contract Repayer is
     /// @notice If the selected provider requires native currency payment to cover fees,
     /// then caller has to include it in the transaction. It is then the responsibility
     /// of the Adapter to forward the payment and return any change back to the caller.
+    /// @dev Adapters are responsible for revoking unused allowance if necessary.
     function initiateRepay(
         IERC20 token,
         uint256 amount,
@@ -150,14 +151,14 @@ contract Repayer is
 
         RepayerStorage storage $ = _getStorage();
 
+        if (!$.poolSupportsAllTokens[destinationPool]) {
+            require(token == ASSETS, InvalidToken());
+        }
+
         if (provider == Provider.LOCAL) {
             // This should always pass because isRouteAllowed check will fail earlier.
             // It is put here for explicitness.
             require(destinationDomain == DOMAIN, UnsupportedDomain());
-
-            if (!$.poolSupportsAllTokens[destinationPool]) {
-                require(token == ASSETS, InvalidToken());
-            }
             // For local we proceed to the process right away.
             _processRepayLOCAL(token, amount, destinationPool);
         } else

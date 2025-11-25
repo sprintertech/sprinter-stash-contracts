@@ -28,7 +28,7 @@ abstract contract CCTPAdapter is AdapterHelper {
         uint256 amount,
         address destinationPool,
         Domain destinationDomain
-    ) internal {
+    ) internal notPayable {
         token.forceApprove(address(CCTP_TOKEN_MESSENGER), amount);
         CCTP_TOKEN_MESSENGER.depositForBurnWithCaller(
             amount,

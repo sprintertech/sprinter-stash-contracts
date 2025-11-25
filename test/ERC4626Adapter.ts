@@ -416,6 +416,74 @@ describe("ERC4626Adapter", function () {
         .to.be.revertedWithCustomError(adapter, "EnforcedPause");
     });
 
+    it("Should NOT withdraw liquidity as profit from the target vault, 1 share", async function () {
+      const {
+        adapter, liquidityPool, usdc, lp, user, generateProfit, withdrawProfit
+      } = await loadFixture(deployAll);
+      const amount = 1n;
+      await usdc.connect(lp).approve(adapter, amount);
+      await adapter.connect(lp).depositWithPull(amount);
+      expect(await adapter.totalDeposited()).to.eq(amount);
+      expect(await liquidityPool.balanceOf(adapter)).to.eq(amount);
+
+      const profit = 1n;
+      await generateProfit(profit);
+      expect(await adapter.totalDeposited()).to.eq(amount);
+      expect(await liquidityPool.balanceOf(adapter)).to.eq(amount);
+      expect(await liquidityPool.totalAssets()).to.eq(amount + profit);
+
+      await expect(adapter.connect(withdrawProfit).withdrawProfit([usdc], user))
+        .to.be.revertedWithCustomError(adapter, "NoProfit");
+    });
+
+    it("Should NOT withdraw liquidity as profit from the target vault, 2 shares", async function () {
+      const {
+        adapter, liquidityPool, usdc, lp, user, generateProfit, withdrawProfit
+      } = await loadFixture(deployAll);
+      const amount = 2n;
+      await usdc.connect(lp).approve(adapter, amount);
+      await adapter.connect(lp).depositWithPull(amount);
+      expect(await adapter.totalDeposited()).to.eq(amount);
+      expect(await liquidityPool.balanceOf(adapter)).to.eq(amount);
+
+      const profit = 1n;
+      await generateProfit(profit);
+      expect(await adapter.totalDeposited()).to.eq(amount);
+      expect(await liquidityPool.balanceOf(adapter)).to.eq(amount);
+      expect(await liquidityPool.totalAssets()).to.eq(amount + profit);
+
+      await expect(adapter.connect(withdrawProfit).withdrawProfit([usdc], user))
+        .to.be.revertedWithCustomError(adapter, "NoProfit");
+    });
+
+    it("Should NOT withdraw liquidity as profit from the target vault, 2 shares, 5 assets", async function () {
+      const {
+        adapter, liquidityPool, usdc, USDC_DEC, lp, user, generateProfit, withdrawProfit
+      } = await loadFixture(deployAll);
+      const amount = 2n;
+      const amountOthers = 100n * USDC_DEC;
+      await usdc.connect(lp).approve(adapter, amount);
+      await adapter.connect(lp).depositWithPull(amount);
+      await usdc.connect(lp).approve(liquidityPool, amountOthers);
+      await liquidityPool.connect(lp)[ERC4626Deposit](amountOthers, lp);
+      expect(await adapter.totalDeposited()).to.eq(amount);
+      expect(await liquidityPool.balanceOf(adapter)).to.eq(amount);
+      expect(await liquidityPool.totalAssets()).to.eq(amountOthers + amount);
+
+      const profit = 3n + 150n * USDC_DEC;
+      await generateProfit(profit);
+      console.log(await liquidityPool.previewWithdraw(amount));
+      expect(await adapter.totalDeposited()).to.eq(amount);
+      expect(await liquidityPool.balanceOf(adapter)).to.eq(amount);
+      expect(await liquidityPool.totalAssets()).to.eq(amountOthers + amount + profit);
+
+      await expect(adapter.connect(withdrawProfit).withdrawProfit([usdc], user))
+        .to.emit(adapter, "ProfitWithdrawn").withArgs(usdc, user, 2n);
+      expect(await adapter.totalDeposited()).to.eq(amount);
+      expect(await liquidityPool.maxWithdraw(adapter)).to.eq(2n);
+      expect(await usdc.balanceOf(user)).to.eq(2n);
+    });
+
     it("Should NOT allow native token donations", async function () {
       const {admin, adapter} = await loadFixture(deployAll);
       const amount = 2n * ETH;

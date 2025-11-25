@@ -118,10 +118,11 @@ contract ERC4626Adapter is ILiquidityPoolBase, AccessControl {
         uint256 localBalance = token.balanceOf(address(this));
         if (token == ASSETS) {
             uint256 deposited = totalDeposited;
-            uint256 vaultBalance = TARGET_VAULT.maxWithdraw(address(this));
-            if (vaultBalance < deposited) return localBalance;
-            uint256 profit = vaultBalance - deposited;
-            TARGET_VAULT.withdraw(profit, address(this), address(this));
+            uint256 depositedShares = TARGET_VAULT.previewWithdraw(deposited);
+            uint256 totalShares = TARGET_VAULT.balanceOf(address(this));
+            if (totalShares <= depositedShares) return localBalance;
+            uint256 profit = TARGET_VAULT.redeem(totalShares - depositedShares, address(this), address(this));
+            assert(TARGET_VAULT.maxWithdraw(address(this)) >= deposited);
             return profit + localBalance;
         }
         return localBalance;

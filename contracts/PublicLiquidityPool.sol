@@ -98,6 +98,23 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
         return _virtualBalance - protocolFee;
     }
 
+    function maxWithdraw(address owner) public view override returns (uint256) {
+        if (paused) {
+            return 0;
+        }
+        return Math.min(super.maxWithdraw(owner), ASSETS.balanceOf(address(this)));
+    }
+
+    function maxRedeem(address owner) public view override returns (uint256) {
+        if (paused) {
+            return 0;
+        }
+        return Math.min(
+            super.maxRedeem(owner),
+            _convertToShares(ASSETS.balanceOf(address(this)), Math.Rounding.Floor)
+        );
+    }
+
     function _setProtocolFeeRate(uint16 protocolFeeRate_) internal {
         require(protocolFeeRate_ <= RATE_DENOMINATOR, InvalidProtocolFeeRate());
         protocolFeeRate = protocolFeeRate_;

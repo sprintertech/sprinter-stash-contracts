@@ -12,6 +12,7 @@ import {
   DEFAULT_ADMIN_ROLE, assertAddress,
 } from "./scripts/common";
 import "hardhat-ignore-warnings";
+import "solidity-coverage";
 
 import dotenv from "dotenv";
 dotenv.config();

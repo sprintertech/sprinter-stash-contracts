@@ -128,7 +128,8 @@
     "test": "hardhat test --typecheck",
     "test:ethereum": "FORK_TEST=ETHEREUM hardhat test --typecheck ./specific-fork-test/ethereum/*.ts",
     "test:deploy": "ts-node --files ./scripts/deploy.ts",
-    "test:scripts": "SCRIPT_ENV=CI DEPLOY_ID=CI ts-node --files ./scripts/test.ts"
+    "test:scripts": "SCRIPT_ENV=CI DEPLOY_ID=CI ts-node --files ./scripts/test.ts",
+    "coverage": "hardhat coverage"
   },
   "repository": {
     "type": "git",
@@ -154,6 +155,7 @@
     "hardhat": "^2.26.1",
     "hardhat-ignore-warnings": "^0.2.12",
     "solhint": "^5.0.4",
+    "solidity-coverage": "^0.8.16",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.19.1"
   },

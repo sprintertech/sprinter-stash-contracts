@@ -106,10 +106,10 @@ contract Repayer is
     function initialize(
         address admin,
         address repayer,
-        address[] memory pools,
-        Domain[] memory domains,
-        Provider[] memory providers,
-        bool[] memory poolSupportsAllTokens
+        address[] calldata pools,
+        Domain[] calldata domains,
+        Provider[] calldata providers,
+        bool[] calldata poolSupportsAllTokens
     ) external initializer() {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(REPAYER_ROLE, repayer);
@@ -120,7 +120,7 @@ contract Repayer is
         address[] calldata pools,
         Domain[] calldata domains,
         Provider[] calldata providers,
-        bool[] memory poolSupportsAllTokens,
+        bool[] calldata poolSupportsAllTokens,
         bool isAllowed
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setRoute(pools, domains, providers, poolSupportsAllTokens, isAllowed);
@@ -211,10 +211,10 @@ contract Repayer is
     }
 
     function _setRoute(
-        address[] memory pools,
-        Domain[] memory domains,
-        Provider[] memory providers,
-        bool[] memory poolSupportsAllTokens,
+        address[] calldata pools,
+        Domain[] calldata domains,
+        Provider[] calldata providers,
+        bool[] calldata poolSupportsAllTokens,
         bool isAllowed
     ) internal {
         RepayerStorage storage $ = _getStorage();

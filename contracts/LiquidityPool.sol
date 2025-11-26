@@ -136,6 +136,9 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         // Allow native token transfers.
     }
 
+    /// @notice The liqudity admin is supposed to call this function after transferring exact amount of assets.
+    /// Supplying amount less than the actual increase will result in the extra funds being treated as profit.
+    /// Supplying amount greater than the actual increase will result in the future profits treated as deposit.
     function deposit(uint256 amount) external virtual override onlyRole(LIQUIDITY_ADMIN_ROLE) {
         // called after receiving deposit in USDC
         uint256 newBalance = ASSETS.balanceOf(address(this));

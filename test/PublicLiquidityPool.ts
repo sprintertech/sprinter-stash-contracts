@@ -32,7 +32,7 @@ function addAmountToReceive(callData: string, amountToReceive: bigint) {
   ]);
 }
 
-describe("PublicLiquidityPool", function () {
+describe.only("PublicLiquidityPool", function () {
   const deployAll = async () => {
     const [
       deployer, admin, user, user2, mpc_signer, feeSetter, withdrawProfit, pauser, lp,

@@ -16,6 +16,8 @@ import {
   LiquidityPoolUSDCVersions,
   LiquidityPoolUSDCStablecoinVersions,
   LiquidityPoolAaveUSDCLongTermVersions,
+  LiquidityPoolPublicUSDCVersions,
+  ERC4626AdapterUSDCVersions,
 } from "../network.config";
 
 export async function resolveAddresses(input: any[]): Promise<any[]> {
@@ -244,7 +246,8 @@ export async function addLocalPool(
   versions: (typeof LiquidityPoolUSDCVersions)
     | (typeof LiquidityPoolAaveUSDCVersions)
     | (typeof LiquidityPoolUSDCStablecoinVersions)
-    | (typeof LiquidityPoolAaveUSDCLongTermVersions),
+    | (typeof LiquidityPoolAaveUSDCLongTermVersions)
+    | (typeof ERC4626AdapterUSDCVersions),
   supportsAllTokens: boolean,
   poolName: string,
 ): Promise<void> {
@@ -271,7 +274,8 @@ export async function addLocalPool(
 export async function addLocalPools(
   config: NetworkConfig,
   network: Network,
-  routes: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens?: boolean}[]
+  routes: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens?: boolean}[],
+  isRebalancer: boolean = true,
 ): Promise<void> {
   await addLocalPool(
     config.AavePoolLongTerm, network, routes, LiquidityPoolAaveUSDCLongTermVersions, true, "Aave USDC Long Term"
@@ -281,6 +285,11 @@ export async function addLocalPools(
   await addLocalPool(
     config.USDCStablecoinPool, network, routes, LiquidityPoolUSDCStablecoinVersions, true, "USDC stablecoin"
   );
+  if (isRebalancer) {
+    await addLocalPool(
+      config.ERC4626AdapterUSDCTargetVault, network, routes, ERC4626AdapterUSDCVersions, false, "ERC4626 Adapter USDC"
+    );
+  }
 }
 
 export async function getNetworkConfig() {
@@ -333,6 +342,17 @@ export async function getHardhatNetworkConfig() {
         RepayCaller: opsAdmin.address,
       };
     }
+  }
+  if (!config.USDCPublicPool) {
+    config.USDCPublicPool = {
+      Name: "Public Liquidity Pool USDC",
+      Symbol: "PLPUSDC",
+      ProtocolFeeRate: 20,
+      FeeSetter: opsAdmin.address,
+    };
+  }
+  if (!config.ERC4626AdapterUSDCTargetVault) {
+    config.ERC4626AdapterUSDCTargetVault = LiquidityPoolPublicUSDCVersions.at(-1);
   }
 
   console.log("Using config for: hardhat");

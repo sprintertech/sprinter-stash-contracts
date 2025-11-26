@@ -310,7 +310,7 @@ describe("PublicLiquidityPool", function () {
 
     it("Should calculate maxRedeem and maxWithdraw correctly", async function () {
       const {
-        liquidityPool, mockTarget, usdc, USDC_DEC, user, mpc_signer, lp
+        liquidityPool, mockTarget, usdc, user, mpc_signer, lp
       } = await loadFixture(deployAll);
       const amountLiquidity = 100n;
       await usdc.connect(lp).approve(liquidityPool, amountLiquidity);
@@ -327,7 +327,7 @@ describe("PublicLiquidityPool", function () {
       const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
 
       const callData = await mockTarget.fulfill.populateTransaction(usdc, fillAmount, additionalData);
-      const callDataWithAmountToReceive = addAmountToReceive(callData.data, amountToReceive);// 100 shares, 116 total assets, balance 20
+      const callDataWithAmountToReceive = addAmountToReceive(callData.data, amountToReceive);
 
       const signature = await signBorrow(
         mpc_signer,

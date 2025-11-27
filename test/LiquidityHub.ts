@@ -59,8 +59,11 @@ describe("LiquidityHub", function () {
 
     await liquidityPool.grantRole(LIQUIDITY_ADMIN_ROLE, liquidityHub);
 
-    return {deployer, admin, user, user2, user3, usdc, lpToken, liquidityHubImpl,
-      liquidityHub, liquidityHubProxy, liquidityHubAdmin, USDC, LP, liquidityPool};
+    return {
+      deployer, admin, user, user2, user3, usdc, lpToken, liquidityHubImpl,
+      liquidityHub, liquidityHubProxy, liquidityHubAdmin, USDC, LP, liquidityPool,
+      liquidityHubAddress
+    };
   };
 
   it("Should have default values", async function () {
@@ -905,6 +908,59 @@ describe("LiquidityHub", function () {
       .withArgs(admin.address, assetsHardLimit);
   });
 
+  it("Should not allow unauthorized user to deposit profit", async function () {
+    const {liquidityHub, deployer, user, usdc, USDC} = await loadFixture(deployAll);
+
+    await usdc.connect(deployer).transfer(user, 100n * USDC);
+    await usdc.connect(user).approve(liquidityHub, 100n * USDC);
+    await liquidityHub.connect(user).deposit(100n * USDC, user);
+
+    await usdc.connect(deployer).transfer(user, 10n * USDC);
+    await usdc.connect(user).approve(liquidityHub, 10n * USDC);
+
+    await expect(liquidityHub.connect(user).depositProfit(10n * USDC))
+      .to.be.revertedWithCustomError(liquidityHub, "AccessControlUnauthorizedAccount(address,bytes32)");
+  });
+
+  it("Should not allow SET_ASSETS_LIMIT_ROLE to deposit profit", async function () {
+    const {liquidityHub, deployer, admin, user, user2, usdc, USDC} = await loadFixture(deployAll);
+
+    const SET_ASSETS_LIMIT_ROLE = await liquidityHub.SET_ASSETS_LIMIT_ROLE();
+    await liquidityHub.connect(admin).grantRole(SET_ASSETS_LIMIT_ROLE, user2);
+
+    await expect(liquidityHub.connect(user2).setAssetsLimit(100n * USDC))
+      .to.emit(liquidityHub, "AssetsLimitSet");
+
+    await usdc.connect(deployer).transfer(user, 100n * USDC);
+    await usdc.connect(user).approve(liquidityHub, 100n * USDC);
+    await liquidityHub.connect(user).deposit(100n * USDC, user);
+
+    await usdc.connect(deployer).transfer(user2, 10n * USDC);
+    await usdc.connect(user2).approve(liquidityHub, 10n * USDC);
+
+    await expect(liquidityHub.connect(user2).depositProfit(10n * USDC))
+      .to.be.revertedWithCustomError(liquidityHub, "AccessControlUnauthorizedAccount(address,bytes32)");
+  });
+
+  it("Should not allow DEPOSIT_PROFIT_ROLE to set assets limit", async function () {
+    const {liquidityHub, deployer, admin, user, user2, usdc, USDC} = await loadFixture(deployAll);
+
+    const DEPOSIT_PROFIT_ROLE = await liquidityHub.DEPOSIT_PROFIT_ROLE();
+    await liquidityHub.connect(admin).grantRole(DEPOSIT_PROFIT_ROLE, user2);
+
+    await usdc.connect(deployer).transfer(user, 100n * USDC);
+    await usdc.connect(user).approve(liquidityHub, 100n * USDC);
+    await liquidityHub.connect(user).deposit(100n * USDC, user);
+
+    await usdc.connect(deployer).transfer(user2, 10n * USDC);
+    await usdc.connect(user2).approve(liquidityHub, 10n * USDC);
+    await expect(liquidityHub.connect(user2).depositProfit(10n * USDC))
+      .to.emit(liquidityHub, "DepositProfit");
+
+    await expect(liquidityHub.connect(user2).setAssetsLimit(100n * USDC))
+      .to.be.revertedWithCustomError(liquidityHub, "AccessControlUnauthorizedAccount(address,bytes32)");
+  });
+
   it("Should allow admin to set assets limit", async function () {
     const {liquidityHub, deployer, admin, user, usdc, lpToken, USDC, LP, liquidityPool} = await loadFixture(deployAll);
 
@@ -971,5 +1027,415 @@ describe("LiquidityHub", function () {
 
     await expect(liquidityHub.connect(user).setAssetsLimit(0n))
       .to.be.revertedWithCustomError(liquidityHub, "AccessControlUnauthorizedAccount(address,bytes32)");
+  });
+
+  describe("Zero Address Protection", function () {
+    it("Should not allow deposit to zero address", async function () {
+      const {liquidityHub, usdc, deployer, user, USDC} = await loadFixture(deployAll);
+
+      await usdc.connect(deployer).transfer(user, 100n * USDC);
+      await usdc.connect(user).approve(liquidityHub, 100n * USDC);
+
+      await expect(
+        liquidityHub.connect(user).deposit(100n * USDC, ZERO_ADDRESS)
+      ).to.be.revertedWithCustomError(
+        liquidityHub,
+        "ERC20InvalidReceiver"
+      ).withArgs(ZERO_ADDRESS);
+    });
+
+    it("Should not allow mint to zero address", async function () {
+      const {liquidityHub, usdc, deployer, user, USDC, LP} = await loadFixture(deployAll);
+
+      await usdc.connect(deployer).transfer(user, 100n * USDC);
+      await usdc.connect(user).approve(liquidityHub, 100n * USDC);
+
+      await expect(
+        liquidityHub.connect(user).mint(100n * LP, ZERO_ADDRESS)
+      ).to.be.revertedWithCustomError(
+        liquidityHub,
+        "ERC20InvalidReceiver"
+      ).withArgs(ZERO_ADDRESS);
+    });
+
+    it("Should not allow withdraw to zero address", async function () {
+      const {liquidityHub, usdc, deployer, user, USDC} = await loadFixture(deployAll);
+
+      await usdc.connect(deployer).transfer(user, 100n * USDC);
+      await usdc.connect(user).approve(liquidityHub, 100n * USDC);
+      await liquidityHub.connect(user).deposit(100n * USDC, user);
+
+      await expect(
+        liquidityHub.connect(user).withdraw(50n * USDC, ZERO_ADDRESS, user)
+      ).to.be.revertedWithCustomError(
+        liquidityHub,
+        "ERC20InvalidReceiver"
+      ).withArgs(ZERO_ADDRESS);
+    });
+
+    it("Should not allow redeem to zero address", async function () {
+      const {liquidityHub, usdc, deployer, user, USDC, LP} = await loadFixture(deployAll);
+
+      await usdc.connect(deployer).transfer(user, 100n * USDC);
+      await usdc.connect(user).approve(liquidityHub, 100n * USDC);
+      await liquidityHub.connect(user).deposit(100n * USDC, user);
+
+      await expect(
+        liquidityHub.connect(user).redeem(50n * LP, ZERO_ADDRESS, user)
+      ).to.be.revertedWithCustomError(
+        liquidityHub,
+        "ERC20InvalidReceiver"
+      ).withArgs(ZERO_ADDRESS);
+    });
+  });
+
+  describe("Insufficient Liquidity Scenarios", function () {
+    it("Scenario 1: Normal - totalDeposited=1000, balance=1000, withdraw 100 succeeds", async function () {
+      const {liquidityHub, liquidityPool, usdc, deployer, user, USDC} = await loadFixture(deployAll);
+
+      await usdc.connect(deployer).transfer(user, 1000n * USDC);
+      await usdc.connect(user).approve(liquidityHub, 1000n * USDC);
+      await liquidityHub.connect(user).deposit(1000n * USDC, user);
+
+      expect(await usdc.balanceOf(liquidityPool)).to.equal(1000n * USDC);
+
+      await liquidityHub.connect(user).withdraw(100n * USDC, user, user);
+      expect(await usdc.balanceOf(user)).to.equal(100n * USDC);
+      expect(await usdc.balanceOf(liquidityPool)).to.equal(900n * USDC);
+    });
+
+    it("Scenario 2: After borrow - totalDeposited=1000, balance=500, withdraw 600 fails", async function () {
+      const {
+        liquidityHub, liquidityPool, usdc, deployer, admin, user, USDC
+      } = await loadFixture(deployAll);
+
+      await usdc.connect(deployer).transfer(user, 1000n * USDC);
+      await usdc.connect(user).approve(liquidityHub, 1000n * USDC);
+      await liquidityHub.connect(user).deposit(1000n * USDC, user);
+
+      await liquidityPool.connect(admin).withdraw(admin.address, 500n * USDC);
+      expect(await usdc.balanceOf(liquidityPool)).to.equal(500n * USDC);
+
+      await expect(
+        liquidityHub.connect(user).withdraw(600n * USDC, user, user)
+      ).to.be.reverted;
+    });
+
+    it("Scenario 3: After profit - totalDeposited=1000, balance=1100, withdraw 1000 succeeds", async function () {
+      const {
+        liquidityHub, liquidityPool, usdc, deployer, user, USDC
+      } = await loadFixture(deployAll);
+
+      await usdc.connect(deployer).transfer(user, 1000n * USDC);
+      await usdc.connect(user).approve(liquidityHub, 1000n * USDC);
+      await liquidityHub.connect(user).deposit(1000n * USDC, user);
+
+      await usdc.connect(deployer).transfer(liquidityPool, 100n * USDC);
+      expect(await usdc.balanceOf(liquidityPool)).to.equal(1100n * USDC);
+
+      await liquidityHub.connect(user).withdraw(1000n * USDC, user, user);
+      expect(await usdc.balanceOf(user)).to.equal(1000n * USDC);
+      expect(await usdc.balanceOf(liquidityPool)).to.equal(100n * USDC);
+    });
+
+    it("Scenario 4: Bug/hack - totalDeposited=1000, balance=0, withdraw 1 fails", async function () {
+      const {
+        liquidityHub, liquidityPool, usdc, deployer, admin, user, USDC
+      } = await loadFixture(deployAll);
+
+      await usdc.connect(deployer).transfer(user, 1000n * USDC);
+      await usdc.connect(user).approve(liquidityHub, 1000n * USDC);
+      await liquidityHub.connect(user).deposit(1000n * USDC, user);
+
+      await liquidityPool.connect(admin).withdraw(admin.address, 1000n * USDC);
+      expect(await usdc.balanceOf(liquidityPool)).to.equal(0n);
+
+      await expect(
+        liquidityHub.connect(user).withdraw(1n * USDC, user, user)
+      ).to.be.reverted;
+    });
+
+    it("Should reject withdrawal exceeding totalDeposited accounting", async function () {
+      const {liquidityHub, usdc, deployer, user, USDC} = await loadFixture(deployAll);
+
+      await usdc.connect(deployer).transfer(user, 1000n * USDC);
+      await usdc.connect(user).approve(liquidityHub, 1000n * USDC);
+      await liquidityHub.connect(user).deposit(1000n * USDC, user);
+
+      await expect(
+        liquidityHub.connect(user).withdraw(1001n * USDC, user, user)
+      ).to.be.revertedWithCustomError(liquidityHub, "ERC4626ExceededMaxWithdraw");
+    });
+  });
+
+  describe("Upgrade Mechanism", function () {
+    it("Should successfully upgrade to new implementation", async function () {
+      const {
+        liquidityHub, liquidityHubProxy, liquidityHubAdmin, liquidityHubImpl,
+        admin, lpToken, liquidityPool, liquidityHubAddress
+      } = await loadFixture(deployAll);
+
+      const implV1Address = liquidityHubImpl.target;
+
+      const liquidityHubImplV2 = (
+        await deployX("LiquidityHub", admin, "LiquidityHubV2", {}, lpToken, liquidityPool)
+      ) as LiquidityHub;
+
+      expect(liquidityHubImplV2.target).to.not.equal(implV1Address);
+
+      const sharesTokenBefore = await liquidityHub.SHARES();
+
+      await liquidityHubAdmin.connect(admin).upgradeAndCall(liquidityHubProxy, liquidityHubImplV2, "0x");
+
+      const sharesTokenAfter = await liquidityHub.SHARES();
+      expect(sharesTokenAfter).to.equal(sharesTokenBefore);
+      expect(liquidityHub.target).to.equal(liquidityHubAddress);
+    });
+
+    it("Should preserve storage after upgrade", async function () {
+      const {
+        liquidityHub, liquidityHubProxy, liquidityHubAdmin, admin, deployer, user,
+        usdc, lpToken, liquidityPool, USDC, LP
+      } = await loadFixture(deployAll);
+
+      await usdc.connect(deployer).transfer(user, 1000n * USDC);
+      await usdc.connect(user).approve(liquidityHub, 1000n * USDC);
+      await liquidityHub.connect(user).deposit(1000n * USDC, user);
+
+      const userSharesBeforeUpgrade = await liquidityHub.balanceOf(user);
+      const totalSupplyBeforeUpgrade = await liquidityHub.totalSupply();
+      const totalAssetsBeforeUpgrade = await liquidityHub.totalAssets();
+      const assetsLimitBeforeUpgrade = await liquidityHub.assetsLimit();
+      const sharesTokenBeforeUpgrade = await liquidityHub.SHARES();
+      const poolBeforeUpgrade = await liquidityHub.LIQUIDITY_POOL();
+
+      expect(userSharesBeforeUpgrade).to.equal(1000n * LP);
+      expect(totalSupplyBeforeUpgrade).to.equal(1000n * LP);
+      expect(totalAssetsBeforeUpgrade).to.equal(1000n * USDC);
+
+      const liquidityHubImplV2 = (
+        await deployX("LiquidityHub", admin, "LiquidityHubV2", {}, lpToken, liquidityPool)
+      ) as LiquidityHub;
+      await liquidityHubAdmin.connect(admin).upgradeAndCall(liquidityHubProxy, liquidityHubImplV2, "0x");
+
+      expect(await liquidityHub.balanceOf(user)).to.equal(userSharesBeforeUpgrade);
+      expect(await liquidityHub.totalSupply()).to.equal(totalSupplyBeforeUpgrade);
+      expect(await liquidityHub.totalAssets()).to.equal(totalAssetsBeforeUpgrade);
+      expect(await liquidityHub.assetsLimit()).to.equal(assetsLimitBeforeUpgrade);
+      expect(await liquidityHub.SHARES()).to.equal(sharesTokenBeforeUpgrade);
+      expect(await liquidityHub.LIQUIDITY_POOL()).to.equal(poolBeforeUpgrade);
+
+      await liquidityHub.connect(user).withdraw(100n * USDC, user, user);
+      expect(await liquidityHub.balanceOf(user)).to.equal(900n * LP);
+      expect(await usdc.balanceOf(user)).to.equal(100n * USDC);
+    });
+
+    it("Should maintain ERC-7201 storage layout after upgrade", async function () {
+      const {
+        liquidityHub, liquidityHubProxy, liquidityHubAdmin, admin, deployer, user,
+        usdc, lpToken, liquidityPool, USDC
+      } = await loadFixture(deployAll);
+
+      await usdc.connect(deployer).transfer(user, 1000n * USDC);
+      await usdc.connect(user).approve(liquidityHub, 1000n * USDC);
+      await liquidityHub.connect(user).deposit(500n * USDC, user);
+      await liquidityHub.connect(admin).setAssetsLimit(2000n * USDC);
+
+      const balanceBeforeUpgrade = await liquidityHub.balanceOf(user);
+      const totalSupplyBeforeUpgrade = await liquidityHub.totalSupply();
+      const assetBeforeUpgrade = await liquidityHub.asset();
+      const totalAssetsBeforeUpgrade = await liquidityHub.totalAssets();
+      const assetsLimitBeforeUpgrade = await liquidityHub.assetsLimit();
+
+      const liquidityHubImplV2 = (
+        await deployX("LiquidityHub", admin, "LiquidityHubV2", {}, lpToken, liquidityPool)
+      ) as LiquidityHub;
+      await liquidityHubAdmin.connect(admin).upgradeAndCall(liquidityHubProxy, liquidityHubImplV2, "0x");
+
+      expect(await liquidityHub.balanceOf(user)).to.equal(balanceBeforeUpgrade);
+      expect(await liquidityHub.totalSupply()).to.equal(totalSupplyBeforeUpgrade);
+      expect(await liquidityHub.asset()).to.equal(assetBeforeUpgrade);
+      expect(await liquidityHub.totalAssets()).to.equal(totalAssetsBeforeUpgrade);
+      expect(await liquidityHub.assetsLimit()).to.equal(assetsLimitBeforeUpgrade);
+    });
+  });
+
+  describe("ProxyAdmin Permissions", function () {
+    it("Should only allow admin to upgrade", async function () {
+      const {
+        liquidityHub, liquidityHubProxy, liquidityHubAdmin, admin, user2,
+        lpToken, liquidityPool
+      } = await loadFixture(deployAll);
+
+      const liquidityHubImplV2 = (
+        await deployX("LiquidityHub", admin, "LiquidityHubV2", {}, lpToken, liquidityPool)
+      ) as LiquidityHub;
+
+      await expect(
+        liquidityHubAdmin.connect(user2).upgradeAndCall(liquidityHubProxy, liquidityHubImplV2, "0x")
+      ).to.be.reverted;
+
+      const sharesTokenBefore = await liquidityHub.SHARES();
+
+      await liquidityHubAdmin.connect(admin).upgradeAndCall(liquidityHubProxy, liquidityHubImplV2, "0x");
+
+      const sharesTokenAfter = await liquidityHub.SHARES();
+      expect(sharesTokenAfter).to.equal(sharesTokenBefore);
+    });
+
+    it("Should only allow admin to change ProxyAdmin owner", async function () {
+      const {liquidityHubAdmin, admin, user, user2} = await loadFixture(deployAll);
+
+      expect(await liquidityHubAdmin.owner()).to.equal(admin.address);
+
+      await expect(
+        liquidityHubAdmin.connect(user2).transferOwnership(user2.address)
+      ).to.be.reverted;
+
+      await expect(
+        liquidityHubAdmin.connect(user).transferOwnership(user.address)
+      ).to.be.reverted;
+
+      await liquidityHubAdmin.connect(admin).transferOwnership(user.address);
+      expect(await liquidityHubAdmin.owner()).to.equal(user.address);
+    });
+
+    it("Should prevent direct calls to implementation contract", async function () {
+      const {liquidityHubImpl, usdc, admin, USDC, LP} = await loadFixture(deployAll);
+
+      await expect(
+        liquidityHubImpl.initialize(usdc, admin, admin, admin, admin, getBigInt(MaxUint256) * USDC / LP)
+      ).to.be.revertedWithCustomError(liquidityHubImpl, "InvalidInitialization");
+    });
+
+    it("Should not allow unauthorized upgrades via proxy directly", async function () {
+      const {liquidityHub, user2, lpToken, liquidityPool} = await loadFixture(deployAll);
+
+      const liquidityHubImplV2 = (
+        await deployX("LiquidityHub", user2, "LiquidityHubV2Malicious", {}, lpToken, liquidityPool)
+      ) as LiquidityHub;
+
+      const upgradeToAndCallSelector = "0x4f1ef286";
+      const upgradeCalldata = hre.ethers.concat([
+        upgradeToAndCallSelector,
+        hre.ethers.AbiCoder.defaultAbiCoder().encode(
+          ["address", "bytes"],
+          [liquidityHubImplV2.target, "0x"]
+        )
+      ]);
+
+      await expect(
+        user2.sendTransaction({
+          to: liquidityHub.target,
+          data: upgradeCalldata
+        })
+      ).to.be.reverted;
+    });
+  });
+
+  describe("Re-initialization Prevention", function () {
+    it("Should prevent re-initialization after upgrade", async function () {
+      const {
+        liquidityHub, liquidityHubProxy, liquidityHubAdmin, admin, usdc,
+        lpToken, liquidityPool, USDC, LP
+      } = await loadFixture(deployAll);
+
+      const liquidityHubImplV2 = (
+        await deployX("LiquidityHub", admin, "LiquidityHubV2", {}, lpToken, liquidityPool)
+      ) as LiquidityHub;
+      await liquidityHubAdmin.connect(admin).upgradeAndCall(liquidityHubProxy, liquidityHubImplV2, "0x");
+
+      await expect(
+        liquidityHub.initialize(usdc, admin, admin, admin, admin, getBigInt(MaxUint256) * USDC / LP)
+      ).to.be.revertedWithCustomError(liquidityHub, "InvalidInitialization");
+    });
+
+    it("Should prevent initialization on standalone implementation", async function () {
+      const {lpToken, liquidityPool, usdc, admin, USDC, LP} = await loadFixture(deployAll);
+
+      const standaloneImpl = (
+        await deployX("LiquidityHub", admin, "LiquidityHubStandalone", {}, lpToken, liquidityPool)
+      ) as LiquidityHub;
+
+      await expect(
+        standaloneImpl.initialize(usdc, admin, admin, admin, admin, getBigInt(MaxUint256) * USDC / LP)
+      ).to.be.revertedWithCustomError(standaloneImpl, "InvalidInitialization");
+    });
+  });
+
+  describe("Upgrade with Data Migration", function () {
+    it("Should support upgradeAndCall with data migration", async function () {
+      const {
+        liquidityHub, liquidityHubProxy, liquidityHubAdmin, admin, deployer, user,
+        usdc, lpToken, liquidityPool, USDC
+      } = await loadFixture(deployAll);
+
+      await usdc.connect(deployer).transfer(user, 1000n * USDC);
+      await usdc.connect(user).approve(liquidityHub, 1000n * USDC);
+      await liquidityHub.connect(user).deposit(500n * USDC, user);
+
+      const assetsLimitBefore = await liquidityHub.assetsLimit();
+      const balanceBefore = await liquidityHub.balanceOf(user);
+
+      const liquidityHubImplV2 = (
+        await deployX("LiquidityHub", admin, "LiquidityHubV2WithMigration", {}, lpToken, liquidityPool)
+      ) as LiquidityHub;
+
+      await liquidityHubAdmin.connect(admin).upgradeAndCall(liquidityHubProxy, liquidityHubImplV2, "0x");
+
+      const balanceAfter = await liquidityHub.balanceOf(user);
+      expect(balanceAfter).to.equal(balanceBefore);
+
+      const newLimit = 5000n * (10n ** 6n);
+      await liquidityHub.connect(admin).setAssetsLimit(newLimit);
+
+      const assetsLimitAfter = await liquidityHub.assetsLimit();
+      expect(assetsLimitAfter).to.equal(newLimit);
+      expect(assetsLimitAfter).to.not.equal(assetsLimitBefore);
+    });
+
+    it("Should maintain access control roles after upgrade with migration", async function () {
+      const {
+        liquidityHub, liquidityHubProxy, liquidityHubAdmin, admin, user,
+        lpToken, liquidityPool
+      } = await loadFixture(deployAll);
+
+      const DEPOSIT_PROFIT_ROLE = await liquidityHub.DEPOSIT_PROFIT_ROLE();
+      await liquidityHub.connect(admin).grantRole(DEPOSIT_PROFIT_ROLE, user);
+      expect(await liquidityHub.hasRole(DEPOSIT_PROFIT_ROLE, user.address)).to.be.true;
+
+      const liquidityHubImplV2 = (
+        await deployX("LiquidityHub", admin, "LiquidityHubV2Roles", {}, lpToken, liquidityPool)
+      ) as LiquidityHub;
+
+      await liquidityHubAdmin.connect(admin).upgradeAndCall(liquidityHubProxy, liquidityHubImplV2, "0x");
+
+      expect(await liquidityHub.hasRole(DEPOSIT_PROFIT_ROLE, user.address)).to.be.true;
+
+      const SET_ASSETS_LIMIT_ROLE = await liquidityHub.SET_ASSETS_LIMIT_ROLE();
+      await liquidityHub.connect(admin).grantRole(SET_ASSETS_LIMIT_ROLE, user);
+
+      expect(await liquidityHub.hasRole(DEPOSIT_PROFIT_ROLE, user.address)).to.be.true;
+      expect(await liquidityHub.hasRole(SET_ASSETS_LIMIT_ROLE, user.address)).to.be.true;
+    });
+  });
+
+  describe("Storage Collision Prevention (ERC-7201)", function () {
+    it("Should use ERC-7201 namespaced storage", async function () {
+      const {liquidityHub, liquidityHubImpl} = await loadFixture(deployAll);
+
+      expect(liquidityHub.target).to.not.equal(hre.ethers.ZeroAddress);
+      expect(liquidityHubImpl.target).to.not.equal(hre.ethers.ZeroAddress);
+
+      const totalSupply = await liquidityHub.totalSupply();
+      const asset = await liquidityHub.asset();
+      const adminRole = await liquidityHub.DEFAULT_ADMIN_ROLE();
+      const assetsLimit = await liquidityHub.assetsLimit();
+
+      expect(totalSupply).to.be.a("bigint");
+      expect(asset).to.be.a("string");
+      expect(adminRole).to.be.a("string");
+      expect(assetsLimit).to.be.a("bigint");
+    });
   });
 });

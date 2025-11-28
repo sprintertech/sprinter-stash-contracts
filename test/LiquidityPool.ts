@@ -671,7 +671,7 @@ describe("LiquidityPool", function () {
       await usdc.connect(usdcOwner).approve(liquidityPool, amountLiquidity);
       await expect(liquidityPool.connect(usdcOwner).depositWithPull(amountLiquidity))
         .to.emit(liquidityPool, "Deposit").withArgs(usdcOwner, amountLiquidity);
-      expect(await liquidityPool.balance(usdc)).to.eq(amountLiquidity + amountLiquidity);
+      expect(await liquidityPool.balance(usdc)).to.eq(0n);
     });
 
     it("Should withdraw liquidity", async function () {
@@ -936,8 +936,11 @@ describe("LiquidityPool", function () {
     });
 
     it("Should NOT borrow if borrowing is paused", async function () {
-      const {liquidityPool, user, user2, withdrawProfit, mpc_signer, usdc, USDC_DEC} = await loadFixture(deployAll);
+      const {
+        liquidityPool, user, user2, withdrawProfit, mpc_signer, usdc, USDC_DEC, usdcOwner
+      } = await loadFixture(deployAll);
 
+      await usdc.connect(usdcOwner).transfer(liquidityPool, 1000n * USDC_DEC);
       // Pause borrowing
       await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())
         .to.emit(liquidityPool, "BorrowPaused");
@@ -962,6 +965,7 @@ describe("LiquidityPool", function () {
         2000000000n,
         signature))
       .to.be.revertedWithCustomError(liquidityPool, "BorrowingIsPaused");
+      expect(await liquidityPool.balance(usdc)).to.eq(0n);
     });
 
     it("Should NOT borrow if the contract is paused", async function () {

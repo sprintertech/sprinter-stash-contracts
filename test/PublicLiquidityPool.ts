@@ -758,7 +758,7 @@ describe("PublicLiquidityPool", function () {
       expect(await liquidityPool.totalDeposited()).to.eq(amountLiquidity + amountLiquidity);
       expect(await liquidityPool.totalAssets()).to.eq(amountLiquidity + amountLiquidity);
       expect(await liquidityPool.totalSupply()).to.eq(amountLiquidity + amountLiquidity);
-      expect(await liquidityPool.balance(usdc)).to.eq(amountLiquidity + amountLiquidity);
+      expect(await liquidityPool.balance(usdc)).to.eq(0n);
       expect(await liquidityPool.balanceOf(lp)).to.eq(amountLiquidity);
       expect(await liquidityPool.balanceOf(usdcOwner)).to.eq(amountLiquidity);
       expect(await usdc.balanceOf(liquidityPool)).to.eq(amountLiquidity + amountLiquidity);
@@ -1166,8 +1166,11 @@ describe("PublicLiquidityPool", function () {
     });
 
     it("Should NOT borrow if borrowing is paused", async function () {
-      const {liquidityPool, user, user2, withdrawProfit, mpc_signer, usdc, USDC_DEC} = await loadFixture(deployAll);
-
+      const {liquidityPool, user, user2, withdrawProfit, mpc_signer, usdc, USDC_DEC, lp} = await loadFixture(deployAll);
+      
+      const amountLiquidity = 1000n * USDC_DEC;
+      await usdc.connect(lp).approve(liquidityPool, amountLiquidity);
+      await liquidityPool.connect(lp)[ERC4626Deposit](amountLiquidity, lp);
       // Pause borrowing
       await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())
         .to.emit(liquidityPool, "BorrowPaused");
@@ -1192,6 +1195,7 @@ describe("PublicLiquidityPool", function () {
         2000000000n,
         signature))
       .to.be.revertedWithCustomError(liquidityPool, "BorrowingIsPaused");
+      expect(await liquidityPool.balance(usdc)).to.eq(0n);
     });
 
     it("Should NOT borrow if the contract is paused", async function () {

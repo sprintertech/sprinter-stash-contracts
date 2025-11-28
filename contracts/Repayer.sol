@@ -13,7 +13,7 @@ import {CCTPAdapter} from "./utils/CCTPAdapter.sol";
 import {AcrossAdapter} from "./utils/AcrossAdapter.sol";
 import {StargateAdapter} from "./utils/StargateAdapter.sol";
 import {EverclearAdapter} from "./utils/EverclearAdapter.sol";
-import {OptimismStandardBridgeAdapter} from "./utils/OptimismStandardBridgeAdapter.sol";
+import {SuperchainStandardBridgeAdapter} from "./utils/SuperchainStandardBridgeAdapter.sol";
 import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 
 /// @title Performs repayment to Liquidity Pools on same/different chains.
@@ -28,7 +28,7 @@ contract Repayer is
     AcrossAdapter,
     StargateAdapter,
     EverclearAdapter,
-    OptimismStandardBridgeAdapter
+    SuperchainStandardBridgeAdapter
 {
     using SafeERC20 for IERC20;
     using BitMaps for BitMaps.BitMap;
@@ -80,13 +80,14 @@ contract Repayer is
         address everclearFeeAdapter,
         address wrappedNativeToken,
         address stargateTreasurer,
-        address optimismBridge
+        address optimismBridge,
+        address baseBridge
     )
         CCTPAdapter(cctpTokenMessenger, cctpMessageTransmitter)
         AcrossAdapter(acrossSpokePool)
         StargateAdapter(stargateTreasurer)
         EverclearAdapter(everclearFeeAdapter)
-        OptimismStandardBridgeAdapter(optimismBridge, wrappedNativeToken)
+        SuperchainStandardBridgeAdapter(optimismBridge, baseBridge, wrappedNativeToken)
     {
         ERC7201Helper.validateStorageLocation(
             STORAGE_LOCATION,
@@ -175,8 +176,8 @@ contract Repayer is
         if (provider == Provider.STARGATE) {
             initiateTransferStargate(token, amount, destinationPool, destinationDomain, extraData, _msgSender());
         } else
-        if (provider == Provider.OPTIMISM_STANDARD_BRIDGE) {
-            initiateTransferOptimismStandardBridge(
+        if (provider == Provider.SUPERCHAIN_STANDARD_BRIDGE) {
+            initiateTransferSuperchainStandardBridge(
                 token, amount, destinationPool, destinationDomain, extraData, DOMAIN
             );
         } else {

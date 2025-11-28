@@ -61,8 +61,12 @@ describe("Repayer", function () {
       forkNetworkConfig.StargateTreasurer!
     );
     const optimismStandardBridge = await hre.ethers.getContractAt(
-      "IOptimismStandardBridge",
+      "ISuperchainStandardBridge",
       forkNetworkConfig.OptimismStandardBridge!
+    );
+    const baseStandardBridge = await hre.ethers.getContractAt(
+      "ISuperchainStandardBridge",
+      forkNetworkConfig.BaseStandardBridge!
     );
     const everclearFeeAdapter = await hre.ethers.getContractAt("IFeeAdapterV2", forkNetworkConfig.EverclearFeeAdapter!);
     const weth = await hre.ethers.getContractAt("IWrappedNativeToken", forkNetworkConfig.WrappedNativeToken);
@@ -80,15 +84,16 @@ describe("Repayer", function () {
         weth,
         stargateTreasurer,
         optimismStandardBridge,
+        baseStandardBridge,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin,
       repayUser,
-      [liquidityPool, liquidityPool2, liquidityPool],
-      [Domain.ETHEREUM, Domain.ETHEREUM, Domain.OP_MAINNET],
-      [Provider.LOCAL, Provider.LOCAL, Provider.OPTIMISM_STANDARD_BRIDGE],
-      [true, false, true],
+      [liquidityPool, liquidityPool2, liquidityPool, liquidityPool],
+      [Domain.ETHEREUM, Domain.ETHEREUM, Domain.OP_MAINNET, Domain.BASE],
+      [Provider.LOCAL, Provider.LOCAL, Provider.SUPERCHAIN_STANDARD_BRIDGE, Provider.SUPERCHAIN_STANDARD_BRIDGE],
+      [true, false, true, true],
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer", {},
@@ -104,7 +109,7 @@ describe("Repayer", function () {
       deployer, admin, repayUser, user, usdc,
       USDC_DEC, liquidityPool, liquidityPool2, repayer, repayerProxy, repayerAdmin,
       cctpTokenMessenger, cctpMessageTransmitter, REPAYER_ROLE, DEFAULT_ADMIN_ROLE, acrossV3SpokePool, weth,
-      stargateTreasurer, everclearFeeAdapter, forkNetworkConfig, optimismStandardBridge,
+      stargateTreasurer, everclearFeeAdapter, forkNetworkConfig, optimismStandardBridge, baseStandardBridge,
     };
   };
 
@@ -125,20 +130,20 @@ describe("Repayer", function () {
     const outputToken = networkConfig.OP_MAINNET.USDC;
     const minGasLimit = 100000n;
     const extraData = AbiCoder.defaultAbiCoder().encode(
-      ["address", "uint32"],
-      [outputToken, minGasLimit]
+      ["address", "uint32", "bytes"],
+      [outputToken, minGasLimit, "0x1234"]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
       usdc,
       amount,
       liquidityPool,
       Domain.OP_MAINNET,
-      Provider.OPTIMISM_STANDARD_BRIDGE,
+      Provider.SUPERCHAIN_STANDARD_BRIDGE,
       extraData
     );
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")
-      .withArgs(usdc.target, amount, liquidityPool.target, Domain.OP_MAINNET, Provider.OPTIMISM_STANDARD_BRIDGE);
+      .withArgs(usdc.target, amount, liquidityPool.target, Domain.OP_MAINNET, Provider.SUPERCHAIN_STANDARD_BRIDGE);
     await expect(tx)
       .to.emit(usdc, "Transfer")
       .withArgs(repayer.target, optimismStandardBridge.target, amount);
@@ -150,7 +155,7 @@ describe("Repayer", function () {
         repayer,
         liquidityPool,
         amount,
-        "0x"
+        "0x1234"
       );
   });
 
@@ -162,27 +167,107 @@ describe("Repayer", function () {
 
     const minGasLimit = 100000n;
     const extraData = AbiCoder.defaultAbiCoder().encode(
-      ["address", "uint32"],
-      [ZERO_ADDRESS, minGasLimit]
+      ["address", "uint32", "bytes"],
+      [ZERO_ADDRESS, minGasLimit, "0x1234"]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
       weth,
       amount,
       liquidityPool,
       Domain.OP_MAINNET,
-      Provider.OPTIMISM_STANDARD_BRIDGE,
+      Provider.SUPERCHAIN_STANDARD_BRIDGE,
       extraData
     );
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")
-      .withArgs(weth.target, amount, liquidityPool.target, Domain.OP_MAINNET, Provider.OPTIMISM_STANDARD_BRIDGE);
+      .withArgs(weth.target, amount, liquidityPool.target, Domain.OP_MAINNET, Provider.SUPERCHAIN_STANDARD_BRIDGE);
     await expect(tx)
       .to.emit(optimismStandardBridge, "ETHBridgeInitiated")
       .withArgs(
         repayer,
         liquidityPool,
         amount,
-        "0x"
+        "0x1234"
+      );
+    expect(await getBalance(repayer)).to.equal(0n);
+    expect(await weth.balanceOf(repayer)).to.equal(0n);
+  });
+
+  it("Should allow repayer to initiate Base repay on fork", async function () {
+    const {repayer, USDC_DEC, usdc, repayUser, liquidityPool, baseStandardBridge} = await loadFixture(deployAll);
+
+    assertAddress(process.env.USDC_OWNER_ETH_ADDRESS, "Env variables not configured (USDC_OWNER_ETH_ADDRESS missing)");
+    const USDC_OWNER_ETH_ADDRESS = process.env.USDC_OWNER_ETH_ADDRESS;
+    const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ETH_ADDRESS);
+    await setBalance(USDC_OWNER_ETH_ADDRESS, 10n ** 18n);
+
+    expect(await repayer.BASE_STANDARD_BRIDGE())
+      .to.equal(baseStandardBridge.target);
+
+    await usdc.connect(usdcOwner).transfer(repayer, 10n * USDC_DEC);
+
+    const amount = 4n * USDC_DEC;
+    const outputToken = networkConfig.BASE.USDC;
+    const minGasLimit = 100000n;
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint32", "bytes"],
+      [outputToken, minGasLimit, "0x1234"]
+    );
+    const tx = repayer.connect(repayUser).initiateRepay(
+      usdc,
+      amount,
+      liquidityPool,
+      Domain.BASE,
+      Provider.SUPERCHAIN_STANDARD_BRIDGE,
+      extraData
+    );
+    await expect(tx)
+      .to.emit(repayer, "InitiateRepay")
+      .withArgs(usdc.target, amount, liquidityPool.target, Domain.BASE, Provider.SUPERCHAIN_STANDARD_BRIDGE);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(repayer.target, baseStandardBridge.target, amount);
+    await expect(tx)
+      .to.emit(baseStandardBridge, "ERC20BridgeInitiated")
+      .withArgs(
+        usdc,
+        outputToken,
+        repayer,
+        liquidityPool,
+        amount,
+        "0x1234"
+      );
+  });
+
+  it("Should allow repayer to initiate native token Base repay on fork", async function () {
+    const {repayer, repayUser, liquidityPool, baseStandardBridge, weth} = await loadFixture(deployAll);
+
+    const amount = 4n * ETH;
+    await repayUser.sendTransaction({to: repayer, value: amount});
+
+    const minGasLimit = 100000n;
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint32", "bytes"],
+      [ZERO_ADDRESS, minGasLimit, "0x1234"]
+    );
+    const tx = repayer.connect(repayUser).initiateRepay(
+      weth,
+      amount,
+      liquidityPool,
+      Domain.BASE,
+      Provider.SUPERCHAIN_STANDARD_BRIDGE,
+      extraData
+    );
+    await expect(tx)
+      .to.emit(repayer, "InitiateRepay")
+      .withArgs(weth.target, amount, liquidityPool.target, Domain.BASE, Provider.SUPERCHAIN_STANDARD_BRIDGE);
+    await expect(tx)
+      .to.emit(baseStandardBridge, "ETHBridgeInitiated")
+      .withArgs(
+        repayer,
+        liquidityPool,
+        amount,
+        "0x1234"
       );
     expect(await getBalance(repayer)).to.equal(0n);
     expect(await weth.balanceOf(repayer)).to.equal(0n);

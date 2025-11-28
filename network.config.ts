@@ -67,7 +67,7 @@ export enum Provider {
   ACROSS = "ACROSS",
   EVERCLEAR = "EVERCLEAR",
   STARGATE = "STARGATE",
-  OPTIMISM_STANDARD_BRIDGE = "OPTIMISM_STANDARD_BRIDGE",
+  SUPERCHAIN_STANDARD_BRIDGE = "SUPERCHAIN_STANDARD_BRIDGE",
 }
 
 interface CCTPConfig {
@@ -140,6 +140,7 @@ export interface NetworkConfig {
   StargateTreasurer?: string;
   EverclearFeeAdapter?: string;
   OptimismStandardBridge?: string;
+  BaseStandardBridge?: string;
   USDC: string;
   WrappedNativeToken: string;
   RebalancerRoutes?: RebalancerRoutesConfig;
@@ -177,6 +178,7 @@ export const networkConfig: NetworksConfig = {
     StargateTreasurer: "0x1041D127b2d4BC700F0F563883bC689502606918",
     EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
     OptimismStandardBridge: "0x99C9fc46f92E8a1c0deC1b1747d010903E884bE1",
+    BaseStandardBridge: "0x3154Cf16ccdb4C6d922629664174b904d80F2C35",
     USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
     WrappedNativeToken: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
     IsTest: false,
@@ -210,19 +212,30 @@ export const networkConfig: NetworksConfig = {
             Provider.CCTP,
             Provider.ACROSS,
             Provider.EVERCLEAR,
-            Provider.OPTIMISM_STANDARD_BRIDGE,
+            Provider.SUPERCHAIN_STANDARD_BRIDGE,
             Provider.STARGATE,
           ],
           [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
-          [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+          [Network.BASE]: [
+            Provider.CCTP,
+            Provider.ACROSS,
+            Provider.EVERCLEAR,
+            Provider.SUPERCHAIN_STANDARD_BRIDGE,
+            Provider.STARGATE
+          ],
         },
       },
       [LiquidityPoolUSDC]: {
         SupportsAllTokens: false,
         Domains: {
-          [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          [Network.OP_MAINNET]: [
+            Provider.CCTP,
+            Provider.ACROSS,
+            Provider.EVERCLEAR,
+            Provider.SUPERCHAIN_STANDARD_BRIDGE
+          ],
           [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-          [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.SUPERCHAIN_STANDARD_BRIDGE],
         },
       },
       [LiquidityPoolUSDCStablecoin]: {
@@ -255,6 +268,7 @@ export const networkConfig: NetworksConfig = {
       StargateTreasurer: "0x1041D127b2d4BC700F0F563883bC689502606918",
       EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
       OptimismStandardBridge: "0x99C9fc46f92E8a1c0deC1b1747d010903E884bE1",
+      BaseStandardBridge: "0x3154Cf16ccdb4C6d922629664174b904d80F2C35",
       USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
       WrappedNativeToken: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
       IsTest: false,
@@ -285,16 +299,31 @@ export const networkConfig: NetworksConfig = {
           SupportsAllTokens: true,
           Domains: {
             [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-            [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.SUPERCHAIN_STANDARD_BRIDGE],
+            [Network.OP_MAINNET]: [
+              Provider.CCTP,
+              Provider.ACROSS,
+              Provider.EVERCLEAR,
+              Provider.SUPERCHAIN_STANDARD_BRIDGE
+            ],
           },
         },
         [LiquidityPoolUSDCV3]: {
           SupportsAllTokens: false,
           Domains: {
             [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-            [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.BASE]: [
+              Provider.CCTP,
+              Provider.ACROSS,
+              Provider.EVERCLEAR,
+              Provider.SUPERCHAIN_STANDARD_BRIDGE,
+            ],
+            [Network.OP_MAINNET]: [
+              Provider.CCTP,
+              Provider.ACROSS,
+              Provider.EVERCLEAR,
+              Provider.SUPERCHAIN_STANDARD_BRIDGE,
+            ],
           },
         },
         [LiquidityPoolAaveUSDCLongTermV2]: {
@@ -1340,6 +1369,7 @@ export interface StandaloneRepayerConfig {
   StargateTreasurer?: string;
   EverclearFeeAdapter?: string;
   OptimismStandardBridge?: string;
+  BaseStandardBridge?: string;
   USDC: string;
   WrappedNativeToken: string;
   RepayerRoutes: RepayerRoutesConfig;

@@ -71,6 +71,9 @@ export async function main() {
   if (!config.OptimismStandardBridge) {
     config.OptimismStandardBridge = ZERO_ADDRESS;
   }
+  if (!config.BaseStandardBridge) {
+    config.BaseStandardBridge = ZERO_ADDRESS;
+  }
 
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
 
@@ -89,6 +92,7 @@ export async function main() {
       config.WrappedNativeToken,
       config.StargateTreasurer,
       config.OptimismStandardBridge,
+      config.BaseStandardBridge,
     ],
     [
       deployer,

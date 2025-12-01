@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {V3SpokePoolInterface} from ".././interfaces/IAcross.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {AdapterHelper} from "./AdapterHelper.sol";
+import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 
 abstract contract AcrossAdapter is AdapterHelper {
     using SafeERC20 for IERC20;
@@ -22,7 +23,8 @@ abstract contract AcrossAdapter is AdapterHelper {
         uint256 amount,
         address destinationPool,
         Domain destinationDomain,
-        bytes calldata extraData
+        bytes calldata extraData,
+        mapping(bytes32 => BitMaps.BitMap) storage outputTokens
     ) internal notPayable {
         require(address(ACROSS_SPOKE_POOL) != address(0), ZeroAddress());
         token.forceApprove(address(ACROSS_SPOKE_POOL), amount);
@@ -38,6 +40,9 @@ abstract contract AcrossAdapter is AdapterHelper {
         // then we will need to remove this requirement.
         // Until then we leave it here as a protective measure on potential offchain component calculation errors.
         require(outputAmount >= (amount * 9980 / 10000), SlippageTooHigh());
+        if (outputToken != address(0)) {
+            _validateOutputToken(_addressToBytes32(outputToken), destinationDomain, outputTokens);
+        }
         ACROSS_SPOKE_POOL.depositV3(
             address(this),
             destinationPool,

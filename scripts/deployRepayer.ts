@@ -27,7 +27,7 @@ export async function main() {
     id += "-DeployTest";
   }
 
-  assert(isAddress(config.USDC), "USDC must be an address");
+  assert(isAddress(config.Tokens.USDC), "USDC must be an address");
   assert(isAddress(config.Admin), "Admin must be an address");
   assert(isAddress(config.RepayerCaller), "RepayerCaller must be an address");
   assert(isAddress(config.WrappedNativeToken), "WrappedNativeToken must be an address");
@@ -78,7 +78,7 @@ export async function main() {
     config.Admin,
     [
       DomainSolidity[network],
-      config.USDC,
+      config.Tokens.USDC,
       config.CCTP.TokenMessenger,
       config.CCTP.MessageTransmitter,
       config.AcrossV3SpokePool,
@@ -91,10 +91,12 @@ export async function main() {
     [
       config.Admin,
       config.RepayerCaller,
+      config.SetInputOutputTokens,
       repayerRoutes.map(el => el.Pool),
       repayerRoutes.map(el => DomainSolidity[el.Domain]),
       repayerRoutes.map(el => ProviderSolidity[el.Provider]),
       repayerRoutes.map(el => el.SupportsAllTokens),
+      [],
     ],
     id,
     verifier,

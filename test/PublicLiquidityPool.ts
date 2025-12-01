@@ -39,7 +39,7 @@ describe("PublicLiquidityPool", function () {
     ] = await hre.ethers.getSigners();
     await setCode(user2.address, "0x00");
 
-    const USDC_ADDRESS = networkConfig.BASE.USDC;
+    const USDC_ADDRESS = networkConfig.BASE.Tokens.USDC;
     const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;
     if (!USDC_OWNER_ADDRESS) throw new Error("Env variables not configured (USDC_OWNER_ADDRESS missing)");
     const usdc = await hre.ethers.getContractAt("ERC20", USDC_ADDRESS);

@@ -449,7 +449,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
   };
 
   const token = await hre.ethers.getContractAt("IERC20", hre.ethers.ZeroAddress, signer);
-  const borrowToken = args.token || config.USDC;
+  const borrowToken = args.token || config.Tokens.USDC;
   const amount = args.amount;
   const target = args.target || borrowToken;
   const data = args.data || (await token.transfer.populateTransaction(signer, amount)).data;

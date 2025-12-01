@@ -27,7 +27,7 @@ describe("LiquidityPoolStablecoin", function () {
 
     const forkNetworkConfig = networkConfig.BASE;
 
-    const USDC_ADDRESS = forkNetworkConfig.USDC;
+    const USDC_ADDRESS = forkNetworkConfig.Tokens.USDC;
     const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;
     if (!USDC_OWNER_ADDRESS) throw new Error("Env variables not configured (USDC_OWNER_ADDRESS missing)");
     const usdc = await hre.ethers.getContractAt("ERC20", USDC_ADDRESS);

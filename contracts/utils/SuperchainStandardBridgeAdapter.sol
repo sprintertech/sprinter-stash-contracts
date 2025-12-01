@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity 0.8.28;
 
+import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ISuperchainStandardBridge} from ".././interfaces/ISuperchainStandardBridge.sol";
 import {IWrappedNativeToken} from ".././interfaces/IWrappedNativeToken.sol";
@@ -30,7 +31,8 @@ abstract contract SuperchainStandardBridgeAdapter is AdapterHelper {
         address destinationPool,
         Domain destinationDomain,
         bytes calldata extraData,
-        Domain localDomain
+        Domain localDomain,
+        mapping(bytes32 => BitMaps.BitMap) storage outputTokens
     ) internal notPayable {
         // We are only interested in fast L1->L2 bridging, because the reverse is slow.
         require(localDomain == Domain.ETHEREUM, UnsupportedDomain());
@@ -49,12 +51,13 @@ abstract contract SuperchainStandardBridgeAdapter is AdapterHelper {
         (address outputToken, uint32 minGasLimit, bytes memory message) =
             abi.decode(extraData, (address, uint32, bytes));
         if (token == WRAPPED_NATIVE_TOKEN) {
+            require(outputToken == address(0), InvalidOutputToken());
             WRAPPED_NATIVE_TOKEN.withdraw(amount);
             standardBridge.bridgeETHTo{value: amount}(destinationPool, minGasLimit, message);
             return;
         }
 
-        require(outputToken != address(0), ZeroAddress());
+        _validateOutputToken(_addressToBytes32(outputToken), destinationDomain, outputTokens);
         token.forceApprove(address(standardBridge), amount);
         standardBridge.bridgeERC20To(
             address(token),

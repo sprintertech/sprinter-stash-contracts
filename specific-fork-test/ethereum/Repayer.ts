@@ -10,6 +10,7 @@ import {
 import {
   ProviderSolidity as Provider, DomainSolidity as Domain,
   DEFAULT_ADMIN_ROLE, assertAddress, ETH, ZERO_ADDRESS,
+  addressToBytes32,
 } from "../../scripts/common";
 import {
   TransparentUpgradeableProxy, ProxyAdmin,
@@ -19,7 +20,7 @@ import {networkConfig} from "../../network.config";
 
 describe("Repayer", function () {
   const deployAll = async () => {
-    const [deployer, admin, repayUser, user] = await hre.ethers.getSigners();
+    const [deployer, admin, repayUser, user, setTokensUser] = await hre.ethers.getSigners();
     await setCode(repayUser.address, "0x00");
 
     const forkNetworkConfig = networkConfig.ETHEREUM;
@@ -27,7 +28,7 @@ describe("Repayer", function () {
     const REPAYER_ROLE = toBytes32("REPAYER_ROLE");
     const DEPOSIT_PROFIT_ROLE = toBytes32("DEPOSIT_PROFIT_ROLE");
 
-    const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.USDC);
+    const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.USDC);
     const liquidityPool = (await deploy(
       "TestLiquidityPool",
       deployer,
@@ -90,10 +91,25 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin,
       repayUser,
+      setTokensUser,
       [liquidityPool, liquidityPool2, liquidityPool, liquidityPool],
       [Domain.ETHEREUM, Domain.ETHEREUM, Domain.OP_MAINNET, Domain.BASE],
       [Provider.LOCAL, Provider.LOCAL, Provider.SUPERCHAIN_STANDARD_BRIDGE, Provider.SUPERCHAIN_STANDARD_BRIDGE],
       [true, false, true, true],
+      [
+        {
+          inputToken: usdc,
+          destinationTokens: [
+            {destinationDomain: Domain.OP_MAINNET, outputToken: addressToBytes32(networkConfig.OP_MAINNET.Tokens.USDC)}
+          ]
+        },
+        {
+          inputToken: usdc,
+          destinationTokens: [
+            {destinationDomain: Domain.BASE, outputToken: addressToBytes32(networkConfig.BASE.Tokens.USDC)}
+          ]
+        },
+      ],
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer", {},
@@ -106,7 +122,7 @@ describe("Repayer", function () {
     await liquidityPool.grantRole(DEPOSIT_PROFIT_ROLE, repayer);
 
     return {
-      deployer, admin, repayUser, user, usdc,
+      deployer, admin, repayUser, user, usdc, setTokensUser,
       USDC_DEC, liquidityPool, liquidityPool2, repayer, repayerProxy, repayerAdmin,
       cctpTokenMessenger, cctpMessageTransmitter, REPAYER_ROLE, DEFAULT_ADMIN_ROLE, acrossV3SpokePool, weth,
       stargateTreasurer, everclearFeeAdapter, forkNetworkConfig, optimismStandardBridge, baseStandardBridge,
@@ -127,7 +143,7 @@ describe("Repayer", function () {
     await usdc.connect(usdcOwner).transfer(repayer, 10n * USDC_DEC);
 
     const amount = 4n * USDC_DEC;
-    const outputToken = networkConfig.OP_MAINNET.USDC;
+    const outputToken = networkConfig.OP_MAINNET.Tokens.USDC;
     const minGasLimit = 100000n;
     const extraData = AbiCoder.defaultAbiCoder().encode(
       ["address", "uint32", "bytes"],
@@ -207,7 +223,7 @@ describe("Repayer", function () {
     await usdc.connect(usdcOwner).transfer(repayer, 10n * USDC_DEC);
 
     const amount = 4n * USDC_DEC;
-    const outputToken = networkConfig.BASE.USDC;
+    const outputToken = networkConfig.BASE.Tokens.USDC;
     const minGasLimit = 100000n;
     const extraData = AbiCoder.defaultAbiCoder().encode(
       ["address", "uint32", "bytes"],

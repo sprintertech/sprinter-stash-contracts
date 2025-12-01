@@ -1,4 +1,4 @@
-import {isAddress, getAddress} from "ethers";
+import {isAddress, getAddress, zeroPadValue} from "ethers";
 import {Network, Provider} from "../network.config";
 
 export function assert(condition: any, message: string): asserts condition {
@@ -26,6 +26,10 @@ export function isSet(input?: string): boolean {
     return input.length > 0;
   }
   return false;
+}
+
+export function addressToBytes32(address: any) {
+  return zeroPadValue(address.toString(), 32);
 }
 
 export const ProviderSolidity = {

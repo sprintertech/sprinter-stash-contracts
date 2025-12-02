@@ -918,8 +918,10 @@ describe("LiquidityHub", function () {
     await usdc.connect(deployer).transfer(user, 10n * USDC);
     await usdc.connect(user).approve(liquidityHub, 10n * USDC);
 
+    const DEPOSIT_PROFIT_ROLE = await liquidityHub.DEPOSIT_PROFIT_ROLE();
     await expect(liquidityHub.connect(user).depositProfit(10n * USDC))
-      .to.be.revertedWithCustomError(liquidityHub, "AccessControlUnauthorizedAccount(address,bytes32)");
+      .to.be.revertedWithCustomError(liquidityHub, "AccessControlUnauthorizedAccount")
+      .withArgs(user.address, DEPOSIT_PROFIT_ROLE);
   });
 
   it("Should not allow SET_ASSETS_LIMIT_ROLE to deposit profit", async function () {
@@ -938,8 +940,10 @@ describe("LiquidityHub", function () {
     await usdc.connect(deployer).transfer(user2, 10n * USDC);
     await usdc.connect(user2).approve(liquidityHub, 10n * USDC);
 
+    const DEPOSIT_PROFIT_ROLE = await liquidityHub.DEPOSIT_PROFIT_ROLE();
     await expect(liquidityHub.connect(user2).depositProfit(10n * USDC))
-      .to.be.revertedWithCustomError(liquidityHub, "AccessControlUnauthorizedAccount(address,bytes32)");
+      .to.be.revertedWithCustomError(liquidityHub, "AccessControlUnauthorizedAccount")
+      .withArgs(user2.address, DEPOSIT_PROFIT_ROLE);
   });
 
   it("Should not allow DEPOSIT_PROFIT_ROLE to set assets limit", async function () {
@@ -957,8 +961,10 @@ describe("LiquidityHub", function () {
     await expect(liquidityHub.connect(user2).depositProfit(10n * USDC))
       .to.emit(liquidityHub, "DepositProfit");
 
+    const SET_ASSETS_LIMIT_ROLE = await liquidityHub.SET_ASSETS_LIMIT_ROLE();
     await expect(liquidityHub.connect(user2).setAssetsLimit(100n * USDC))
-      .to.be.revertedWithCustomError(liquidityHub, "AccessControlUnauthorizedAccount(address,bytes32)");
+      .to.be.revertedWithCustomError(liquidityHub, "AccessControlUnauthorizedAccount")
+      .withArgs(user2.address, SET_ASSETS_LIMIT_ROLE);
   });
 
   it("Should allow admin to set assets limit", async function () {
@@ -1109,6 +1115,10 @@ describe("LiquidityHub", function () {
         liquidityHub, liquidityPool, usdc, deployer, admin, user, USDC
       } = await loadFixture(deployAll);
 
+      // Grant LIQUIDITY_ADMIN_ROLE to admin for this test
+      const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
+      await liquidityPool.connect(deployer).grantRole(LIQUIDITY_ADMIN_ROLE, admin);
+
       await usdc.connect(deployer).transfer(user, 1000n * USDC);
       await usdc.connect(user).approve(liquidityHub, 1000n * USDC);
       await liquidityHub.connect(user).deposit(1000n * USDC, user);
@@ -1116,9 +1126,10 @@ describe("LiquidityHub", function () {
       await liquidityPool.connect(admin).withdraw(admin.address, 500n * USDC);
       expect(await usdc.balanceOf(liquidityPool)).to.equal(500n * USDC);
 
+      // TestLiquidityPool will revert with ERC20InsufficientBalance when insufficient funds
       await expect(
         liquidityHub.connect(user).withdraw(600n * USDC, user, user)
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(usdc, "ERC20InsufficientBalance");
     });
 
     it("Scenario 3: After profit - totalDeposited=1000, balance=1100, withdraw 1000 succeeds", async function () {
@@ -1130,7 +1141,8 @@ describe("LiquidityHub", function () {
       await usdc.connect(user).approve(liquidityHub, 1000n * USDC);
       await liquidityHub.connect(user).deposit(1000n * USDC, user);
 
-      await usdc.connect(deployer).transfer(liquidityPool, 100n * USDC);
+      // Simulate profit by minting directly to liquidityPool
+      await usdc.mint(liquidityPool, 100n * USDC);
       expect(await usdc.balanceOf(liquidityPool)).to.equal(1100n * USDC);
 
       await liquidityHub.connect(user).withdraw(1000n * USDC, user, user);
@@ -1143,6 +1155,10 @@ describe("LiquidityHub", function () {
         liquidityHub, liquidityPool, usdc, deployer, admin, user, USDC
       } = await loadFixture(deployAll);
 
+      // Grant LIQUIDITY_ADMIN_ROLE to admin for this test
+      const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
+      await liquidityPool.connect(deployer).grantRole(LIQUIDITY_ADMIN_ROLE, admin);
+
       await usdc.connect(deployer).transfer(user, 1000n * USDC);
       await usdc.connect(user).approve(liquidityHub, 1000n * USDC);
       await liquidityHub.connect(user).deposit(1000n * USDC, user);
@@ -1150,9 +1166,10 @@ describe("LiquidityHub", function () {
       await liquidityPool.connect(admin).withdraw(admin.address, 1000n * USDC);
       expect(await usdc.balanceOf(liquidityPool)).to.equal(0n);
 
+      // TestLiquidityPool will revert with ERC20InsufficientBalance when pool is drained
       await expect(
         liquidityHub.connect(user).withdraw(1n * USDC, user, user)
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(usdc, "ERC20InsufficientBalance");
     });
 
     it("Should reject withdrawal exceeding totalDeposited accounting", async function () {
@@ -1273,7 +1290,8 @@ describe("LiquidityHub", function () {
 
       await expect(
         liquidityHubAdmin.connect(user2).upgradeAndCall(liquidityHubProxy, liquidityHubImplV2, "0x")
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(liquidityHubAdmin, "OwnableUnauthorizedAccount")
+        .withArgs(user2.address);
 
       const sharesTokenBefore = await liquidityHub.SHARES();
 
@@ -1290,11 +1308,13 @@ describe("LiquidityHub", function () {
 
       await expect(
         liquidityHubAdmin.connect(user2).transferOwnership(user2.address)
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(liquidityHubAdmin, "OwnableUnauthorizedAccount")
+        .withArgs(user2.address);
 
       await expect(
         liquidityHubAdmin.connect(user).transferOwnership(user.address)
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(liquidityHubAdmin, "OwnableUnauthorizedAccount")
+        .withArgs(user.address);
 
       await liquidityHubAdmin.connect(admin).transferOwnership(user.address);
       expect(await liquidityHubAdmin.owner()).to.equal(user.address);

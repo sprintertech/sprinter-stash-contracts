@@ -405,7 +405,7 @@ task("add-tokens-repayer", "Add input output tokens based on current network con
 .setAction(async (args: {
   repayer: string,
 }, hre) => {
-  const {resolveProxyXAddress} = await loadTestHelpers();
+  const {resolveProxyXAddress, toBytes32} = await loadTestHelpers();
   const {
     getNetworkConfig, getHardhatNetworkConfig, getInputOutputTokens, flattenInputOutputTokens,
   } = await loadScriptHelpers();
@@ -415,10 +415,10 @@ task("add-tokens-repayer", "Add input output tokens based on current network con
   }
   const inputOutputTokens = getInputOutputTokens(network, config);
 
-  const [admin] = await hre.ethers.getSigners();
+  const [sender] = await hre.ethers.getSigners();
 
   const targetAddress = await resolveProxyXAddress(args.repayer);
-  const target = (await hre.ethers.getContractAt("Repayer", targetAddress, admin)) as Repayer;
+  const target = (await hre.ethers.getContractAt("Repayer", targetAddress, sender)) as Repayer;
   const filteredInputOutputTokens: Repayer.InputOutputTokenStruct[] = [];
   for (const entry of inputOutputTokens) {
     const alreadyAllowed = await Promise.all(entry.destinationTokens.map(
@@ -430,7 +430,7 @@ task("add-tokens-repayer", "Add input output tokens based on current network con
     }
   }
 
-  const hasRole = await target.hasRole(DEFAULT_ADMIN_ROLE, admin);
+  const hasRole = await target.hasRole(toBytes32("SET_TOKENS_ROLE"), sender);
   console.log(`Following tokens will be added to ${targetAddress}.`);
   console.table(flattenInputOutputTokens(filteredInputOutputTokens));
 

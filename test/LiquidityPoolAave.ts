@@ -1150,7 +1150,7 @@ describe("LiquidityPoolAave", function () {
         .to.emit(liquidityPool, "Paused");
 
       await eurc.connect(eurcOwner).transfer(liquidityPool, amountToBorrow);
-      
+     
       await time.increase(3600);
       await expect(liquidityPool.connect(user).repay([eurc]))
       .to.emit(liquidityPool, "Repaid");

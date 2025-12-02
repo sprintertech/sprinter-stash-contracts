@@ -113,10 +113,6 @@ export interface RepayerRoutesConfig {
   };
 }
 
-type InputOutputTokensConfig = {
-  [InputToken in Token]?: Network[];
-};
-
 interface PublicPoolConfig {
   Name: string;
   Symbol: string;
@@ -178,7 +174,6 @@ export interface NetworkConfig {
   WrappedNativeToken: string;
   RebalancerRoutes?: RebalancerRoutesConfig;
   RepayerRoutes?: RepayerRoutesConfig;
-  InputOutputTokensConfig?: InputOutputTokensConfig;
   IsTest: boolean;
   Admin: string; // Every contracts admin/owner.
   WithdrawProfit: string;

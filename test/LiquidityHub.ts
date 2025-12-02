@@ -1180,7 +1180,7 @@ describe("LiquidityHub", function () {
     it("Should successfully upgrade to new implementation", async function () {
       const {
         liquidityHub, liquidityHubProxy, liquidityHubAdmin, liquidityHubImpl,
-        admin, deployer, lpToken, liquidityPool, liquidityHubAddress, usdc
+        admin, deployer, lpToken, liquidityPool, usdc
       } = await loadFixture(deployAll);
 
       const implV1Address = liquidityHubImpl.target;

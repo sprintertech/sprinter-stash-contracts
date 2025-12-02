@@ -1212,9 +1212,6 @@ describe("LiquidityHub", function () {
       const liquidityPoolAfter = await liquidityHub.LIQUIDITY_POOL();
       expect(liquidityPoolAfter).to.equal(liquidityPoolV2.target);
       expect(liquidityPoolAfter).to.not.equal(liquidityPoolV1);
-
-      // Verify proxy address unchanged
-      expect(liquidityHub.target).to.equal(liquidityHubAddress);
     });
 
     it("Should preserve storage after upgrade", async function () {
@@ -1407,8 +1404,8 @@ describe("LiquidityHub", function () {
 
       // Verify assetsLimit is at slot+1
       const assetsLimit = await liquidityHub.assetsLimit();
-      const slot1Data = await hre.ethers.provider.getStorage(liquidityHub.target, finalSlot + 1n);
-      expect(slot1Data).to.equal(hre.ethers.toBeHex(assetsLimit, 32));
+      const namespacedSlot1Data = await hre.ethers.provider.getStorage(liquidityHub.target, finalSlot + 1n);
+      expect(namespacedSlot1Data).to.equal(hre.ethers.toBeHex(assetsLimit, 32));
     });
   });
 

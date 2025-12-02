@@ -81,11 +81,12 @@ You can optionally set VERIFY to `true` in order to publish the source code to E
 
 ### Hardhat tasks
 
-In order to update onchain rebalancer or repayer routes to reflect what is put into configuration, execute the following tasks:
+In order to update onchain rebalancer or repayer configurations to reflect what is put into configuration, execute the following tasks:
 
 ```
 npm run hardhat -- update-routes-rebalancer --network BASE
 npm run hardhat -- update-routes-repayer --network BASE
+npm run hardhat -- add-tokens-repayer --network BASE
 ```
 
 It will produce a list of instructions for the admin multisig.

@@ -6,7 +6,7 @@
   "scripts": {
     "compile": "hardhat compile",
     "deploy": "hardhat run ./scripts/deploy.ts",
-    "deploy-local": "hardhat run ./scripts/deploy.ts --network localhost",
+    "deploy-local": "VERIFY=false hardhat run ./scripts/deploy.ts --network localhost",
     "deploy-basesepolia": "hardhat run ./scripts/deploy.ts --network BASE_SEPOLIA",
     "deploy-ethereumsepolia": "hardhat run ./scripts/deploy.ts --network ETHEREUM_SEPOLIA",
     "deploy-arbitrumsepolia": "hardhat run ./scripts/deploy.ts --network ARBITRUM_SEPOLIA",

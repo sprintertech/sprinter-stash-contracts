@@ -400,6 +400,59 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
   }
 });
 
+task("add-tokens-repayer", "Add input output tokens based on current network configs")
+.addOptionalParam("repayer", "Repayer address or id", "Repayer", types.string)
+.setAction(async (args: {
+  repayer: string,
+}, hre) => {
+  const {resolveProxyXAddress} = await loadTestHelpers();
+  const {getNetworkConfig, getHardhatNetworkConfig, getInputOutputTokens, flattenInputOutputTokens} = await loadScriptHelpers();
+  let {network, config} = await getNetworkConfig();
+  if (!network) {
+    ({network, config} = await getHardhatNetworkConfig());
+  }
+  const inputOutputTokens = getInputOutputTokens(network, config);
+
+  const [admin] = await hre.ethers.getSigners();
+
+  const targetAddress = await resolveProxyXAddress(args.repayer);
+  const target = (await hre.ethers.getContractAt("Repayer", targetAddress, admin)) as Repayer;
+  const filteredInputOutputTokens: Repayer.InputOutputTokenStruct[] = [];
+  for (const entry of inputOutputTokens) {
+    const alreadyAllowed = await Promise.all(entry.destinationTokens.map(
+      el => target.isOutputTokenAllowed(entry.inputToken, el.destinationDomain, el.outputToken)
+    ));
+    entry.destinationTokens = entry.destinationTokens.filter((_, index) => !alreadyAllowed[index]);
+    if (entry.destinationTokens.length > 0) {
+      filteredInputOutputTokens.push(entry);
+    }
+  }
+
+  const hasRole = await target.hasRole(DEFAULT_ADMIN_ROLE, admin);
+  console.log(`Following tokens will be added to ${targetAddress}.`);
+  console.table(flattenInputOutputTokens(filteredInputOutputTokens));
+
+  if (filteredInputOutputTokens.length > 0) {
+    if (hasRole) {
+      await target.setInputOutputTokens(filteredInputOutputTokens, true);
+      console.log("Done.");
+    } else {
+      console.log("To add missing tokens execute the following transaction.");
+      console.log(`To: ${targetAddress}`);
+      console.log("Function: setInputOutputTokens");
+      console.log("Params:");
+      console.log("isAllowed: true");
+      for (const entry of filteredInputOutputTokens) {
+        console.log(`inputToken: ${entry.inputToken}`);
+        console.log("destinationTokens:");
+        console.table(entry.destinationTokens);
+      }
+    }
+  } else {
+    console.log("There are no missing tokens to add.");
+  }
+});
+
 task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
 .addParam("caller", "Address that will call borrow or borrowAndSwap")
 .addOptionalParam("token", "Token to borrow")

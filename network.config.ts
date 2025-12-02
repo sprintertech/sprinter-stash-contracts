@@ -183,6 +183,10 @@ export interface NetworkConfig {
   Stage?: NetworkConfig;
 }
 
+export type PartialNetworksConfig = {
+  [key in Network]?: NetworkConfig;
+};
+
 type NetworksConfig = {
   [key in Network]: NetworkConfig;
 };
@@ -1483,13 +1487,7 @@ export interface StandaloneRepayerConfig {
   EverclearFeeAdapter?: string;
   OptimismStandardBridge?: string;
   BaseStandardBridge?: string;
-  Tokens: {
-    [Token.USDC]: string;
-    [Token.USDT]?: string;
-    [Token.DAI]?: string;
-    [Token.WETH]?: string;
-    [Token.WBTC]?: string;
-  };
+  // Repayer tokens are used from the general network config.
   WrappedNativeToken: string;
   RepayerRoutes: RepayerRoutesConfig;
   IsTest: boolean;
@@ -1514,11 +1512,6 @@ export const repayerConfig: StandaloneRepayersConfig = {
       AcrossV3SpokePool: "0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64",
       StargateTreasurer: "0xd47b03ee6d86Cf251ee7860FB2ACf9f91B9fD4d7",
       EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
-      Tokens: {
-        USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-        DAI: "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
-        WETH: "0x4200000000000000000000000000000000000006",
-      },
       WrappedNativeToken: "0x4200000000000000000000000000000000000006",
       RepayerRoutes: {
         "0xa21007B5BC5E2B488063752d1BE43C0f3f376743": {
@@ -1545,13 +1538,6 @@ export const repayerConfig: StandaloneRepayersConfig = {
       AcrossV3SpokePool: "0xe35e9842fceaCA96570B734083f4a58e8F7C5f2A",
       StargateTreasurer: "0x146c8e409C113ED87C6183f4d25c50251DFfbb3a",
       EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
-      Tokens: {
-        USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
-        USDT: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
-        DAI: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
-        WETH: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
-        WBTC: "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f",
-      },
       WrappedNativeToken: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
       RepayerRoutes: {
         "0xa21007B5BC5E2B488063752d1BE43C0f3f376743": {
@@ -1578,13 +1564,6 @@ export const repayerConfig: StandaloneRepayersConfig = {
       AcrossV3SpokePool: "0x6f26Bf09B1C792e3228e5467807a900A503c0281",
       StargateTreasurer: "0x644abb1e17291b4403966119d15Ab081e4a487e9",
       EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
-      Tokens: {
-        USDC: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
-        USDT: "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
-        DAI: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
-        WETH: "0x4200000000000000000000000000000000000006",
-        WBTC: "0x68f180fcCe6836688e9084f035309E29Bf0A2095",
-      },
       WrappedNativeToken: "0x4200000000000000000000000000000000000006",
       RepayerRoutes: {
         "0xa21007B5BC5E2B488063752d1BE43C0f3f376743": {

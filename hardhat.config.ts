@@ -406,7 +406,9 @@ task("add-tokens-repayer", "Add input output tokens based on current network con
   repayer: string,
 }, hre) => {
   const {resolveProxyXAddress} = await loadTestHelpers();
-  const {getNetworkConfig, getHardhatNetworkConfig, getInputOutputTokens, flattenInputOutputTokens} = await loadScriptHelpers();
+  const {
+    getNetworkConfig, getHardhatNetworkConfig, getInputOutputTokens, flattenInputOutputTokens,
+  } = await loadScriptHelpers();
   let {network, config} = await getNetworkConfig();
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());

@@ -1892,6 +1892,12 @@ describe("LiquidityPoolStablecoin", function () {
         .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
     });
 
+    it("Should NOT allow admin to set MPC address to 0", async function () {
+      const {liquidityPool, admin} = await loadFixture(deployAll);
+      await expect(liquidityPool.connect(admin).setMPCAddress(ZERO_ADDRESS))
+        .to.be.revertedWithCustomError(liquidityPool, "ZeroAddress()");
+    });
+
     it("Should allow WITHDRAW_PROFIT_ROLE to pause and unpause borrowing", async function () {
       const {liquidityPool, withdrawProfit} = await loadFixture(deployAll);
       expect(await liquidityPool.borrowPaused())

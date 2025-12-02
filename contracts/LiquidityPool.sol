@@ -59,11 +59,12 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     IERC20 immutable public ASSETS;
 
     BitMaps.BitMap private _usedNonces;
-    uint256 public totalDeposited;
+    uint256 internal _totalDeposited;
 
     bool public paused;
     bool public borrowPaused;
     address public mpcAddress;
+    address public signerAddress;
 
     bytes32 private constant LIQUIDITY_ADMIN_ROLE = "LIQUIDITY_ADMIN_ROLE";
     bytes32 private constant WITHDRAW_PROFIT_ROLE = "WITHDRAW_PROFIT_ROLE";
@@ -71,8 +72,6 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     // bytes4(keccak256("isValidSignature(bytes32,bytes)")
     bytes4 constant internal MAGICVALUE = 0x1626ba7e;
     IWrappedNativeToken immutable public WRAPPED_NATIVE_TOKEN;
-
-    address public signerAddress;
 
     error ZeroAddress();
     error InvalidSignature();
@@ -137,14 +136,17 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         // Allow native token transfers.
     }
 
-    function deposit(uint256 amount) external override onlyRole(LIQUIDITY_ADMIN_ROLE) {
+    /// @notice The liqudity admin is supposed to call this function after transferring exact amount of assets.
+    /// Supplying amount less than the actual increase will result in the extra funds being treated as profit.
+    /// Supplying amount greater than the actual increase will result in the future profits treated as deposit.
+    function deposit(uint256 amount) external virtual override onlyRole(LIQUIDITY_ADMIN_ROLE) {
         // called after receiving deposit in USDC
         uint256 newBalance = ASSETS.balanceOf(address(this));
         require(newBalance >= amount, NotEnoughToDeposit());
         _deposit(_msgSender(), amount);
     }
 
-    function depositWithPull(uint256 amount) external override {
+    function depositWithPull(uint256 amount) external virtual override {
         // pulls USDC from the sender
         ASSETS.safeTransferFrom(_msgSender(), address(this), amount);
         _deposit(_msgSender(), amount);
@@ -171,6 +173,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     ) external override whenNotPaused() whenBorrowNotPaused() {
         // - Validate MPC signature
         _validateMPCSignatureWithCaller(borrowToken, amount, target, targetCallData, nonce, deadline, signature);
+        amount = _processBorrowAmount(amount, targetCallData);
         (uint256 nativeValue, address actualBorrowToken, bytes memory context) =
             _borrow(borrowToken, amount, target, NATIVE_ALLOWED, "");
         _afterBorrowLogic(actualBorrowToken, context);
@@ -237,6 +240,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         bytes calldata signature
     ) external override whenNotPaused() whenBorrowNotPaused() {
         _validateMPCSignatureWithCaller(borrowToken, amount, target, targetCallData, nonce, deadline, signature);
+        amount = _processBorrowAmount(amount, targetCallData);
         // Native borrowing is denied because swap() is not payable.
         (,, bytes memory context) = _borrow(borrowToken, amount, _msgSender(), NATIVE_DENIED, "");
         _afterBorrowLogic(borrowToken, context);
@@ -277,18 +281,19 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
 
     // Admin functions
 
-    /// @notice Can withdraw a maximum of totalDeposited. If anything is left, it is meant to be withdrawn through
+    /// @notice Can withdraw a maximum of _totalDeposited. If anything is left, it is meant to be withdrawn through
     /// a withdrawProfit().
     function withdraw(address to, uint256 amount)
         external
+        virtual
         override
         onlyRole(LIQUIDITY_ADMIN_ROLE)
         whenNotPaused()
     {
         require(to != address(0), ZeroAddress());
-        uint256 deposited = totalDeposited;
+        uint256 deposited = _totalDeposited;
         require(deposited >= amount, InsufficientLiquidity());
-        totalDeposited = deposited - amount;
+        _totalDeposited = deposited - amount;
         _withdrawLogic(to, amount);
         emit Withdraw(_msgSender(), to, amount);
     }
@@ -313,6 +318,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     }
 
     function setMPCAddress(address mpcAddress_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(mpcAddress_ != address(0), ZeroAddress());
         address oldMPCAddress = mpcAddress;
         mpcAddress = mpcAddress_;
         emit MPCAddressSet(oldMPCAddress, mpcAddress_);
@@ -359,8 +365,8 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     }
 
     function _deposit(address caller, uint256 amount) private {
-        totalDeposited += amount;
-        _depositLogic(caller, amount);
+        _totalDeposited += amount;
+        _depositLogic(amount);
         emit Deposit(caller, amount);
     }
 
@@ -484,7 +490,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         }
     }
 
-    function _depositLogic(address /*caller*/, uint256 /*amount*/) internal virtual {
+    function _depositLogic(uint256 /*amount*/) internal virtual {
         return;
     }
 
@@ -493,6 +499,13 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     {
         require(borrowToken == address(ASSETS), InvalidBorrowToken());
         return context;
+    }
+
+    function _processBorrowAmount(
+        uint256 amount,
+        bytes calldata /*targetCallData*/
+    ) internal virtual returns (uint256) {
+        return amount;
     }
 
     function _afterBorrowLogic(address /*borrowToken*/, bytes memory /*context*/) internal virtual {
@@ -511,7 +524,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     function _withdrawProfitLogic(IERC20 token) internal virtual returns (uint256) {
         uint256 totalBalance = token.balanceOf(address(this));
         if (token == ASSETS) {
-            uint256 deposited = totalDeposited;
+            uint256 deposited = _totalDeposited;
             if (totalBalance < deposited) return 0;
             return totalBalance - deposited;
         }
@@ -528,6 +541,10 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     }
 
     // View functions
+
+    function totalDeposited() external view virtual override returns (uint256) {
+        return _totalDeposited;
+    }
 
     function balance(IERC20 token) external view override returns (uint256) {
         if (token == NATIVE_TOKEN) token = WRAPPED_NATIVE_TOKEN;

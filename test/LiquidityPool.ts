@@ -727,7 +727,7 @@ describe("LiquidityPool", function () {
       expect(await liquidityPool.balance(usdc)).to.eq(amountLiquidity);
     });
 
-    it("Should withdraw all available balance as profit ", async function () {
+    it("Should withdraw all available balance as profit", async function () {
       const {liquidityPool, usdc, USDC_DEC, usdcOwner, withdrawProfit, user} = await loadFixture(deployAll);
       const amount = 2n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, amount);
@@ -1739,6 +1739,12 @@ describe("LiquidityPool", function () {
       const {liquidityPool, user} = await loadFixture(deployAll);
       await expect(liquidityPool.connect(user).setMPCAddress(user))
         .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
+    });
+
+    it("Should NOT allow admin to set MPC address to 0", async function () {
+      const {liquidityPool, admin} = await loadFixture(deployAll);
+      await expect(liquidityPool.connect(admin).setMPCAddress(ZERO_ADDRESS))
+        .to.be.revertedWithCustomError(liquidityPool, "ZeroAddress()");
     });
 
     it("Should allow admin to set signer address", async function () {

@@ -94,6 +94,7 @@ abstract contract StargateAdapter is AdapterHelper {
             oftCmd: new bytes(1)
         });
 
+        // The caller is responsible for estimating and providing the correct messaging fee.
         MessagingFee memory messagingFee = MessagingFee(msg.value, 0);
 
         (

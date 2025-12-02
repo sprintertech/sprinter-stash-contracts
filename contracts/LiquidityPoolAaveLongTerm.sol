@@ -108,7 +108,7 @@ contract LiquidityPoolAaveLongTerm is LiquidityPoolAave, ILiquidityPoolLongTerm 
         uint256 totalBalance = token.balanceOf(address(this));
         if (token == ASSETS) {
             // Calculate accrued interest from deposits.
-            uint256 interest = ATOKEN.balanceOf(address(this)) - totalDeposited;
+            uint256 interest = ATOKEN.balanceOf(address(this)) - _totalDeposited;
             if (interest > 0) {
                 _withdrawLogic(address(this), interest);
                 totalBalance += interest;

@@ -43,7 +43,6 @@ contract LiquidityPoolAave is LiquidityPool {
     error NothingToRepay();
     error CollateralNotSupported();
     error CannotWithdrawAToken();
-    error InvalidLength();
 
     event SuppliedToAave(uint256 amount);
     event BorrowTokenLTVSet(address token, uint256 oldLTV, uint256 newLTV);
@@ -70,8 +69,9 @@ contract LiquidityPoolAave is LiquidityPool {
         AaveDataTypes.ReserveData memory collateralData = AAVE_POOL.getReserveData(address(liquidityToken));
         ATOKEN = IERC20(collateralData.aTokenAddress);
         IAavePoolDataProvider poolDataProvider = IAavePoolDataProvider(provider.getPoolDataProvider());
-        (,,,,,bool usageAsCollateralEnabled,,,,) = poolDataProvider.getReserveConfigurationData(liquidityToken);
-        require(usageAsCollateralEnabled, CollateralNotSupported());
+        (,,,,,bool usageAsCollateralEnabled,,,bool isActive, bool isFrozen) =
+            poolDataProvider.getReserveConfigurationData(liquidityToken);
+        require(usageAsCollateralEnabled && isActive && !isFrozen, CollateralNotSupported());
         _setMinHealthFactor(minHealthFactor_);
         _setDefaultLTV(defaultLTV_);
     }
@@ -148,7 +148,7 @@ contract LiquidityPoolAave is LiquidityPool {
         require(currentLtv <= ltv, TokenLtvExceeded());
     }
 
-    function _depositLogic(address /*caller*/, uint256 amount) internal override {
+    function _depositLogic(uint256 amount) internal override {
         ASSETS.forceApprove(address(AAVE_POOL), amount);
         AAVE_POOL.supply(address(ASSETS), amount, address(this), NO_REFERRAL);
         emit SuppliedToAave(amount);
@@ -202,7 +202,7 @@ contract LiquidityPoolAave is LiquidityPool {
         uint256 totalBalance = token.balanceOf(address(this));
         if (token == ASSETS) {
             // Calculate accrued interest from deposits.
-            uint256 interest = ATOKEN.balanceOf(address(this)) - totalDeposited;
+            uint256 interest = ATOKEN.balanceOf(address(this)) - _totalDeposited;
             if (interest > 0) {
                 _withdrawLogic(address(this), interest);
                 totalBalance += interest;

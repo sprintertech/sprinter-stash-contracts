@@ -126,6 +126,8 @@
     "lint:solidity": "solhint 'contracts/**/*.sol'",
     "lint:ts": "eslint",
     "test": "hardhat test --typecheck",
+    "test:ethereum": "FORK_TEST=ETHEREUM hardhat test --typecheck ./specific-fork-test/ethereum/*.ts",
+    "test:scripts": "SCRIPT_ENV=CI DEPLOY_ID=CI ts-node --files ./scripts/test.ts",
     "coverage": "hardhat coverage"
   },
   "repository": {

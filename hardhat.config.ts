@@ -626,6 +626,9 @@ const config: HardhatUserConfig = {
       accounts,
     },
     hardhat: {
+      chainId: isSet(process.env.DRY_RUN) || isSet(process.env.FORK_TEST)
+        ? networkConfig[`${process.env.DRY_RUN || process.env.FORK_TEST}` as Network]!.ChainId
+        : networkConfig.BASE.ChainId,
       forking: {
         url: isSet(process.env.DRY_RUN) || isSet(process.env.FORK_TEST)
           ? process.env[`${process.env.DRY_RUN || process.env.FORK_TEST}_RPC`]!

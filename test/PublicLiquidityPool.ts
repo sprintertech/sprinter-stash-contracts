@@ -188,6 +188,8 @@ describe("PublicLiquidityPool", function () {
       expect(await liquidityPool.totalSupply()).to.eq(amount);
       expect(await liquidityPool.balance(usdc)).to.eq(amount);
       expect(await liquidityPool.balanceOf(lp)).to.eq(amount);
+      expect(await liquidityPool.maxWithdraw(lp)).to.eq(amount);
+      expect(await liquidityPool.maxRedeem(lp)).to.eq(amount);
       expect(await usdc.balanceOf(liquidityPool)).to.eq(amount);
     });
 
@@ -306,6 +308,62 @@ describe("PublicLiquidityPool", function () {
       expect(await liquidityPool.balanceOf(lp)).to.eq(0);
     });
 
+    it("Should calculate maxRedeem and maxWithdraw correctly", async function () {
+      const {
+        liquidityPool, mockTarget, usdc, user, mpc_signer, lp
+      } = await loadFixture(deployAll);
+      const amountLiquidity = 100n;
+      await usdc.connect(lp).approve(liquidityPool, amountLiquidity);
+      await liquidityPool.connect(lp)[ERC4626Deposit](amountLiquidity, lp);
+      expect(await liquidityPool.maxWithdraw(lp)).to.eq(amountLiquidity);
+      expect(await liquidityPool.maxRedeem(lp)).to.eq(amountLiquidity);
+
+      const amountToBorrow = 100n;
+      const fee = 20n;
+      const protocolFee = fee / 5n;
+      const amountToReceive = amountToBorrow - fee;
+      const fillAmount = amountToReceive;
+
+      const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
+
+      const callData = await mockTarget.fulfill.populateTransaction(usdc, fillAmount, additionalData);
+      const callDataWithAmountToReceive = addAmountToReceive(callData.data, amountToReceive);
+
+      const signature = await signBorrow(
+        mpc_signer,
+        liquidityPool,
+        user,
+        usdc,
+        amountToBorrow,
+        mockTarget,
+        callDataWithAmountToReceive,
+      );
+
+      await expect(liquidityPool.connect(user).borrow(
+        usdc,
+        amountToBorrow,
+        mockTarget,
+        callDataWithAmountToReceive,
+        0n,
+        2000000000n,
+        signature))
+      .to.emit(mockTarget, "DataReceived").withArgs(additionalData);
+      expect(await usdc.balanceOf(liquidityPool)).to.eq(amountLiquidity - amountToReceive);
+      expect(await usdc.balanceOf(mockTarget)).to.eq(amountToReceive);
+      expect(await usdc.allowance(liquidityPool, mockTarget)).to.eq(0);
+      expect(await liquidityPool.totalDeposited()).to.eq(amountLiquidity + fee);
+      expect(await liquidityPool.totalAssets()).to.eq(amountLiquidity + fee - protocolFee);
+      expect(await liquidityPool.protocolFee()).to.eq(protocolFee);
+      expect(await liquidityPool.totalSupply()).to.eq(amountLiquidity);
+      expect(await liquidityPool.balanceOf(lp)).to.eq(amountLiquidity);
+      expect(await liquidityPool.balance(usdc)).to.eq(amountLiquidity - amountToReceive);
+      expect(await liquidityPool.maxWithdraw(lp)).to.eq(amountLiquidity - amountToReceive);
+      expect(await liquidityPool.maxRedeem(lp)).to.eq(17n);
+      await usdc.connect(lp).transfer(liquidityPool, amountToBorrow);
+      expect(await liquidityPool.maxWithdraw(lp)).to.eq(amountLiquidity + fee - protocolFee);
+      expect(await liquidityPool.maxRedeem(lp)).to.eq(amountLiquidity);
+    });
+
     it("Should borrow a token with contract call", async function () {
       const {
         liquidityPool, mockTarget, usdc, USDC_DEC, user, mpc_signer, lp
@@ -333,7 +391,6 @@ describe("PublicLiquidityPool", function () {
         amountToBorrow,
         mockTarget,
         callDataWithAmountToReceive,
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrow(
@@ -390,7 +447,6 @@ describe("PublicLiquidityPool", function () {
         amountToBorrow,
         mockTarget,
         callDataWithAmountToReceive,
-        31337
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
@@ -454,7 +510,6 @@ describe("PublicLiquidityPool", function () {
         amountToBorrow,
         mockTarget,
         callDataWithAmountToReceive,
-        31337
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
@@ -520,7 +575,6 @@ describe("PublicLiquidityPool", function () {
         amountToBorrow,
         mockTarget,
         callDataWithAmountToReceive,
-        31337
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
@@ -574,7 +628,6 @@ describe("PublicLiquidityPool", function () {
         amountToBorrow,
         mockTarget,
         callDataWithAmountToReceive,
-        31337
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
@@ -632,7 +685,6 @@ describe("PublicLiquidityPool", function () {
         [amountToBorrow, amountToBorrow2],
         mockTarget,
         callData.data,
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrowMany(
@@ -676,7 +728,6 @@ describe("PublicLiquidityPool", function () {
         [amountToBorrow],
         mockTarget,
         callData.data,
-        31337
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwapMany.populateTransaction(
@@ -813,7 +864,6 @@ describe("PublicLiquidityPool", function () {
         amountToBorrow,
         mockTarget,
         callDataWithAmountToReceive,
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrow(
@@ -961,7 +1011,6 @@ describe("PublicLiquidityPool", function () {
         amountToBorrow,
         user2,
         callData,
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrow(
@@ -993,7 +1042,6 @@ describe("PublicLiquidityPool", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrow(
@@ -1025,7 +1073,6 @@ describe("PublicLiquidityPool", function () {
         amountToBorrow,
         user2,
         callData,
-        31337
       );
 
       await liquidityPool.connect(user).borrow(
@@ -1066,7 +1113,7 @@ describe("PublicLiquidityPool", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337,
+        undefined,
         0n,
         deadline,
       );
@@ -1105,7 +1152,6 @@ describe("PublicLiquidityPool", function () {
         amountToBorrow,
         usdc,
         callDataWithAmountToReceive,
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrow(
@@ -1135,7 +1181,6 @@ describe("PublicLiquidityPool", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrow(
@@ -1184,7 +1229,6 @@ describe("PublicLiquidityPool", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await expect(liquidityPool.connect(user2).borrow(
@@ -1229,7 +1273,6 @@ describe("PublicLiquidityPool", function () {
         amountToBorrow,
         mockTarget,
         callData.data,
-        31337
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
@@ -1277,7 +1320,6 @@ describe("PublicLiquidityPool", function () {
         amountToBorrow,
         mockTarget,
         callDataWithAmountToReceive,
-        31337
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
@@ -1314,7 +1356,6 @@ describe("PublicLiquidityPool", function () {
         amountToBorrow,
         mockTarget,
         callData,
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrowAndSwap(
@@ -1354,7 +1395,6 @@ describe("PublicLiquidityPool", function () {
         amountToBorrow,
         mockTarget,
         callDataWithAmountToReceive,
-        31337
       );
 
       await liquidityPool.connect(user).borrow(
@@ -1416,7 +1456,6 @@ describe("PublicLiquidityPool", function () {
         amountToBorrow,
         mockTarget,
         callDataWithAmountToReceive,
-        31337
       );
 
       await liquidityPool.connect(user).borrow(
@@ -1441,6 +1480,7 @@ describe("PublicLiquidityPool", function () {
       await liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], withdrawProfit);
       expect(await usdc.balanceOf(liquidityPool)).to.eq(0);
       expect(await usdc.balanceOf(withdrawProfit)).to.eq(protocolFee);
+      expect(await liquidityPool.totalAssets()).to.eq(0);
     });
 
     it("Should NOT withdraw liquidity if the contract is paused", async function () {
@@ -1450,9 +1490,12 @@ describe("PublicLiquidityPool", function () {
       await liquidityPool.connect(lp)[ERC4626Deposit](amountLiquidity, lp);
       await expect(liquidityPool.connect(pauser).pause())
         .to.emit(liquidityPool, "Paused");
-
-      await expect(liquidityPool.connect(lp)[ERC4626Withdraw](amountLiquidity, user, lp))
+      expect(await liquidityPool.maxWithdraw(user)).to.eq(0);
+      expect(await liquidityPool.maxRedeem(user)).to.eq(0);
+      await expect(liquidityPool.connect(lp)[ERC4626Withdraw](0, user, lp))
         .to.be.revertedWithCustomError(liquidityPool, "EnforcedPause");
+      await expect(liquidityPool.connect(lp)[ERC4626Withdraw](amountLiquidity, user, lp))
+        .to.be.revertedWithCustomError(liquidityPool, "ERC4626ExceededMaxWithdraw");
     });
 
     it("Should NOT withdraw liquidity to zero address", async function () {
@@ -1542,6 +1585,12 @@ describe("PublicLiquidityPool", function () {
       const {liquidityPool, user} = await loadFixture(deployAll);
       await expect(liquidityPool.connect(user).setMPCAddress(user))
         .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
+    });
+
+    it("Should NOT allow admin to set MPC address to 0", async function () {
+      const {liquidityPool, admin} = await loadFixture(deployAll);
+      await expect(liquidityPool.connect(admin).setMPCAddress(ZERO_ADDRESS))
+        .to.be.revertedWithCustomError(liquidityPool, "ZeroAddress()");
     });
 
     it("Should allow admin to set signer address", async function () {
@@ -1645,7 +1694,6 @@ describe("PublicLiquidityPool", function () {
         amountToBorrow,
         mockTarget,
         callDataWithAmountToReceive,
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrow(
@@ -1697,7 +1745,6 @@ describe("PublicLiquidityPool", function () {
         amountToBorrow,
         mockTarget,
         callDataWithAmountToReceive,
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrow(
@@ -1749,7 +1796,6 @@ describe("PublicLiquidityPool", function () {
         amountToBorrow,
         mockTarget,
         callDataWithAmountToReceive,
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrow(

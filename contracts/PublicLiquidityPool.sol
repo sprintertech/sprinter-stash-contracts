@@ -98,6 +98,23 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
         return _virtualBalance - protocolFee;
     }
 
+    function maxWithdraw(address owner) public view override returns (uint256) {
+        if (paused) {
+            return 0;
+        }
+        return Math.min(super.maxWithdraw(owner), ASSETS.balanceOf(address(this)));
+    }
+
+    function maxRedeem(address owner) public view override returns (uint256) {
+        if (paused) {
+            return 0;
+        }
+        return Math.min(
+            super.maxRedeem(owner),
+            _convertToShares(ASSETS.balanceOf(address(this)), Math.Rounding.Floor)
+        );
+    }
+
     function _setProtocolFeeRate(uint16 protocolFeeRate_) internal {
         require(protocolFeeRate_ <= RATE_DENOMINATOR, InvalidProtocolFeeRate());
         protocolFeeRate = protocolFeeRate_;
@@ -149,10 +166,12 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
         uint256 totalBalance = token.balanceOf(address(this));
         if (token == ASSETS) {
             uint256 profit = protocolFee;
+            uint256 virtualBalance = _virtualBalance;
             protocolFee = 0;
-            if (totalBalance > _virtualBalance) {
+            _virtualBalance = (virtualBalance - profit).toUint128();
+            if (totalBalance > virtualBalance) {
                 // In case there are donations sent to the pool.
-                profit += totalBalance - _virtualBalance;
+                profit += totalBalance - virtualBalance;
             }
             return profit;
         }

@@ -43,7 +43,6 @@ contract LiquidityPoolAave is LiquidityPool {
     error NothingToRepay();
     error CollateralNotSupported();
     error CannotWithdrawAToken();
-    error InvalidLength();
 
     event SuppliedToAave(uint256 amount);
     event BorrowTokenLTVSet(address token, uint256 oldLTV, uint256 newLTV);
@@ -70,8 +69,9 @@ contract LiquidityPoolAave is LiquidityPool {
         AaveDataTypes.ReserveData memory collateralData = AAVE_POOL.getReserveData(address(liquidityToken));
         ATOKEN = IERC20(collateralData.aTokenAddress);
         IAavePoolDataProvider poolDataProvider = IAavePoolDataProvider(provider.getPoolDataProvider());
-        (,,,,,bool usageAsCollateralEnabled,,,,) = poolDataProvider.getReserveConfigurationData(liquidityToken);
-        require(usageAsCollateralEnabled, CollateralNotSupported());
+        (,,,,,bool usageAsCollateralEnabled,,,bool isActive, bool isFrozen) =
+            poolDataProvider.getReserveConfigurationData(liquidityToken);
+        require(usageAsCollateralEnabled && isActive && !isFrozen, CollateralNotSupported());
         _setMinHealthFactor(minHealthFactor_);
         _setDefaultLTV(defaultLTV_);
     }

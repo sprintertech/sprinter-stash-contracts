@@ -1,0 +1,56 @@
+Deployment ID: MVP
+Deploying contracts set
+Using config for: stage, ETHEREUM
+Deploying USDC Liquidity Pool
+LiquidityPoolUSDC-V3-e09cc75: 0x578aD20ec27E11B3772F91cc6f435d782cc362EA
+Multicall: 0xd0A630c391daEb244369DB0f75CBDF7dFeEaEaC3
+Admin: 0x2D5B6C193C39D2AECb4a99052074E6F325258a0f
+LiquidityPool Withdraw Profit: 0x2D5B6C193C39D2AECb4a99052074E6F325258a0f
+LiquidityPool Pauser: 0x2D5B6C193C39D2AECb4a99052074E6F325258a0f
+MPC Address: 0x6adAF8c96151962198a9b73132c16E99F4682Eb5
+USDC: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+Signer Address: 0x2D5B6C193C39D2AECb4a99052074E6F325258a0f
+Rebalancer: 0x34Df9cD75fA0b4d8fF300AeDf7591f79dFdd61C9
+RebalancerProxyAdmin: 0xcB33De00942f1004F59B2346d3891864DecEF14C
+RebalancerRoutes:
+┌─────────┬──────────────────────────────────────────────┬────────────────┬──────────┐
+│ (index) │ Pool                                         │ Domain         │ Provider │
+├─────────┼──────────────────────────────────────────────┼────────────────┼──────────┤
+│ 0       │ '0x2B7899f3d553FCcf61122BdA60f5f9a9AE390683' │ 'BASE'         │ 'CCTP'   │
+│ 1       │ '0x2B7899f3d553FCcf61122BdA60f5f9a9AE390683' │ 'ARBITRUM_ONE' │ 'CCTP'   │
+│ 2       │ '0x2B7899f3d553FCcf61122BdA60f5f9a9AE390683' │ 'OP_MAINNET'   │ 'CCTP'   │
+│ 3       │ '0x578aD20ec27E11B3772F91cc6f435d782cc362EA' │ 'BASE'         │ 'CCTP'   │
+│ 4       │ '0x578aD20ec27E11B3772F91cc6f435d782cc362EA' │ 'ARBITRUM_ONE' │ 'CCTP'   │
+│ 5       │ '0x578aD20ec27E11B3772F91cc6f435d782cc362EA' │ 'OP_MAINNET'   │ 'CCTP'   │
+│ 6       │ '0x4ce56b5D7e79dF121aF2eC055D096eF983F459e6' │ 'ARBITRUM_ONE' │ 'CCTP'   │
+│ 7       │ '0x578aD20ec27E11B3772F91cc6f435d782cc362EA' │ 'ETHEREUM'     │ 'LOCAL'  │
+└─────────┴──────────────────────────────────────────────┴────────────────┴──────────┘
+Repayer: 0x697ECA1cae710FA0348e2173900e6C09b180C35b
+RepayerProxyAdmin: 0x97e48e13AbAA3e4854166D2c564868215d3d1F0f
+RepayerRoutes:
+┌─────────┬──────────────────────────────────────────────┬────────────────┬─────────────┬───────────────────┐
+│ (index) │ Pool                                         │ Domain         │ Provider    │ SupportsAllTokens │
+├─────────┼──────────────────────────────────────────────┼────────────────┼─────────────┼───────────────────┤
+│ 0       │ '0x2B7899f3d553FCcf61122BdA60f5f9a9AE390683' │ 'ARBITRUM_ONE' │ 'CCTP'      │ true              │
+│ 1       │ '0x2B7899f3d553FCcf61122BdA60f5f9a9AE390683' │ 'ARBITRUM_ONE' │ 'ACROSS'    │ true              │
+│ 2       │ '0x2B7899f3d553FCcf61122BdA60f5f9a9AE390683' │ 'ARBITRUM_ONE' │ 'EVERCLEAR' │ true              │
+│ 3       │ '0x2B7899f3d553FCcf61122BdA60f5f9a9AE390683' │ 'BASE'         │ 'CCTP'      │ true              │
+│ 4       │ '0x2B7899f3d553FCcf61122BdA60f5f9a9AE390683' │ 'BASE'         │ 'ACROSS'    │ true              │
+│ 5       │ '0x2B7899f3d553FCcf61122BdA60f5f9a9AE390683' │ 'BASE'         │ 'EVERCLEAR' │ true              │
+│ 6       │ '0x2B7899f3d553FCcf61122BdA60f5f9a9AE390683' │ 'OP_MAINNET'   │ 'CCTP'      │ true              │
+│ 7       │ '0x2B7899f3d553FCcf61122BdA60f5f9a9AE390683' │ 'OP_MAINNET'   │ 'ACROSS'    │ true              │
+│ 8       │ '0x2B7899f3d553FCcf61122BdA60f5f9a9AE390683' │ 'OP_MAINNET'   │ 'EVERCLEAR' │ true              │
+│ 9       │ '0x578aD20ec27E11B3772F91cc6f435d782cc362EA' │ 'ARBITRUM_ONE' │ 'CCTP'      │ false             │
+│ 10      │ '0x578aD20ec27E11B3772F91cc6f435d782cc362EA' │ 'ARBITRUM_ONE' │ 'ACROSS'    │ false             │
+│ 11      │ '0x578aD20ec27E11B3772F91cc6f435d782cc362EA' │ 'ARBITRUM_ONE' │ 'EVERCLEAR' │ false             │
+│ 12      │ '0x578aD20ec27E11B3772F91cc6f435d782cc362EA' │ 'BASE'         │ 'CCTP'      │ false             │
+│ 13      │ '0x578aD20ec27E11B3772F91cc6f435d782cc362EA' │ 'BASE'         │ 'ACROSS'    │ false             │
+│ 14      │ '0x578aD20ec27E11B3772F91cc6f435d782cc362EA' │ 'BASE'         │ 'EVERCLEAR' │ false             │
+│ 15      │ '0x578aD20ec27E11B3772F91cc6f435d782cc362EA' │ 'OP_MAINNET'   │ 'CCTP'      │ false             │
+│ 16      │ '0x578aD20ec27E11B3772F91cc6f435d782cc362EA' │ 'OP_MAINNET'   │ 'ACROSS'    │ false             │
+│ 17      │ '0x578aD20ec27E11B3772F91cc6f435d782cc362EA' │ 'OP_MAINNET'   │ 'EVERCLEAR' │ false             │
+│ 18      │ '0x4ce56b5D7e79dF121aF2eC055D096eF983F459e6' │ 'ARBITRUM_ONE' │ 'CCTP'      │ true              │
+│ 19      │ '0x4ce56b5D7e79dF121aF2eC055D096eF983F459e6' │ 'ARBITRUM_ONE' │ 'ACROSS'    │ true              │
+│ 20      │ '0x4ce56b5D7e79dF121aF2eC055D096eF983F459e6' │ 'ARBITRUM_ONE' │ 'EVERCLEAR' │ true              │
+│ 21      │ '0x578aD20ec27E11B3772F91cc6f435d782cc362EA' │ 'ETHEREUM'     │ 'LOCAL'     │ false             │
+└─────────┴──────────────────────────────────────────────┴────────────────┴─────────────┴───────────────────┘

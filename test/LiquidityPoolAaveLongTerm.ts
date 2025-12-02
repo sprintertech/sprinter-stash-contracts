@@ -219,7 +219,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         mockTarget,
         callData.data,
-        31337
       );
 
       await liquidityPool.connect(user).borrow(
@@ -256,7 +255,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await liquidityPool.connect(user).borrow(
@@ -291,7 +289,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await liquidityPool.connect(user).borrow(
@@ -328,7 +325,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         mockTarget,
         callData.data,
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrow(
@@ -371,7 +367,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         mockTarget,
         callData.data,
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrow(
@@ -411,7 +406,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow, amountToBorrow2],
         user2,
         "0x",
-        31337
       );
 
       await liquidityPool.connect(user).borrowMany(
@@ -448,7 +442,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow, amountToBorrow2],
         user2,
         "0x",
-        31337
       );
 
       await liquidityPool.connect(user).borrowMany(
@@ -485,7 +478,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await liquidityPool.connect(user).borrow(
@@ -525,7 +517,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         mockTarget,
         callData.data,
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrow(
@@ -560,7 +551,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await liquidityPool.connect(user).borrow(
@@ -607,7 +597,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         mockTarget,
         callData.data,
-        31337
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
@@ -662,7 +651,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         mockTarget,
         callData.data,
-        31337
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
@@ -716,7 +704,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         mockTarget,
         callData.data,
-        31337
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
@@ -772,7 +759,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         mockTarget,
         callData.data,
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrowAndSwap(
@@ -827,7 +813,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         mockTarget,
         callData.data,
-        31337
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
@@ -876,7 +861,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         mockTarget,
         callData.data,
-        31337
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
@@ -922,7 +906,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow, amountToBorrow2],
         mockTarget,
         callData.data,
-        31337
       );
 
       await liquidityPool.connect(user).borrowMany(
@@ -964,7 +947,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow, amountToBorrow2],
         mockTarget,
         callData.data,
-        31337
       );
 
       await liquidityPool.connect(user).borrowMany(
@@ -1007,7 +989,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow, amountToBorrow2, amountToBorrow3],
         mockTarget,
         callData.data,
-        31337
       );
 
       await liquidityPool.connect(user).borrowMany(
@@ -1057,7 +1038,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow, amountToBorrow2],
         mockTarget,
         callData.data,
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrowMany(
@@ -1106,7 +1086,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow, amountToBorrow2],
         mockTarget,
         callData.data,
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrowMany(
@@ -1156,7 +1135,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow, amountToBorrow2, amountToBorrow3],
         mockTarget,
         callData.data,
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrowMany(
@@ -1210,7 +1188,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow, amountToBorrow2],
         mockTarget,
         callData.data,
-        31337
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwapMany.populateTransaction(
@@ -1269,7 +1246,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow, amountToBorrow2],
         mockTarget,
         callData.data,
-        31337
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwapMany.populateTransaction(
@@ -1326,7 +1302,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow],
         mockTarget,
         callData.data,
-        31337
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwapMany.populateTransaction(
@@ -1382,7 +1357,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow],
         mockTarget,
         callData.data,
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrowAndSwapMany(
@@ -1437,7 +1411,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow],
         mockTarget,
         callData.data,
-        31337
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwapMany.populateTransaction(
@@ -1486,7 +1459,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow],
         mockTarget,
         callData.data,
-        31337
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwapMany.populateTransaction(
@@ -1545,7 +1517,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await liquidityPool.connect(user).borrow(
@@ -1590,7 +1561,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await liquidityPool.connect(user).borrow(
@@ -1635,7 +1605,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await liquidityPool.connect(user).borrow(
@@ -1682,7 +1651,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await liquidityPool.connect(user).borrow(
@@ -1758,7 +1726,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await liquidityPool.connect(user).borrow(
@@ -1779,7 +1746,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow2,
         user2,
         "0x",
-        31337,
+        undefined,
         1n
       );
 
@@ -1845,7 +1812,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await liquidityPool.connect(user).borrow(
@@ -1895,7 +1861,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await liquidityPool.connect(user).borrow(
@@ -1946,7 +1911,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await liquidityPool.connect(user).borrow(
@@ -1994,7 +1958,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await liquidityPool.connect(user).borrow(
@@ -2173,7 +2136,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrow(
@@ -2205,7 +2167,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await liquidityPool.connect(user).borrow(
@@ -2246,7 +2207,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337,
+        undefined,
         0n,
         deadline,
       );
@@ -2281,7 +2242,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrow(
@@ -2315,7 +2275,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow, amountToBorrow2],
         user2,
         "0x",
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrowMany(
@@ -2336,7 +2295,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow2, amountToBorrow],
         user2,
         "0x",
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrowMany(
@@ -2372,7 +2330,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrow(
@@ -2409,7 +2366,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow, amountToBorrow2],
         user2,
         "0x",
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrowMany(
@@ -2442,7 +2398,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await liquidityPool.connect(user).borrow(
@@ -2466,7 +2421,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337,
+        undefined,
         1n
       );
 
@@ -2488,7 +2443,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow + 1n,
         user2,
         "0x",
-        31337,
+        undefined,
         2n
       );
 
@@ -2524,7 +2479,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow, amountToBorrow2],
         user2,
         "0x",
-        31337
       );
 
       await liquidityPool.connect(user).borrowMany(
@@ -2548,7 +2502,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow, amountToBorrow2],
         user2,
         "0x",
-        31337,
+        undefined,
         1n
       );
 
@@ -2570,7 +2524,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow + 1n, amountToBorrow2],
         user2,
         "0x",
-        31337,
+        undefined,
         2n
       );
 
@@ -2593,7 +2547,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow, amountToBorrow2 + 1n],
         user2,
         "0x",
-        31337,
+        undefined,
         2n
       );
 
@@ -2629,7 +2583,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await liquidityPool.connect(user).borrow(
@@ -2651,7 +2604,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337,
+        undefined,
         1n,
       );
 
@@ -2672,7 +2625,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow + 1n,
         user2,
         "0x",
-        31337,
+        undefined,
         2n,
       );
 
@@ -2708,7 +2661,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         mockTarget,
         callData.data,
-        31337,
+        undefined,
         0n,
       );
       const signature2 = await signBorrow(
@@ -2719,7 +2672,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         mockTarget,
         callData.data,
-        31337,
+        undefined,
         1n,
       );
       const signature3 = await signBorrow(
@@ -2730,7 +2683,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         mockTarget,
         callData.data,
-        31337,
+        undefined,
         2n,
       );
       const signature4 = await signBorrow(
@@ -2741,7 +2694,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         mockTarget,
         callData.data,
-        31337,
+        undefined,
         3n,
       );
 
@@ -2811,7 +2764,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         mockTarget,
         callData.data,
-        31337,
+        undefined,
         0n,
       );
       const signature2 = await signBorrow(
@@ -2822,7 +2775,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         mockTarget,
         callData.data,
-        31337,
+        undefined,
         1n,
       );
       const signature3 = await signBorrow(
@@ -2833,7 +2786,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         mockTarget,
         callData.data,
-        31337,
+        undefined,
         2n,
       );
       const signature4 = await signBorrow(
@@ -2844,7 +2797,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         mockTarget,
         callData.data,
-        31337,
+        undefined,
         3n,
       );
 
@@ -2917,7 +2870,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         gho,
         callData.data,
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrow(
@@ -2947,7 +2899,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrow(
@@ -2997,7 +2948,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await expect(liquidityPool.connect(user2).borrow(
@@ -3043,7 +2993,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         mockTarget,
         callData.data,
-        31337
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
@@ -3091,7 +3040,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         mockTarget,
         callData.data,
-        31337
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
@@ -3133,7 +3081,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow, amountToBorrow2],
         gho,
         callData.data,
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrowMany(
@@ -3163,7 +3110,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow],
         user2,
         "0x",
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrowMany(
@@ -3212,7 +3158,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow],
         user2,
         "0x",
-        31337
       );
 
       await expect(liquidityPool.connect(user2).borrowMany(
@@ -3258,7 +3203,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow, amountToBorrow2],
         mockTarget,
         callData.data,
-        31337
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwapMany.populateTransaction(
@@ -3306,7 +3250,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow, amountToBorrow2],
         mockTarget,
         callData.data,
-        31337
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwapMany.populateTransaction(
@@ -3342,7 +3285,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow, amountToBorrow],
         user2,
         "0x",
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrowMany(
@@ -3363,7 +3305,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [amountToBorrow],
         user2,
         "0x",
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrowMany(
@@ -3384,7 +3325,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         [],
         user2,
         "0x",
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrowMany(
@@ -3423,7 +3363,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         mockTarget,
         callData.data,
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrow(
@@ -3470,7 +3409,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         mockTarget,
         callData.data,
-        31337
       );
 
       await expect(liquidityPool.connect(user).borrow(
@@ -3541,7 +3479,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await liquidityPool.connect(user).borrow(
@@ -3644,7 +3581,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await liquidityPool.connect(user).borrow(
@@ -3685,7 +3621,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await liquidityPool.connect(user).borrow(
@@ -3750,7 +3685,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await liquidityPool.connect(user).borrow(
@@ -3797,7 +3731,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await liquidityPool.connect(user).borrow(
@@ -3841,7 +3774,6 @@ describe("LiquidityPoolAaveLongTerm", function () {
         amountToBorrow,
         user2,
         "0x",
-        31337
       );
 
       await liquidityPool.connect(user).borrow(
@@ -4067,6 +3999,12 @@ describe("LiquidityPoolAaveLongTerm", function () {
       const {liquidityPool, user} = await loadFixture(deployAll);
       await expect(liquidityPool.connect(user).setMPCAddress(user))
         .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
+    });
+
+    it("Should NOT allow admin to set MPC address to 0", async function () {
+      const {liquidityPool, admin} = await loadFixture(deployAll);
+      await expect(liquidityPool.connect(admin).setMPCAddress(ZERO_ADDRESS))
+        .to.be.revertedWithCustomError(liquidityPool, "ZeroAddress()");
     });
 
     it("Should allow admin to set default token LTV", async function () {

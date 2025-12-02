@@ -5,6 +5,12 @@ import {IRoute} from ".././interfaces/IRoute.sol";
 
 abstract contract AdapterHelper is IRoute {
     error SlippageTooHigh();
+    error NotPayable();
+
+    modifier notPayable() {
+        require(msg.value == 0, NotPayable());
+        _;
+    }
 
     function domainChainId(Domain destinationDomain) public pure virtual returns (uint32) {
         if (destinationDomain == Domain.ETHEREUM) {
@@ -24,6 +30,9 @@ abstract contract AdapterHelper is IRoute {
         } else
         if (destinationDomain == Domain.POLYGON_MAINNET) {
             return 137;
+        } else
+        if (destinationDomain == Domain.UNICHAIN) {
+            return 130;
         } else
         if (destinationDomain == Domain.BSC) {
             return 56;

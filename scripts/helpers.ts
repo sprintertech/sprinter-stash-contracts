@@ -5,9 +5,11 @@ import {
   resolveXAddress, resolveProxyXAddress, assertCode,
 } from "../test/helpers";
 import {
-  TransparentUpgradeableProxy, ProxyAdmin,
+  TransparentUpgradeableProxy, ProxyAdmin, Repayer,
 } from "../typechain-types";
-import {sleep, DEFAULT_PROXY_TYPE, assert, assertAddress} from "./common";
+import {
+  sleep, DEFAULT_PROXY_TYPE, assert, assertAddress, DomainSolidity, addressToBytes32, bytes32ToToken, SolidityDomain
+} from "./common";
 import {
   networkConfig, Network, NetworkConfig, StandaloneRepayerEnv, StandaloneRepayerConfig,
   repayerConfig,
@@ -16,6 +18,10 @@ import {
   LiquidityPoolUSDCVersions,
   LiquidityPoolUSDCStablecoinVersions,
   LiquidityPoolAaveUSDCLongTermVersions,
+  LiquidityPoolPublicUSDCVersions,
+  ERC4626AdapterUSDCVersions,
+  PartialNetworksConfig,
+  Token,
 } from "../network.config";
 
 export async function resolveAddresses(input: any[]): Promise<any[]> {
@@ -244,7 +250,8 @@ export async function addLocalPool(
   versions: (typeof LiquidityPoolUSDCVersions)
     | (typeof LiquidityPoolAaveUSDCVersions)
     | (typeof LiquidityPoolUSDCStablecoinVersions)
-    | (typeof LiquidityPoolAaveUSDCLongTermVersions),
+    | (typeof LiquidityPoolAaveUSDCLongTermVersions)
+    | (typeof ERC4626AdapterUSDCVersions),
   supportsAllTokens: boolean,
   poolName: string,
 ): Promise<void> {
@@ -271,7 +278,8 @@ export async function addLocalPool(
 export async function addLocalPools(
   config: NetworkConfig,
   network: Network,
-  routes: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens?: boolean}[]
+  routes: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens?: boolean}[],
+  isRebalancer: boolean = true,
 ): Promise<void> {
   await addLocalPool(
     config.AavePoolLongTerm, network, routes, LiquidityPoolAaveUSDCLongTermVersions, true, "Aave USDC Long Term"
@@ -281,6 +289,72 @@ export async function addLocalPools(
   await addLocalPool(
     config.USDCStablecoinPool, network, routes, LiquidityPoolUSDCStablecoinVersions, true, "USDC stablecoin"
   );
+  if (isRebalancer) {
+    await addLocalPool(
+      config.ERC4626AdapterUSDCTargetVault, network, routes, ERC4626AdapterUSDCVersions, false, "ERC4626 Adapter USDC"
+    );
+  }
+}
+
+export function getNetworkConfigsForCurrentEnv(config: NetworkConfig): PartialNetworksConfig {
+  const networkConfigs: PartialNetworksConfig = {};
+  let isTest = false;
+  let isStage = false;
+  if (config.IsTest) {
+    isTest = true;
+  } else if (process.env.DEPLOY_TYPE === "STAGE") {
+    isStage = true;
+  }
+  for (const network of Object.values(Network)) {
+    if (isTest === networkConfig[network].IsTest) {
+      networkConfigs[network] = networkConfig[network];
+    } else if (isStage && networkConfig[network].Stage) {
+      networkConfigs[network] = networkConfig[network].Stage;
+    }
+  }
+  return networkConfigs;
+}
+
+export function getInputOutputTokens(network: Network, config: NetworkConfig) {
+  const envConfigs = getNetworkConfigsForCurrentEnv(config);
+  const inputOutputTokens: Repayer.InputOutputTokenStruct[] = [];
+  for (const [tokenSymbol, tokenAddress] of Object.entries(config.Tokens) as [Token, string][]) {
+    const inputToken: Repayer.InputOutputTokenStruct = {
+      inputToken: tokenAddress,
+      destinationTokens: [],
+    };
+    for (const [envNetwork, envConfig] of Object.entries(envConfigs) as [Network, NetworkConfig][]) {
+      if (envNetwork === network) continue;
+      if (envConfig.Tokens[tokenSymbol]) {
+        inputToken.destinationTokens.push({
+          destinationDomain: DomainSolidity[envNetwork],
+          outputToken: addressToBytes32(envConfig.Tokens[tokenSymbol]),
+        });
+      }
+    }
+    if (inputToken.destinationTokens.length > 0) {
+      inputOutputTokens.push(inputToken);
+    }
+  }
+  return inputOutputTokens;
+}
+
+export function flattenInputOutputTokens(inputOutputTokens: Repayer.InputOutputTokenStruct[]) {
+  const flatInputOutputTokens: {
+    InputToken: string;
+    Domain: Network;
+    OutputToken: string;
+  }[] = [];
+  for (const entry of inputOutputTokens) {
+    for (const destinationToken of entry.destinationTokens) {
+      flatInputOutputTokens.push({
+        InputToken: entry.inputToken as string,
+        Domain: SolidityDomain[Number(destinationToken.destinationDomain)],
+        OutputToken: bytes32ToToken(destinationToken.outputToken),
+      });
+    }
+  }
+  return flatInputOutputTokens;
 }
 
 export async function getNetworkConfig() {
@@ -307,7 +381,7 @@ export async function getNetworkConfig() {
 }
 
 export async function getHardhatNetworkConfig() {
-  assert(hre.network.name === "hardhat", "Only for Hardhat network");
+  assert(hre.network.name === "hardhat" || hre.network.name === "localhost", "Only for Hardhat or localhost network");
   const network = Network.BASE;
   const [deployer, opsAdmin, superAdmin, mpc] = await hre.ethers.getSigners();
   process.env.DEPLOYER_ADDRESS = await resolveAddress(deployer);
@@ -333,6 +407,17 @@ export async function getHardhatNetworkConfig() {
         RepayCaller: opsAdmin.address,
       };
     }
+  }
+  if (!config.USDCPublicPool) {
+    config.USDCPublicPool = {
+      Name: "Public Liquidity Pool USDC",
+      Symbol: "PLPUSDC",
+      ProtocolFeeRate: 20,
+      FeeSetter: opsAdmin.address,
+    };
+  }
+  if (!config.ERC4626AdapterUSDCTargetVault) {
+    config.ERC4626AdapterUSDCTargetVault = LiquidityPoolPublicUSDCVersions.at(-1);
   }
 
   console.log("Using config for: hardhat");

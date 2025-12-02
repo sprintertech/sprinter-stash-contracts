@@ -1,20 +1,20 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {MaxUint256, isAddress} from "ethers";
+import {MaxUint256} from "ethers";
 import {toBytes32, resolveProxyXAddress, resolveXAddress, getContractAt, resolveXAddresses} from "../test/helpers";
 import {
   getVerifier, deployProxyX, getHardhatNetworkConfig, getNetworkConfig, percentsToBps,
-  getProxyXAdmin,
+  getProxyXAdmin, getInputOutputTokens, flattenInputOutputTokens,
 } from "./helpers";
 import {
   assert, isSet, ProviderSolidity, DomainSolidity, DEFAULT_ADMIN_ROLE, ZERO_ADDRESS,
-  sameAddress,
+  sameAddress, assertAddress,
 } from "./common";
 import {
   SprinterUSDCLPShare, LiquidityHub, SprinterLiquidityMining,
   Rebalancer, Repayer, LiquidityPool, LiquidityPoolAave, LiquidityPoolStablecoin, LiquidityPoolAaveLongTerm,
-  ProxyAdmin,
+  ProxyAdmin, PublicLiquidityPool, ERC4626Adapter,
 } from "../typechain-types";
 import {
   Network, Provider, NetworkConfig,
@@ -22,6 +22,8 @@ import {
   LiquidityPoolAaveUSDCLongTermVersions,
   LiquidityPoolUSDCVersions,
   LiquidityPoolUSDCStablecoinVersions,
+  LiquidityPoolPublicUSDCVersions,
+  ERC4626AdapterUSDCVersions,
 } from "../network.config";
 
 export async function main() {
@@ -32,6 +34,7 @@ export async function main() {
   const PAUSER_ROLE = toBytes32("PAUSER_ROLE");
   const BORROW_LONG_TERM_ROLE = toBytes32("BORROW_LONG_TERM_ROLE");
   const REPAYER_ROLE = toBytes32("REPAYER_ROLE");
+  const FEE_SETTER_ROLE = toBytes32("FEE_SETTER_ROLE");
 
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
   const verifier = getVerifier(process.env.DEPLOY_ID);
@@ -47,15 +50,16 @@ export async function main() {
 
   assert(config.AavePool! || config.AavePoolLongTerm! || config.USDCPool! || config.USDCStablecoinPool!,
     "At least one pool should be present.");
-  assert(isAddress(config.USDC), "USDC must be an address");
-  assert(isAddress(config.Admin), "Admin must be an address");
-  assert(isAddress(config.WithdrawProfit), "WithdrawProfit must be an address");
-  assert(isAddress(config.Pauser), "Pauser must be an address");
-  assert(isAddress(config.RebalanceCaller), "RebalanceCaller must be an address");
-  assert(isAddress(config.RepayerCaller), "RepayerCaller must be an address");
-  assert(isAddress(config.MpcAddress), "MpcAddress must be an address");
-  assert(isAddress(config.SignerAddress), "SignerAddress must be an address");
-  assert(isAddress(config.WrappedNativeToken), "WrappedNativeToken must be an address");
+  assertAddress(config.Tokens.USDC, "USDC must be an address");
+  assertAddress(config.Admin, "Admin must be an address");
+  assertAddress(config.WithdrawProfit, "WithdrawProfit must be an address");
+  assertAddress(config.Pauser, "Pauser must be an address");
+  assertAddress(config.RebalanceCaller, "RebalanceCaller must be an address");
+  assertAddress(config.RepayerCaller, "RepayerCaller must be an address");
+  assertAddress(config.SetInputOutputTokens, "SetInputOutputTokens must be an address");
+  assertAddress(config.MpcAddress, "MpcAddress must be an address");
+  assertAddress(config.SignerAddress, "SignerAddress must be an address");
+  assertAddress(config.WrappedNativeToken, "WrappedNativeToken must be an address");
 
   if (!config.CCTP) {
     config.CCTP = {
@@ -117,6 +121,9 @@ export async function main() {
   if (!config.OptimismStandardBridge) {
     config.OptimismStandardBridge = ZERO_ADDRESS;
   }
+  if (!config.BaseStandardBridge) {
+    config.BaseStandardBridge = ZERO_ADDRESS;
+  }
 
   let mainPool: LiquidityPool | undefined = undefined;
   let aavePoolLongTerm: LiquidityPoolAaveLongTerm;
@@ -130,7 +137,7 @@ export async function main() {
       deployer,
       {},
       [
-        config.USDC,
+        config.Tokens.USDC,
         config.AavePoolLongTerm.AaveAddressesProvider,
         deployer,
         config.MpcAddress,
@@ -175,7 +182,7 @@ export async function main() {
       deployer,
       {},
       [
-        config.USDC,
+        config.Tokens.USDC,
         config.AavePool.AaveAddressesProvider,
         deployer,
         config.MpcAddress,
@@ -219,7 +226,7 @@ export async function main() {
       "LiquidityPool",
       deployer,
       {},
-      [config.USDC, deployer, config.MpcAddress, config.WrappedNativeToken, config.SignerAddress],
+      [config.Tokens.USDC, deployer, config.MpcAddress, config.WrappedNativeToken, config.SignerAddress],
       id,
     )) as LiquidityPool;
     console.log(`${id}: ${usdcPool.target}`);
@@ -246,7 +253,7 @@ export async function main() {
       "LiquidityPoolStablecoin",
       deployer,
       {},
-      [config.USDC, deployer, config.MpcAddress, config.WrappedNativeToken, config.SignerAddress],
+      [config.Tokens.USDC, deployer, config.MpcAddress, config.WrappedNativeToken, config.SignerAddress],
       id,
     )) as LiquidityPool;
     console.log(`${id}: ${usdcStablecoinPool.target}`);
@@ -265,6 +272,55 @@ export async function main() {
     }
   }
 
+  let usdcPublicPool: PublicLiquidityPool;
+  if (config.USDCPublicPool) {
+    assertAddress(config.USDCPublicPool.FeeSetter, "FeeSetter must be an address");
+    const id = LiquidityPoolPublicUSDCVersions.at(-1);
+    console.log("Deploying USDC Public Liquidity Pool");
+    usdcPublicPool = (await verifier.deployX(
+      "PublicLiquidityPool",
+      deployer,
+      {},
+      [
+        config.Tokens.USDC,
+        deployer,
+        config.MpcAddress,
+        config.WrappedNativeToken,
+        config.SignerAddress,
+        config.USDCPublicPool.Name,
+        config.USDCPublicPool.Symbol,
+        config.USDCPublicPool.ProtocolFeeRate * 10000 / 100,
+      ],
+      id
+    )) as PublicLiquidityPool;
+    console.log(`${id}: ${usdcPublicPool.target}`);
+  }
+
+  let erc4626AdapterUSDC: ERC4626Adapter;
+  if (config.ERC4626AdapterUSDCTargetVault) {
+    const id = ERC4626AdapterUSDCVersions.at(-1);
+    const targetVault = await resolveXAddress(config.ERC4626AdapterUSDCTargetVault);
+    console.log(`Target Vault: ${targetVault}`);
+
+    console.log("Deploying ERC4626 Adapter USDC");
+    erc4626AdapterUSDC = (await verifier.deployX(
+      "ERC4626Adapter",
+      deployer,
+      {},
+      [
+        config.Tokens.USDC,
+        targetVault,
+        deployer,
+      ],
+      id
+    )) as ERC4626Adapter;
+    console.log(`${id}: ${erc4626AdapterUSDC.target}`);
+
+    rebalancerRoutes.Pools.push(await erc4626AdapterUSDC.getAddress());
+    rebalancerRoutes.Domains.push(network);
+    rebalancerRoutes.Providers.push(Provider.LOCAL);
+  }
+
   assert(mainPool, "Main pool is not defined");
   const rebalancerVersion = config.IsTest ? "TestRebalancer" : "Rebalancer";
 
@@ -275,7 +331,7 @@ export async function main() {
     rebalancerVersion,
     deployer,
     config.Admin,
-    [DomainSolidity[network], config.USDC, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter],
+    [DomainSolidity[network], config.Tokens.USDC, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter],
     [
       config.Admin,
       config.RebalanceCaller,
@@ -313,9 +369,22 @@ export async function main() {
     await usdcStablecoinPool!.grantRole(PAUSER_ROLE, config.Pauser);
   }
 
+  if (config.USDCPublicPool) {
+    await usdcPublicPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
+    await usdcPublicPool!.grantRole(PAUSER_ROLE, config.Pauser);
+    await usdcPublicPool!.grantRole(FEE_SETTER_ROLE, config.USDCPublicPool.FeeSetter);
+  }
+
+  if (config.ERC4626AdapterUSDCTargetVault) {
+    await erc4626AdapterUSDC!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
+    await erc4626AdapterUSDC!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
+    await erc4626AdapterUSDC!.grantRole(PAUSER_ROLE, config.Pauser);
+  }
+
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
 
   repayerRoutes.Pools = await resolveXAddresses(repayerRoutes.Pools || [], false);
+  const inputOutputTokens = getInputOutputTokens(network, config);
 
   const repayerId = "Repayer";
   let repayer: Repayer;
@@ -334,7 +403,7 @@ export async function main() {
       config.Admin,
       [
         DomainSolidity[network],
-        config.USDC,
+        config.Tokens.USDC,
         config.CCTP.TokenMessenger,
         config.CCTP.MessageTransmitter,
         config.AcrossV3SpokePool,
@@ -342,14 +411,17 @@ export async function main() {
         config.WrappedNativeToken,
         config.StargateTreasurer,
         config.OptimismStandardBridge,
+        config.BaseStandardBridge,
       ],
       [
         config.Admin,
         config.RepayerCaller,
+        config.SetInputOutputTokens,
         repayerRoutes.Pools,
         repayerRoutes.Domains.map(el => DomainSolidity[el]),
         repayerRoutes.Providers.map(el => ProviderSolidity[el]),
         repayerRoutes.SupportsAllTokens,
+        inputOutputTokens,
       ],
       repayerId,
     );
@@ -379,7 +451,7 @@ export async function main() {
       config.Admin,
       [lpToken, mainPool],
       [
-        config.USDC,
+        config.Tokens.USDC,
         config.Admin,
         config.Hub.AssetsAdjuster,
         config.Hub.DepositProfit,
@@ -432,6 +504,16 @@ export async function main() {
       await usdcStablecoinPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
       await usdcStablecoinPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
     }
+
+    if (config.USDCPublicPool) {
+      await usdcPublicPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
+      await usdcPublicPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    }
+
+    if (config.ERC4626AdapterUSDCTargetVault) {
+      await erc4626AdapterUSDC!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
+      await erc4626AdapterUSDC!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    }
   }
 
   let multicall: string;
@@ -450,7 +532,7 @@ export async function main() {
   console.log(`LiquidityPool Withdraw Profit: ${config.WithdrawProfit}`);
   console.log(`LiquidityPool Pauser: ${config.Pauser}`);
   console.log(`MPC Address: ${config.MpcAddress}`);
-  console.log(`USDC: ${config.USDC}`);
+  console.log(`USDC: ${config.Tokens.USDC}`);
   console.log(`Signer Address: ${config.SignerAddress}`);
   console.log(`Rebalancer: ${rebalancer.target}`);
   console.log(`RebalancerProxyAdmin: ${rebalancerAdmin.target}`);
@@ -480,6 +562,10 @@ export async function main() {
       });
     }
     console.table(transposedRoutes);
+  }
+  if (inputOutputTokens.length > 0) {
+    console.log("InputOutputTokens:");
+    console.table(flattenInputOutputTokens(inputOutputTokens));
   }
 
   await verifier.verify(process.env.VERIFY === "true");

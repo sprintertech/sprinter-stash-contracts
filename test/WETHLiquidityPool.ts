@@ -1066,7 +1066,7 @@ describe("WETHLiquidityPool", function () {
       await weth.connect(wethOwner).approve(liquidityPool, amountLiquidity);
       await expect(liquidityPool.connect(wethOwner).depositWithPull(amountLiquidity))
         .to.emit(liquidityPool, "Deposit").withArgs(wethOwner, amountLiquidity);
-      expect(await liquidityPool.balance(weth)).to.eq(amountLiquidity + amountLiquidity);
+      expect(await liquidityPool.balance(weth)).to.eq(0n);
     });
 
     it("Should withdraw liquidity", async function () {
@@ -1339,8 +1339,11 @@ describe("WETHLiquidityPool", function () {
     it("Should NOT borrow if borrowing is paused", async function () {
       const {
         liquidityPool, user, user2, withdrawProfit, mpc_signer,
-        weth, WETH_DEC
+        weth, WETH_DEC, wethOwner, liquidityAdmin
       } = await loadFixture(deployAll);
+      const amountLiquidity = 100n * WETH_DEC;
+      await weth.connect(wethOwner).transfer(liquidityPool, amountLiquidity);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity);
 
       // Pause borrowing
       await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())
@@ -1366,6 +1369,7 @@ describe("WETHLiquidityPool", function () {
         2000000000n,
         signature))
       .to.be.revertedWithCustomError(liquidityPool, "BorrowingIsPaused");
+      expect(await liquidityPool.balance(weth)).to.eq(0n);
     });
 
     it("Should NOT borrow if the contract is paused", async function () {

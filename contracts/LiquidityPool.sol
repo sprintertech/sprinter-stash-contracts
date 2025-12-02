@@ -547,6 +547,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     }
 
     function balance(IERC20 token) external view override returns (uint256) {
+        if (paused || borrowPaused) return 0;
         if (token == NATIVE_TOKEN) token = WRAPPED_NATIVE_TOKEN;
         return _balance(token);
     }

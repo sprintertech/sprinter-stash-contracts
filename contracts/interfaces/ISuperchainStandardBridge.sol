@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-interface IOptimismStandardBridge {
+interface ISuperchainStandardBridge {
 
     /// @notice Emitted when an ERC20 bridge is initiated to the other chain.
     /// @param localToken  Address of the ERC20 on this chain.

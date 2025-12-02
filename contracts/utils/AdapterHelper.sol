@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity 0.8.28;
 
+import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import {IRoute} from ".././interfaces/IRoute.sol";
 
 abstract contract AdapterHelper is IRoute {
+    using BitMaps for BitMaps.BitMap;
+
     error SlippageTooHigh();
     error NotPayable();
+    error InvalidOutputToken();
 
     modifier notPayable() {
         require(msg.value == 0, NotPayable());
@@ -46,5 +50,13 @@ abstract contract AdapterHelper is IRoute {
 
     function _addressToBytes32(address addr) internal pure returns (bytes32) {
         return bytes32(uint256(uint160(addr)));
+    }
+
+    function _validateOutputToken(
+        bytes32 outputToken,
+        Domain destinationDomain,
+        mapping(bytes32 outputToken => BitMaps.BitMap destinationDomains) storage outputTokens
+    ) internal view {
+        require(outputTokens[outputToken].get(uint256(destinationDomain)), InvalidOutputToken());
     }
 }

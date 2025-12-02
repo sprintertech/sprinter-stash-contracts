@@ -37,7 +37,7 @@ export async function main() {
   const usdcPoolStablecoin: LiquidityPoolStablecoin = (await verifier.deployX(
     "LiquidityPoolStablecoin",
     deployer, {}, [
-      config.USDC,
+      config.Tokens.USDC,
       deployer,
       config.MpcAddress,
       config.WrappedNativeToken,

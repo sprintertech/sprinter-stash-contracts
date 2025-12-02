@@ -38,7 +38,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
     const aavePoolAddress = await aavePoolAddressesProvider.getPool();
     const aavePool = await hre.ethers.getContractAt("IAavePool", aavePoolAddress);
 
-    const USDC_ADDRESS = forkNetworkConfig.USDC;
+    const USDC_ADDRESS = forkNetworkConfig.Tokens.USDC;
     const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;
     if (!USDC_OWNER_ADDRESS) throw new Error("Env variables not configured (USDC_OWNER_ADDRESS missing)");
     const usdc = await hre.ethers.getContractAt("ERC20", USDC_ADDRESS);
@@ -1625,6 +1625,8 @@ describe("LiquidityPoolAaveLongTerm", function () {
       await time.increase(3600);
       await expect(liquidityPool.connect(user).repay([eurc]))
         .to.emit(liquidityPool, "Repaid");
+      expect(await liquidityPool.balance(eurc)).to.eq(0n);
+      await liquidityPool.connect(pauser).unpause();
       expect(await eurc.balanceOf(liquidityPool)).to.be.lessThan(amountToBorrow);
       expect(await liquidityPool.balance(eurc)).to.be.lessThan(availableBefore + amountToBorrow + 1n * EURC_DEC);
       expect(await liquidityPool.balance(eurc)).to.be.greaterThan(availableBefore + amountToBorrow - 1n * EURC_DEC);
@@ -1671,6 +1673,8 @@ describe("LiquidityPoolAaveLongTerm", function () {
       await time.increase(3600);
       await expect(liquidityPool.connect(user).repayPartial([eurc], [amountToBorrow]))
         .to.emit(liquidityPool, "Repaid");
+      expect(await liquidityPool.balance(eurc)).to.eq(0n);
+      await liquidityPool.connect(pauser).unpause();
       expect(await eurc.allowance(liquidityPool, aavePool)).to.eq(0);
       expect(await eurc.balanceOf(liquidityPool)).to.eq(amountToBorrow);
       expect(await liquidityPool.balance(eurc)).to.be.lessThan(availableBefore + amountToBorrow + 1n * EURC_DEC);
@@ -1702,7 +1706,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
       await expect(liquidityPool.connect(usdcOwner).depositWithPull(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amountCollateral);
       expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amountCollateral * 2n - 1n);
-      expectAlmostEqual(await liquidityPool.balance(usdc), 100n * USDC_DEC);
+      expect(await liquidityPool.balance(usdc)).to.eq(0n);
     });
 
     it("Should borrow and repay different tokens", async function () {
@@ -2884,8 +2888,13 @@ describe("LiquidityPoolAaveLongTerm", function () {
     });
 
     it("Should NOT borrow if borrowing is paused", async function () {
-      const {liquidityPool, user, user2, withdrawProfit, mpc_signer, eurc, EURC_DEC} = await loadFixture(deployAll);
-
+      const {
+        liquidityPool, user, user2, withdrawProfit, mpc_signer, eurc, EURC_DEC, usdc, USDC_DEC, usdcOwner,
+        liquidityAdmin
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
       // Pause borrowing
       await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())
         .to.emit(liquidityPool, "BorrowPaused");
@@ -2910,6 +2919,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
         2000000000n,
         signature))
       .to.be.revertedWithCustomError(liquidityPool, "BorrowingIsPaused");
+      expect(await liquidityPool.balance(usdc)).to.eq(0n);
     });
 
     it("Should NOT borrow if the contract is paused", async function () {
@@ -4143,6 +4153,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
       expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amount - 2n);
 
+      await time.increase(3600);
       await expect(liquidityPool.connect(liquidityAdmin).withdraw(user, amount))
         .to.emit(liquidityPool, "WithdrawnFromAave").withArgs(user.address, amount);
 

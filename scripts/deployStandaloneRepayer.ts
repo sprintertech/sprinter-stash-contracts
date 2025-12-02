@@ -1,13 +1,19 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {isAddress, getAddress} from "ethers";
-import {getVerifier, deployProxyX, getHardhatStandaloneRepayerConfig, getStandaloneRepayerConfig} from "./helpers";
+import {getAddress} from "ethers";
+import {
+  getVerifier, deployProxyX, getHardhatStandaloneRepayerConfig, getStandaloneRepayerConfig,
+  getInputOutputTokens, flattenInputOutputTokens,
+} from "./helpers";
 import {resolveXAddress, toBytes32} from "../test/helpers";
-import {isSet, assert, ProviderSolidity, DomainSolidity, ZERO_ADDRESS, DEFAULT_ADMIN_ROLE} from "./common";
+import {
+  isSet, assert, ProviderSolidity, DomainSolidity, ZERO_ADDRESS, DEFAULT_ADMIN_ROLE, assertAddress,
+} from "./common";
 import {Repayer} from "../typechain-types";
 import {
   Network, StandaloneRepayerConfig, StandaloneRepayerEnv, Provider,
+  networkConfig,
 } from "../network.config";
 
 export async function main() {
@@ -33,11 +39,11 @@ export async function main() {
     id += "-DeployTest";
   }
 
-  assert(isAddress(config.USDC), "USDC must be an address");
-  assert(isAddress(config.Admin), "Admin must be an address");
+  assertAddress(networkConfig[network].Tokens.USDC, "USDC must be an address");
+  assertAddress(config.Admin, "Admin must be an address");
   assert(config.RepayerCallers.length > 0, "RepayerCallers must not be empty");
-  config.RepayerCallers.forEach(el => assert(isAddress(el), "Each RepayerCaller must be an address"));
-  assert(isAddress(config.WrappedNativeToken), "WrappedNativeToken must be an address");
+  config.RepayerCallers.forEach(el => assertAddress(el, "Each RepayerCaller must be an address"));
+  assertAddress(config.WrappedNativeToken, "WrappedNativeToken must be an address");
 
   const repayerRoutes: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens: boolean}[] = [];
   for (const [pool, domainProviders] of Object.entries(config.RepayerRoutes || {})) {
@@ -71,7 +77,11 @@ export async function main() {
   if (!config.OptimismStandardBridge) {
     config.OptimismStandardBridge = ZERO_ADDRESS;
   }
+  if (!config.BaseStandardBridge) {
+    config.BaseStandardBridge = ZERO_ADDRESS;
+  }
 
+  const inputOutputTokens = getInputOutputTokens(network, networkConfig[network]);
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
 
   const {target: repayer, targetAdmin: repayerAdmin} = await deployProxyX<Repayer>(
@@ -81,7 +91,7 @@ export async function main() {
     config.Admin,
     [
       DomainSolidity[network],
-      config.USDC,
+      networkConfig[network].Tokens.USDC,
       config.CCTP.TokenMessenger,
       config.CCTP.MessageTransmitter,
       config.AcrossV3SpokePool,
@@ -89,14 +99,17 @@ export async function main() {
       config.WrappedNativeToken,
       config.StargateTreasurer,
       config.OptimismStandardBridge,
+      config.BaseStandardBridge,
     ],
     [
       deployer,
       config.RepayerCallers[0],
+      config.Admin,
       repayerRoutes.map(el => el.Pool),
       repayerRoutes.map(el => DomainSolidity[el.Domain]),
       repayerRoutes.map(el => ProviderSolidity[el.Provider]),
       repayerRoutes.map(el => el.SupportsAllTokens),
+      inputOutputTokens,
     ],
     id,
     verifier,
@@ -114,6 +127,10 @@ export async function main() {
   if (repayerRoutes.length > 0) {
     console.log("RepayerRoutes:");
     console.table(repayerRoutes);
+  }
+  if (inputOutputTokens.length > 0) {
+    console.log("InputOutputTokens:");
+    console.table(flattenInputOutputTokens(inputOutputTokens));
   }
 
   if (getAddress(deployer.address) != getAddress(config.Admin)) {

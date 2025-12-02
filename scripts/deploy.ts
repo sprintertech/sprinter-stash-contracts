@@ -5,12 +5,11 @@ import {MaxUint256} from "ethers";
 import {toBytes32, resolveProxyXAddress, resolveXAddress, getContractAt, resolveXAddresses} from "../test/helpers";
 import {
   getVerifier, deployProxyX, getHardhatNetworkConfig, getNetworkConfig, percentsToBps,
-  getProxyXAdmin,
+  getProxyXAdmin, getInputOutputTokens, flattenInputOutputTokens,
 } from "./helpers";
 import {
   assert, isSet, ProviderSolidity, DomainSolidity, DEFAULT_ADMIN_ROLE, ZERO_ADDRESS,
-  sameAddress,
-  assertAddress,
+  sameAddress, assertAddress,
 } from "./common";
 import {
   SprinterUSDCLPShare, LiquidityHub, SprinterLiquidityMining,
@@ -51,12 +50,13 @@ export async function main() {
 
   assert(config.AavePool! || config.AavePoolLongTerm! || config.USDCPool! || config.USDCStablecoinPool!,
     "At least one pool should be present.");
-  assertAddress(config.USDC, "USDC must be an address");
+  assertAddress(config.Tokens.USDC, "USDC must be an address");
   assertAddress(config.Admin, "Admin must be an address");
   assertAddress(config.WithdrawProfit, "WithdrawProfit must be an address");
   assertAddress(config.Pauser, "Pauser must be an address");
   assertAddress(config.RebalanceCaller, "RebalanceCaller must be an address");
   assertAddress(config.RepayerCaller, "RepayerCaller must be an address");
+  assertAddress(config.SetInputOutputTokens, "SetInputOutputTokens must be an address");
   assertAddress(config.MpcAddress, "MpcAddress must be an address");
   assertAddress(config.SignerAddress, "SignerAddress must be an address");
   assertAddress(config.WrappedNativeToken, "WrappedNativeToken must be an address");
@@ -121,6 +121,9 @@ export async function main() {
   if (!config.OptimismStandardBridge) {
     config.OptimismStandardBridge = ZERO_ADDRESS;
   }
+  if (!config.BaseStandardBridge) {
+    config.BaseStandardBridge = ZERO_ADDRESS;
+  }
 
   let mainPool: LiquidityPool | undefined = undefined;
   let aavePoolLongTerm: LiquidityPoolAaveLongTerm;
@@ -134,7 +137,7 @@ export async function main() {
       deployer,
       {},
       [
-        config.USDC,
+        config.Tokens.USDC,
         config.AavePoolLongTerm.AaveAddressesProvider,
         deployer,
         config.MpcAddress,
@@ -179,7 +182,7 @@ export async function main() {
       deployer,
       {},
       [
-        config.USDC,
+        config.Tokens.USDC,
         config.AavePool.AaveAddressesProvider,
         deployer,
         config.MpcAddress,
@@ -223,7 +226,7 @@ export async function main() {
       "LiquidityPool",
       deployer,
       {},
-      [config.USDC, deployer, config.MpcAddress, config.WrappedNativeToken, config.SignerAddress],
+      [config.Tokens.USDC, deployer, config.MpcAddress, config.WrappedNativeToken, config.SignerAddress],
       id,
     )) as LiquidityPool;
     console.log(`${id}: ${usdcPool.target}`);
@@ -250,7 +253,7 @@ export async function main() {
       "LiquidityPoolStablecoin",
       deployer,
       {},
-      [config.USDC, deployer, config.MpcAddress, config.WrappedNativeToken, config.SignerAddress],
+      [config.Tokens.USDC, deployer, config.MpcAddress, config.WrappedNativeToken, config.SignerAddress],
       id,
     )) as LiquidityPool;
     console.log(`${id}: ${usdcStablecoinPool.target}`);
@@ -279,7 +282,7 @@ export async function main() {
       deployer,
       {},
       [
-        config.USDC,
+        config.Tokens.USDC,
         deployer,
         config.MpcAddress,
         config.WrappedNativeToken,
@@ -305,7 +308,7 @@ export async function main() {
       deployer,
       {},
       [
-        config.USDC,
+        config.Tokens.USDC,
         targetVault,
         deployer,
       ],
@@ -328,7 +331,7 @@ export async function main() {
     rebalancerVersion,
     deployer,
     config.Admin,
-    [DomainSolidity[network], config.USDC, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter],
+    [DomainSolidity[network], config.Tokens.USDC, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter],
     [
       config.Admin,
       config.RebalanceCaller,
@@ -381,6 +384,7 @@ export async function main() {
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
 
   repayerRoutes.Pools = await resolveXAddresses(repayerRoutes.Pools || [], false);
+  const inputOutputTokens = getInputOutputTokens(network, config);
 
   const repayerId = "Repayer";
   let repayer: Repayer;
@@ -399,7 +403,7 @@ export async function main() {
       config.Admin,
       [
         DomainSolidity[network],
-        config.USDC,
+        config.Tokens.USDC,
         config.CCTP.TokenMessenger,
         config.CCTP.MessageTransmitter,
         config.AcrossV3SpokePool,
@@ -407,14 +411,17 @@ export async function main() {
         config.WrappedNativeToken,
         config.StargateTreasurer,
         config.OptimismStandardBridge,
+        config.BaseStandardBridge,
       ],
       [
         config.Admin,
         config.RepayerCaller,
+        config.SetInputOutputTokens,
         repayerRoutes.Pools,
         repayerRoutes.Domains.map(el => DomainSolidity[el]),
         repayerRoutes.Providers.map(el => ProviderSolidity[el]),
         repayerRoutes.SupportsAllTokens,
+        inputOutputTokens,
       ],
       repayerId,
     );
@@ -444,7 +451,7 @@ export async function main() {
       config.Admin,
       [lpToken, mainPool],
       [
-        config.USDC,
+        config.Tokens.USDC,
         config.Admin,
         config.Hub.AssetsAdjuster,
         config.Hub.DepositProfit,
@@ -525,7 +532,7 @@ export async function main() {
   console.log(`LiquidityPool Withdraw Profit: ${config.WithdrawProfit}`);
   console.log(`LiquidityPool Pauser: ${config.Pauser}`);
   console.log(`MPC Address: ${config.MpcAddress}`);
-  console.log(`USDC: ${config.USDC}`);
+  console.log(`USDC: ${config.Tokens.USDC}`);
   console.log(`Signer Address: ${config.SignerAddress}`);
   console.log(`Rebalancer: ${rebalancer.target}`);
   console.log(`RebalancerProxyAdmin: ${rebalancerAdmin.target}`);
@@ -555,6 +562,10 @@ export async function main() {
       });
     }
     console.table(transposedRoutes);
+  }
+  if (inputOutputTokens.length > 0) {
+    console.log("InputOutputTokens:");
+    console.table(flattenInputOutputTokens(inputOutputTokens));
   }
 
   await verifier.verify(process.env.VERIFY === "true");

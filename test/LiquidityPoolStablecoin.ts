@@ -27,7 +27,7 @@ describe("LiquidityPoolStablecoin", function () {
 
     const forkNetworkConfig = networkConfig.BASE;
 
-    const USDC_ADDRESS = forkNetworkConfig.USDC;
+    const USDC_ADDRESS = forkNetworkConfig.Tokens.USDC;
     const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;
     if (!USDC_OWNER_ADDRESS) throw new Error("Env variables not configured (USDC_OWNER_ADDRESS missing)");
     const usdc = await hre.ethers.getContractAt("ERC20", USDC_ADDRESS);
@@ -614,7 +614,7 @@ describe("LiquidityPoolStablecoin", function () {
       await usdc.connect(usdcOwner).approve(liquidityPool, amountLiquidity);
       await expect(liquidityPool.connect(usdcOwner).depositWithPull(amountLiquidity))
         .to.emit(liquidityPool, "Deposit").withArgs(usdcOwner, amountLiquidity);
-      expect(await liquidityPool.balance(usdc)).to.eq(amountLiquidity * 2n);
+      expect(await liquidityPool.balance(usdc)).to.eq(0n);
     });
 
     it("Should withdraw liquidity", async function () {
@@ -843,9 +843,11 @@ describe("LiquidityPoolStablecoin", function () {
 
     it("Should NOT borrow if borrowing is paused", async function () {
       const {
-        liquidityPool, user, user2, withdrawProfit, mpc_signer, usdc, USDC_DEC
+        liquidityPool, user, user2, withdrawProfit, mpc_signer, usdc, USDC_DEC, usdcOwner, liquidityAdmin
       } = await loadFixture(deployAll);
-
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
       // Pause borrowing
       await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())
         .to.emit(liquidityPool, "BorrowPaused");
@@ -870,6 +872,7 @@ describe("LiquidityPoolStablecoin", function () {
         2000000000n,
         signature))
       .to.be.revertedWithCustomError(liquidityPool, "BorrowingIsPaused");
+      expect(await liquidityPool.balance(usdc)).to.eq(0n);
     });
 
     it("Should NOT borrow if the contract is paused", async function () {

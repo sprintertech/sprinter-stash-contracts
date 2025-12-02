@@ -195,7 +195,7 @@ export async function signBorrow(
   amount: bigint,
   target: AddressLike,
   targetCallData: string,
-  chainId: number = 1,
+  chainId: number = hre.network.config.chainId || 31337,
   nonce: bigint = 0n,
   deadline: bigint = 2000000000n
 ) {
@@ -242,7 +242,7 @@ export async function signBorrowMany(
   amounts: bigint[],
   target: AddressLike,
   targetCallData: string,
-  chainId: number = 1,
+  chainId: number = hre.network.config.chainId || 31337,
   nonce: bigint = 0n,
   deadline: bigint = 2000000000n
 ) {

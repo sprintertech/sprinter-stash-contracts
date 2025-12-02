@@ -597,6 +597,36 @@ describe("Repayer", function () {
     )).to.be.revertedWithCustomError(repayer, "SlippageTooHigh()");
   });
 
+  it("Should revert Across repay if native currency is sent along", async function () {
+    const {repayer, EURC_DEC, admin, repayUser,
+      liquidityPool, eurc, user, eurcOwner,
+    } = await loadFixture(deployAll);
+
+    await eurc.connect(eurcOwner).transfer(repayer, 10n * EURC_DEC);
+
+    await repayer.connect(admin).setRoute(
+      [liquidityPool],
+      [Domain.ETHEREUM],
+      [Provider.ACROSS],
+      [true],
+      ALLOWED
+    );
+    const amount = 4n * EURC_DEC;
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256", "address", "uint32", "uint32", "uint32"],
+      [ZERO_ADDRESS, amount * 998n / 1000n - 1n, user.address, 1n, 2n, 3n]
+    );
+    await expect(repayer.connect(repayUser).initiateRepay(
+      eurc,
+      amount,
+      liquidityPool,
+      Domain.ETHEREUM,
+      Provider.ACROSS,
+      extraData,
+      {value: 1n}
+    )).to.be.revertedWithCustomError(repayer, "NotPayable()");
+  });
+
   it("Should allow repayer to initiate Everclear repay on fork", async function () {
     const {repayer, USDC_DEC, admin, repayUser,
       liquidityPool, everclearFeeAdapter, forkNetworkConfig,
@@ -866,6 +896,115 @@ describe("Repayer", function () {
       .to.be.revertedWithCustomError(optimismBridge, "OptimismBridgeWrongRemoteToken");
   });
 
+  it("Should revert Optimism repay if native currency is sent along", async function () {
+    const {
+      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+      acrossV3SpokePool, everclearFeeAdapter, weth, stargateTreasurerTrue, admin, deployer,
+    } = await loadFixture(deployAll);
+
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "Repayer2", {},
+        Domain.ETHEREUM,
+        usdc,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
+        acrossV3SpokePool,
+        everclearFeeAdapter,
+        weth,
+        stargateTreasurerTrue,
+        optimismBridge,
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin,
+      repayUser,
+      [liquidityPool, liquidityPool],
+      [Domain.ETHEREUM, Domain.OP_MAINNET],
+      [Provider.LOCAL, Provider.OPTIMISM_STANDARD_BRIDGE],
+      [true, true],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    await usdc.transfer(repayer, 10n * USDC_DEC);
+
+    const amount = 4n * USDC_DEC;
+    const outputToken = usdc.target;
+    const minGasLimit = 100000n;
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint32"],
+      [outputToken, minGasLimit]
+    );
+    const tx = repayer.connect(repayUser).initiateRepay(
+      usdc,
+      amount,
+      liquidityPool,
+      Domain.OP_MAINNET,
+      Provider.OPTIMISM_STANDARD_BRIDGE,
+      extraData,
+      {value: 1n}
+    );
+    await expect(tx)
+      .to.be.revertedWithCustomError(repayer, "NotPayable()");
+  });
+
+  it("Should revert Optimism repay if output token is zero address", async function () {
+    const {
+      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+      acrossV3SpokePool, everclearFeeAdapter, weth, stargateTreasurerTrue, admin, deployer,
+    } = await loadFixture(deployAll);
+
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "Repayer2", {},
+        Domain.ETHEREUM,
+        usdc,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
+        acrossV3SpokePool,
+        everclearFeeAdapter,
+        weth,
+        stargateTreasurerTrue,
+        optimismBridge,
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin,
+      repayUser,
+      [liquidityPool, liquidityPool],
+      [Domain.ETHEREUM, Domain.OP_MAINNET],
+      [Provider.LOCAL, Provider.OPTIMISM_STANDARD_BRIDGE],
+      [true, true],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    await usdc.transfer(repayer, 10n * USDC_DEC);
+
+    const amount = 4n * USDC_DEC;
+    const outputToken = ZERO_ADDRESS;
+    const minGasLimit = 100000n;
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint32"],
+      [outputToken, minGasLimit]
+    );
+    const tx = repayer.connect(repayUser).initiateRepay(
+      usdc,
+      amount,
+      liquidityPool,
+      Domain.OP_MAINNET,
+      Provider.OPTIMISM_STANDARD_BRIDGE,
+      extraData
+    );
+    await expect(tx)
+      .to.be.revertedWithCustomError(repayer, "ZeroAddress()");
+  });
+
   it("Should NOT allow repayer to initiate Optimism repay on invalid route", async function () {
     const {repayer, USDC_DEC, usdc, admin, repayUser, liquidityPool} = await loadFixture(deployAll);
 
@@ -1096,6 +1235,22 @@ describe("Repayer", function () {
     const extraData = AbiCoder.defaultAbiCoder().encode(["bytes", "bytes"], [message, signature]);
     await expect(repayer.connect(repayUser).processRepay(liquidityPool, Provider.CCTP, extraData))
       .to.be.revertedWithCustomError(repayer, "ProcessFailed()");
+  });
+
+  it("Should revert CCTP initiate if native currency is sent along", async function () {
+    const {repayer, usdc, USDC_DEC, liquidityPool, repayUser} = await loadFixture(deployAll);
+
+    await usdc.transfer(repayer, 10n * USDC_DEC);
+
+    await expect(repayer.connect(repayUser).initiateRepay(
+      usdc,
+      4n * USDC_DEC,
+      liquidityPool,
+      Domain.ETHEREUM,
+      Provider.CCTP,
+      "0x",
+      {value: 1n}
+    )).to.be.revertedWithCustomError(repayer, "NotPayable()");
   });
 
   it("Should perform Stargate repay with a mock pool", async function () {

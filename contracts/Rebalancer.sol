@@ -71,9 +71,9 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable, CCTPAdapter {
     function initialize(
         address admin,
         address rebalancer,
-        address[] memory pools,
-        Domain[] memory domains,
-        Provider[] memory providers
+        address[] calldata pools,
+        Domain[] calldata domains,
+        Provider[] calldata providers
     ) external initializer() {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(REBALANCER_ROLE, rebalancer);
@@ -90,9 +90,9 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable, CCTPAdapter {
     }
 
     function _setRoute(
-        address[] memory pools,
-        Domain[] memory domains,
-        Provider[] memory providers,
+        address[] calldata pools,
+        Domain[] calldata domains,
+        Provider[] calldata providers,
         bool isAllowed
     ) internal {
         RebalancerStorage storage $ = _getStorage();

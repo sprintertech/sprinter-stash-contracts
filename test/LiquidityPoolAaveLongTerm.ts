@@ -4001,6 +4001,12 @@ describe("LiquidityPoolAaveLongTerm", function () {
         .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
     });
 
+    it("Should NOT allow admin to set MPC address to 0", async function () {
+      const {liquidityPool, admin} = await loadFixture(deployAll);
+      await expect(liquidityPool.connect(admin).setMPCAddress(ZERO_ADDRESS))
+        .to.be.revertedWithCustomError(liquidityPool, "ZeroAddress()");
+    });
+
     it("Should allow admin to set default token LTV", async function () {
       const {liquidityPool, admin} = await loadFixture(deployAll);
       const oldDefaultLTV = await liquidityPool.defaultLTV();

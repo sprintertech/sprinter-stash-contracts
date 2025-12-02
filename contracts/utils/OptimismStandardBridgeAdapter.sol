@@ -28,13 +28,16 @@ abstract contract OptimismStandardBridgeAdapter is AdapterHelper {
         Domain destinationDomain,
         bytes calldata extraData,
         Domain localDomain
-    ) internal {
+    ) internal notPayable{
         // We are only interested in fast L1->L2 bridging, because the reverse is slow.
         require(
             localDomain == Domain.ETHEREUM && destinationDomain == Domain.OP_MAINNET,
             UnsupportedDomain()
         );
         require(address(OPTIMISM_STANDARD_BRIDGE) != address(0), ZeroAddress());
+        // WARNING: Contract doesn't maintain an input/output token mapping which could result in a mismatch.
+        // If the output token is wrong then the input tokens will be lost.
+        // Notice: In case of minGasLimit being too low, the message could be retried on the destination chain.
         (address outputToken, uint32 minGasLimit) = abi.decode(extraData, (address, uint32));
         if (token == WRAPPED_NATIVE_TOKEN) {
             WRAPPED_NATIVE_TOKEN.withdraw(amount);
@@ -42,6 +45,7 @@ abstract contract OptimismStandardBridgeAdapter is AdapterHelper {
             return;
         }
 
+        require(outputToken != address(0), ZeroAddress());
         token.forceApprove(address(OPTIMISM_STANDARD_BRIDGE), amount);
         OPTIMISM_STANDARD_BRIDGE.bridgeERC20To(
             address(token),

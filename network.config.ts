@@ -10,37 +10,52 @@ export const LiquidityPoolPublicUSDC = "LiquidityPoolPublicUSDC";
 export const LiquidityPoolUSDCStablecoin = "LiquidityPoolUSDCStablecoin";
 export const LiquidityPoolAaveUSDCLongTerm = "LiquidityPoolAaveUSDCLongTerm";
 export const ERC4626AdapterUSDC = "ERC4626AdapterUSDC";
+
 export const LiquidityPoolAaveUSDCLongTermV2 = "LiquidityPoolAaveUSDCLongTerm-V2-e09cc75";
 export const LiquidityPoolAaveUSDCV2 = "LiquidityPoolAaveUSDC-V2-3601cc4";
 export const LiquidityPoolUSDCV2 = "LiquidityPoolUSDC-V2-3601cc4";
 export const LiquidityPoolUSDCStablecoinV2 = "LiquidityPoolUSDCStablecoin-V2-3601cc4";
+
 export const LiquidityPoolAaveUSDCV3 = "LiquidityPoolAaveUSDC-V3-e09cc75";
 export const LiquidityPoolUSDCV3 = "LiquidityPoolUSDC-V3-e09cc75";
 export const LiquidityPoolUSDCStablecoinV3 = "LiquidityPoolUSDCStablecoin-V3-e09cc75";
+
+export const LiquidityPoolAaveUSDCV4 = "LiquidityPoolAaveUSDC-V4-TBD";
+export const LiquidityPoolUSDCV4 = "LiquidityPoolUSDC-V4-TBD";
+export const LiquidityPoolPublicUSDCV2 = "LiquidityPoolPublicUSDC-V2-TBD";
+export const LiquidityPoolUSDCStablecoinV4 = "LiquidityPoolUSDCStablecoin-V4-TBD";
+export const LiquidityPoolAaveUSDCLongTermV3 = "LiquidityPoolAaveUSDCLongTerm-V3-TBD";
+export const ERC4626AdapterUSDCV2 = "ERC4626AdapterUSDC-V2-TBD";
 export const LiquidityPoolAaveUSDCLongTermVersions = [
   LiquidityPoolAaveUSDCLongTerm,
   LiquidityPoolAaveUSDCLongTermV2,
+  LiquidityPoolAaveUSDCLongTermV3,
 ] as const;
 export const LiquidityPoolAaveUSDCVersions = [
   LiquidityPoolAaveUSDC,
   LiquidityPoolAaveUSDCV2,
   LiquidityPoolAaveUSDCV3,
+  LiquidityPoolAaveUSDCV4,
 ] as const;
 export const LiquidityPoolUSDCVersions = [
   LiquidityPoolUSDC,
   LiquidityPoolUSDCV2,
   LiquidityPoolUSDCV3,
+  LiquidityPoolUSDCV4,
 ] as const;
 export const LiquidityPoolUSDCStablecoinVersions = [
   LiquidityPoolUSDCStablecoin,
   LiquidityPoolUSDCStablecoinV2,
   LiquidityPoolUSDCStablecoinV3,
+  LiquidityPoolUSDCStablecoinV4,
 ] as const;
 export const LiquidityPoolPublicUSDCVersions = [
   LiquidityPoolPublicUSDC,
+  LiquidityPoolPublicUSDCV2,
 ] as const;
 export const ERC4626AdapterUSDCVersions = [
   ERC4626AdapterUSDC,
+  ERC4626AdapterUSDCV2,
 ] as const;
 
 export enum Network {

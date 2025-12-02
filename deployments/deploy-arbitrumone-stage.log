@@ -74,3 +74,17 @@ Using config for: stage, ARBITRUM_ONE
 Rebalancer: 0x34Df9cD75fA0b4d8fF300AeDf7591f79dFdd61C9
 Deploying Aave USDC Long Term Liquidity Pool
 LiquidityPoolAaveUSDCLongTerm: 0xd1A7cC673D4cE966AD31FcD8Daccf1C2B5969dA4
+
+Deployment ID: MVP
+Deploying USDC Public Pool
+Using config for: stage, ARBITRUM_ONE
+Deploying USDC Public Liquidity Pool
+LiquidityPoolPublicUSDC: 0x451291AdB56ffA03Ef2A542389CeE16Ec3A8295D
+
+Deployment ID: MVP
+Deploying ERC4626 Adapter USDC
+Using config for: stage, ARBITRUM_ONE
+Rebalancer: 0x34Df9cD75fA0b4d8fF300AeDf7591f79dFdd61C9
+Target Vault: 0x451291AdB56ffA03Ef2A542389CeE16Ec3A8295D
+Deploying ERC4626 Adapter USDC
+ERC4626AdapterUSDC: 0xd7B2FC36b3D967DE88f9A4e3C84b7dBEF73e7eF3

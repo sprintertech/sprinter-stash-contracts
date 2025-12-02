@@ -572,6 +572,9 @@ export const networkConfig: NetworksConfig = {
         [LiquidityPoolAaveUSDCLongTermV2]: {
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
         },
+        [ERC4626AdapterUSDC]: {
+          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+        },
       },
       RepayerRoutes: {
         [LiquidityPoolAaveUSDCV3]: {
@@ -955,6 +958,9 @@ export const networkConfig: NetworksConfig = {
           [Network.ETHEREUM]: [Provider.CCTP],
         },
         [LiquidityPoolAaveUSDCLongTermV2]: {
+          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+        },
+        [ERC4626AdapterUSDC]: {
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
         },
       },

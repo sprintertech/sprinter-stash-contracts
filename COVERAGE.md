@@ -2,7 +2,7 @@
 
 This project uses automated coverage checks to prevent test coverage from decreasing.
 
-## How It Works 
+## How It Works
 
 1. **Baseline:** Current coverage is stored in `coverage-baseline.json`
 2. **Check:** Every PR compares new coverage against baseline

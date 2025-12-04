@@ -15,7 +15,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: 22
           cache: 'npm'
 
       - name: Install dependencies
@@ -24,11 +24,20 @@ jobs:
       - name: Setup environment variables
         run: cp .env.example .env
 
+      - name: Get baseline from main branch
+        run: |
+          # Fetch main branch
+          git fetch origin main
+          # Try to get baseline from main, if it doesn't exist use empty baseline
+          git show origin/main:coverage-baseline.json > baseline-from-main.json 2>/dev/null || echo '{"lines":"0","functions":"0","branches":"0","statements":"0"}' > baseline-from-main.json
+          echo "📊 Baseline from main:"
+          cat baseline-from-main.json
+
       - name: Run coverage
         run: npm run coverage
 
-      - name: Check coverage
-        run: npm run coverage:check
+      - name: Check coverage against main baseline
+        run: npm run coverage:check -- --baseline=baseline-from-main.json
 
       - name: Upload coverage report (optional)
         if: always()

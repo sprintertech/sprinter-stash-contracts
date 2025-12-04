@@ -50,7 +50,12 @@ function parseLcovCoverage(lcovPath: string): CoverageData {
 
 // Main
 const lcovPath = path.join(__dirname, "..", "coverage", "lcov.info");
-const baselinePath = path.join(__dirname, "..", "coverage-baseline.json");
+
+// Check if custom baseline path provided (for CI to compare against main)
+const baselineArg = process.argv.find(arg => arg.startsWith("--baseline="));
+const baselinePath = baselineArg
+  ? baselineArg.split("=")[1]
+  : path.join(__dirname, "..", "coverage-baseline.json");
 
 // Check if we're updating baseline
 const isUpdatingBaseline = process.argv.includes("--update-baseline");

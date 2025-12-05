@@ -37,12 +37,19 @@ jobs:
           cat baseline-from-main.json
 
       - name: Run coverage
-        run: npm run coverage
+        id: run_coverage
+        timeout-minutes: 15
+        run: |
+          set -e  # Exit immediately if coverage fails
+          npm run coverage
+          echo "✅ Coverage completed successfully"
 
       - name: Check coverage against main baseline
+        if: success()  # Only run if previous steps succeeded
         run: npm run coverage:check -- --baseline=baseline-from-main.json
 
       - name: Update baseline if coverage improved
+        if: success()  # Only run if coverage check passed
         id: update_baseline
         run: |
           # Parse current and baseline coverage
@@ -64,7 +71,7 @@ jobs:
           fi
 
       - name: Commit updated baseline to PR
-        if: steps.update_baseline.outputs.improved == 'true'
+        if: success() && steps.update_baseline.outputs.improved == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

@@ -139,7 +139,9 @@
     "test:deploy": "ts-node --files ./scripts/deploy.ts",
     "test:ethereum": "FORK_TEST=ETHEREUM hardhat test --typecheck ./specific-fork-test/ethereum/*.ts",
     "test:scripts": "SCRIPT_ENV=CI DEPLOY_ID=CI ts-node --files ./scripts/test.ts",
-    "coverage": "hardhat coverage"
+    "coverage": "hardhat coverage",
+    "coverage:check": "ts-node --files scripts/check-coverage.ts",
+    "coverage:update-baseline": "ts-node --files scripts/check-coverage.ts --update-baseline"
   },
   "repository": {
     "type": "git",

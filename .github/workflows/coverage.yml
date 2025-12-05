@@ -74,7 +74,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "⚠️ No changes to commit (baseline file unchanged)"
           else
-            git commit -m "chore: update coverage baseline to ${{ steps.update_baseline.outputs.coverage }}%
+            git commit -m "chore: update coverage baseline to ${{ steps.update_baseline.outputs.coverage }}% [skip ci]
 
           Coverage improved from baseline.
 

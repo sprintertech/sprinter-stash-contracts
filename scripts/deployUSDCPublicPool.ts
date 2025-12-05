@@ -1,7 +1,7 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {getVerifier, getHardhatNetworkConfig, getNetworkConfig} from "./helpers";
+import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers} from "./helpers";
 import {toBytes32} from "../test/helpers";
 import {isSet, assert, DEFAULT_ADMIN_ROLE, sameAddress, assertAddress} from "./common";
 import {PublicLiquidityPool} from "../typechain-types";
@@ -9,6 +9,8 @@ import {Network, NetworkConfig, LiquidityPoolPublicUSDCVersions} from "../networ
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
+
+  await logDeployers();
 
   const WITHDRAW_PROFIT_ROLE = toBytes32("WITHDRAW_PROFIT_ROLE");
   const PAUSER_ROLE = toBytes32("PAUSER_ROLE");

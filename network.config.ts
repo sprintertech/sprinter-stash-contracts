@@ -20,12 +20,12 @@ export const LiquidityPoolAaveUSDCV3 = "LiquidityPoolAaveUSDC-V3-e09cc75";
 export const LiquidityPoolUSDCV3 = "LiquidityPoolUSDC-V3-e09cc75";
 export const LiquidityPoolUSDCStablecoinV3 = "LiquidityPoolUSDCStablecoin-V3-e09cc75";
 
-export const LiquidityPoolAaveUSDCV4 = "LiquidityPoolAaveUSDC-V4-TBD";
-export const LiquidityPoolUSDCV4 = "LiquidityPoolUSDC-V4-TBD";
-export const LiquidityPoolPublicUSDCV2 = "LiquidityPoolPublicUSDC-V2-TBD";
-export const LiquidityPoolUSDCStablecoinV4 = "LiquidityPoolUSDCStablecoin-V4-TBD";
-export const LiquidityPoolAaveUSDCLongTermV3 = "LiquidityPoolAaveUSDCLongTerm-V3-TBD";
-export const ERC4626AdapterUSDCV2 = "ERC4626AdapterUSDC-V2-TBD";
+export const LiquidityPoolAaveUSDCV4 = "LiquidityPoolAaveUSDC-V4-7187ffa";
+export const LiquidityPoolUSDCV4 = "LiquidityPoolUSDC-V4-7187ffa";
+export const LiquidityPoolPublicUSDCV2 = "LiquidityPoolPublicUSDC-V2-7187ffa";
+export const LiquidityPoolUSDCStablecoinV4 = "LiquidityPoolUSDCStablecoin-V4-7187ffa";
+export const LiquidityPoolAaveUSDCLongTermV3 = "LiquidityPoolAaveUSDCLongTerm-V3-7187ffa";
+export const ERC4626AdapterUSDCV2 = "ERC4626AdapterUSDC-V2-7187ffa";
 export const LiquidityPoolAaveUSDCLongTermVersions = [
   LiquidityPoolAaveUSDCLongTerm,
   LiquidityPoolAaveUSDCLongTermV2,
@@ -809,7 +809,7 @@ export const networkConfig: NetworksConfig = {
         ProtocolFeeRate: 20,
         FeeSetter: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
       },
-      ERC4626AdapterUSDCTargetVault: LiquidityPoolPublicUSDC,
+      ERC4626AdapterUSDCTargetVault: LiquidityPoolPublicUSDCV2,
     },
   },
   BASE: {

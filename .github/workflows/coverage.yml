@@ -11,6 +11,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -38,6 +41,47 @@ jobs:
 
       - name: Check coverage against main baseline
         run: npm run coverage:check -- --baseline=baseline-from-main.json
+
+      - name: Update baseline if coverage improved
+        id: update_baseline
+        run: |
+          # Parse current and baseline coverage
+          CURRENT_LINES=$(node -e "const fs=require('fs'); const lcov=fs.readFileSync('coverage/lcov.info','utf8'); const lines=lcov.split('\n'); let lf=0,lh=0; lines.forEach(l=>{if(l.startsWith('LF:'))lf+=parseInt(l.substring(3));if(l.startsWith('LH:'))lh+=parseInt(l.substring(3))}); console.log((lh/lf*100).toFixed(2))")
+          BASELINE_LINES=$(jq -r .lines baseline-from-main.json)
+
+          echo "Current coverage: $CURRENT_LINES%"
+          echo "Baseline coverage: $BASELINE_LINES%"
+
+          # Compare coverage (using awk for floating point comparison)
+          if awk "BEGIN {exit !($CURRENT_LINES > $BASELINE_LINES)}"; then
+            echo "improved=true" >> $GITHUB_OUTPUT
+            echo "coverage=$CURRENT_LINES" >> $GITHUB_OUTPUT
+            echo "✅ Coverage improved! Updating baseline..."
+            npm run coverage:update-baseline
+          else
+            echo "improved=false" >> $GITHUB_OUTPUT
+            echo "📊 Coverage maintained (no baseline update needed)"
+          fi
+
+      - name: Commit updated baseline to PR
+        if: steps.update_baseline.outputs.improved == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add coverage-baseline.json
+
+          # Only commit if there are actual changes
+          if git diff --staged --quiet; then
+            echo "⚠️ No changes to commit (baseline file unchanged)"
+          else
+            git commit -m "chore: update coverage baseline to ${{ steps.update_baseline.outputs.coverage }}%
+
+          Coverage improved from baseline.
+
+          [automated update]"
+            git push
+            echo "✅ Baseline updated and pushed to PR"
+          fi
 
       - name: Upload coverage report (optional)
         if: always()

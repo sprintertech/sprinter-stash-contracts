@@ -2,38 +2,33 @@
 
 This project uses automated coverage checks to prevent test coverage from decreasing.
 
-## How It Works: Two-Phase Automated Protection
+## How It Works: Automated Coverage Gate
 
-This system uses two GitHub Actions workflows that work together to enforce coverage without manual maintenance:
+This system uses a single GitHub Actions workflow that enforces coverage and auto-updates the baseline.
 
-### Phase 1: PR Check (`.github/workflows/coverage.yml`)
+### Coverage Workflow (`.github/workflows/coverage.yml`)
 **Triggers:** Every pull request to main
 
 **What it does:**
-1. Fetches `coverage-baseline.json` from **main branch** (not PR branch)
-2. Runs `npm run coverage` on PR code to generate fresh coverage
-3. Compares PR coverage against main's baseline
-4. **Result:**
-   - ❌ Blocks merge if coverage drops below baseline
-   - ✅ Passes if coverage maintained or improved
-   - Shows detailed comparison in CI output
+1. **Fetches baseline from main branch** (not PR branch) - prevents tampering
+2. **Runs coverage** on PR code to generate fresh `coverage/lcov.info`
+3. **Compares** PR coverage against main's baseline
+4. **Enforces the gate:**
+   - ❌ **Blocks merge** if coverage drops below baseline
+   - ✅ **Passes** if coverage maintained
+   - ✅ **Auto-updates baseline** if coverage improved (commits to PR branch)
+5. **When coverage improves:**
+   - Updates `coverage-baseline.json` in the PR branch
+   - Commits the change with `github-actions[bot]`
+   - When PR merges, the updated baseline merges automatically
 
-**Security:** Developers cannot cheat by modifying the baseline file in their PR because CI always fetches the baseline from the main branch.
-
-### Phase 2: Auto-Update (`.github/workflows/update-baseline.yml`)
-**Triggers:** Every push to main (after PR merge)
-
-**What it does:**
-1. Runs `npm run coverage` on the new main branch code
-2. Updates `coverage-baseline.json` with the new coverage values
-3. Commits the updated baseline automatically (only if coverage changed)
-4. Uses `github-actions[bot]` for the commit
-
-**Result:** The baseline automatically tracks the current coverage on main, requiring zero manual maintenance.
+**Security:** Developers cannot cheat by modifying the baseline file because CI always fetches the comparison baseline from main branch for validation.
 
 ---
 
-**Combined Effect:** Coverage can only go up or stay the same, never down! This creates a "ratchet effect" where quality continuously improves. ✅
+**Effect:** Coverage can only go up or stay the same, never down! This creates a "ratchet effect" where quality continuously improves. ✅
+
+**Zero Maintenance:** When coverage improves, the baseline auto-updates in the PR itself - no manual work needed!
 
 ## Commands
 
@@ -59,12 +54,14 @@ When working on a PR:
 
 ### For Maintainers
 
-**No manual work needed!** Phase 2 automatically:
-- Runs coverage after each merge to main
-- Updates `coverage-baseline.json`
-- Commits the new baseline
+**No manual work needed!** The workflow automatically:
+- Compares PR coverage against main's baseline
+- Updates `coverage-baseline.json` in the PR if coverage improved
+- Commits the updated baseline to the PR branch
 
-You can manually update baseline if needed:
+The updated baseline merges to main automatically when the PR is merged.
+
+You can manually update baseline locally if needed:
 ```bash
 npm run coverage:update-baseline
 git add coverage-baseline.json
@@ -89,7 +86,7 @@ Current baseline (as of initial setup):
 - Script: `scripts/check-coverage.ts`
 
 ### Environment Setup for CI
-Both workflows copy `.env.example` to `.env` to enable fork tests with public RPC endpoints during coverage runs.
+The workflow copies `.env.example` to `.env` to enable fork tests with public RPC endpoints during coverage runs.
 
 ### Branch Protection
 To enforce coverage checks, enable branch protection on main:

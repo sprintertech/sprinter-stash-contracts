@@ -28,16 +28,117 @@ jobs:
         run: |
           # Fetch main branch
           git fetch origin main
-          # Try to get baseline from main, if it doesn't exist use empty baseline
+          # Get baseline from main (for comparison - must not decrease)
           git show origin/main:coverage-baseline.json > baseline-from-main.json 2>/dev/null || echo '{"lines":"0","functions":"0","branches":"0","statements":"0"}' > baseline-from-main.json
-          echo "📊 Baseline from main:"
+          echo "📊 Baseline from main branch:"
           cat baseline-from-main.json
 
-      - name: Run coverage
-        run: npm run coverage
+      - name: Get baseline from PR
+        run: |
+          # Get baseline from current PR branch (what developer committed)
+          if [ -f coverage-baseline.json ]; then
+            # Validate JSON format
+            if jq empty coverage-baseline.json 2>/dev/null; then
+              cp coverage-baseline.json baseline-from-pr.json
+              echo "📊 Baseline from PR (committed by developer):"
+              cat baseline-from-pr.json
+            else
+              echo "❌ ERROR: coverage-baseline.json is not valid JSON!"
+              echo "Please run: npm run coverage:update-baseline"
+              exit 1
+            fi
+          else
+            echo "❌ ERROR: No coverage-baseline.json found in PR!"
+            echo ""
+            echo "You must run coverage locally and commit the baseline file."
+            echo ""
+            echo "📝 To fix: Run these commands locally and commit the result:"
+            echo "   npm run coverage"
+            echo "   npm run coverage:update-baseline"
+            echo "   git add coverage-baseline.json"
+            echo "   git commit -m 'chore: update coverage baseline'"
+            echo ""
+            exit 1
+          fi
 
-      - name: Check coverage against main baseline
-        run: npm run coverage:check -- --baseline=baseline-from-main.json
+      - name: Run coverage
+        id: run_coverage
+        timeout-minutes: 15
+        run: |
+          set -e  # Exit immediately if coverage fails
+          npm run coverage
+          echo "✅ Coverage completed successfully"
+
+      - name: Validate coverage
+        run: |
+          echo "=================================================="
+          echo "🔍 COVERAGE VALIDATION"
+          echo "=================================================="
+
+          # Parse CI-generated coverage using dedicated script
+          CI_LINES=$(npx ts-node --files scripts/get-coverage-percentage.ts)
+
+          # Get baselines
+          PR_LINES=$(jq -r .lines baseline-from-pr.json)
+          MAIN_LINES=$(jq -r .lines baseline-from-main.json)
+
+          echo ""
+          echo "📊 Coverage Results:"
+          echo "  CI (actual):        $CI_LINES%"
+          echo "  PR baseline:        $PR_LINES%"
+          echo "  Main baseline:      $MAIN_LINES%"
+          echo ""
+
+          # Check 1: CI must match PR baseline (developer ran coverage correctly)
+          echo "Check 1: Did developer run coverage locally?"
+          if [ "$CI_LINES" = "$PR_LINES" ]; then
+            echo "  ✅ PASS - CI coverage matches PR baseline ($CI_LINES% == $PR_LINES%)"
+          else
+            echo "  ❌ FAIL - CI coverage doesn't match PR baseline!"
+            echo ""
+            echo "  Expected: $PR_LINES% (from your committed coverage-baseline.json)"
+            echo "  Actual:   $CI_LINES% (from fresh CI coverage run)"
+            echo ""
+            echo "💡 This means either:"
+            echo "   1. You forgot to run 'npm run coverage:update-baseline' locally"
+            echo "   2. You modified coverage-baseline.json manually (cheating)"
+            echo "   3. Your local coverage differs from CI (check .env setup)"
+            echo ""
+            echo "📝 To fix: Run these commands locally and commit the result:"
+            echo "   npm run coverage"
+            echo "   npm run coverage:update-baseline"
+            echo "   git add coverage-baseline.json"
+            echo "   git commit -m 'chore: update coverage baseline'"
+            echo ""
+            exit 1
+          fi
+
+          echo ""
+
+          # Check 2: CI must be >= main baseline (coverage didn't decrease)
+          echo "Check 2: Did coverage decrease?"
+          if awk "BEGIN {exit !($CI_LINES >= $MAIN_LINES)}"; then
+            if awk "BEGIN {exit !($CI_LINES > $MAIN_LINES)}"; then
+              echo "  ✅ PASS - Coverage improved! ($MAIN_LINES% → $CI_LINES%)"
+            else
+              echo "  ✅ PASS - Coverage maintained ($CI_LINES%)"
+            fi
+          else
+            echo "  ❌ FAIL - Coverage decreased!"
+            echo ""
+            echo "  Main baseline: $MAIN_LINES%"
+            echo "  Your PR:       $CI_LINES%"
+            echo "  Decrease:      $(awk "BEGIN {print $MAIN_LINES - $CI_LINES}")%"
+            echo ""
+            echo "💡 Please add tests to maintain or improve coverage."
+            echo ""
+            exit 1
+          fi
+
+          echo ""
+          echo "=================================================="
+          echo "✅ ALL CHECKS PASSED"
+          echo "=================================================="
 
       - name: Upload coverage report (optional)
         if: always()

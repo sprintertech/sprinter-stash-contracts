@@ -2,38 +2,38 @@
 
 This project uses automated coverage checks to prevent test coverage from decreasing.
 
-## How It Works: Two-Phase Automated Protection
+## How It Works: Dual Validation
 
-This system uses two GitHub Actions workflows that work together to enforce coverage without manual maintenance:
+Developers run coverage locally and commit the baseline file. CI validates both that the developer ran coverage correctly AND that coverage didn't decrease.
 
-### Phase 1: PR Check (`.github/workflows/coverage.yml`)
+### Coverage Workflow (`.github/workflows/coverage.yml`)
 **Triggers:** Every pull request to main
 
 **What it does:**
-1. Fetches `coverage-baseline.json` from **main branch** (not PR branch)
-2. Runs `npm run coverage` on PR code to generate fresh coverage
-3. Compares PR coverage against main's baseline
-4. **Result:**
-   - ❌ Blocks merge if coverage drops below baseline
-   - ✅ Passes if coverage maintained or improved
-   - Shows detailed comparison in CI output
+1. **Fetches baseline from main branch** - the current production baseline
+2. **Reads baseline from PR branch** - the baseline you committed
+3. **Runs coverage fresh in CI** - generates actual coverage from your code
+4. **Performs two validations:**
 
-**Security:** Developers cannot cheat by modifying the baseline file in their PR because CI always fetches the baseline from the main branch.
+   **Validation 1: Did you run coverage locally?**
+   - ✅ **PASS** if `CI coverage === PR baseline` (you ran coverage correctly)
+   - ❌ **FAIL** if `CI coverage !== PR baseline` (you forgot to run coverage or tampered with file)
 
-### Phase 2: Auto-Update (`.github/workflows/update-baseline.yml`)
-**Triggers:** Every push to main (after PR merge)
+   **Validation 2: Did coverage decrease?**
+   - ✅ **PASS** if `CI coverage >= main baseline` (coverage maintained or improved)
+   - ❌ **FAIL** if `CI coverage < main baseline` (coverage decreased)
 
-**What it does:**
-1. Runs `npm run coverage` on the new main branch code
-2. Updates `coverage-baseline.json` with the new coverage values
-3. Commits the updated baseline automatically (only if coverage changed)
-4. Uses `github-actions[bot]` for the commit
-
-**Result:** The baseline automatically tracks the current coverage on main, requiring zero manual maintenance.
+**Security Model:**
+- ✅ **Can't skip running coverage** - CI checks if your committed baseline matches actual coverage
+- ✅ **Can't decrease coverage** - CI checks if your coverage is below main's baseline
+- ✅ **Can't cheat** - CI regenerates coverage fresh and validates against both baselines
+- ✅ **Can't commit invalid baseline** - CI validates JSON format before processing
+- ✅ **Can't skip baseline file** - CI fails immediately if baseline file is missing
+- ✅ **Visible in PR** - Baseline changes are visible in the PR diff
 
 ---
 
-**Combined Effect:** Coverage can only go up or stay the same, never down! This creates a "ratchet effect" where quality continuously improves. ✅
+**Effect:** Coverage can only go up or stay the same, never down! This creates a "ratchet effect" where quality continuously improves. ✅
 
 ## Commands
 
@@ -52,25 +52,40 @@ npm run coverage:update-baseline
 
 ### For Developers
 
-When working on a PR:
-1. Run `npm run coverage` to generate coverage report
-2. Run `npm run coverage:check` to verify you maintained coverage
-3. If check fails, add more tests until it passes
+**IMPORTANT:** You must run coverage locally and commit the baseline file with your PR.
+
+**Step-by-step:**
+1. Make your code changes
+2. Run coverage locally:
+   ```bash
+   npm run coverage
+   ```
+3. Update the baseline file:
+   ```bash
+   npm run coverage:update-baseline
+   ```
+4. Commit the baseline file:
+   ```bash
+   git add coverage-baseline.json
+   git commit -m "chore: update coverage baseline"
+   ```
+5. Push your PR
+
+**What CI validates:**
+- ✅ **Check 1:** Your committed baseline matches CI coverage (proves you ran coverage)
+- ✅ **Check 2:** Your coverage is >= main's baseline (proves coverage didn't drop)
+
+**If CI fails:**
+- **"No coverage-baseline.json found in PR"** → You forgot to commit the baseline file. Run steps 2-4 above and push.
+- **"coverage-baseline.json is not valid JSON"** → The baseline file is corrupted. Run `npm run coverage:update-baseline` and commit.
+- **"CI coverage doesn't match PR baseline"** → You forgot to update the baseline. Run steps 2-3 above and push.
+- **"Coverage decreased"** → Add more tests to maintain or improve coverage.
 
 ### For Maintainers
 
-**No manual work needed!** Phase 2 automatically:
-- Runs coverage after each merge to main
-- Updates `coverage-baseline.json`
-- Commits the new baseline
+**No special maintenance needed!** Developers commit their own baseline files.
 
-You can manually update baseline if needed:
-```bash
-npm run coverage:update-baseline
-git add coverage-baseline.json
-git commit -m "chore: update coverage baseline"
-git push
-```
+The workflow only validates - it doesn't modify anything. When a PR merges, the updated baseline goes to main automatically.
 
 ## Current Coverage
 
@@ -86,10 +101,12 @@ Current baseline (as of initial setup):
 - Uses Hardhat's built-in coverage tool (generates `coverage/lcov.info`)
 - Parses LCOV format to extract: lines, functions, branches, statements
 - Stores baseline in `coverage-baseline.json` at repository root
-- Script: `scripts/check-coverage.ts`
+- Scripts:
+  - `scripts/check-coverage.ts` - Local validation (compares coverage against baseline)
+  - `scripts/get-coverage-percentage.ts` - Extracts coverage percentage from lcov.info (used by CI)
 
 ### Environment Setup for CI
-Both workflows copy `.env.example` to `.env` to enable fork tests with public RPC endpoints during coverage runs.
+The workflow copies `.env.example` to `.env` to enable fork tests with public RPC endpoints during coverage runs.
 
 ### Branch Protection
 To enforce coverage checks, enable branch protection on main:

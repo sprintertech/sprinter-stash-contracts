@@ -76,7 +76,7 @@ jobs:
           echo "=================================================="
 
           # Parse CI-generated coverage using dedicated script
-          CI_LINES=$(ts-node --files scripts/get-coverage-percentage.ts)
+          CI_LINES=$(npx ts-node --files scripts/get-coverage-percentage.ts)
 
           # Get baselines
           PR_LINES=$(jq -r .lines baseline-from-pr.json)

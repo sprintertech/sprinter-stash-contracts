@@ -403,8 +403,10 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
 
 task("add-tokens-repayer", "Add input output tokens based on current network configs")
 .addOptionalParam("repayer", "Repayer address or id", "Repayer", types.string)
+.addOptionalParam("check", "Check if tokens are already allowed", true, types.boolean)
 .setAction(async (args: {
   repayer: string,
+  check: boolean,
 }, hre) => {
   const {resolveProxyXAddress, toBytes32} = await loadTestHelpers();
   const {
@@ -422,20 +424,22 @@ task("add-tokens-repayer", "Add input output tokens based on current network con
   const target = (await hre.ethers.getContractAt("Repayer", targetAddress, sender)) as Repayer;
   const filteredInputOutputTokens: Repayer.InputOutputTokenStruct[] = [];
   for (const entry of inputOutputTokens) {
-    const alreadyAllowed = await Promise.all(entry.destinationTokens.map(
-      el => target.isOutputTokenAllowed(entry.inputToken, el.destinationDomain, el.outputToken)
-    ));
+    const alreadyAllowed = await Promise.all(entry.destinationTokens.map(el => {
+      if (args.check) {
+        return target.isOutputTokenAllowed(entry.inputToken, el.destinationDomain, el.outputToken);
+      }
+      return false;
+    }));
     entry.destinationTokens = entry.destinationTokens.filter((_, index) => !alreadyAllowed[index]);
     if (entry.destinationTokens.length > 0) {
       filteredInputOutputTokens.push(entry);
     }
   }
 
-  const hasRole = await target.hasRole(toBytes32("SET_TOKENS_ROLE"), sender);
-  console.log(`Following tokens will be added to ${targetAddress}.`);
-  console.table(flattenInputOutputTokens(filteredInputOutputTokens));
-
   if (filteredInputOutputTokens.length > 0) {
+    console.log(`Following tokens will be added to ${targetAddress}.`);
+    console.table(flattenInputOutputTokens(filteredInputOutputTokens));
+    const hasRole = await target.hasRole(toBytes32("SET_TOKENS_ROLE"), sender);
     if (hasRole) {
       await target.setInputOutputTokens(filteredInputOutputTokens, true);
       console.log("Done.");

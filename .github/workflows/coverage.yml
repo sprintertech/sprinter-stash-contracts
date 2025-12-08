@@ -48,8 +48,17 @@ jobs:
               exit 1
             fi
           else
-            echo "⚠️ No coverage-baseline.json found in PR"
-            echo '{"lines":"0","functions":"0","branches":"0","statements":"0"}' > baseline-from-pr.json
+            echo "❌ ERROR: No coverage-baseline.json found in PR!"
+            echo ""
+            echo "You must run coverage locally and commit the baseline file."
+            echo ""
+            echo "📝 To fix: Run these commands locally and commit the result:"
+            echo "   npm run coverage"
+            echo "   npm run coverage:update-baseline"
+            echo "   git add coverage-baseline.json"
+            echo "   git commit -m 'chore: update coverage baseline'"
+            echo ""
+            exit 1
           fi
 
       - name: Run coverage
@@ -61,21 +70,13 @@ jobs:
           echo "✅ Coverage completed successfully"
 
       - name: Validate coverage
-        if: success()
         run: |
           echo "=================================================="
           echo "🔍 COVERAGE VALIDATION"
           echo "=================================================="
 
-          # Verify coverage file exists
-          if [ ! -f coverage/lcov.info ]; then
-            echo "❌ ERROR: coverage/lcov.info not found!"
-            echo "Coverage run may have failed. Check previous step."
-            exit 1
-          fi
-
-          # Parse CI-generated coverage
-          CI_LINES=$(node -e "const fs=require('fs'); const lcov=fs.readFileSync('coverage/lcov.info','utf8'); const lines=lcov.split('\n'); let lf=0,lh=0; lines.forEach(l=>{if(l.startsWith('LF:'))lf+=parseInt(l.substring(3));if(l.startsWith('LH:'))lh+=parseInt(l.substring(3))}); console.log((lh/lf*100).toFixed(2))")
+          # Parse CI-generated coverage using dedicated script
+          CI_LINES=$(ts-node --files scripts/get-coverage-percentage.ts)
 
           # Get baselines
           PR_LINES=$(jq -r .lines baseline-from-pr.json)

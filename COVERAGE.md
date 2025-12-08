@@ -27,6 +27,8 @@ Developers run coverage locally and commit the baseline file. CI validates both 
 - ✅ **Can't skip running coverage** - CI checks if your committed baseline matches actual coverage
 - ✅ **Can't decrease coverage** - CI checks if your coverage is below main's baseline
 - ✅ **Can't cheat** - CI regenerates coverage fresh and validates against both baselines
+- ✅ **Can't commit invalid baseline** - CI validates JSON format before processing
+- ✅ **Can't skip baseline file** - CI fails immediately if baseline file is missing
 - ✅ **Visible in PR** - Baseline changes are visible in the PR diff
 
 ---
@@ -74,8 +76,10 @@ npm run coverage:update-baseline
 - ✅ **Check 2:** Your coverage is >= main's baseline (proves coverage didn't drop)
 
 **If CI fails:**
-- **"CI coverage doesn't match PR baseline"** → You forgot step 2-4 above. Run them and push.
-- **"Coverage decreased"** → Add more tests to improve coverage.
+- **"No coverage-baseline.json found in PR"** → You forgot to commit the baseline file. Run steps 2-4 above and push.
+- **"coverage-baseline.json is not valid JSON"** → The baseline file is corrupted. Run `npm run coverage:update-baseline` and commit.
+- **"CI coverage doesn't match PR baseline"** → You forgot to update the baseline. Run steps 2-3 above and push.
+- **"Coverage decreased"** → Add more tests to maintain or improve coverage.
 
 ### For Maintainers
 
@@ -97,7 +101,9 @@ Current baseline (as of initial setup):
 - Uses Hardhat's built-in coverage tool (generates `coverage/lcov.info`)
 - Parses LCOV format to extract: lines, functions, branches, statements
 - Stores baseline in `coverage-baseline.json` at repository root
-- Script: `scripts/check-coverage.ts`
+- Scripts:
+  - `scripts/check-coverage.ts` - Local validation (compares coverage against baseline)
+  - `scripts/get-coverage-percentage.ts` - Extracts coverage percentage from lcov.info (used by CI)
 
 ### Environment Setup for CI
 The workflow copies `.env.example` to `.env` to enable fork tests with public RPC endpoints during coverage runs.

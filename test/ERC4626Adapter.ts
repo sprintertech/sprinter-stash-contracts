@@ -490,7 +490,7 @@ describe("ERC4626Adapter", function () {
 
     it("Should NOT withdraw liquidity as profit from the target vault, 2 shares, 5 assets", async function () {
       const {
-        adapter, liquidityPool, usdc, USDC_DEC, lp, user, generateProfit, withdrawProfit
+        adapter, liquidityPool, usdc, USDC_DEC, lp, user, generateProfit, withdrawProfit, liquidityAdmin,
       } = await loadFixture(deployAll);
       const amount = 2n;
       const amountOthers = 100n * USDC_DEC;
@@ -513,6 +513,12 @@ describe("ERC4626Adapter", function () {
       expect(await adapter.totalDeposited()).to.eq(amount);
       expect(await liquidityPool.maxWithdraw(adapter)).to.eq(2n);
       expect(await usdc.balanceOf(user)).to.eq(2n);
+
+      await adapter.connect(liquidityAdmin).withdraw(user, amount);
+      expect(await adapter.totalDeposited()).to.eq(0n);
+      expect(await liquidityPool.balanceOf(adapter)).to.eq(0n);
+      expect(await liquidityPool.maxWithdraw(adapter)).to.eq(0n);
+      expect(await usdc.balanceOf(user)).to.eq(4n);
     });
 
     it("Should NOT allow native token donations", async function () {

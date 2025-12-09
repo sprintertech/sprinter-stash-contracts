@@ -658,7 +658,7 @@ const config: HardhatUserConfig = {
     },
     [Network.OP_MAINNET]: {
       chainId: networkConfig.OP_MAINNET.ChainId,
-      url: process.env.OP_MAINNET_RPC || "https://optimism-mainnet.public.blastapi.io",
+      url: process.env.OP_MAINNET_RPC || "https://public-op-mainnet.fastnode.io",
       accounts,
     },
     [Network.POLYGON_MAINNET]: {

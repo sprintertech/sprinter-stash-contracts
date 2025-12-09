@@ -1493,6 +1493,7 @@ export const networkConfig: NetworksConfig = {
 
 export enum StandaloneRepayerEnv {
   SparkStage = "SparkStage",
+  LighterStage = "LighterStage",
 };
 
 export interface StandaloneRepayerConfig {
@@ -1568,6 +1569,54 @@ export const repayerConfig: StandaloneRepayersConfig = {
       IsTest: false,
       Admin: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
       RepayerCallers: ["0x6D2C6B7B16f95B123dD3F536DCb96CB9B65d2aa3", "0xc1d6EEa5ce163d7D9f1952Db220830Aae16Cb607"],
+    },
+    LighterStage: {
+      ChainId: 42161,
+      CCTP: {
+        TokenMessenger: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
+        MessageTransmitter: "0xC30362313FBBA5cf9163F0bb16a0e01f01A896ca",
+      },
+      AcrossV3SpokePool: "0xe35e9842fceaCA96570B734083f4a58e8F7C5f2A",
+      StargateTreasurer: "0x146c8e409C113ED87C6183f4d25c50251DFfbb3a",
+      EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
+      WrappedNativeToken: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+      RepayerRoutes: {
+        "0xEBa34aE94CFf4142E30544F86D210b1807BdCb42": {
+          SupportsAllTokens: false,
+          Domains: {
+            [Network.ARBITRUM_ONE]: [Provider.LOCAL],
+          },
+        },
+      },
+      RepayerCallers: ["0xc1d6EEa5ce163d7D9f1952Db220830Aae16Cb607"],
+      Admin: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      IsTest: false,
+    },
+  },
+  ETHEREUM: {
+    LighterStage: {
+      ChainId: 1,
+      CCTP: {
+        TokenMessenger: "0xbd3fa81b58ba92a82136038b25adec7066af3155",
+        MessageTransmitter: "0x0a992d191deec32afe36203ad87d7d289a738f81",
+      },
+      AcrossV3SpokePool: "0x5c7BCd6E7De5423a257D81B442095A1a6ced35C5",
+      StargateTreasurer: "0x1041D127b2d4BC700F0F563883bC689502606918",
+      EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
+      OptimismStandardBridge: "0x99C9fc46f92E8a1c0deC1b1747d010903E884bE1",
+      BaseStandardBridge: "0x3154Cf16ccdb4C6d922629664174b904d80F2C35",
+      WrappedNativeToken: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+      RepayerRoutes: {
+        "0xEBa34aE94CFf4142E30544F86D210b1807BdCb42": {
+          SupportsAllTokens: false,
+          Domains: {
+            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.EVERCLEAR],
+          },
+        },
+      },
+      RepayerCallers: ["0xc1d6EEa5ce163d7D9f1952Db220830Aae16Cb607"],
+      Admin: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      IsTest: false,
     },
   },
   OP_MAINNET: {

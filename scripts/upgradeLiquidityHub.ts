@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {NonceManager} from "ethers";
-import {getVerifier, upgradeProxyX, getHardhatNetworkConfig, getNetworkConfig} from "./helpers";
+import {getVerifier, upgradeProxyX, getHardhatNetworkConfig, getNetworkConfig, logDeployers} from "./helpers";
 import {getDeployProxyXAddress, getContractAt, resolveXAddress} from "../test/helpers";
 import {isSet, assert} from "./common";
 import {LiquidityHub} from "../typechain-types";
@@ -11,6 +11,8 @@ import {Network, NetworkConfig} from "../network.config";
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
   const deployerWithNonce = new NonceManager(deployer);
+
+  await logDeployers();
 
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
   assert(isSet(process.env.UPGRADE_ID), "UPGRADE_ID must be set");

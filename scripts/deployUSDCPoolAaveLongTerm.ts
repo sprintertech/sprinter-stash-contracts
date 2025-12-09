@@ -82,6 +82,7 @@ export async function main() {
   await aavePoolLongTerm.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
   await aavePoolLongTerm.grantRole(PAUSER_ROLE, config.Pauser);
   await aavePoolLongTerm.grantRole(BORROW_LONG_TERM_ROLE, config.AavePoolLongTerm.BorrowLongTermAdmin);
+  await aavePoolLongTerm.grantRole(REPAYER_ROLE, config.AavePoolLongTerm.BorrowLongTermAdmin);
   await aavePoolLongTerm.grantRole(REPAYER_ROLE, config.AavePoolLongTerm.RepayCaller);
 
   if (!sameAddress(deployer.address, config.Admin)) {

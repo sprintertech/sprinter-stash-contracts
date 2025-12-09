@@ -106,3 +106,47 @@ Rebalancer: 0x34Df9cD75fA0b4d8fF300AeDf7591f79dFdd61C9
 Target Vault: 0xEBa34aE94CFf4142E30544F86D210b1807BdCb42
 Deploying ERC4626 Adapter USDC
 ERC4626AdapterUSDC-V2-7187ffa: 0x5291A3582a7eC37BA800327f7Cd1e0bF137A4ec0
+
+Deployment ID: MVP
+Deploying Standalone Repayer
+Using config for: LighterStage, ARBITRUM_ONE
+Repayer: 0x32a5A8ba5e3bCE411D56A2B11d860ebD3e4B0311
+RepayerProxyAdmin: 0x5216cfF2ecD8c089Fa25cdb1eC011B62b5ae2AFa
+Repayer callers: 0xc1d6EEa5ce163d7D9f1952Db220830Aae16Cb607
+RepayerRoutes:
+┌─────────┬──────────────────────────────────────────────┬────────────────┬──────────┬───────────────────┐
+│ (index) │ Pool                                         │ Domain         │ Provider │ SupportsAllTokens │
+├─────────┼──────────────────────────────────────────────┼────────────────┼──────────┼───────────────────┤
+│ 0       │ '0xEBa34aE94CFf4142E30544F86D210b1807BdCb42' │ 'ARBITRUM_ONE' │ 'LOCAL'  │ false             │
+└─────────┴──────────────────────────────────────────────┴────────────────┴──────────┴───────────────────┘
+InputOutputTokens:
+┌─────────┬──────────────────────────────────────────────┬───────────────────┬──────────────────────────────────────────────┐
+│ (index) │ InputToken                                   │ Domain            │ OutputToken                                  │
+├─────────┼──────────────────────────────────────────────┼───────────────────┼──────────────────────────────────────────────┤
+│ 0       │ '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' │ 'ETHEREUM'        │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │
+│ 1       │ '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' │ 'AVALANCHE'       │ '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E' │
+│ 2       │ '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' │ 'OP_MAINNET'      │ '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85' │
+│ 3       │ '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' │ 'BASE'            │ '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' │
+│ 4       │ '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' │ 'POLYGON_MAINNET' │ '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359' │
+│ 5       │ '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' │ 'UNICHAIN'        │ '0x078D782b760474a361dDA0AF3839290b0EF57AD6' │
+│ 6       │ '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' │ 'BSC'             │ '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d' │
+│ 7       │ '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' │ 'LINEA'           │ '0x176211869cA2b568f2A7D4EE941E073a821EE1ff' │
+│ 8       │ '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9' │ 'ETHEREUM'        │ '0xdAC17F958D2ee523a2206206994597C13D831ec7' │
+│ 9       │ '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9' │ 'OP_MAINNET'      │ '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58' │
+│ 10      │ '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9' │ 'LINEA'           │ '0xA219439258ca9da29E9Cc4cE5596924745e12B93' │
+│ 11      │ '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1' │ 'ETHEREUM'        │ '0x6B175474E89094C44Da98b954EedeAC495271d0F' │
+│ 12      │ '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1' │ 'OP_MAINNET'      │ '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1' │
+│ 13      │ '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1' │ 'BASE'            │ '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb' │
+│ 14      │ '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1' │ 'POLYGON_MAINNET' │ '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063' │
+│ 15      │ '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1' │ 'LINEA'           │ '0x4AF15ec2A0BD43Db75dd04E62FAA3B8EF36b00d5' │
+│ 16      │ '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1' │ 'ETHEREUM'        │ '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2' │
+│ 17      │ '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1' │ 'OP_MAINNET'      │ '0x4200000000000000000000000000000000000006' │
+│ 18      │ '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1' │ 'BASE'            │ '0x4200000000000000000000000000000000000006' │
+│ 19      │ '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1' │ 'POLYGON_MAINNET' │ '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619' │
+│ 20      │ '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1' │ 'UNICHAIN'        │ '0x4200000000000000000000000000000000000006' │
+│ 21      │ '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1' │ 'LINEA'           │ '0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f' │
+│ 22      │ '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f' │ 'ETHEREUM'        │ '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599' │
+│ 23      │ '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f' │ 'OP_MAINNET'      │ '0x68f180fcCe6836688e9084f035309E29Bf0A2095' │
+│ 24      │ '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f' │ 'POLYGON_MAINNET' │ '0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6' │
+│ 25      │ '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f' │ 'LINEA'           │ '0x3aAB2285ddcDdaD8edf438C1bAB47e1a9D05a9b4' │
+└─────────┴──────────────────────────────────────────────┴───────────────────┴──────────────────────────────────────────────┘

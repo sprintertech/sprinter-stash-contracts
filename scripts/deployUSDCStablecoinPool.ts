@@ -55,14 +55,15 @@ export async function main() {
 
   await usdcPoolStablecoin!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
   await usdcPoolStablecoin!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
-  await usdcPoolStablecoin!.grantRole(PAUSER_ROLE, config.Pauser);
+  let lastTx = await usdcPoolStablecoin!.grantRole(PAUSER_ROLE, config.Pauser);
 
   if (deployer.address !== config.Admin) {
     await usdcPoolStablecoin!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-    await usdcPoolStablecoin!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    lastTx = await usdcPoolStablecoin!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
   }
 
   await verifier.verify(process.env.VERIFY === "true");
+  await lastTx.wait();
 }
 
 if (process.env.SCRIPT_ENV !== "CI") {

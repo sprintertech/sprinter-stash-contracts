@@ -73,3 +73,30 @@ Rebalancer: 0xA85Cf46c150db2600b1D03E437bedD5513869888
 Deploying USDC Liquidity Pool
 LiquidityPoolUSDC: 0xB58Bb9643884abbbad64FA7eBc874c5481E5c032
 NOTE: Deployed with id LiquidityPoolUSDC on purpose (instead of LiquidityPoolUSDC-V2-3601cc4)
+
+Deployer: 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+DEPLOYER_ADDRESS: 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+Deployment ID: MVP
+Deploying Aave USDC Long Term Pool
+Using config for: ETHEREUM
+Rebalancer: 0xA85Cf46c150db2600b1D03E437bedD5513869888
+Deploying Aave USDC Long Term Liquidity Pool
+LiquidityPoolAaveUSDCLongTerm-V3-7187ffa: 0x52D0EE7a870824FC683Ea19C714c7Bd110257788
+
+Deployer: 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+DEPLOYER_ADDRESS: 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+Deployment ID: MVP
+Deploying USDC Pool
+Using config for: ETHEREUM
+Rebalancer: 0xA85Cf46c150db2600b1D03E437bedD5513869888
+Deploying USDC Liquidity Pool
+LiquidityPoolUSDC-V4-7187ffa: 0x0E16326e6921395edA2575740374E754b22810eb
+
+Deployer: 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+DEPLOYER_ADDRESS: 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+Deployment ID: MVP
+Deploying USDC Stablecoin Pool
+Using config for: ETHEREUM
+Rebalancer: 0xA85Cf46c150db2600b1D03E437bedD5513869888
+Deploying USDC Stablecoin Liquidity Pool
+LiquidityPoolUSDCStablecoin-V4-7187ffa: 0xa8D2c9C9453E61E3Ca961512403D388DEe0A3672

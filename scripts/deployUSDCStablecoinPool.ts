@@ -1,14 +1,18 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {getVerifier, getHardhatNetworkConfig, getNetworkConfig} from "./helpers";
+import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers} from "./helpers";
 import {resolveProxyXAddress, toBytes32} from "../test/helpers";
 import {isSet, assert, DEFAULT_ADMIN_ROLE} from "./common";
 import {LiquidityPoolStablecoin} from "../typechain-types";
 import {Network, NetworkConfig, LiquidityPoolUSDCStablecoinVersions} from "../network.config";
+import {NonceManager} from "ethers";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
+  const deployerWithNonce = new NonceManager(deployer);
+
+  await logDeployers();
 
   const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
   const WITHDRAW_PROFIT_ROLE = toBytes32("WITHDRAW_PROFIT_ROLE");
@@ -36,7 +40,9 @@ export async function main() {
   console.log("Deploying USDC Stablecoin Liquidity Pool");
   const usdcPoolStablecoin: LiquidityPoolStablecoin = (await verifier.deployX(
     "LiquidityPoolStablecoin",
-    deployer, {}, [
+    deployerWithNonce,
+    {},
+    [
       config.Tokens.USDC,
       deployer,
       config.MpcAddress,
@@ -49,14 +55,15 @@ export async function main() {
 
   await usdcPoolStablecoin!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
   await usdcPoolStablecoin!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
-  await usdcPoolStablecoin!.grantRole(PAUSER_ROLE, config.Pauser);
+  let lastTx = await usdcPoolStablecoin!.grantRole(PAUSER_ROLE, config.Pauser);
 
   if (deployer.address !== config.Admin) {
     await usdcPoolStablecoin!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-    await usdcPoolStablecoin!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    lastTx = await usdcPoolStablecoin!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
   }
 
   await verifier.verify(process.env.VERIFY === "true");
+  await lastTx.wait();
 }
 
 if (process.env.SCRIPT_ENV !== "CI") {

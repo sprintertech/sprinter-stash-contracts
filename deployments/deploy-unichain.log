@@ -51,3 +51,12 @@ RebalancerRoutes:
 └─────────┴──────────────────────────────────────────────┴────────────────┴──────────┘
 Repayer: 0x36364Acc7B9c67692CA215af09A41CBd10439511
 RepayerProxyAdmin: 0x2B5D04eF6b3279bCdA4B219b02FAF627dA1664CB
+
+Deployer: 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+DEPLOYER_ADDRESS: 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+Deployment ID: MVP
+Deploying USDC Stablecoin Pool
+Using config for: UNICHAIN
+Rebalancer: 0xA85Cf46c150db2600b1D03E437bedD5513869888
+Deploying USDC Stablecoin Liquidity Pool
+LiquidityPoolUSDCStablecoin-V4-7187ffa: 0xa8D2c9C9453E61E3Ca961512403D388DEe0A3672

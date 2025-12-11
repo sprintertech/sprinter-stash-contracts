@@ -1510,6 +1510,7 @@ export interface StandaloneRepayerConfig {
   EverclearFeeAdapter?: string;
   OptimismStandardBridge?: string;
   BaseStandardBridge?: string;
+  ArbitrumGatewayRouter?: string;
   // Repayer tokens are used from the general network config.
   WrappedNativeToken: string;
   RepayerRoutes: RepayerRoutesConfig;

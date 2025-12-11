@@ -83,6 +83,7 @@ export enum Provider {
   EVERCLEAR = "EVERCLEAR",
   STARGATE = "STARGATE",
   SUPERCHAIN_STANDARD_BRIDGE = "SUPERCHAIN_STANDARD_BRIDGE",
+  ARBITRUM_GATEWAY = "ARBITRUM_GATEWAY",
 }
 
 export enum Token {
@@ -164,6 +165,7 @@ export interface NetworkConfig {
   EverclearFeeAdapter?: string;
   OptimismStandardBridge?: string;
   BaseStandardBridge?: string;
+  ArbitrumGatewayRouter?: string;
   Tokens: {
     [Token.USDC]: string;
     [Token.USDT]?: string;
@@ -213,6 +215,7 @@ export const networkConfig: NetworksConfig = {
     EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
     OptimismStandardBridge: "0x99C9fc46f92E8a1c0deC1b1747d010903E884bE1",
     BaseStandardBridge: "0x3154Cf16ccdb4C6d922629664174b904d80F2C35",
+    ArbitrumGatewayRouter: "0x72Ce9c846789fdB6fC1f34aC4AD25Dd9ef7031ef",
     Tokens: {
       USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
       USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
@@ -310,6 +313,7 @@ export const networkConfig: NetworksConfig = {
       EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
       OptimismStandardBridge: "0x99C9fc46f92E8a1c0deC1b1747d010903E884bE1",
       BaseStandardBridge: "0x3154Cf16ccdb4C6d922629664174b904d80F2C35",
+      ArbitrumGatewayRouter: "0x72Ce9c846789fdB6fC1f34aC4AD25Dd9ef7031ef",
       Tokens: {
         USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
         USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7",

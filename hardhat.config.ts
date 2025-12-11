@@ -460,6 +460,8 @@ task("add-tokens-repayer", "Add input output tokens based on current network con
         console.log("destinationTokens:");
         console.table(entry.destinationTokens);
       }
+      const tx = await target.setInputOutputTokens.populateTransaction(filteredInputOutputTokens, true);
+      console.log(`Raw data: ${tx.data}`);
     }
   } else {
     console.log("There are no missing tokens to add.");

@@ -464,3 +464,9 @@ export async function getHardhatStandaloneRepayerConfig(repayerEnv: StandaloneRe
 export function percentsToBps(input: number[]): bigint[] {
   return input.map(el => BigInt(el) * 10000n / 100n);
 }
+
+export async function logDeployers() {
+  const [deployer] = await hre.ethers.getSigners();
+  console.log(`Deployer: ${deployer.address}`);
+  console.log(`DEPLOYER_ADDRESS: ${process.env.DEPLOYER_ADDRESS}`);
+}

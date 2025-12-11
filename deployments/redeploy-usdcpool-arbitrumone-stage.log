@@ -4,3 +4,12 @@ Using config for: stage, ARBITRUM_ONE
 Rebalancer: 0x34Df9cD75fA0b4d8fF300AeDf7591f79dFdd61C9
 Deploying USDC Liquidity Pool
 LiquidityPoolUSDC-V3-e09cc75: 0x578aD20ec27E11B3772F91cc6f435d782cc362EA
+
+Deployer: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+Deployment ID: MVP
+Deploying USDC Pool
+Using config for: stage, ARBITRUM_ONE
+Rebalancer: 0x34Df9cD75fA0b4d8fF300AeDf7591f79dFdd61C9
+Deploying USDC Liquidity Pool
+LiquidityPoolUSDC-V4-7187ffa: 0x626afF63118191b6202636848711c0645AFED94D

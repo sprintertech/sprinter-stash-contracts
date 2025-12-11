@@ -1,7 +1,7 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {getVerifier, getHardhatNetworkConfig, getNetworkConfig} from "./helpers";
+import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers} from "./helpers";
 import {resolveProxyXAddress, toBytes32, resolveXAddress} from "../test/helpers";
 import {isSet, assert, DEFAULT_ADMIN_ROLE, sameAddress} from "./common";
 import {ERC4626Adapter} from "../typechain-types";
@@ -9,6 +9,8 @@ import {Network, NetworkConfig, ERC4626AdapterUSDCVersions} from "../network.con
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
+
+  await logDeployers();
 
   const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
   const WITHDRAW_PROFIT_ROLE = toBytes32("WITHDRAW_PROFIT_ROLE");

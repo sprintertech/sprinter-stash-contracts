@@ -39,10 +39,10 @@ abstract contract ArbitrumGatewayAdapter is AdapterHelper {
 
         _validateOutputToken(_addressToBytes32(outputToken), destinationDomain, outputTokens);
         // Get output token from the gateway
-        address gatewayOutputToken = ARBITRUM_GATEWAY_ROUTER.calculateL2TokenAddress(address(token));
+        address gatewayOutputToken = router.calculateL2TokenAddress(address(token));
         // Check that output tokens match
         require(gatewayOutputToken == outputToken, InvalidOutputToken());
-        address gateway = ARBITRUM_GATEWAY_ROUTER.getGateway(address(token));
+        address gateway = router.getGateway(address(token));
         token.forceApprove(gateway, amount);
         bytes memory gatewayData = router.outboundTransfer{value: msg.value}(
             address(token),

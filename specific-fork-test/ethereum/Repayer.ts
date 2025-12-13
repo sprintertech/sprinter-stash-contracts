@@ -29,8 +29,10 @@ describe("Repayer", function () {
     const DEPOSIT_PROFIT_ROLE = toBytes32("DEPOSIT_PROFIT_ROLE");
 
     const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.USDC);
-    const dai = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.DAI!);
-    const wbtc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.WBTC!);
+    assertAddress(forkNetworkConfig.Tokens.DAI, "DAI address is missing");
+    const dai = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.DAI);
+    assertAddress(forkNetworkConfig.Tokens.WBTC, "WBTC address is missing");
+    const wbtc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.WBTC);
     const liquidityPool = (await deploy(
       "TestLiquidityPool",
       deployer,

@@ -48,6 +48,9 @@ export async function main() {
   if (!config.BaseStandardBridge) {
     config.BaseStandardBridge = ZERO_ADDRESS;
   }
+  if (!config.ArbitrumGatewayRouter) {
+    config.ArbitrumGatewayRouter = ZERO_ADDRESS;
+  }
 
   const repayerAddress = await getDeployProxyXAddress("Repayer");
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
@@ -68,6 +71,7 @@ export async function main() {
       config.StargateTreasurer,
       config.OptimismStandardBridge,
       config.BaseStandardBridge,
+      config.ArbitrumGatewayRouter,
     ],
     "Repayer",
   );

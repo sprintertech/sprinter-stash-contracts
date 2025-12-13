@@ -48,6 +48,7 @@ export const ProviderSolidity = {
   STARGATE: 3n,
   EVERCLEAR: 4n,
   SUPERCHAIN_STANDARD_BRIDGE: 5n,
+  ARBITRUM_GATEWAY: 6n,
 };
 
 export const DomainSolidity = {
@@ -93,6 +94,7 @@ export const SolidityProvider: { [n: number]: Provider } = {
   3: Provider.STARGATE,
   4: Provider.EVERCLEAR,
   5: Provider.SUPERCHAIN_STANDARD_BRIDGE,
+  6: Provider.ARBITRUM_GATEWAY,
 };
 
 export const CCTPDomain: { [n: number]: Network } = {

@@ -699,7 +699,14 @@ const config: HardhatUserConfig = {
         url: isSet(process.env.DRY_RUN) || isSet(process.env.FORK_TEST)
           ? process.env[`${process.env.DRY_RUN || process.env.FORK_TEST}_RPC`]!
           : (process.env.FORK_PROVIDER || process.env.BASE_RPC || "https://base-mainnet.public.blastapi.io"),
-        blockNumber: process.env.FORK_BLOCK_NUMBER ? parseInt(process.env.FORK_BLOCK_NUMBER) : undefined,
+        blockNumber: (() => {
+          // Determine which chain is being forked
+          const chain = (process.env.DRY_RUN || process.env.FORK_TEST || 'BASE').toUpperCase();
+          // Look up the per-chain fork block number
+          const blockVar = `FORK_BLOCK_NUMBER_${chain}`;
+          const blockNumber = process.env[blockVar];
+          return blockNumber ? parseInt(blockNumber) : undefined;
+        })(),
       },
       accounts: isSet(process.env.DRY_RUN)
         ? [{privateKey: process.env.PRIVATE_KEY!, balance: "1000000000000000000"}]

@@ -56,20 +56,25 @@ npm run coverage:update-baseline
 
 **Step-by-step:**
 1. Make your code changes
-2. Run coverage locally:
+2. Ensure `.env` file exists with pinned fork blocks (copy from `.env.example` if needed):
+   ```bash
+   cp .env.example .env
+   ```
+   **Important:** Using the same fork blocks as `.env.example` ensures your local coverage matches CI coverage.
+3. Run coverage locally:
    ```bash
    npm run coverage
    ```
-3. Update the baseline file:
+4. Update the baseline file:
    ```bash
    npm run coverage:update-baseline
    ```
-4. Commit the baseline file:
+5. Commit the baseline file:
    ```bash
    git add coverage-baseline.json
    git commit -m "chore: update coverage baseline"
    ```
-5. Push your PR
+6. Push your PR
 
 **What CI validates:**
 - ✅ **Check 1:** Your committed baseline matches CI coverage (proves you ran coverage)
@@ -107,6 +112,35 @@ Current baseline (as of initial setup):
 
 ### Environment Setup for CI
 The workflow copies `.env.example` to `.env` to enable fork tests with public RPC endpoints during coverage runs.
+
+### Fork Block Pinning for Deterministic Coverage
+
+**Why fork blocks are pinned:**
+Coverage tests fork mainnet at specific block heights. Without pinning:
+- Developer runs locally → forks at block X → gets 96.93% coverage
+- CI runs 30 mins later → forks at block Y → gets 96.82% coverage
+- Different blocks = different contract states = different test paths = different coverage
+
+**Solution:**
+Pin each chain to a specific block number in `.env.example`:
+```bash
+FORK_BLOCK_NUMBER_BASE=39550474
+FORK_BLOCK_NUMBER_ETHEREUM=24024515
+FORK_BLOCK_NUMBER_ARBITRUM_ONE=411254516
+# etc...
+```
+
+This ensures both local and CI environments fork from **identical blockchain state**, producing **identical coverage results**.
+
+**Updating fork blocks:**
+When you need to test against newer mainnet state:
+1. Run the helper script: `node scripts/get-blocks.mjs`
+2. Copy the output to `.env.example`
+3. Run coverage: `npm run coverage`
+4. If tests pass, update baseline: `npm run coverage:update-baseline`
+5. Commit both `.env.example` and `coverage-baseline.json`
+
+**Note:** Each blockchain has independent block heights, so each needs its own pinned block number.
 
 ### Branch Protection
 To enforce coverage checks, enable branch protection on main:

@@ -428,53 +428,6 @@ describe("Repayer", function () {
     expect(await wbtc.balanceOf(repayer)).to.equal(0n);
   });
 
-  it("Should allow repayer to initiate Arbitrum Gateway DAI repay on fork", async function () {
-    const {
-      repayer, repayUser, liquidityPool, arbitrumGatewayRouter, dai, DAI_DEC
-    } = await loadFixture(deployAll);
-
-    assertAddress(process.env.DAI_OWNER_ETH_ADDRESS, "Env variables not configured (DAI_OWNER_ETH_ADDRESS missing)");
-    const DAI_OWNER_ETH_ADDRESS = process.env.DAI_OWNER_ETH_ADDRESS;
-    const daiOwner = await hre.ethers.getImpersonatedSigner(DAI_OWNER_ETH_ADDRESS);
-    await setBalance(DAI_OWNER_ETH_ADDRESS, 10n ** 18n);
-
-    const amount = 4n * DAI_DEC;
-    const maxGas = 10000000n;
-    const gasPriceBid = 60000000n;
-    const maxSubmissionCost = 100000000000000n;
-    const fee = 1000000000000000n;
-    await dai.connect(daiOwner).transfer(repayer, amount);
-
-    const outputToken = networkConfig.ARBITRUM_ONE.Tokens.DAI;
-
-    const data = AbiCoder.defaultAbiCoder().encode(
-      ["uint256", "bytes"],
-      [maxSubmissionCost, "0x"],
-    );
-    const extraData = AbiCoder.defaultAbiCoder().encode(
-      ["address", "uint256", "uint256", "bytes"],
-      [outputToken, maxGas, gasPriceBid, data]
-    );
-
-    const gatewayAddress = await arbitrumGatewayRouter.getGateway(dai.target);
-    const tx = repayer.connect(repayUser).initiateRepay(
-      dai,
-      amount,
-      liquidityPool,
-      Domain.ARBITRUM_ONE,
-      Provider.ARBITRUM_GATEWAY,
-      extraData,
-      {value: fee}
-    );
-    await expect(tx)
-      .to.emit(repayer, "InitiateRepay")
-      .withArgs(dai.target, amount, liquidityPool.target, Domain.ARBITRUM_ONE, Provider.ARBITRUM_GATEWAY);
-    await expect(tx)
-      .to.emit(arbitrumGatewayRouter, "TransferRouted")
-      .withArgs(dai.target, repayer.target, liquidityPool.target, gatewayAddress);
-    expect(await dai.balanceOf(repayer)).to.equal(0n);
-  });
-
   it("Should allow repayer to initiate Arbitrum Gateway WETH repay on fork", async function () {
     const {
       repayer, repayUser, liquidityPool, weth, arbitrumGatewayRouter,

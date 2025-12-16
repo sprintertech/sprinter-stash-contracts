@@ -701,7 +701,7 @@ const config: HardhatUserConfig = {
           : (process.env.FORK_PROVIDER || process.env.BASE_RPC || "https://base-mainnet.public.blastapi.io"),
         blockNumber: (() => {
           // Determine which chain is being forked
-          const chain = (process.env.DRY_RUN || process.env.FORK_TEST || 'BASE').toUpperCase();
+          const chain = (process.env.DRY_RUN || process.env.FORK_TEST || "BASE").toUpperCase();
           // Look up the per-chain fork block number
           const blockVar = `FORK_BLOCK_NUMBER_${chain}`;
           const blockNumber = process.env[blockVar];

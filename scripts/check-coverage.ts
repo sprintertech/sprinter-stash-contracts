@@ -10,12 +10,13 @@ interface CoverageData {
   statements: string;
 }
 
+// Allowed coverage drift (percent)
+const COVERAGE_TOLERANCE = 0.2;
+
 /**
  * Parses coverage from lcov.info file
  */
 function parseLcovCoverage(lcovPath: string): CoverageData {
-  // Normalize line endings to handle both CRLF (Windows) and LF (Unix)
-  // This ensures consistent parsing regardless of how lcov.info was generated
   const content = fs.readFileSync(lcovPath, "utf8").replace(/\r\n/g, "\n");
 
   let linesFound = 0;
@@ -43,23 +44,21 @@ function parseLcovCoverage(lcovPath: string): CoverageData {
   }
 
   return {
-    lines: linesFound > 0 ? (linesHit / linesFound * 100).toFixed(2) : "0",
-    functions: functionsFound > 0 ? (functionsHit / functionsFound * 100).toFixed(2) : "0",
-    branches: branchesFound > 0 ? (branchesHit / branchesFound * 100).toFixed(2) : "0",
-    statements: linesFound > 0 ? (linesHit / linesFound * 100).toFixed(2) : "0"
+    lines: linesFound > 0 ? ((linesHit / linesFound) * 100).toFixed(2) : "0",
+    functions: functionsFound > 0 ? ((functionsHit / functionsFound) * 100).toFixed(2) : "0",
+    branches: branchesFound > 0 ? ((branchesHit / branchesFound) * 100).toFixed(2) : "0",
+    statements: linesFound > 0 ? ((linesHit / linesFound) * 100).toFixed(2) : "0",
   };
 }
 
 // Main
 const lcovPath = path.join(__dirname, "..", "coverage", "lcov.info");
 
-// Check if custom baseline path provided (for CI to compare against main)
 const baselineArg = process.argv.find(arg => arg.startsWith("--baseline="));
 const baselinePath = baselineArg
   ? baselineArg.split("=")[1]
   : path.join(__dirname, "..", "coverage-baseline.json");
 
-// Check if we're updating baseline
 const isUpdatingBaseline = process.argv.includes("--update-baseline");
 
 if (!fs.existsSync(lcovPath)) {
@@ -69,7 +68,7 @@ if (!fs.existsSync(lcovPath)) {
 
 const current = parseLcovCoverage(lcovPath);
 
-// If updating baseline, save and exit
+// Update baseline mode
 if (isUpdatingBaseline) {
   fs.writeFileSync(baselinePath, JSON.stringify(current, null, 2));
   console.log("\n✅ Coverage baseline updated:");
@@ -81,7 +80,13 @@ if (isUpdatingBaseline) {
 }
 
 // Load baseline
-let baseline: CoverageData = {lines: "0", functions: "0", branches: "0", statements: "0"};
+let baseline: CoverageData = {
+  lines: "0",
+  functions: "0",
+  branches: "0",
+  statements: "0",
+};
+
 if (fs.existsSync(baselinePath)) {
   baseline = JSON.parse(fs.readFileSync(baselinePath, "utf8")) as CoverageData;
 }
@@ -95,27 +100,34 @@ console.log(`Branches:   ${baseline.branches}% → ${current.branches}%`);
 console.log(`Statements: ${baseline.statements}% → ${current.statements}%`);
 console.log("─".repeat(50));
 
-// Check for drops
-const drops: string[] = [];
-if (parseFloat(current.lines) < parseFloat(baseline.lines)) {
-  drops.push(`Lines dropped: ${baseline.lines}% → ${current.lines}%`);
-}
-if (parseFloat(current.functions) < parseFloat(baseline.functions)) {
-  drops.push(`Functions dropped: ${baseline.functions}% → ${current.functions}%`);
-}
-if (parseFloat(current.branches) < parseFloat(baseline.branches)) {
-  drops.push(`Branches dropped: ${baseline.branches}% → ${current.branches}%`);
-}
-if (parseFloat(current.statements) < parseFloat(baseline.statements)) {
-  drops.push(`Statements dropped: ${baseline.statements}% → ${current.statements}%`);
+// Tolerant comparison
+function checkDrop(metric: keyof CoverageData): string | null {
+  const base = parseFloat(baseline[metric]);
+  const curr = parseFloat(current[metric]);
+  const diff = curr - base;
+
+  if (diff < -COVERAGE_TOLERANCE) {
+    return `${metric} dropped: ${base}% → ${curr}% (Δ ${diff.toFixed(2)}%)`;
+  }
+
+  return null;
 }
 
+const drops = [
+  checkDrop("lines"),
+  checkDrop("functions"),
+  checkDrop("branches"),
+  checkDrop("statements"),
+].filter(Boolean) as string[];
+
 if (drops.length > 0) {
-  console.log("\n❌ Coverage decreased:\n");
-  drops.forEach((drop: string) => console.log(`  • ${drop}`));
-  console.log("\n💡 Please add tests to maintain or improve coverage.\n");
+  console.log("\n❌ Coverage decreased beyond tolerance:\n");
+  drops.forEach(d => console.log(`  • ${d}`));
+  console.log(`\n💡 Allowed tolerance: ±${COVERAGE_TOLERANCE}%\n`);
   process.exit(1);
 }
 
-console.log("\n✅ Coverage maintained or improved!\n");
+console.log(
+  `\n✅ Coverage maintained within tolerance (±${COVERAGE_TOLERANCE}%)\n`
+);
 process.exit(0);

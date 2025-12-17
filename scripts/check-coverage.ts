@@ -14,7 +14,9 @@ interface CoverageData {
  * Parses coverage from lcov.info file
  */
 function parseLcovCoverage(lcovPath: string): CoverageData {
-  const content = fs.readFileSync(lcovPath, "utf8");
+  // Normalize line endings to handle both CRLF (Windows) and LF (Unix)
+  // This ensures consistent parsing regardless of how lcov.info was generated
+  const content = fs.readFileSync(lcovPath, "utf8").replace(/\r\n/g, "\n");
 
   let linesFound = 0;
   let linesHit = 0;

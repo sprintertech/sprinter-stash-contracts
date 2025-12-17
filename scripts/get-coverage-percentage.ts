@@ -17,7 +17,8 @@ if (!fs.existsSync(lcovPath)) {
 }
 
 // Read and parse lcov file
-const content = fs.readFileSync(lcovPath, "utf8");
+// Normalize line endings to handle both CRLF (Windows) and LF (Unix)
+const content = fs.readFileSync(lcovPath, "utf8").replace(/\r\n/g, "\n");
 const lines = content.split("\n");
 
 let linesFound = 0;

@@ -21,6 +21,29 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Print environment versions
+        run: |
+          echo "=================================================="
+          echo "🔍 ENVIRONMENT VERSIONS (for debugging coverage differences)"
+          echo "=================================================="
+          echo ""
+          echo "Node.js version:"
+          node -v
+          echo ""
+          echo "NPM version:"
+          npm -v
+          echo ""
+          echo "Hardhat version:"
+          npx hardhat --version
+          echo ""
+          echo "Solidity compiler version:"
+          npx solcjs --version 2>/dev/null || echo "  (will be downloaded by Hardhat if needed)"
+          echo ""
+          echo "Key package versions:"
+          npm ls hardhat solidity-coverage @nomicfoundation/hardhat-toolbox --depth=0
+          echo ""
+          echo "=================================================="
+
       - name: Setup environment variables
         run: |
           if [ ! -f .env.example ]; then

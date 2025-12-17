@@ -22,7 +22,16 @@ jobs:
         run: npm ci
 
       - name: Setup environment variables
-        run: cp .env.example .env
+        run: |
+          if [ ! -f .env.example ]; then
+            echo "❌ ERROR: .env.example file is missing!"
+            echo "This file must exist with FORK_BLOCK_NUMBER_* variables for deterministic coverage."
+            exit 1
+          fi
+          cp .env.example .env
+          echo "✅ Copied .env.example to .env"
+          echo "📋 Fork block numbers configured:"
+          grep "FORK_BLOCK_NUMBER" .env | head -10 || echo "  ⚠️  No FORK_BLOCK_NUMBER variables found in .env.example"
 
       - name: Get baseline from main branch
         run: |
@@ -75,6 +84,27 @@ jobs:
           echo "🔍 COVERAGE VALIDATION"
           echo "=================================================="
 
+          # Diagnostic: Show environment setup
+          echo ""
+          echo "📋 Environment Diagnostics:"
+          echo "  Node version: $(node --version)"
+          echo "  NPM version: $(npm --version)"
+          if [ -f .env ]; then
+            echo "  .env file: EXISTS"
+            echo "  Fork block numbers in .env:"
+            grep "FORK_BLOCK_NUMBER" .env | head -5 || echo "    (none found)"
+          else
+            echo "  .env file: MISSING"
+          fi
+          if [ -f .env.example ]; then
+            echo "  .env.example file: EXISTS"
+            echo "  Fork block numbers in .env.example:"
+            grep "FORK_BLOCK_NUMBER" .env.example | head -5 || echo "    (none found)"
+          else
+            echo "  .env.example file: MISSING ⚠️"
+          fi
+          echo ""
+
           # Parse CI-generated coverage using dedicated script
           CI_LINES=$(npx ts-node --files scripts/get-coverage-percentage.ts)
 
@@ -98,6 +128,7 @@ jobs:
             echo ""
             echo "  Expected: $PR_LINES% (from your committed coverage-baseline.json)"
             echo "  Actual:   $CI_LINES% (from fresh CI coverage run)"
+            echo "  Difference: $(awk "BEGIN {printf \"%.2f\", $PR_LINES - $CI_LINES}")%"
             echo ""
             echo "💡 This means either:"
             echo "   1. You forgot to run 'npm run coverage:update-baseline' locally"

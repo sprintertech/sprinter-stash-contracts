@@ -41,7 +41,7 @@ jobs:
           npm run coverage
 
           echo "Verifying coverage against baseline..."
-          npx ts-node --files scripts/verify-coverage.ts
+          npm run coverage:check
 
       - name: Upload coverage report (optional)
         if: always()

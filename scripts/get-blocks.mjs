@@ -15,8 +15,8 @@ async function getBlockNumber(name, url) {
   try {
     const provider = new ethers.JsonRpcProvider(url);
     const blockNumber = await provider.getBlockNumber();
-    // Subtract 1000 blocks for safety margin
-    const safeBlock = blockNumber - 1000;
+    // Subtract 100 blocks for minimal safety margin (contracts are recent)
+    const safeBlock = blockNumber - 100;
     console.log(`FORK_BLOCK_NUMBER_${name}=${safeBlock}`);
     return safeBlock;
   } catch (error) {

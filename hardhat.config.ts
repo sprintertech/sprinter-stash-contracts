@@ -14,6 +14,7 @@ import {
 import "hardhat-ignore-warnings";
 
 import dotenv from "dotenv";
+import { C } from "@bgd-labs/aave-address-book/dist/GovernanceV3Ethereum--W36OWI7";
 dotenv.config();
 
 // Got to use lazy loading because HRE is only becomes available inside the tasks.
@@ -541,6 +542,15 @@ task("push-native-token", "Push native currency through a selfdestruct")
   const value = parseEther(amount);
   await deploy("PushNativeToken", sender, {value}, receiver);
   console.log("Done.");
+});
+
+task("get-proof", "Get proof of a contract")
+.addParam("contract", "Contract address")
+.setAction(async ({contract}: {contract: string}, hre) => {
+  console.log(contract);
+  const proof = await hre.ethers.provider.send("eth_getProof", [contract, [], "latest"]);
+  console.log(`Proof for the address ${contract}:`);
+  console.log(proof);
 });
 
 const accounts: string[] = isSet(process.env.PRIVATE_KEY) ? [process.env.PRIVATE_KEY || ""] : [];

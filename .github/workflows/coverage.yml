@@ -107,7 +107,7 @@ jobs:
         run: |
           set -e
           echo "🔍 Running coverage validation..."
-          npm run coverage:check
+          npx ts-node --files scripts/check-coverage.ts --main-baseline=coverage-baseline-main.json
 
       - name: Upload coverage report (optional)
         if: always()

@@ -4,28 +4,35 @@ This project uses automated coverage checks to prevent test coverage from decrea
 
 ## How It Works: Dual Validation
 
-Developers run coverage locally and commit the baseline file. CI validates both that the developer ran coverage correctly AND that coverage didn't decrease.
+Developers run coverage locally and commit the baseline file. CI validates both that the developer ran coverage correctly AND that coverage didn't decrease beyond tolerance.
 
 ### Coverage Workflow (`.github/workflows/coverage.yml`)
 **Triggers:** Every pull request to main
 
 **What it does:**
-1. **Fetches baseline from main branch** - the current production baseline
-2. **Reads baseline from PR branch** - the baseline you committed
-3. **Runs coverage fresh in CI** - generates actual coverage from your code
-4. **Performs two validations:**
+1. **Fetches baseline from main branch** - the current production baseline (coverage-baseline-main.json)
+2. **Reads baseline from PR branch** - the baseline you committed (coverage-baseline.json)
+3. **Runs coverage fresh in CI** - generates actual coverage from your code (coverage/lcov.info)
+4. **Displays all three values** - Shows CI actual, PR baseline, and Main baseline side-by-side
+5. **Performs two validations with ±0.2% tolerance:**
 
    **Validation 1: Did you run coverage locally?**
-   - ✅ **PASS** if `CI coverage === PR baseline` (you ran coverage correctly)
-   - ❌ **FAIL** if `CI coverage !== PR baseline` (you forgot to run coverage or tampered with file)
+   - ✅ **PASS** if `CI coverage ≈ PR baseline (±0.2%)` (you ran coverage correctly)
+   - ❌ **FAIL** if difference exceeds tolerance (you forgot to run coverage or tampered with file)
 
    **Validation 2: Did coverage decrease?**
-   - ✅ **PASS** if `CI coverage >= main baseline` (coverage maintained or improved)
-   - ❌ **FAIL** if `CI coverage < main baseline` (coverage decreased)
+   - ✅ **PASS** if `CI coverage >= main baseline - 0.2%` (coverage maintained within tolerance)
+   - ❌ **FAIL** if `CI coverage < main baseline - 0.2%` (coverage decreased beyond tolerance)
+
+**Tolerance:**
+A ±0.2% tolerance is applied to both checks to account for:
+- Minor variations in test execution
+- Rounding differences in coverage calculation
+- Small changes in external contract states (tests fork at latest block)
 
 **Security Model:**
-- ✅ **Can't skip running coverage** - CI checks if your committed baseline matches actual coverage
-- ✅ **Can't decrease coverage** - CI checks if your coverage is below main's baseline
+- ✅ **Can't skip running coverage** - CI checks if your committed baseline matches actual coverage (within tolerance)
+- ✅ **Can't decrease coverage** - CI checks if your coverage is below main's baseline (beyond tolerance)
 - ✅ **Can't cheat** - CI regenerates coverage fresh and validates against both baselines
 - ✅ **Can't commit invalid baseline** - CI validates JSON format before processing
 - ✅ **Can't skip baseline file** - CI fails immediately if baseline file is missing
@@ -76,14 +83,13 @@ npm run coverage:update-baseline
 6. Push your PR
 
 **What CI validates:**
-- ✅ **Check 1:** Your committed baseline matches CI coverage (proves you ran coverage)
-- ✅ **Check 2:** Your coverage is >= main's baseline (proves coverage didn't drop)
+- ✅ **Check 1:** Your committed baseline matches CI coverage within ±0.2% (proves you ran coverage)
+- ✅ **Check 2:** Your coverage is >= main's baseline - 0.2% (proves coverage didn't drop beyond tolerance)
 
 **If CI fails:**
-- **"No coverage-baseline.json found in PR"** → You forgot to commit the baseline file. Run steps 2-4 above and push.
+- **"No coverage-baseline.json found in PR"** → You forgot to commit the baseline file. Run steps 3-5 above and push.
 - **"coverage-baseline.json is not valid JSON"** → The baseline file is corrupted. Run `npm run coverage:update-baseline` and commit.
-- **"CI coverage doesn't match PR baseline"** → You forgot to update the baseline. Run steps 2-3 above and push.
-- **"Coverage decreased"** → Add more tests to maintain or improve coverage.
+- **"Coverage decreased beyond tolerance"** → Coverage dropped more than 0.2% compared to PR baseline or main baseline. Add more tests to maintain or improve coverage.
 
 ### For Maintainers
 
@@ -105,9 +111,10 @@ Current baseline (as of initial setup):
 - Uses Hardhat's built-in coverage tool (generates `coverage/lcov.info`)
 - Parses LCOV format to extract: lines, functions, branches, statements
 - Stores baseline in `coverage-baseline.json` at repository root
+- CI fetches main branch baseline as `coverage-baseline-main.json`
 - Scripts:
-  - `scripts/check-coverage.ts` - Local validation (compares coverage against baseline)
-  - `scripts/get-coverage-percentage.ts` - Extracts coverage percentage from lcov.info (used by CI)
+  - `scripts/check-coverage.ts` - Validates coverage against both PR and main baselines with ±0.2% tolerance
+  - Accepts `--main-baseline=<path>` parameter to compare against main branch baseline
 
 ### Environment Setup
 The workflow copies `.env.example` to `.env` to enable fork tests with public RPC endpoints during coverage runs. Tests fork at the latest block to ensure they work with current mainnet state.

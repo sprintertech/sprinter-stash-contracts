@@ -59,6 +59,11 @@ const baselinePath = baselineArg
   ? baselineArg.split("=")[1]
   : path.join(__dirname, "..", "coverage-baseline.json");
 
+const mainBaselineArg = process.argv.find(arg => arg.startsWith("--main-baseline="));
+const mainBaselinePath = mainBaselineArg
+  ? mainBaselineArg.split("=")[1]
+  : path.join(__dirname, "..", "coverage-baseline-main.json");
+
 const isUpdatingBaseline = process.argv.includes("--update-baseline");
 
 if (!fs.existsSync(lcovPath)) {
@@ -79,8 +84,8 @@ if (isUpdatingBaseline) {
   process.exit(0);
 }
 
-// Load baseline
-let baseline: CoverageData = {
+// Load PR baseline
+let prBaseline: CoverageData = {
   lines: "0",
   functions: "0",
   branches: "0",
@@ -88,41 +93,71 @@ let baseline: CoverageData = {
 };
 
 if (fs.existsSync(baselinePath)) {
-  baseline = JSON.parse(fs.readFileSync(baselinePath, "utf8")) as CoverageData;
+  prBaseline = JSON.parse(fs.readFileSync(baselinePath, "utf8")) as CoverageData;
+}
+
+// Load main baseline
+let mainBaseline: CoverageData | null = null;
+if (fs.existsSync(mainBaselinePath)) {
+  mainBaseline = JSON.parse(fs.readFileSync(mainBaselinePath, "utf8")) as CoverageData;
 }
 
 // Display comparison
 console.log("\n📊 Coverage Comparison:");
 console.log("─".repeat(50));
-console.log(`Lines:      ${baseline.lines}% → ${current.lines}%`);
-console.log(`Functions:  ${baseline.functions}% → ${current.functions}%`);
-console.log(`Branches:   ${baseline.branches}% → ${current.branches}%`);
-console.log(`Statements: ${baseline.statements}% → ${current.statements}%`);
+console.log(`Lines:      ${prBaseline.lines}% → ${current.lines}%`);
+console.log(`Functions:  ${prBaseline.functions}% → ${current.functions}%`);
+console.log(`Branches:   ${prBaseline.branches}% → ${current.branches}%`);
+console.log(`Statements: ${prBaseline.statements}% → ${current.statements}%`);
 console.log("─".repeat(50));
 
 // Tolerant comparison
-function checkDrop(metric: keyof CoverageData): string | null {
+function checkDrop(metric: keyof CoverageData, baseline: CoverageData, label: string): string | null {
   const base = parseFloat(baseline[metric]);
   const curr = parseFloat(current[metric]);
   const diff = curr - base;
 
   if (diff < -COVERAGE_TOLERANCE) {
-    return `${metric} dropped: ${base}% → ${curr}% (Δ ${diff.toFixed(2)}%)`;
+    return `${metric} dropped below ${label}: ${base}% → ${curr}% (Δ ${diff.toFixed(2)}%)`;
   }
 
   return null;
 }
 
-const drops = [
-  checkDrop("lines"),
-  checkDrop("functions"),
-  checkDrop("branches"),
-  checkDrop("statements"),
+// Check against PR baseline
+const prDrops = [
+  checkDrop("lines", prBaseline, "PR baseline"),
+  checkDrop("functions", prBaseline, "PR baseline"),
+  checkDrop("branches", prBaseline, "PR baseline"),
+  checkDrop("statements", prBaseline, "PR baseline"),
 ].filter(Boolean) as string[];
 
-if (drops.length > 0) {
+// Check against main baseline
+const mainDrops: string[] = [];
+if (mainBaseline) {
+  console.log("\n📊 Coverage vs Main Branch:");
+  console.log("─".repeat(50));
+  console.log(`Lines:      ${mainBaseline.lines}% → ${current.lines}%`);
+  console.log(`Functions:  ${mainBaseline.functions}% → ${current.functions}%`);
+  console.log(`Branches:   ${mainBaseline.branches}% → ${current.branches}%`);
+  console.log(`Statements: ${mainBaseline.statements}% → ${current.statements}%`);
+  console.log("─".repeat(50));
+
+  mainDrops.push(
+    ...([
+      checkDrop("lines", mainBaseline, "main baseline"),
+      checkDrop("functions", mainBaseline, "main baseline"),
+      checkDrop("branches", mainBaseline, "main baseline"),
+      checkDrop("statements", mainBaseline, "main baseline"),
+    ].filter(Boolean) as string[])
+  );
+}
+
+const allDrops = [...prDrops, ...mainDrops];
+
+if (allDrops.length > 0) {
   console.log("\n❌ Coverage decreased beyond tolerance:\n");
-  drops.forEach(d => console.log(`  • ${d}`));
+  allDrops.forEach(d => console.log(`  • ${d}`));
   console.log(`\n💡 Allowed tolerance: ±${COVERAGE_TOLERANCE}%\n`);
   process.exit(1);
 }

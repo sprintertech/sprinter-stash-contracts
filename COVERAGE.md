@@ -56,11 +56,10 @@ npm run coverage:update-baseline
 
 **Step-by-step:**
 1. Make your code changes
-2. Ensure `.env` file exists with pinned fork blocks (copy from `.env.example` if needed):
+2. Ensure `.env` file exists (copy from `.env.example` if needed):
    ```bash
    cp .env.example .env
    ```
-   **Important:** Using the same fork blocks as `.env.example` ensures your local coverage matches CI coverage.
 3. Run coverage locally:
    ```bash
    npm run coverage
@@ -110,37 +109,8 @@ Current baseline (as of initial setup):
   - `scripts/check-coverage.ts` - Local validation (compares coverage against baseline)
   - `scripts/get-coverage-percentage.ts` - Extracts coverage percentage from lcov.info (used by CI)
 
-### Environment Setup for CI
-The workflow copies `.env.example` to `.env` to enable fork tests with public RPC endpoints during coverage runs.
-
-### Fork Block Pinning for Deterministic Coverage
-
-**Why fork blocks are pinned:**
-Coverage tests fork mainnet at specific block heights. Without pinning:
-- Developer runs locally → forks at block X → gets 96.93% coverage
-- CI runs 30 mins later → forks at block Y → gets 96.82% coverage
-- Different blocks = different contract states = different test paths = different coverage
-
-**Solution:**
-Pin each chain to a specific block number in `.env.example`:
-```bash
-FORK_BLOCK_NUMBER_BASE=39550474
-FORK_BLOCK_NUMBER_ETHEREUM=24024515
-FORK_BLOCK_NUMBER_ARBITRUM_ONE=411254516
-# etc...
-```
-
-This ensures both local and CI environments fork from **identical blockchain state**, producing **identical coverage results**.
-
-**Updating fork blocks:**
-When you need to test against newer mainnet state:
-1. Run the helper script: `node scripts/get-blocks.mjs`
-2. Copy the output to `.env.example`
-3. Run coverage: `npm run coverage`
-4. If tests pass, update baseline: `npm run coverage:update-baseline`
-5. Commit both `.env.example` and `coverage-baseline.json`
-
-**Note:** Each blockchain has independent block heights, so each needs its own pinned block number.
+### Environment Setup
+The workflow copies `.env.example` to `.env` to enable fork tests with public RPC endpoints during coverage runs. Tests fork at the latest block to ensure they work with current mainnet state.
 
 ### Branch Protection
 To enforce coverage checks, enable branch protection on main:

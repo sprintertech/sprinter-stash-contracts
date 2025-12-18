@@ -31,16 +31,69 @@ jobs:
       - name: Setup environment variables
         run: |
           cp .env.example .env
-          echo "Fork block numbers configured:"
-          grep "FORK_BLOCK_NUMBER" .env || echo "  (none found)"
+          echo "✅ Environment configured"
 
-      - name: Run coverage and verify
+      - name: Fetch main branch baseline
+        run: |
+          echo "📥 Fetching coverage baseline from main branch..."
+          git fetch origin main:refs/remotes/origin/main
+          git show origin/main:coverage-baseline.json > coverage-baseline-main.json 2>/dev/null || echo "{}"
+
+      - name: Run coverage
         run: |
           set -e
-          echo "Running coverage..."
+          echo ""
+          echo "📊 Running test coverage analysis in CI..."
+          echo "This generates fresh coverage from your PR code"
           npm run coverage
 
-          echo "Verifying coverage against baseline..."
+      - name: Display coverage comparison
+        run: |
+          set -e
+          echo ""
+          echo "=================================================="
+          echo "           COVERAGE VALIDATION"
+          echo "=================================================="
+          echo ""
+
+          # Extract coverage from CI run (actual)
+          CI_COV=$(ts-node --files -e "
+            import fs from 'fs';
+            import path from 'path';
+            const content = fs.readFileSync('coverage/lcov.info', 'utf8').replace(/\r\n/g, '\n');
+            let linesFound = 0, linesHit = 0;
+            content.split('\n').forEach(line => {
+              if (line.startsWith('LF:')) linesFound += parseInt(line.substring(3));
+              if (line.startsWith('LH:')) linesHit += parseInt(line.substring(3));
+            });
+            console.log(linesFound > 0 ? ((linesHit / linesFound) * 100).toFixed(2) : '0');
+          ")
+
+          # Extract PR baseline (what developer committed)
+          PR_BASELINE=$(cat coverage-baseline.json | grep -o '"lines":"[^"]*"' | cut -d'"' -f4)
+
+          # Extract main baseline (production baseline)
+          MAIN_BASELINE=$(cat coverage-baseline-main.json | grep -o '"lines":"[^"]*"' | cut -d'"' -f4 || echo "0")
+
+          echo "📊 Coverage Results (Lines):"
+          echo "  CI (actual):        ${CI_COV}%  ← Fresh coverage from this PR"
+          echo "  PR baseline:        ${PR_BASELINE}%  ← Baseline you committed"
+          echo "  Main baseline:      ${MAIN_BASELINE}%  ← Baseline from main branch"
+          echo ""
+          echo "✓ Check 1: CI coverage should match PR baseline"
+          echo "           (proves you ran coverage locally)"
+          echo "✓ Check 2: CI coverage should be >= Main baseline - 0.2%"
+          echo "           (proves coverage didn't decrease beyond tolerance)"
+          echo ""
+          echo "💡 Allowed tolerance: ±0.2%"
+          echo ""
+          echo "=================================================="
+          echo ""
+
+      - name: Verify coverage
+        run: |
+          set -e
+          echo "🔍 Running coverage validation..."
           npm run coverage:check
 
       - name: Upload coverage report (optional)

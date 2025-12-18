@@ -57,7 +57,7 @@ jobs:
           echo ""
 
           # Extract coverage from CI run (actual)
-          CI_COV=$(ts-node --files -e "
+          CI_COV=$(npx ts-node --files -e "
             import fs from 'fs';
             import path from 'path';
             const content = fs.readFileSync('coverage/lcov.info', 'utf8').replace(/\r\n/g, '\n');

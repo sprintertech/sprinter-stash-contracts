@@ -57,9 +57,8 @@ jobs:
           echo ""
 
           # Extract coverage from CI run (actual)
-          CI_COV=$(npx ts-node --files -e "
-            import fs from 'fs';
-            import path from 'path';
+          CI_COV=$(node -e "
+            const fs = require('fs');
             const content = fs.readFileSync('coverage/lcov.info', 'utf8').replace(/\r\n/g, '\n');
             let linesFound = 0, linesHit = 0;
             content.split('\n').forEach(line => {
@@ -70,10 +69,24 @@ jobs:
           ")
 
           # Extract PR baseline (what developer committed)
-          PR_BASELINE=$(cat coverage-baseline.json | grep -o '"lines":"[^"]*"' | cut -d'"' -f4)
+          PR_BASELINE=$(node -e "
+            try {
+              const data = require('./coverage-baseline.json');
+              console.log(data.lines || '0');
+            } catch(e) {
+              console.log('0');
+            }
+          ")
 
           # Extract main baseline (production baseline)
-          MAIN_BASELINE=$(cat coverage-baseline-main.json | grep -o '"lines":"[^"]*"' | cut -d'"' -f4 || echo "0")
+          MAIN_BASELINE=$(node -e "
+            try {
+              const data = require('./coverage-baseline-main.json');
+              console.log(data.lines || '0');
+            } catch(e) {
+              console.log('0');
+            }
+          ")
 
           echo "📊 Coverage Results (Lines):"
           echo "  CI (actual):        ${CI_COV}%  ← Fresh coverage from this PR"

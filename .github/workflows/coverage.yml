@@ -36,8 +36,8 @@ jobs:
       - name: Fetch main branch baseline
         run: |
           echo "📥 Fetching coverage baseline from main branch..."
-          git fetch origin main:refs/remotes/origin/main
-          git show origin/main:coverage-baseline.json > coverage-baseline-main.json 2>/dev/null || echo "{}"
+          git fetch origin main
+          git show origin/main:coverage-baseline.json > baseline-from-main.json 2>/dev/null || echo '{"lines":"0","functions":"0","branches":"0","statements":"0"}' > baseline-from-main.json
 
       - name: Run coverage
         run: |
@@ -57,36 +57,13 @@ jobs:
           echo ""
 
           # Extract coverage from CI run (actual)
-          CI_COV=$(node -e "
-            const fs = require('fs');
-            const content = fs.readFileSync('coverage/lcov.info', 'utf8').replace(/\r\n/g, '\n');
-            let linesFound = 0, linesHit = 0;
-            content.split('\n').forEach(line => {
-              if (line.startsWith('LF:')) linesFound += parseInt(line.substring(3));
-              if (line.startsWith('LH:')) linesHit += parseInt(line.substring(3));
-            });
-            console.log(linesFound > 0 ? ((linesHit / linesFound) * 100).toFixed(2) : '0');
-          ")
+          CI_COV=$(npx ts-node --files scripts/get-coverage-percentage.ts)
 
           # Extract PR baseline (what developer committed)
-          PR_BASELINE=$(node -e "
-            try {
-              const data = require('./coverage-baseline.json');
-              console.log(data.lines || '0');
-            } catch(e) {
-              console.log('0');
-            }
-          ")
+          PR_BASELINE=$(jq -r '.lines // "0"' coverage-baseline.json)
 
           # Extract main baseline (production baseline)
-          MAIN_BASELINE=$(node -e "
-            try {
-              const data = require('./coverage-baseline-main.json');
-              console.log(data.lines || '0');
-            } catch(e) {
-              console.log('0');
-            }
-          ")
+          MAIN_BASELINE=$(jq -r '.lines // "0"' baseline-from-main.json)
 
           echo "📊 Coverage Results (Lines):"
           echo "  CI (actual):        ${CI_COV}%  ← Fresh coverage from this PR"
@@ -107,7 +84,7 @@ jobs:
         run: |
           set -e
           echo "🔍 Running coverage validation..."
-          npx ts-node --files scripts/check-coverage.ts --main-baseline=coverage-baseline-main.json
+          npx ts-node --files scripts/check-coverage.ts --main-baseline=baseline-from-main.json
 
       - name: Upload coverage report (optional)
         if: always()

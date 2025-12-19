@@ -44,10 +44,10 @@ function parseLcovCoverage(lcovPath: string): CoverageData {
   }
 
   return {
-    lines: linesFound > 0 ? ((linesHit / linesFound) * 100).toFixed(2) : "0",
-    functions: functionsFound > 0 ? ((functionsHit / functionsFound) * 100).toFixed(2) : "0",
-    branches: branchesFound > 0 ? ((branchesHit / branchesFound) * 100).toFixed(2) : "0",
-    statements: linesFound > 0 ? ((linesHit / linesFound) * 100).toFixed(2) : "0",
+    lines: linesFound > 0 ? (linesHit / linesFound * 100).toFixed(2) : "0",
+    functions: functionsFound > 0 ? (functionsHit / functionsFound * 100).toFixed(2) : "0",
+    branches: branchesFound > 0 ? (branchesHit / branchesFound * 100).toFixed(2) : "0",
+    statements: linesFound > 0 ? (linesHit / linesFound * 100).toFixed(2) : "0",
   };
 }
 
@@ -112,7 +112,7 @@ console.log(`Statements: ${prBaseline.statements}% → ${current.statements}%`);
 console.log("─".repeat(50));
 
 // Tolerant comparison
-function checkDrop(metric: keyof CoverageData, baseline: CoverageData, label: string): string | null {
+function checkDrop(metric: keyof CoverageData, baseline: CoverageData, current: CoverageData, label: string): string | null {
   const base = parseFloat(baseline[metric]);
   const curr = parseFloat(current[metric]);
   const diff = curr - base;
@@ -126,10 +126,10 @@ function checkDrop(metric: keyof CoverageData, baseline: CoverageData, label: st
 
 // Check against PR baseline
 const prDrops = [
-  checkDrop("lines", prBaseline, "PR baseline"),
-  checkDrop("functions", prBaseline, "PR baseline"),
-  checkDrop("branches", prBaseline, "PR baseline"),
-  checkDrop("statements", prBaseline, "PR baseline"),
+  checkDrop("lines", prBaseline, current, "PR baseline"),
+  checkDrop("functions", prBaseline, current, "PR baseline"),
+  checkDrop("branches", prBaseline, current, "PR baseline"),
+  checkDrop("statements", prBaseline, current, "PR baseline"),
 ].filter(Boolean) as string[];
 
 // Check against main baseline
@@ -145,10 +145,10 @@ if (mainBaseline) {
 
   mainDrops.push(
     ...([
-      checkDrop("lines", mainBaseline, "main baseline"),
-      checkDrop("functions", mainBaseline, "main baseline"),
-      checkDrop("branches", mainBaseline, "main baseline"),
-      checkDrop("statements", mainBaseline, "main baseline"),
+      checkDrop("lines", mainBaseline, current, "main baseline"),
+      checkDrop("functions", mainBaseline, current, "main baseline"),
+      checkDrop("branches", mainBaseline, current, "main baseline"),
+      checkDrop("statements", mainBaseline, current, "main baseline"),
     ].filter(Boolean) as string[])
   );
 }

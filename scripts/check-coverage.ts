@@ -112,7 +112,12 @@ console.log(`Statements: ${prBaseline.statements}% → ${current.statements}%`);
 console.log("─".repeat(50));
 
 // Tolerant comparison
-function checkDrop(metric: keyof CoverageData, baseline: CoverageData, current: CoverageData, label: string): string | null {
+function checkDrop(
+  metric: keyof CoverageData,
+  baseline: CoverageData,
+  current: CoverageData,
+  label: string
+): string | null {
   const base = parseFloat(baseline[metric]);
   const curr = parseFloat(current[metric]);
   const diff = curr - base;

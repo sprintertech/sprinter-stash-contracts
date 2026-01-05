@@ -1023,6 +1023,10 @@ describe("Repayer", function () {
       ["bytes32", "uint256", "uint48", "tuple(uint256, uint256, bytes)"],
       [apiTx[3], apiTx[5], apiTx[6], apiTx[8]]
     );
+    const apiAmountIn = apiTx[4];
+    const apiFee = apiTx[8][0];
+    const apiAmountWithFee = apiAmountIn + apiFee;
+    expect(apiAmountWithFee).to.be.lessThanOrEqual(amount);
     await repayer.connect(setTokensUser).setInputOutputTokens(
       [{
         inputToken: weth,
@@ -1034,7 +1038,7 @@ describe("Repayer", function () {
     );
     const tx = repayer.connect(repayUser).initiateRepay(
       weth,
-      amount,
+      apiAmountWithFee,
       liquidityPool,
       Domain.ETHEREUM,
       Provider.EVERCLEAR,
@@ -1043,13 +1047,13 @@ describe("Repayer", function () {
 
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")
-      .withArgs(weth.target, amount, liquidityPool.target, Domain.ETHEREUM, Provider.EVERCLEAR);
+      .withArgs(weth.target, apiAmountWithFee, liquidityPool.target, Domain.ETHEREUM, Provider.EVERCLEAR);
     await expect(tx)
       .to.emit(weth, "Transfer")
-      .withArgs(repayer.target, everclearFeeAdapter.target, amount);
+      .withArgs(repayer.target, everclearFeeAdapter.target, apiAmountWithFee);
     await expect(tx)
       .to.emit(everclearFeeAdapter, "IntentWithFeesAdded");
-    expect(await weth.balanceOf(repayer)).to.equal(6n * ETH);
+    expect(await weth.balanceOf(repayer)).to.equal(10n * ETH - apiAmountWithFee);
     expect(await getBalance(repayer)).to.equal(0n);
   });
 

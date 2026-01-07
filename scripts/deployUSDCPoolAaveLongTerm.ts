@@ -1,7 +1,8 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, percentsToBps} from "./helpers";
+import {NonceManager} from "ethers";
+import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, percentsToBps, logDeployers} from "./helpers";
 import {resolveProxyXAddress, toBytes32} from "../test/helpers";
 import {isSet, assert, assertAddress, DEFAULT_ADMIN_ROLE, sameAddress} from "./common";
 import {LiquidityPoolAaveLongTerm} from "../typechain-types";
@@ -9,6 +10,9 @@ import {Network, NetworkConfig, LiquidityPoolAaveUSDCLongTermVersions} from "../
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
+  const deployerWithNonce = new NonceManager(deployer);
+
+  await logDeployers();
 
   const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
   const WITHDRAW_PROFIT_ROLE = toBytes32("WITHDRAW_PROFIT_ROLE");
@@ -49,7 +53,7 @@ export async function main() {
   const defaultLTV = BigInt(config.AavePoolLongTerm.DefaultLTV) * 10000n / 100n;
   const aavePoolLongTerm = (await verifier.deployX(
     "LiquidityPoolAaveLongTerm",
-    deployer,
+    deployerWithNonce,
     {},
     [
       config.Tokens.USDC,

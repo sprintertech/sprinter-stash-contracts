@@ -1,7 +1,8 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {getVerifier, getHardhatNetworkConfig, getNetworkConfig} from "./helpers";
+import {NonceManager} from "ethers";
+import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers} from "./helpers";
 import {resolveProxyXAddress, toBytes32} from "../test/helpers";
 import {isSet, assert, DEFAULT_ADMIN_ROLE, sameAddress} from "./common";
 import {LiquidityPool} from "../typechain-types";
@@ -9,6 +10,9 @@ import {Network, NetworkConfig, LiquidityPoolUSDCVersions} from "../network.conf
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
+  const deployerWithNonce = new NonceManager(deployer);
+
+  await logDeployers();
 
   const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
   const WITHDRAW_PROFIT_ROLE = toBytes32("WITHDRAW_PROFIT_ROLE");
@@ -36,7 +40,7 @@ export async function main() {
   console.log("Deploying USDC Liquidity Pool");
   const usdcPool: LiquidityPool = (await verifier.deployX(
     "LiquidityPool",
-    deployer,
+    deployerWithNonce,
     {},
     [
       config.Tokens.USDC,

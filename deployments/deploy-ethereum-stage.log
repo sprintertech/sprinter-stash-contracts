@@ -54,3 +54,12 @@ RepayerRoutes:
 │ 20      │ '0x4ce56b5D7e79dF121aF2eC055D096eF983F459e6' │ 'ARBITRUM_ONE' │ 'EVERCLEAR' │ true              │
 │ 21      │ '0x578aD20ec27E11B3772F91cc6f435d782cc362EA' │ 'ETHEREUM'     │ 'LOCAL'     │ false             │
 └─────────┴──────────────────────────────────────────────┴────────────────┴─────────────┴───────────────────┘
+
+Deployer: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+Deployment ID: MVP
+Deploying USDC Pool
+Using config for: stage, ETHEREUM
+Rebalancer: 0x34Df9cD75fA0b4d8fF300AeDf7591f79dFdd61C9
+Deploying USDC Liquidity Pool
+LiquidityPoolUSDC-V4-7187ffa: 0x626afF63118191b6202636848711c0645AFED94D

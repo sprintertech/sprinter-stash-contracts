@@ -130,8 +130,10 @@ task("set-routes-rebalancer", "Update Rebalancer config")
 
 task("update-routes-rebalancer", "Update Rebalancer routes based on current network config")
 .addOptionalParam("rebalancer", "Rebalancer address or id", "Rebalancer", types.string)
+.addOptionalParam("action", "Action to perform, allow, deny, or both (default)", "both", types.string)
 .setAction(async (args: {
   rebalancer: string,
+  action: string,
 }, hre) => {
   const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
   const {getNetworkConfig, addLocalPools} = await loadScriptHelpers();
@@ -139,6 +141,7 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
 
   const [admin] = await hre.ethers.getSigners();
 
+  assert(["allow", "deny", "both"].includes(args.action), "Invalid action");
   const targetAddress = await resolveProxyXAddress(args.rebalancer);
   const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, admin)) as Rebalancer;
   const onchainRoutes = await target.getAllRoutes();
@@ -190,7 +193,7 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
       domains: DomainSolidity[el.Domain],
       providers: ProviderSolidity[el.Provider],
     }));
-    if (hasRole) {
+    if (hasRole && (args.action === "allow" || args.action === "both")) {
       await target.setRoute(
         toAllowParams.map(el => el.pools),
         toAllowParams.map(el => el.domains),
@@ -217,7 +220,7 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
       domains: DomainSolidity[el.Domain],
       providers: ProviderSolidity[el.Provider],
     }));
-    if (hasRole) {
+    if (hasRole && (args.action === "deny" || args.action === "both")) {
       await target.setRoute(
         toDenyParams.map(el => el.pools),
         toDenyParams.map(el => el.domains),
@@ -283,8 +286,10 @@ task("set-routes-repayer", "Update Repayer config")
 
 task("update-routes-repayer", "Update Repayer routes based on current network config")
 .addOptionalParam("repayer", "Repayer address or id", "Repayer", types.string)
+.addOptionalParam("action", "Action to perform, allow, deny, or both (default)", "both", types.string)
 .setAction(async (args: {
   repayer: string,
+  action: string,
 }, hre) => {
   const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
   const {getNetworkConfig, addLocalPools} = await loadScriptHelpers();
@@ -292,6 +297,7 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
 
   const [admin] = await hre.ethers.getSigners();
 
+  assert(["allow", "deny", "both"].includes(args.action), "Invalid action");
   const targetAddress = await resolveProxyXAddress(args.repayer);
   const target = (await hre.ethers.getContractAt("Repayer", targetAddress, admin)) as Repayer;
   const onchainRoutes = await target.getAllRoutes();
@@ -349,7 +355,7 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
       providers: ProviderSolidity[el.Provider],
       supportsAllTokens: el.SupportsAllTokens,
     }));
-    if (hasRole) {
+    if (hasRole && (args.action === "deny" || args.action === "both")) {
       await target.setRoute(
         toDenyParams.map(el => el.pools),
         toDenyParams.map(el => el.domains),
@@ -378,7 +384,7 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
       providers: ProviderSolidity[el.Provider],
       supportsAllTokens: el.SupportsAllTokens,
     }));
-    if (hasRole) {
+    if (hasRole && (args.action === "allow" || args.action === "both")) {
       await target.setRoute(
         toAllowParams.map(el => el.pools),
         toAllowParams.map(el => el.domains),
@@ -403,8 +409,10 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
 
 task("add-tokens-repayer", "Add input output tokens based on current network configs")
 .addOptionalParam("repayer", "Repayer address or id", "Repayer", types.string)
+.addOptionalParam("check", "Check if tokens are already allowed", true, types.boolean)
 .setAction(async (args: {
   repayer: string,
+  check: boolean,
 }, hre) => {
   const {resolveProxyXAddress, toBytes32} = await loadTestHelpers();
   const {
@@ -422,20 +430,22 @@ task("add-tokens-repayer", "Add input output tokens based on current network con
   const target = (await hre.ethers.getContractAt("Repayer", targetAddress, sender)) as Repayer;
   const filteredInputOutputTokens: Repayer.InputOutputTokenStruct[] = [];
   for (const entry of inputOutputTokens) {
-    const alreadyAllowed = await Promise.all(entry.destinationTokens.map(
-      el => target.isOutputTokenAllowed(entry.inputToken, el.destinationDomain, el.outputToken)
-    ));
+    const alreadyAllowed = await Promise.all(entry.destinationTokens.map(el => {
+      if (args.check) {
+        return target.isOutputTokenAllowed(entry.inputToken, el.destinationDomain, el.outputToken);
+      }
+      return false;
+    }));
     entry.destinationTokens = entry.destinationTokens.filter((_, index) => !alreadyAllowed[index]);
     if (entry.destinationTokens.length > 0) {
       filteredInputOutputTokens.push(entry);
     }
   }
 
-  const hasRole = await target.hasRole(toBytes32("SET_TOKENS_ROLE"), sender);
-  console.log(`Following tokens will be added to ${targetAddress}.`);
-  console.table(flattenInputOutputTokens(filteredInputOutputTokens));
-
   if (filteredInputOutputTokens.length > 0) {
+    console.log(`Following tokens will be added to ${targetAddress}.`);
+    console.table(flattenInputOutputTokens(filteredInputOutputTokens));
+    const hasRole = await target.hasRole(toBytes32("SET_TOKENS_ROLE"), sender);
     if (hasRole) {
       await target.setInputOutputTokens(filteredInputOutputTokens, true);
       console.log("Done.");

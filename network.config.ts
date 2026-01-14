@@ -58,6 +58,8 @@ export const ERC4626AdapterUSDCVersions = [
   ERC4626AdapterUSDCV2,
 ] as const;
 
+const SUPPORTS_ONLY_USDC = false;
+
 export enum Network {
   ETHEREUM = "ETHEREUM",
   AVALANCHE = "AVALANCHE",
@@ -134,6 +136,10 @@ interface AavePoolLongTermConfig extends AavePoolConfig {
   RepayCaller: string;
 }
 
+interface ActiveLegacyPoolConfig {
+  [Pool: string]: boolean; // SupportsAllTokens
+}
+
 // Liquidity mining tiers.
 // period is in seconds.
 // multiplier will be divided by 1000,000,000. So 1750000000 will result in 1.75x.
@@ -190,6 +196,7 @@ export interface NetworkConfig {
   USDCStablecoinPool?: boolean;
   USDCPublicPool?: PublicPoolConfig;
   ERC4626AdapterUSDCTargetVault?: string;
+  ActiveLegacyPools?: ActiveLegacyPoolConfig;
   Stage?: NetworkConfig;
 }
 
@@ -334,6 +341,9 @@ export const networkConfig: NetworksConfig = {
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
           [Network.OP_MAINNET]: [Provider.CCTP],
         },
+        [LiquidityPoolUSDCV3]: {
+          [Network.BASE]: [Provider.CCTP],
+        },
         [LiquidityPoolUSDCV4]: {
           [Network.BASE]: [Provider.CCTP],
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
@@ -357,6 +367,17 @@ export const networkConfig: NetworksConfig = {
               Provider.ACROSS,
               Provider.EVERCLEAR,
               Provider.SUPERCHAIN_STANDARD_BRIDGE
+            ],
+          },
+        },
+        [LiquidityPoolUSDCV3]: {
+          SupportsAllTokens: false,
+          Domains: {
+            [Network.BASE]: [
+              Provider.CCTP,
+              Provider.ACROSS,
+              Provider.EVERCLEAR,
+              Provider.SUPERCHAIN_STANDARD_BRIDGE,
             ],
           },
         },
@@ -568,6 +589,9 @@ export const networkConfig: NetworksConfig = {
           [Network.BASE]: [Provider.CCTP],
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
         },
+        [LiquidityPoolUSDCV3]: {
+          [Network.BASE]: [Provider.CCTP],
+        },
         [LiquidityPoolUSDCV4]: {
           [Network.BASE]: [Provider.CCTP],
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
@@ -585,6 +609,12 @@ export const networkConfig: NetworksConfig = {
           SupportsAllTokens: true,
           Domains: {
             [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          },
+        },
+        [LiquidityPoolUSDCV3]: {
+          SupportsAllTokens: false,
+          Domains: {
             [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
           },
         },
@@ -752,6 +782,9 @@ export const networkConfig: NetworksConfig = {
           [Network.BASE]: [Provider.CCTP],
           [Network.OP_MAINNET]: [Provider.CCTP],
         },
+        [LiquidityPoolUSDCV3]: {
+          [Network.BASE]: [Provider.CCTP],
+        },
         [LiquidityPoolUSDCV4]: {
           [Network.BASE]: [Provider.CCTP],
           [Network.OP_MAINNET]: [Provider.CCTP],
@@ -763,6 +796,12 @@ export const networkConfig: NetworksConfig = {
           SupportsAllTokens: true,
           Domains: {
             [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          },
+        },
+        [LiquidityPoolUSDCV3]: {
+          SupportsAllTokens: false,
+          Domains: {
             [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
           },
         },
@@ -1010,6 +1049,9 @@ export const networkConfig: NetworksConfig = {
         },
       },
       USDCPool: true,
+      ActiveLegacyPools: {
+        [LiquidityPoolUSDCV3]: SUPPORTS_ONLY_USDC,
+      },
     },
   },
   POLYGON_MAINNET: {

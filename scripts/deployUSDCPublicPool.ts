@@ -6,9 +6,11 @@ import {toBytes32} from "../test/helpers";
 import {isSet, assert, DEFAULT_ADMIN_ROLE, sameAddress, assertAddress} from "./common";
 import {PublicLiquidityPool} from "../typechain-types";
 import {Network, NetworkConfig, LiquidityPoolPublicUSDCVersions} from "../network.config";
+import {NonceManager} from "ethers";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
+  const deployerWithNonce = new NonceManager(deployer);
 
   await logDeployers();
 
@@ -37,7 +39,7 @@ export async function main() {
   console.log("Deploying USDC Public Liquidity Pool");
   const usdcPublicPool: PublicLiquidityPool = (await verifier.deployX(
     "PublicLiquidityPool",
-    deployer,
+    deployerWithNonce,
     {},
     [
       config.Tokens.USDC,
@@ -55,14 +57,15 @@ export async function main() {
 
   await usdcPublicPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
   await usdcPublicPool!.grantRole(PAUSER_ROLE, config.Pauser);
-  await usdcPublicPool!.grantRole(FEE_SETTER_ROLE, config.USDCPublicPool.FeeSetter);
+  let lastTx = await usdcPublicPool!.grantRole(FEE_SETTER_ROLE, config.USDCPublicPool.FeeSetter);
 
   if (!sameAddress(deployer.address, config.Admin)) {
     await usdcPublicPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-    await usdcPublicPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    lastTx = await usdcPublicPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
   }
 
   await verifier.verify(process.env.VERIFY === "true");
+  await lastTx.wait();
 }
 
 if (process.env.SCRIPT_ENV !== "CI") {

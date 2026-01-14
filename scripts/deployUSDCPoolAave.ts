@@ -76,17 +76,18 @@ export async function main() {
 
   await aavePool.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
   await aavePool.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
-  await aavePool.grantRole(PAUSER_ROLE, config.Pauser);
+  let lastTx = await aavePool.grantRole(PAUSER_ROLE, config.Pauser);
 
   if (!sameAddress(deployer.address, config.Admin)) {
     await aavePool.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-    await aavePool.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    lastTx = await aavePool.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
   }
 
   console.log("Access control setup complete.");
   console.log("Remember to update Rebalancer and Repayer routes in the config and then onchain.");
 
   await verifier.verify(process.env.VERIFY === "true");
+  await lastTx.wait();
 }
 
 if (process.env.SCRIPT_ENV !== "CI") {

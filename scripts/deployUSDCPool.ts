@@ -55,14 +55,15 @@ export async function main() {
 
   await usdcPool!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
   await usdcPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
-  await usdcPool!.grantRole(PAUSER_ROLE, config.Pauser);
+  let lastTx = await usdcPool!.grantRole(PAUSER_ROLE, config.Pauser);
 
   if (!sameAddress(deployer.address, config.Admin)) {
     await usdcPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-    await usdcPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    lastTx = await usdcPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
   }
 
   await verifier.verify(process.env.VERIFY === "true");
+  await lastTx.wait();
 }
 
 if (process.env.SCRIPT_ENV !== "CI") {

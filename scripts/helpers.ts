@@ -294,6 +294,16 @@ export async function addLocalPools(
       config.ERC4626AdapterUSDCTargetVault, network, routes, ERC4626AdapterUSDCVersions, false, "ERC4626 Adapter USDC"
     );
   }
+  if (config.ActiveLegacyPools) {
+    for (const [pool, supportsAllTokens] of Object.entries(config.ActiveLegacyPools) as [string, boolean][]) {
+      routes.push({
+        Pool: await resolveXAddress(pool),
+        Domain: network,
+        Provider: Provider.LOCAL,
+        SupportsAllTokens: supportsAllTokens,
+      });
+    }
+  }
 }
 
 export function getNetworkConfigsForCurrentEnv(config: NetworkConfig): PartialNetworksConfig {

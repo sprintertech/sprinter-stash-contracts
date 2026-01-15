@@ -54,14 +54,15 @@ export async function main() {
 
   await erc4626AdapterUSDC!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
   await erc4626AdapterUSDC!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
-  await erc4626AdapterUSDC!.grantRole(PAUSER_ROLE, config.Pauser);
+  let lastTx = await erc4626AdapterUSDC!.grantRole(PAUSER_ROLE, config.Pauser);
 
   if (!sameAddress(deployer.address, config.Admin)) {
     await erc4626AdapterUSDC!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-    await erc4626AdapterUSDC!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    lastTx = await erc4626AdapterUSDC!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
   }
 
   await verifier.verify(process.env.VERIFY === "true");
+  await lastTx.wait();
 }
 
 if (process.env.SCRIPT_ENV !== "CI") {

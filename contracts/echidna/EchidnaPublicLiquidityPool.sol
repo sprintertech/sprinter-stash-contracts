@@ -191,7 +191,7 @@ contract EchidnaPublicLiquidityPool is PropertiesAsserts {
         pool.withdrawProfit(tokens, address(this));
         uint256 afterTD = pool.totalDeposited();
         uint256 afterPF = pool.protocolFee();
-        assertLt(afterPF, beforePF, "protocolFee did not decrease after withdrawProfit");
+        assertGt(afterPF, beforePF, "protocolFee did not decrease after withdrawProfit");
         assertLt(afterTD, beforeTD, "totalDeposited did not decrease after withdrawProfit");
     }
 

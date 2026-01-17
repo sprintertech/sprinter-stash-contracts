@@ -31,5 +31,4 @@ jobs:
           solc-version: 0.8.30
           files: .
           contract: EchidnaPublicLiquidityPool
-          config-file: contracts/echidna/config.yaml
-          crytic-args: --hardhat-ignore-compile
+          config: contracts/echidna/config.yaml

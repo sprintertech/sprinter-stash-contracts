@@ -29,6 +29,6 @@ jobs:
         uses: crytic/echidna-action@v2
         with:
           solc-version: 0.8.30
-          files: .
+          files: contracts/echidna/EchidnaPublicLiquidityPool.sol
           contract: EchidnaPublicLiquidityPool
           config: contracts/echidna/config.yaml

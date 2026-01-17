@@ -6,7 +6,7 @@ import {PublicLiquidityPool} from "../PublicLiquidityPool.sol";
 import {TestUSDC} from "../testing/TestUSDC.sol";
 import {TestWETH} from "../testing/TestWETH.sol";
 
-contract EchidnaPublicLiquidityPool_assertion is PropertiesAsserts {
+contract EchidnaPublicLiquidityPool is PropertiesAsserts {
     TestUSDC public liquidityToken;
     TestWETH public weth;
     PublicLiquidityPool public pool;

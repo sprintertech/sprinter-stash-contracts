@@ -25,10 +25,34 @@ jobs:
       - name: Compile contracts
         run: npx hardhat compile
 
-      - name: Run Echidna
+      - name: Run Echidna for EchidnaPublicLiquidityPool
         uses: crytic/echidna-action@v2
         with:
           solc-version: 0.8.28
           files: .
           contract: EchidnaPublicLiquidityPool
+          config: contracts/echidna/config.yaml
+
+      - name: Run Echidna for EchidnaLiquidityHub
+        uses: crytic/echidna-action@v2
+        with:
+          solc-version: 0.8.28
+          files: .
+          contract: EchidnaLiquidityHub
+          config: contracts/echidna/config.yaml
+
+      - name: Run Echidna for EchidnaLiquidityMining
+        uses: crytic/echidna-action@v2
+        with:
+          solc-version: 0.8.28
+          files: .
+          contract: EchidnaLiquidityMining
+          config: contracts/echidna/config.yaml
+
+      - name: Run Echidna for EchidnaLiquidityPool
+        uses: crytic/echidna-action@v2
+        with:
+          solc-version: 0.8.28
+          files: .
+          contract: EchidnaLiquidityPool
           config: contracts/echidna/config.yaml

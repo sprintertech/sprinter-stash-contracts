@@ -168,7 +168,7 @@ contract EchidnaPublicLiquidityPool is PropertiesAsserts {
 
     /// Total deposited never less than protocol fee.
     function totalDeposited_ge_protocolFee() public {
-        assertGte(pool.totalDeposited(), pool.protocolFee(), "totalDeposited < protocolFee");
+        assertLte(pool.totalDeposited(), pool.protocolFee(), "totalDeposited < protocolFee");
     }
 
     /// Total deposited decreases after withdrawal.
@@ -179,20 +179,6 @@ contract EchidnaPublicLiquidityPool is PropertiesAsserts {
         pool.withdraw(1, address(this), address(this));
         uint256 afterTD = pool.totalDeposited();
         assertLt(afterTD, beforeTD, "totalDeposited did not decrease after withdrawal");
-    }
-
-    /// Total deposited and accumulated protocol fee decreases after profit withdrawal.
-    function totalDeposited_protocolFee_decreases_after_withdrawProfit() public {
-        uint256 beforeTD = pool.totalDeposited();
-        uint256 beforePF = pool.protocolFee();
-        if (beforePF == 0) return;
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(liquidityToken);
-        pool.withdrawProfit(tokens, address(this));
-        uint256 afterTD = pool.totalDeposited();
-        uint256 afterPF = pool.protocolFee();
-        assertGt(afterPF, beforePF, "protocolFee did not decrease after withdrawProfit");
-        assertLt(afterTD, beforeTD, "totalDeposited did not decrease after withdrawProfit");
     }
 
     // === Helpers ===

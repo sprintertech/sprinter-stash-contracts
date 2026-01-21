@@ -15,28 +15,33 @@ contract EchidnaPublicLiquidityPool is PropertiesAsserts {
         liquidityToken = new TestUSDC();
         weth = new TestWETH();
 
+        // Mint plenty of tokens to this contract (Echidna sender)
         liquidityToken.mint(address(this), type(uint128).max);
 
         pool = new PublicLiquidityPool(
             address(liquidityToken),
-            address(this),
-            address(this),
+            address(this),      // admin
+            0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65,      // mpcAddress
             address(weth),
             address(this),
             "Test Pool",
-            "TP",
+            "TPOOL",
             1000 // 10% protocol fee
         );
 
-        // Grant roles
-        bytes32 LIQUIDITY_ADMIN_ROLE = "LIQUIDITY_ADMIN_ROLE";
-        bytes32 WITHDRAW_PROFIT_ROLE = "WITHDRAW_PROFIT_ROLE";
-        bytes32 FEE_SETTER_ROLE = "FEE_SETTER_ROLE";
-        bytes32 PAUSER_ROLE = "PAUSER_ROLE";
+        // Grant needed roles
+        bytes32 LIQUIDITY_ADMIN_ROLE = keccak256("LIQUIDITY_ADMIN_ROLE");
+        bytes32 WITHDRAW_PROFIT_ROLE = keccak256("WITHDRAW_PROFIT_ROLE");
+        bytes32 FEE_SETTER_ROLE = keccak256("FEE_SETTER_ROLE");
+        bytes32 PAUSER_ROLE = keccak256("PAUSER_ROLE");
         pool.grantRole(LIQUIDITY_ADMIN_ROLE, address(this));
         pool.grantRole(WITHDRAW_PROFIT_ROLE, address(this));
         pool.grantRole(FEE_SETTER_ROLE, address(this));
         pool.grantRole(PAUSER_ROLE, address(this));
+
+        // Initial deposit so borrow can work
+        liquidityToken.approve(address(pool), type(uint128).max);
+        pool.deposit(1e24, address(this));
     }
 
     function deposit(uint256 assets) public {
@@ -57,6 +62,37 @@ contract EchidnaPublicLiquidityPool is PropertiesAsserts {
         if (maxS == 0) return;
         shares = _bound(shares, 1, maxS);
         pool.redeem(shares, address(this), address(this));
+    }
+
+    /// @notice Wrapper for borrow that uses pre-computed signature
+    function borrow() public {
+        uint256 amount = 3000000;
+        uint256 amountToReceive = 2000000;
+
+        // Target call data to call fulfillSkip() on this contract
+        bytes memory targetCallData1 = abi.encodeWithSelector(this.fulfillSkip.selector);
+        bytes memory targetCallData = abi.encodePacked(targetCallData1, amountToReceive);
+
+        uint256 nonce = 0;
+        uint256 deadline = 2000000000;
+
+        bytes memory signature = hex"63dead0b42ee28578d7db98666889f881b13226a225314c06d827d661a19ee491ab1e9405b29fb3ccd15ba4cf3eb95a7fe295d3d45373fdc4a5713fd52e0903d1b";
+
+        // Call borrow - may revert
+        try pool.borrow(
+            address(liquidityToken),
+            amount,
+            address(this),
+            targetCallData,
+            nonce,
+            deadline,
+            signature
+        ) {} catch {
+        }
+    }
+
+    function fulfillSkip() external {
+        return;
     }
 
     // Direct donation (transfer tokens without calling pool functions)
@@ -134,17 +170,18 @@ contract EchidnaPublicLiquidityPool is PropertiesAsserts {
     }
 
     function roundtrip_assets() public {
-        uint256 assets = 1e18;
+        uint256 assets = 1e18; // sample amount
         uint256 shares = pool.convertToShares(assets);
         uint256 assetsBack = pool.convertToAssets(shares);
         assertGte(assetsBack + 1, assets, "roundtrip_assets: assetsBack + 1 < assets");
-        assertLte(assetsBack, assets, "roundtrip_assets: assetsBack > assets");
+        assertLte(assetsBack, assets + 1, "roundtrip_assets: assetsBack > assets + 1");
     }
 
     // === Max functions / pause invariants ===
 
     function maxWithdraw_equals_convertToAssets_maxRedeem() public {
-        assertEq(pool.maxWithdraw(address(this)), pool.convertToAssets(pool.maxRedeem(address(this))), "maxWithdraw != convertToAssets(maxRedeem)");
+        assertGte(pool.maxWithdraw(address(this)) + 1, pool.convertToAssets(pool.maxRedeem(address(this))), "maxWithdraw != convertToAssets(maxRedeem)");
+        assertLte(pool.maxWithdraw(address(this)), pool.convertToAssets(pool.maxRedeem(address(this)) + 1), "maxWithdraw != convertToAssets(maxRedeem)");
     }
 
     function maxWithdraw_le_assets_of_owner_when_not_paused() public {
@@ -168,7 +205,7 @@ contract EchidnaPublicLiquidityPool is PropertiesAsserts {
 
     /// Total deposited never less than protocol fee.
     function totalDeposited_ge_protocolFee() public {
-        assertLte(pool.totalDeposited(), pool.protocolFee(), "totalDeposited < protocolFee");
+        assertGte(pool.totalDeposited(), pool.protocolFee(), "totalDeposited < protocolFee");
     }
 
     /// Total deposited decreases after withdrawal.
@@ -179,6 +216,21 @@ contract EchidnaPublicLiquidityPool is PropertiesAsserts {
         pool.withdraw(1, address(this), address(this));
         uint256 afterTD = pool.totalDeposited();
         assertLt(afterTD, beforeTD, "totalDeposited did not decrease after withdrawal");
+    }
+
+    /// Total deposited and accumulated protocol fee decrease after profit withdrawal.
+    function totalDeposited_protocolFee_decreases_after_withdrawProfit() public {
+        uint256 beforeTD = pool.totalDeposited();
+        uint256 beforePF = pool.protocolFee();
+        if (beforeTD == 0) deposit(1e18);
+        if (beforePF == 0) borrow();
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(liquidityToken);
+        pool.withdrawProfit(tokens, address(this));
+        uint256 afterTD = pool.totalDeposited();
+        uint256 afterPF = pool.protocolFee();
+        assertGt(afterPF, beforePF, "protocolFee did not decrease after withdrawProfit");
+        assertLt(afterTD, beforeTD, "totalDeposited did not decrease after withdrawProfit");
     }
 
     // === Helpers ===

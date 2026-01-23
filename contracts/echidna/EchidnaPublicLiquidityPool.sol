@@ -30,10 +30,10 @@ contract EchidnaPublicLiquidityPool is PropertiesAsserts {
         );
 
         // Grant needed roles
-        bytes32 LIQUIDITY_ADMIN_ROLE = keccak256("LIQUIDITY_ADMIN_ROLE");
-        bytes32 WITHDRAW_PROFIT_ROLE = keccak256("WITHDRAW_PROFIT_ROLE");
-        bytes32 FEE_SETTER_ROLE = keccak256("FEE_SETTER_ROLE");
-        bytes32 PAUSER_ROLE = keccak256("PAUSER_ROLE");
+        bytes32 LIQUIDITY_ADMIN_ROLE = "LIQUIDITY_ADMIN_ROLE";
+        bytes32 WITHDRAW_PROFIT_ROLE = "WITHDRAW_PROFIT_ROLE";
+        bytes32 FEE_SETTER_ROLE = "FEE_SETTER_ROLE";
+        bytes32 PAUSER_ROLE = "PAUSER_ROLE";
         pool.grantRole(LIQUIDITY_ADMIN_ROLE, address(this));
         pool.grantRole(WITHDRAW_PROFIT_ROLE, address(this));
         pool.grantRole(FEE_SETTER_ROLE, address(this));
@@ -76,7 +76,7 @@ contract EchidnaPublicLiquidityPool is PropertiesAsserts {
         uint256 nonce = 0;
         uint256 deadline = 2000000000;
 
-        bytes memory signature = hex"63dead0b42ee28578d7db98666889f881b13226a225314c06d827d661a19ee491ab1e9405b29fb3ccd15ba4cf3eb95a7fe295d3d45373fdc4a5713fd52e0903d1b";
+        bytes memory signature = hex"cc4c2b36043bfadbfe43e27efc5dd370a770cc906fd6c6ef1ad569b7cbb082bd3fa65af9793a4b7439faba84c12fa927b2b1e20e26f883020e1ae534118a17a51b";
 
         // Call borrow - may revert
         try pool.borrow(
@@ -105,6 +105,11 @@ contract EchidnaPublicLiquidityPool is PropertiesAsserts {
 
     /// totalDeposited is virtualBalance, always equals totalAssets + protocolFee.
     function totalDeposited_eq_assets_plus_fee() public {
+
+        emit LogString(string(abi.encodePacked(address(this))));
+        emit LogAddress("liquidity token", address(liquidityToken));
+        emit LogAddress("pool", address(pool));
+        assert(false);
         assertEq(pool.totalDeposited(), pool.totalAssets() + pool.protocolFee(), "totalDeposited != totalAssets + protocolFee");
     }
 
@@ -222,14 +227,22 @@ contract EchidnaPublicLiquidityPool is PropertiesAsserts {
     function totalDeposited_protocolFee_decreases_after_withdrawProfit() public {
         uint256 beforeTD = pool.totalDeposited();
         uint256 beforePF = pool.protocolFee();
-        if (beforeTD == 0) deposit(1e18);
-        if (beforePF == 0) borrow();
+        if (beforeTD == 0) {
+            deposit(1e18);
+            beforeTD = pool.totalDeposited();
+        }
+        if (beforePF == 0) {
+            borrow();
+            beforeTD = pool.totalDeposited();
+            beforePF = pool.protocolFee();
+        }
+        require(pool.protocolFee() > 0);
         address[] memory tokens = new address[](1);
         tokens[0] = address(liquidityToken);
         pool.withdrawProfit(tokens, address(this));
         uint256 afterTD = pool.totalDeposited();
         uint256 afterPF = pool.protocolFee();
-        assertGt(afterPF, beforePF, "protocolFee did not decrease after withdrawProfit");
+        assertLt(afterPF, beforePF, "protocolFee did not decrease after withdrawProfit");
         assertLt(afterTD, beforeTD, "totalDeposited did not decrease after withdrawProfit");
     }
 

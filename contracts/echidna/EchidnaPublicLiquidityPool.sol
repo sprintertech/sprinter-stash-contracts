@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity 0.8.28;
 
-import "@crytic/properties/contracts/util/PropertiesHelper.sol";
+import {PropertiesAsserts} from "@crytic/properties/contracts/util/PropertiesHelper.sol";
 import {PublicLiquidityPool} from "../PublicLiquidityPool.sol";
 import {TestUSDC} from "../testing/TestUSDC.sol";
 import {TestWETH} from "../testing/TestWETH.sol";
@@ -10,6 +10,13 @@ contract EchidnaPublicLiquidityPool is PropertiesAsserts {
     TestUSDC public liquidityToken;
     TestWETH public weth;
     PublicLiquidityPool public pool;
+
+    bytes32 private constant LIQUIDITY_ADMIN_ROLE = "LIQUIDITY_ADMIN_ROLE";
+    bytes32 private constant WITHDRAW_PROFIT_ROLE = "WITHDRAW_PROFIT_ROLE";
+    bytes32 private constant FEE_SETTER_ROLE = "FEE_SETTER_ROLE";
+    bytes32 private constant PAUSER_ROLE = "PAUSER_ROLE";
+
+    error RequireFailed();
 
     constructor() {
         liquidityToken = new TestUSDC();
@@ -30,10 +37,6 @@ contract EchidnaPublicLiquidityPool is PropertiesAsserts {
         );
 
         // Grant needed roles
-        bytes32 LIQUIDITY_ADMIN_ROLE = "LIQUIDITY_ADMIN_ROLE";
-        bytes32 WITHDRAW_PROFIT_ROLE = "WITHDRAW_PROFIT_ROLE";
-        bytes32 FEE_SETTER_ROLE = "FEE_SETTER_ROLE";
-        bytes32 PAUSER_ROLE = "PAUSER_ROLE";
         pool.grantRole(LIQUIDITY_ADMIN_ROLE, address(this));
         pool.grantRole(WITHDRAW_PROFIT_ROLE, address(this));
         pool.grantRole(FEE_SETTER_ROLE, address(this));
@@ -57,8 +60,8 @@ contract EchidnaPublicLiquidityPool is PropertiesAsserts {
         pool.withdraw(assets, address(this), address(this));
     }
 
-    function withdrawProfit(uint256 assets) public {
-        require(pool.protocolFee() > 0);
+    function withdrawProfit() public {
+        require(pool.protocolFee() > 0, RequireFailed());
         address[] memory tokens = new address[](1);
         tokens[0] = address(liquidityToken);
         pool.withdrawProfit(tokens, address(this));
@@ -100,6 +103,7 @@ contract EchidnaPublicLiquidityPool is PropertiesAsserts {
         ) {
             liquidityToken.transferFrom(address(pool), address(this), amountToReceive);
         } catch {
+            return;
         }
     }
 
@@ -117,7 +121,10 @@ contract EchidnaPublicLiquidityPool is PropertiesAsserts {
 
     /// totalDeposited is virtualBalance, always equals totalAssets + protocolFee.
     function totalDeposited_eq_assets_plus_fee() public {
-        assertEq(pool.totalDeposited(), pool.totalAssets() + pool.protocolFee(), "totalDeposited != totalAssets + protocolFee");
+        assertEq(
+            pool.totalDeposited(), pool.totalAssets() + pool.protocolFee(),
+            "totalDeposited != totalAssets + protocolFee"
+        );
     }
 
     /// Direct donations must NOT change totalDeposited (virtual balance).
@@ -164,7 +171,10 @@ contract EchidnaPublicLiquidityPool is PropertiesAsserts {
 
     function previewDeposit_matches_convertToShares() public {
         uint256 assets = 1e18; // sample amount
-        assertEq(pool.previewDeposit(assets), pool.convertToShares(assets), "previewDeposit != convertToShares");
+        assertEq(
+            pool.previewDeposit(assets), pool.convertToShares(assets),
+            "previewDeposit != convertToShares"
+        );
     }
 
     function previewRedeem_matches_convertToAssets() public {
@@ -196,8 +206,14 @@ contract EchidnaPublicLiquidityPool is PropertiesAsserts {
     // === Max functions / pause invariants ===
 
     function maxWithdraw_equals_convertToAssets_maxRedeem() public {
-        assertGte(pool.maxWithdraw(address(this)) + 1, pool.convertToAssets(pool.maxRedeem(address(this))), "maxWithdraw != convertToAssets(maxRedeem)");
-        assertLte(pool.maxWithdraw(address(this)), pool.convertToAssets(pool.maxRedeem(address(this)) + 1), "maxWithdraw != convertToAssets(maxRedeem)");
+        assertGte(
+            pool.maxWithdraw(address(this)) + 1, pool.convertToAssets(pool.maxRedeem(address(this))),
+            "maxWithdraw != convertToAssets(maxRedeem)"
+        );
+        assertLte(
+            pool.maxWithdraw(address(this)), pool.convertToAssets(pool.maxRedeem(address(this)) + 1),
+            "maxWithdraw != convertToAssets(maxRedeem)"
+        );
     }
 
     function maxWithdraw_le_assets_of_owner_when_not_paused() public {
@@ -247,7 +263,7 @@ contract EchidnaPublicLiquidityPool is PropertiesAsserts {
             beforeTD = pool.totalDeposited();
             beforePF = pool.protocolFee();
         }
-        require(pool.protocolFee() > 0);
+        require(pool.protocolFee() > 0, RequireFailed());
         address[] memory tokens = new address[](1);
         tokens[0] = address(liquidityToken);
         pool.withdrawProfit(tokens, address(this));

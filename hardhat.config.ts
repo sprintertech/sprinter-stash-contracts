@@ -15,7 +15,6 @@ import "hardhat-ignore-warnings";
 import "solidity-coverage";
 
 import dotenv from "dotenv";
-import { C } from "@bgd-labs/aave-address-book/dist/GovernanceV3Ethereum--W36OWI7";
 dotenv.config();
 
 // Got to use lazy loading because HRE is only becomes available inside the tasks.

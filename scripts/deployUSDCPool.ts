@@ -1,8 +1,8 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {isAddress} from "ethers";
-import {getVerifier, getHardhatNetworkConfig, getNetworkConfig} from "./helpers";
+import {NonceManager, isAddress} from "ethers";
+import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers} from "./helpers";
 import {resolveProxyXAddress, toBytes32} from "../test/helpers";
 import {isSet, assert, DEFAULT_ADMIN_ROLE, sameAddress} from "./common";
 import {LiquidityPool} from "../typechain-types";
@@ -21,6 +21,9 @@ export async function main() {
     [deployer] = await hre.ethers.getSigners();
   }
   console.log(`Deployer: ${deployer.address}`);
+  const deployerWithNonce = new NonceManager(deployer);
+
+  await logDeployers();
 
   const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
   const WITHDRAW_PROFIT_ROLE = toBytes32("WITHDRAW_PROFIT_ROLE");
@@ -48,10 +51,10 @@ export async function main() {
   console.log("Deploying USDC Liquidity Pool");
   const usdcPool: LiquidityPool = (await verifier.deployX(
     "LiquidityPool",
-    deployer,
+    deployerWithNonce,
     {},
     [
-      config.USDC,
+      config.Tokens.USDC,
       deployer,
       config.MpcAddress,
       config.WrappedNativeToken,
@@ -63,15 +66,16 @@ export async function main() {
 
   await usdcPool!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
   await usdcPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
-  await usdcPool!.grantRole(PAUSER_ROLE, config.Pauser);
+  let lastTx = await usdcPool!.grantRole(PAUSER_ROLE, config.Pauser);
 
   if (!sameAddress(deployer.address, config.Admin)) {
     await usdcPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-    await usdcPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    lastTx = await usdcPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
   }
 
   await verifier.performSimulation(config.ChainId.toString(), deployer);
   await verifier.verify(process.env.VERIFY === "true");
+  await lastTx.wait();
 }
 
 if (process.env.SCRIPT_ENV !== "CI") {

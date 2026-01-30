@@ -2,10 +2,10 @@ import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers} from "./helpers";
-import {resolveProxyXAddress, toBytes32} from "../test/helpers";
-import {isSet, assert, DEFAULT_ADMIN_ROLE} from "./common";
-import {LiquidityPoolStablecoin} from "../typechain-types";
-import {Network, NetworkConfig, LiquidityPoolUSDCStablecoinVersions} from "../network.config";
+import {toBytes32} from "../test/helpers";
+import {isSet, assert, DEFAULT_ADMIN_ROLE, sameAddress, assertAddress} from "./common";
+import {PublicLiquidityPool} from "../typechain-types";
+import {Network, NetworkConfig, LiquidityPoolPublicUSDCVersions} from "../network.config";
 import {NonceManager} from "ethers";
 
 export async function main() {
@@ -25,32 +25,31 @@ export async function main() {
 
   await logDeployers();
 
-  const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
   const WITHDRAW_PROFIT_ROLE = toBytes32("WITHDRAW_PROFIT_ROLE");
   const PAUSER_ROLE = toBytes32("PAUSER_ROLE");
+  const FEE_SETTER_ROLE = toBytes32("FEE_SETTER_ROLE");
 
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
-  const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate);
+const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
-  let id = LiquidityPoolUSDCStablecoinVersions.at(-1);
+  let id = LiquidityPoolPublicUSDCVersions.at(-1);
 
   let network: Network;
   let config: NetworkConfig;
-  console.log("Deploying USDC Stablecoin Pool");
+  console.log("Deploying USDC Public Pool");
   ({network, config} = await getNetworkConfig());
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
     id += "-DeployTest";
   }
 
-  assert(config.USDCStablecoinPool, "USDC stablecoin pool is not configured");
+  assert(config.USDCPublicPool, "USDC public pool is not configured");
+  assertAddress(config.SignerAddress, "SignerAddress must be an address");
+  assertAddress(config.USDCPublicPool.FeeSetter, "FeeSetter must be an address");
 
-  const rebalancer = await resolveProxyXAddress("Rebalancer");
-  console.log(`Rebalancer: ${rebalancer}`);
-
-  console.log("Deploying USDC Stablecoin Liquidity Pool");
-  const usdcPoolStablecoin: LiquidityPoolStablecoin = (await verifier.deployX(
-    "LiquidityPoolStablecoin",
+  console.log("Deploying USDC Public Liquidity Pool");
+  const usdcPublicPool: PublicLiquidityPool = (await verifier.deployX(
+    "PublicLiquidityPool",
     deployerWithNonce,
     {},
     [
@@ -59,18 +58,21 @@ export async function main() {
       config.MpcAddress,
       config.WrappedNativeToken,
       config.SignerAddress,
+      config.USDCPublicPool.Name,
+      config.USDCPublicPool.Symbol,
+      config.USDCPublicPool.ProtocolFeeRate * 10000 / 100,
     ],
     id
-  )) as LiquidityPoolStablecoin;
-  console.log(`${id}: ${usdcPoolStablecoin.target}`);
+  )) as PublicLiquidityPool;
+  console.log(`${id}: ${usdcPublicPool.target}`);
 
-  await usdcPoolStablecoin!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
-  await usdcPoolStablecoin!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
-  let lastTx = await usdcPoolStablecoin!.grantRole(PAUSER_ROLE, config.Pauser);
+  await usdcPublicPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
+  await usdcPublicPool!.grantRole(PAUSER_ROLE, config.Pauser);
+  let lastTx = await usdcPublicPool!.grantRole(FEE_SETTER_ROLE, config.USDCPublicPool.FeeSetter);
 
-  if (deployer.address !== config.Admin) {
-    await usdcPoolStablecoin!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-    lastTx = await usdcPoolStablecoin!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+  if (!sameAddress(deployer.address, config.Admin)) {
+    await usdcPublicPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
+    lastTx = await usdcPublicPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
   }
 
   await verifier.performSimulation(config.ChainId.toString(), deployer);

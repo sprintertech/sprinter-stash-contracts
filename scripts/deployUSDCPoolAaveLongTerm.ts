@@ -1,8 +1,8 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {isAddress} from "ethers";
-import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, percentsToBps} from "./helpers";
+import {NonceManager, isAddress} from "ethers";
+import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, percentsToBps, logDeployers} from "./helpers";
 import {resolveProxyXAddress, toBytes32} from "../test/helpers";
 import {isSet, assert, assertAddress, DEFAULT_ADMIN_ROLE, sameAddress} from "./common";
 import {LiquidityPoolAaveLongTerm} from "../typechain-types";
@@ -21,6 +21,9 @@ export async function main() {
     [deployer] = await hre.ethers.getSigners();
   }
   console.log(`Deployer: ${deployer.address}`);
+  const deployerWithNonce = new NonceManager(deployer);
+
+  await logDeployers();
 
   const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
   const WITHDRAW_PROFIT_ROLE = toBytes32("WITHDRAW_PROFIT_ROLE");
@@ -46,7 +49,7 @@ export async function main() {
   assertAddress(config.Admin, "Admin must be an address");
   assertAddress(config.WithdrawProfit, "WithdrawProfit must be an address");
   assertAddress(config.Pauser, "Pauser must be an address");
-  assertAddress(config.USDC, "USDC must be an address");
+  assertAddress(config.Tokens.USDC, "USDC must be an address");
   assertAddress(config.MpcAddress, "MpcAddress must be an address");
   assertAddress(config.WrappedNativeToken, "WrappedNativeToken must be an address");
   assertAddress(config.SignerAddress, "SignerAddress must be an address");
@@ -61,10 +64,10 @@ export async function main() {
   const defaultLTV = BigInt(config.AavePoolLongTerm.DefaultLTV) * 10000n / 100n;
   const aavePoolLongTerm = (await verifier.deployX(
     "LiquidityPoolAaveLongTerm",
-    deployer,
+    deployerWithNonce,
     {},
     [
-      config.USDC,
+      config.Tokens.USDC,
       config.AavePoolLongTerm.AaveAddressesProvider,
       deployer,
       config.MpcAddress,
@@ -90,11 +93,12 @@ export async function main() {
   await aavePoolLongTerm.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
   await aavePoolLongTerm.grantRole(PAUSER_ROLE, config.Pauser);
   await aavePoolLongTerm.grantRole(BORROW_LONG_TERM_ROLE, config.AavePoolLongTerm.BorrowLongTermAdmin);
-  await aavePoolLongTerm.grantRole(REPAYER_ROLE, config.AavePoolLongTerm.RepayCaller);
+  await aavePoolLongTerm.grantRole(REPAYER_ROLE, config.AavePoolLongTerm.BorrowLongTermAdmin);
+  let lastTx = await aavePoolLongTerm.grantRole(REPAYER_ROLE, config.AavePoolLongTerm.RepayCaller);
 
   if (!sameAddress(deployer.address, config.Admin)) {
     await aavePoolLongTerm.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-    await aavePoolLongTerm.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    lastTx = await aavePoolLongTerm.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
   }
 
   console.log("Access control setup complete.");
@@ -102,6 +106,7 @@ export async function main() {
 
   await verifier.performSimulation(config.ChainId.toString(), deployer);
   await verifier.verify(process.env.VERIFY === "true");
+  await lastTx.wait();
 }
 
 if (process.env.SCRIPT_ENV !== "CI") {

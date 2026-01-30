@@ -2,11 +2,10 @@ import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers} from "./helpers";
-import {resolveProxyXAddress, toBytes32} from "../test/helpers";
-import {isSet, assert, DEFAULT_ADMIN_ROLE} from "./common";
-import {LiquidityPoolStablecoin} from "../typechain-types";
-import {Network, NetworkConfig, LiquidityPoolUSDCStablecoinVersions} from "../network.config";
-import {NonceManager} from "ethers";
+import {resolveProxyXAddress, toBytes32, resolveXAddress} from "../test/helpers";
+import {isSet, assert, DEFAULT_ADMIN_ROLE, sameAddress} from "./common";
+import {ERC4626Adapter} from "../typechain-types";
+import {Network, NetworkConfig, ERC4626AdapterUSDCVersions} from "../network.config";
 
 export async function main() {
   let deployer;
@@ -21,7 +20,6 @@ export async function main() {
     [deployer] = await hre.ethers.getSigners();
   }
   console.log(`Deployer: ${deployer.address}`);
-  const deployerWithNonce = new NonceManager(deployer);
 
   await logDeployers();
 
@@ -32,48 +30,49 @@ export async function main() {
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
   const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
-  let id = LiquidityPoolUSDCStablecoinVersions.at(-1);
+  let id = ERC4626AdapterUSDCVersions.at(-1);
 
   let network: Network;
   let config: NetworkConfig;
-  console.log("Deploying USDC Stablecoin Pool");
+  console.log("Deploying ERC4626 Adapter USDC");
   ({network, config} = await getNetworkConfig());
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
     id += "-DeployTest";
   }
 
-  assert(config.USDCStablecoinPool, "USDC stablecoin pool is not configured");
+  assert(config.ERC4626AdapterUSDCTargetVault, "ERC4626AdapterUSDCTargetVault must be configured");
 
   const rebalancer = await resolveProxyXAddress("Rebalancer");
   console.log(`Rebalancer: ${rebalancer}`);
 
-  console.log("Deploying USDC Stablecoin Liquidity Pool");
-  const usdcPoolStablecoin: LiquidityPoolStablecoin = (await verifier.deployX(
-    "LiquidityPoolStablecoin",
-    deployerWithNonce,
+  const targetVault = await resolveXAddress(config.ERC4626AdapterUSDCTargetVault);
+  console.log(`Target Vault: ${targetVault}`);
+
+  console.log("Deploying ERC4626 Adapter USDC");
+  const erc4626AdapterUSDC: ERC4626Adapter = (await verifier.deployX(
+    "ERC4626Adapter",
+    deployer,
     {},
     [
       config.Tokens.USDC,
+      targetVault,
       deployer,
-      config.MpcAddress,
-      config.WrappedNativeToken,
-      config.SignerAddress,
     ],
     id
-  )) as LiquidityPoolStablecoin;
-  console.log(`${id}: ${usdcPoolStablecoin.target}`);
+  )) as ERC4626Adapter;
+  console.log(`${id}: ${erc4626AdapterUSDC.target}`);
 
-  await usdcPoolStablecoin!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
-  await usdcPoolStablecoin!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
-  let lastTx = await usdcPoolStablecoin!.grantRole(PAUSER_ROLE, config.Pauser);
+  await erc4626AdapterUSDC!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
+  await erc4626AdapterUSDC!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
+  let lastTx = await erc4626AdapterUSDC!.grantRole(PAUSER_ROLE, config.Pauser);
 
-  if (deployer.address !== config.Admin) {
-    await usdcPoolStablecoin!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-    lastTx = await usdcPoolStablecoin!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+  if (!sameAddress(deployer.address, config.Admin)) {
+    await erc4626AdapterUSDC!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
+    lastTx = await erc4626AdapterUSDC!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
   }
 
-  await verifier.performSimulation(config.ChainId.toString(), deployer);
+  verifier.performSimulation(config.ChainId.toString(), deployer);
   await verifier.verify(process.env.VERIFY === "true");
   await lastTx.wait();
 }

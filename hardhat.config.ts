@@ -12,6 +12,7 @@ import {
   DEFAULT_ADMIN_ROLE, assertAddress,
 } from "./scripts/common";
 import "hardhat-ignore-warnings";
+import "solidity-coverage";
 
 import dotenv from "dotenv";
 import { C } from "@bgd-labs/aave-address-book/dist/GovernanceV3Ethereum--W36OWI7";
@@ -130,8 +131,10 @@ task("set-routes-rebalancer", "Update Rebalancer config")
 
 task("update-routes-rebalancer", "Update Rebalancer routes based on current network config")
 .addOptionalParam("rebalancer", "Rebalancer address or id", "Rebalancer", types.string)
+.addOptionalParam("action", "Action to perform, allow, deny, or both (default)", "both", types.string)
 .setAction(async (args: {
   rebalancer: string,
+  action: string,
 }, hre) => {
   const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
   const {getNetworkConfig, addLocalPools} = await loadScriptHelpers();
@@ -139,6 +142,7 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
 
   const [admin] = await hre.ethers.getSigners();
 
+  assert(["allow", "deny", "both"].includes(args.action), "Invalid action");
   const targetAddress = await resolveProxyXAddress(args.rebalancer);
   const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, admin)) as Rebalancer;
   const onchainRoutes = await target.getAllRoutes();
@@ -190,7 +194,7 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
       domains: DomainSolidity[el.Domain],
       providers: ProviderSolidity[el.Provider],
     }));
-    if (hasRole) {
+    if (hasRole && (args.action === "allow" || args.action === "both")) {
       await target.setRoute(
         toAllowParams.map(el => el.pools),
         toAllowParams.map(el => el.domains),
@@ -217,7 +221,7 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
       domains: DomainSolidity[el.Domain],
       providers: ProviderSolidity[el.Provider],
     }));
-    if (hasRole) {
+    if (hasRole && (args.action === "deny" || args.action === "both")) {
       await target.setRoute(
         toDenyParams.map(el => el.pools),
         toDenyParams.map(el => el.domains),
@@ -283,8 +287,10 @@ task("set-routes-repayer", "Update Repayer config")
 
 task("update-routes-repayer", "Update Repayer routes based on current network config")
 .addOptionalParam("repayer", "Repayer address or id", "Repayer", types.string)
+.addOptionalParam("action", "Action to perform, allow, deny, or both (default)", "both", types.string)
 .setAction(async (args: {
   repayer: string,
+  action: string,
 }, hre) => {
   const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
   const {getNetworkConfig, addLocalPools} = await loadScriptHelpers();
@@ -292,6 +298,7 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
 
   const [admin] = await hre.ethers.getSigners();
 
+  assert(["allow", "deny", "both"].includes(args.action), "Invalid action");
   const targetAddress = await resolveProxyXAddress(args.repayer);
   const target = (await hre.ethers.getContractAt("Repayer", targetAddress, admin)) as Repayer;
   const onchainRoutes = await target.getAllRoutes();
@@ -317,7 +324,7 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
       }
     }
   }
-  await addLocalPools(config, network, localConfig);
+  await addLocalPools(config, network, localConfig, false);
   sortRoutes(onchainConfig);
   sortRoutes(localConfig);
 
@@ -349,7 +356,7 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
       providers: ProviderSolidity[el.Provider],
       supportsAllTokens: el.SupportsAllTokens,
     }));
-    if (hasRole) {
+    if (hasRole && (args.action === "deny" || args.action === "both")) {
       await target.setRoute(
         toDenyParams.map(el => el.pools),
         toDenyParams.map(el => el.domains),
@@ -378,7 +385,7 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
       providers: ProviderSolidity[el.Provider],
       supportsAllTokens: el.SupportsAllTokens,
     }));
-    if (hasRole) {
+    if (hasRole && (args.action === "allow" || args.action === "both")) {
       await target.setRoute(
         toAllowParams.map(el => el.pools),
         toAllowParams.map(el => el.domains),
@@ -398,6 +405,67 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
     }
   } else {
     console.log("There are no missing routes to allow.");
+  }
+});
+
+task("add-tokens-repayer", "Add input output tokens based on current network configs")
+.addOptionalParam("repayer", "Repayer address or id", "Repayer", types.string)
+.addOptionalParam("check", "Check if tokens are already allowed", true, types.boolean)
+.setAction(async (args: {
+  repayer: string,
+  check: boolean,
+}, hre) => {
+  const {resolveProxyXAddress, toBytes32} = await loadTestHelpers();
+  const {
+    getNetworkConfig, getHardhatNetworkConfig, getInputOutputTokens, flattenInputOutputTokens,
+  } = await loadScriptHelpers();
+  let {network, config} = await getNetworkConfig();
+  if (!network) {
+    ({network, config} = await getHardhatNetworkConfig());
+  }
+  const inputOutputTokens = getInputOutputTokens(network, config);
+
+  const [sender] = await hre.ethers.getSigners();
+
+  const targetAddress = await resolveProxyXAddress(args.repayer);
+  const target = (await hre.ethers.getContractAt("Repayer", targetAddress, sender)) as Repayer;
+  const filteredInputOutputTokens: Repayer.InputOutputTokenStruct[] = [];
+  for (const entry of inputOutputTokens) {
+    const alreadyAllowed = await Promise.all(entry.destinationTokens.map(el => {
+      if (args.check) {
+        return target.isOutputTokenAllowed(entry.inputToken, el.destinationDomain, el.outputToken);
+      }
+      return false;
+    }));
+    entry.destinationTokens = entry.destinationTokens.filter((_, index) => !alreadyAllowed[index]);
+    if (entry.destinationTokens.length > 0) {
+      filteredInputOutputTokens.push(entry);
+    }
+  }
+
+  if (filteredInputOutputTokens.length > 0) {
+    console.log(`Following tokens will be added to ${targetAddress}.`);
+    console.table(flattenInputOutputTokens(filteredInputOutputTokens));
+    const hasRole = await target.hasRole(toBytes32("SET_TOKENS_ROLE"), sender);
+    if (hasRole) {
+      await target.setInputOutputTokens(filteredInputOutputTokens, true);
+      console.log("Done.");
+    } else {
+      console.log("To add missing tokens execute the following transaction.");
+      console.log(`To: ${targetAddress}`);
+      console.log("Function: setInputOutputTokens");
+      console.log("Params:");
+      console.log("isAllowed: true");
+      for (const entry of filteredInputOutputTokens) {
+        console.log(`inputToken: ${entry.inputToken}`);
+        console.log("destinationTokens:");
+        console.table(entry.destinationTokens);
+      }
+      const tx = await target.setInputOutputTokens.populateTransaction(filteredInputOutputTokens, true);
+      console.log(`Raw data: ${tx.data}`);
+    }
+  } else {
+    console.log("There are no missing tokens to add.");
   }
 });
 
@@ -450,7 +518,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
   };
 
   const token = await hre.ethers.getContractAt("IERC20", hre.ethers.ZeroAddress, signer);
-  const borrowToken = args.token || config.USDC;
+  const borrowToken = args.token || config.Tokens.USDC;
   const amount = args.amount;
   const target = args.target || borrowToken;
   const data = args.data || (await token.transfer.populateTransaction(signer, amount)).data;
@@ -612,7 +680,7 @@ const config: HardhatUserConfig = {
     },
     [Network.OP_MAINNET]: {
       chainId: networkConfig.OP_MAINNET.ChainId,
-      url: process.env.OP_MAINNET_RPC || "https://optimism-mainnet.public.blastapi.io",
+      url: process.env.OP_MAINNET_RPC || "https://public-op-mainnet.fastnode.io",
       accounts,
     },
     [Network.POLYGON_MAINNET]: {

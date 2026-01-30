@@ -31,7 +31,7 @@ contract LiquidityPoolStablecoin is LiquidityPool {
 
     function _withdrawProfitLogic(IERC20 token) internal view override returns (uint256) {
         uint256 assetBalance = ASSETS.balanceOf(address(this));
-        uint256 deposited = totalDeposited;
+        uint256 deposited = _totalDeposited;
         require(assetBalance >= deposited, WithdrawProfitDenied());
         if (token == ASSETS) return assetBalance - deposited;
         return token.balanceOf(address(this));

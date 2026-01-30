@@ -1,4 +1,4 @@
-import {isAddress, getAddress} from "ethers";
+import {isAddress, getAddress, zeroPadValue, stripZerosLeft} from "ethers";
 import {Network, Provider} from "../network.config";
 
 export function assert(condition: any, message: string): asserts condition {
@@ -28,13 +28,26 @@ export function isSet(input?: string): boolean {
   return false;
 }
 
+export function addressToBytes32(address: any) {
+  return zeroPadValue(address.toString(), 32);
+}
+
+export function bytes32ToToken(bytes32: any) {
+  // Making sure vanity addresses are not truncated.
+  const token = zeroPadValue(stripZerosLeft(bytes32), 20);
+  if (isAddress(token)) {
+    return getAddress(token); // Checksum.
+  }
+  return token;
+}
+
 export const ProviderSolidity = {
   LOCAL: 0n,
   CCTP: 1n,
   ACROSS: 2n,
   STARGATE: 3n,
   EVERCLEAR: 4n,
-  OPTIMISM_STANDARD_BRIDGE: 5n,
+  SUPERCHAIN_STANDARD_BRIDGE: 5n,
 };
 
 export const DomainSolidity = {
@@ -79,7 +92,7 @@ export const SolidityProvider: { [n: number]: Provider } = {
   2: Provider.ACROSS,
   3: Provider.STARGATE,
   4: Provider.EVERCLEAR,
-  5: Provider.OPTIMISM_STANDARD_BRIDGE,
+  5: Provider.SUPERCHAIN_STANDARD_BRIDGE,
 };
 
 export const CCTPDomain: { [n: number]: Network } = {

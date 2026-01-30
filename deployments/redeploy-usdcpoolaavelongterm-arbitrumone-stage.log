@@ -4,3 +4,12 @@ Using config for: stage, ARBITRUM_ONE
 Rebalancer: 0x34Df9cD75fA0b4d8fF300AeDf7591f79dFdd61C9
 Deploying Aave USDC Long Term Liquidity Pool
 LiquidityPoolAaveUSDCLongTerm-V2-e09cc75: 0x4ce56b5D7e79dF121aF2eC055D096eF983F459e6
+
+Deployer: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+Deployment ID: MVP
+Deploying Aave USDC Long Term Pool
+Using config for: stage, ARBITRUM_ONE
+Rebalancer: 0x34Df9cD75fA0b4d8fF300AeDf7591f79dFdd61C9
+Deploying Aave USDC Long Term Liquidity Pool
+LiquidityPoolAaveUSDCLongTerm-V3-7187ffa: 0x072AFfAa29E812A9F680ba1266a9c61Ac10d3853

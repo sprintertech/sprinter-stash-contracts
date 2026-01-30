@@ -24,7 +24,7 @@ describe("LiquidityPool", function () {
     ] = await hre.ethers.getSigners();
     await setCode(user2.address, "0x00");
 
-    const USDC_ADDRESS = networkConfig.BASE.USDC;
+    const USDC_ADDRESS = networkConfig.BASE.Tokens.USDC;
     const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;
     if (!USDC_OWNER_ADDRESS) throw new Error("Env variables not configured (USDC_OWNER_ADDRESS missing)");
     const usdc = await hre.ethers.getContractAt("ERC20", USDC_ADDRESS);
@@ -671,7 +671,7 @@ describe("LiquidityPool", function () {
       await usdc.connect(usdcOwner).approve(liquidityPool, amountLiquidity);
       await expect(liquidityPool.connect(usdcOwner).depositWithPull(amountLiquidity))
         .to.emit(liquidityPool, "Deposit").withArgs(usdcOwner, amountLiquidity);
-      expect(await liquidityPool.balance(usdc)).to.eq(amountLiquidity + amountLiquidity);
+      expect(await liquidityPool.balance(usdc)).to.eq(0n);
     });
 
     it("Should withdraw liquidity", async function () {
@@ -727,7 +727,7 @@ describe("LiquidityPool", function () {
       expect(await liquidityPool.balance(usdc)).to.eq(amountLiquidity);
     });
 
-    it("Should withdraw all available balance as profit ", async function () {
+    it("Should withdraw all available balance as profit", async function () {
       const {liquidityPool, usdc, USDC_DEC, usdcOwner, withdrawProfit, user} = await loadFixture(deployAll);
       const amount = 2n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, amount);
@@ -936,8 +936,11 @@ describe("LiquidityPool", function () {
     });
 
     it("Should NOT borrow if borrowing is paused", async function () {
-      const {liquidityPool, user, user2, withdrawProfit, mpc_signer, usdc, USDC_DEC} = await loadFixture(deployAll);
+      const {
+        liquidityPool, user, user2, withdrawProfit, mpc_signer, usdc, USDC_DEC, usdcOwner
+      } = await loadFixture(deployAll);
 
+      await usdc.connect(usdcOwner).transfer(liquidityPool, 1000n * USDC_DEC);
       // Pause borrowing
       await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())
         .to.emit(liquidityPool, "BorrowPaused");
@@ -962,6 +965,7 @@ describe("LiquidityPool", function () {
         2000000000n,
         signature))
       .to.be.revertedWithCustomError(liquidityPool, "BorrowingIsPaused");
+      expect(await liquidityPool.balance(usdc)).to.eq(0n);
     });
 
     it("Should NOT borrow if the contract is paused", async function () {
@@ -1739,6 +1743,12 @@ describe("LiquidityPool", function () {
       const {liquidityPool, user} = await loadFixture(deployAll);
       await expect(liquidityPool.connect(user).setMPCAddress(user))
         .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
+    });
+
+    it("Should NOT allow admin to set MPC address to 0", async function () {
+      const {liquidityPool, admin} = await loadFixture(deployAll);
+      await expect(liquidityPool.connect(admin).setMPCAddress(ZERO_ADDRESS))
+        .to.be.revertedWithCustomError(liquidityPool, "ZeroAddress()");
     });
 
     it("Should allow admin to set signer address", async function () {

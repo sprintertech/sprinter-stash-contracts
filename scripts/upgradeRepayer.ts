@@ -36,7 +36,7 @@ export async function main() {
     ({network, config} = await getHardhatNetworkConfig());
   }
 
-  assert(isAddress(config.USDC), "USDC must be an address");
+  assert(isAddress(config.Tokens.USDC), "USDC must be an address");
   assert(isAddress(config.WrappedNativeToken), "WrappedNativeToken must be an address");
   if (!config.CCTP) {
     config.CCTP = {
@@ -56,6 +56,9 @@ export async function main() {
   if (!config.OptimismStandardBridge) {
     config.OptimismStandardBridge = ZERO_ADDRESS;
   }
+  if (!config.BaseStandardBridge) {
+    config.BaseStandardBridge = ZERO_ADDRESS;
+  }
 
   const repayerAddress = await getDeployProxyXAddress("Repayer");
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
@@ -67,7 +70,7 @@ export async function main() {
     deployer,
     [
       DomainSolidity[network],
-      config.USDC,
+      config.Tokens.USDC,
       config.CCTP.TokenMessenger,
       config.CCTP.MessageTransmitter,
       config.AcrossV3SpokePool,
@@ -75,6 +78,7 @@ export async function main() {
       config.WrappedNativeToken,
       config.StargateTreasurer,
       config.OptimismStandardBridge,
+      config.BaseStandardBridge,
     ],
     "Repayer",
   );

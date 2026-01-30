@@ -2,11 +2,11 @@
 pragma solidity 0.8.28;
 
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IOptimismStandardBridge} from "../interfaces/IOptimism.sol";
+import {ISuperchainStandardBridge} from "../interfaces/ISuperchainStandardBridge.sol";
 
-contract TestOptimismStandardBridge is IOptimismStandardBridge {
-    error OptimismBridgeWrongRemoteToken();
-    error OptimismBridgeWrongMinGasLimit();
+contract TestSuperchainStandardBridge is ISuperchainStandardBridge {
+    error SuperchainStandardBridgeWrongRemoteToken();
+    error SuperchainStandardBridgeWrongMinGasLimit();
 
     function bridgeERC20To(
         address _localToken,
@@ -18,7 +18,7 @@ contract TestOptimismStandardBridge is IOptimismStandardBridge {
     ) external override {
         require(
             _localToken != _remoteToken,
-            OptimismBridgeWrongRemoteToken()
+            SuperchainStandardBridgeWrongRemoteToken()
         ); // To simulate revert.
         SafeERC20.safeTransferFrom(IERC20(_localToken), msg.sender, address(this), _amount);
         emit ERC20BridgeInitiated(
@@ -34,7 +34,7 @@ contract TestOptimismStandardBridge is IOptimismStandardBridge {
     function bridgeETHTo(address _to, uint32 _minGasLimit, bytes calldata _extraData) external payable override {
         require(
             _minGasLimit > 0,
-            OptimismBridgeWrongMinGasLimit()
+            SuperchainStandardBridgeWrongMinGasLimit()
         ); // To simulate revert.
         emit ETHBridgeInitiated(address(this), _to, msg.value, _extraData);
     }

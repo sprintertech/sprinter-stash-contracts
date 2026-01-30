@@ -13,7 +13,7 @@ import {CCTPAdapter} from "./utils/CCTPAdapter.sol";
 import {AcrossAdapter} from "./utils/AcrossAdapter.sol";
 import {StargateAdapter} from "./utils/StargateAdapter.sol";
 import {EverclearAdapter} from "./utils/EverclearAdapter.sol";
-import {OptimismStandardBridgeAdapter} from "./utils/OptimismStandardBridgeAdapter.sol";
+import {SuperchainStandardBridgeAdapter} from "./utils/SuperchainStandardBridgeAdapter.sol";
 import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 
 /// @title Performs repayment to Liquidity Pools on same/different chains.
@@ -28,7 +28,7 @@ contract Repayer is
     AcrossAdapter,
     StargateAdapter,
     EverclearAdapter,
-    OptimismStandardBridgeAdapter
+    SuperchainStandardBridgeAdapter
 {
     using SafeERC20 for IERC20;
     using BitMaps for BitMaps.BitMap;
@@ -37,6 +37,7 @@ contract Repayer is
     Domain immutable public DOMAIN;
     IERC20 immutable public ASSETS;
     bytes32 constant public REPAYER_ROLE = "REPAYER_ROLE";
+    bytes32 constant public SET_TOKENS_ROLE = "SET_TOKENS_ROLE";
     IWrappedNativeToken immutable public WRAPPED_NATIVE_TOKEN;
 
     /// @custom:storage-location erc7201:sprinter.storage.Repayer
@@ -44,6 +45,8 @@ contract Repayer is
         mapping(address pool => BitMaps.BitMap) allowedRoutes;
         EnumerableSet.AddressSet knownPools;
         mapping(address pool => bool) poolSupportsAllTokens;
+        mapping(address inputToken =>
+            mapping(bytes32 outputToken => BitMaps.BitMap destinationDomains)) inputOutputTokens;
     }
 
     bytes32 private constant STORAGE_LOCATION = 0xa6615d19cc0b2a17ee46271ca76cd3f303efb9bf682e7eb5c4e7290e895cde00;
@@ -63,14 +66,24 @@ contract Repayer is
         Provider provider
     );
     event ProcessRepay(IERC20 token, uint256 amount, address destinationPool, Provider provider);
+    event SetInputOutputToken(address inputToken, Domain destinationDomain, bytes32 outputToken, bool isAllowed);
 
     error ZeroAmount();
     error InsufficientBalance();
     error RouteDenied();
-    error InvalidRoute();
     error InvalidToken();
     error UnsupportedProvider();
     error InvalidPoolAssets();
+
+    struct DestinationToken {
+        Domain destinationDomain;
+        bytes32 outputToken;
+    }
+
+    struct InputOutputToken {
+        address inputToken;
+        DestinationToken[] destinationTokens;
+    }
 
     constructor(
         Domain localDomain,
@@ -81,13 +94,14 @@ contract Repayer is
         address everclearFeeAdapter,
         address wrappedNativeToken,
         address stargateTreasurer,
-        address optimismBridge
+        address optimismBridge,
+        address baseBridge
     )
         CCTPAdapter(cctpTokenMessenger, cctpMessageTransmitter)
         AcrossAdapter(acrossSpokePool)
         StargateAdapter(stargateTreasurer)
         EverclearAdapter(everclearFeeAdapter)
-        OptimismStandardBridgeAdapter(optimismBridge, wrappedNativeToken)
+        SuperchainStandardBridgeAdapter(optimismBridge, baseBridge, wrappedNativeToken)
     {
         ERC7201Helper.validateStorageLocation(
             STORAGE_LOCATION,
@@ -97,6 +111,7 @@ contract Repayer is
         DOMAIN = localDomain;
         ASSETS = assets;
         WRAPPED_NATIVE_TOKEN = IWrappedNativeToken(wrappedNativeToken);
+        _disableInitializers();
     }
 
     receive() external payable {
@@ -106,29 +121,41 @@ contract Repayer is
     function initialize(
         address admin,
         address repayer,
-        address[] memory pools,
-        Domain[] memory domains,
-        Provider[] memory providers,
-        bool[] memory poolSupportsAllTokens
+        address setTokens,
+        address[] calldata pools,
+        Domain[] calldata domains,
+        Provider[] calldata providers,
+        bool[] calldata poolSupportsAllTokens,
+        InputOutputToken[] calldata inputOutputTokens
     ) external initializer() {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(REPAYER_ROLE, repayer);
+        _grantRole(SET_TOKENS_ROLE, setTokens);
         _setRoute(pools, domains, providers, poolSupportsAllTokens, true);
+        _setInputOutputTokens(inputOutputTokens, true);
     }
 
     function setRoute(
         address[] calldata pools,
         Domain[] calldata domains,
         Provider[] calldata providers,
-        bool[] memory poolSupportsAllTokens,
+        bool[] calldata poolSupportsAllTokens,
         bool isAllowed
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setRoute(pools, domains, providers, poolSupportsAllTokens, isAllowed);
     }
 
+    function setInputOutputTokens(
+        InputOutputToken[] calldata inputOutputTokens,
+        bool isAllowed
+    ) external onlyRole(SET_TOKENS_ROLE) {
+        _setInputOutputTokens(inputOutputTokens, isAllowed);
+    }
+
     /// @notice If the selected provider requires native currency payment to cover fees,
     /// then caller has to include it in the transaction. It is then the responsibility
     /// of the Adapter to forward the payment and return any change back to the caller.
+    /// @dev Adapters are responsible for revoking unused allowance if necessary.
     function initiateRepay(
         IERC20 token,
         uint256 amount,
@@ -150,14 +177,14 @@ contract Repayer is
 
         RepayerStorage storage $ = _getStorage();
 
+        if (!$.poolSupportsAllTokens[destinationPool]) {
+            require(token == ASSETS, InvalidToken());
+        }
+
         if (provider == Provider.LOCAL) {
             // This should always pass because isRouteAllowed check will fail earlier.
             // It is put here for explicitness.
             require(destinationDomain == DOMAIN, UnsupportedDomain());
-
-            if (!$.poolSupportsAllTokens[destinationPool]) {
-                require(token == ASSETS, InvalidToken());
-            }
             // For local we proceed to the process right away.
             _processRepayLOCAL(token, amount, destinationPool);
         } else
@@ -166,17 +193,37 @@ contract Repayer is
             initiateTransferCCTP(token, amount, destinationPool, destinationDomain);
         } else
         if (provider == Provider.ACROSS) {
-            initiateTransferAcross(token, amount, destinationPool, destinationDomain, extraData);
+            initiateTransferAcross(
+                token,
+                amount,
+                destinationPool,
+                destinationDomain,
+                extraData,
+                $.inputOutputTokens[address(token)]
+            );
         } else
         if (provider == Provider.EVERCLEAR) {
-            initiateTransferEverclear(token, amount, destinationPool, destinationDomain, extraData);
+            initiateTransferEverclear(
+                token,
+                amount,
+                destinationPool,
+                destinationDomain,
+                extraData,
+                $.inputOutputTokens[address(token)]
+            );
         } else
         if (provider == Provider.STARGATE) {
             initiateTransferStargate(token, amount, destinationPool, destinationDomain, extraData, _msgSender());
         } else
-        if (provider == Provider.OPTIMISM_STANDARD_BRIDGE) {
-            initiateTransferOptimismStandardBridge(
-                token, amount, destinationPool, destinationDomain, extraData, DOMAIN
+        if (provider == Provider.SUPERCHAIN_STANDARD_BRIDGE) {
+            initiateTransferSuperchainStandardBridge(
+                token,
+                amount,
+                destinationPool,
+                destinationDomain,
+                extraData,
+                DOMAIN,
+                $.inputOutputTokens[address(token)]
             );
         } else {
             // Unreachable atm, but could become so when more providers are added to enum.
@@ -210,10 +257,10 @@ contract Repayer is
     }
 
     function _setRoute(
-        address[] memory pools,
-        Domain[] memory domains,
-        Provider[] memory providers,
-        bool[] memory poolSupportsAllTokens,
+        address[] calldata pools,
+        Domain[] calldata domains,
+        Provider[] calldata providers,
+        bool[] calldata poolSupportsAllTokens,
         bool isAllowed
     ) internal {
         RepayerStorage storage $ = _getStorage();
@@ -240,6 +287,25 @@ contract Repayer is
             }
             $.poolSupportsAllTokens[pool] = supportsAllTokens;
             emit SetRoute(pool, domain, provider, supportsAllTokens, isAllowed);
+        }
+    }
+
+    function _setInputOutputTokens(
+        InputOutputToken[] calldata inputOutputTokens,
+        bool isAllowed
+    ) internal {
+        RepayerStorage storage $ = _getStorage();
+        for (uint256 i = 0; i < inputOutputTokens.length; ++i) {
+            address inputToken = inputOutputTokens[i].inputToken;
+            DestinationToken[] calldata destinationTokens = inputOutputTokens[i].destinationTokens;
+            for (uint256 j = 0; j < destinationTokens.length; ++j) {
+                DestinationToken calldata destinationToken = destinationTokens[j];
+                Domain destinationDomain = destinationToken.destinationDomain;
+                bytes32 outputToken = destinationToken.outputToken;
+                require(destinationDomain != DOMAIN, UnsupportedDomain());
+                $.inputOutputTokens[inputToken][outputToken].setTo(uint256(destinationDomain), isAllowed);
+                emit SetInputOutputToken(inputToken, destinationDomain, outputToken, isAllowed);
+            }
         }
     }
 
@@ -290,6 +356,14 @@ contract Repayer is
 
     function isRouteAllowed(address pool, Domain domain, Provider provider) public view returns (bool) {
         return _getStorage().allowedRoutes[pool].get(_toIndex(domain, provider));
+    }
+
+    function isOutputTokenAllowed(
+        address inputToken,
+        Domain destinationDomain,
+        bytes32 outputToken
+    ) public view returns (bool) {
+        return _getStorage().inputOutputTokens[inputToken][outputToken].get(uint256(destinationDomain));
     }
 
     function _getStorage() private pure returns (RepayerStorage storage $) {

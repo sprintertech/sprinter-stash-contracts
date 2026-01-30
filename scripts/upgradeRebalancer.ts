@@ -36,7 +36,7 @@ export async function main() {
     ({network, config} = await getHardhatNetworkConfig());
   }
 
-  assert(isAddress(config.USDC), "USDC must be an address");
+  assert(isAddress(config.Tokens.USDC), "USDC must be an address");
   if (!config.CCTP) {
     config.CCTP = {
       TokenMessenger: ZERO_ADDRESS,
@@ -52,7 +52,7 @@ export async function main() {
     rebalancerAddress,
     rebalancerVersion,
     deployer,
-    [DomainSolidity[network], config.USDC, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter],
+    [DomainSolidity[network], config.Tokens.USDC, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter],
     "Rebalancer",
   );
 

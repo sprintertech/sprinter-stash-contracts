@@ -104,7 +104,6 @@ export class Verifier {
     contractVerificationName?: string,
   ): Promise<BaseContract> => {
     if (this.simulate) {
-      const nonce = await deployer.getNonce();
       const {instance, transaction} = await getDeployXTx(
         contractName,
         deployer,

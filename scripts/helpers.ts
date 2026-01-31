@@ -3,7 +3,7 @@ import axios from "axios";
 import {promises as fs} from "fs";
 import * as path from "path";
 import {Signer, BaseContract, AddressLike, resolveAddress, ContractTransaction,
-  ContractDeployTransaction, isAddress, ZeroAddress} from "ethers";
+  ContractDeployTransaction, isAddress, ZeroAddress, NonceManager} from "ethers";
 import {
   deploy, deployX, getContractAt, getCreateAddress, getDeployXAddressBase,
   resolveXAddress, resolveProxyXAddress, assertCode, getDeployTx, getDeployXTx
@@ -60,7 +60,6 @@ export class Verifier {
   private transactions: (ContractTransaction | ContractDeployTransaction)[] = [];
   private deployXPrefix: string;
   private simulate: boolean;
-  private nonce: number = 0;
 
   constructor(deployXPrefix: string = "", simulate: boolean = false) {
     this.deployXPrefix = deployXPrefix;
@@ -69,7 +68,6 @@ export class Verifier {
 
   static async initialize(deployer: Signer, deployXPrefix: string = "", simulate: boolean = false): Promise<Verifier> {
     const verifier = new Verifier(deployXPrefix, simulate);
-    verifier.nonce = await hre.ethers.provider.getTransactionCount(await resolveAddress(deployer));
     return verifier;
   }
   
@@ -81,10 +79,13 @@ export class Verifier {
     contractVerificationName?: string,
   ): Promise<BaseContract> => {
     if (this.simulate) {
+      const nonce = await deployer.getNonce();
       const {instance, transaction} = await getDeployTx(
-        contractName, deployer, this.nonce, txParams, ...params
+        contractName, deployer, nonce, txParams, ...params
       );
-      this.nonce += 1;
+      if (deployer instanceof NonceManager) {
+        deployer.increment();
+      }
       this.transactions.push(transaction);
       return instance;
     } else {
@@ -103,6 +104,7 @@ export class Verifier {
     contractVerificationName?: string,
   ): Promise<BaseContract> => {
     if (this.simulate) {
+      const nonce = await deployer.getNonce();
       const {instance, transaction} = await getDeployXTx(
         contractName,
         deployer,
@@ -110,7 +112,9 @@ export class Verifier {
         txParams,
         ...params
       );
-      this.nonce += 1;
+      if (deployer instanceof NonceManager) {
+        deployer.increment();
+      }
       this.transactions.push(transaction);
       return instance;
     } else {

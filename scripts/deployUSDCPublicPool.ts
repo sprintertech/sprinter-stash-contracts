@@ -9,7 +9,18 @@ import {Network, NetworkConfig, LiquidityPoolPublicUSDCVersions} from "../networ
 import {NonceManager} from "ethers";
 
 export async function main() {
-  const [deployer] = await hre.ethers.getSigners();
+  let deployer;
+
+  const simulate = process.env.SIMULATE === "true" ? true : false;
+
+  if (simulate) {
+    console.log("Simulation mode enabled");
+    assert(isSet(process.env.DEPLOYER_ADDRESS), "Deployer address must be set");
+    deployer = await hre.ethers.getImpersonatedSigner(process.env.DEPLOYER_ADDRESS!);
+  } else {
+    [deployer] = await hre.ethers.getSigners();
+  }
+  console.log(`Deployer: ${deployer.address}`);
   const deployerWithNonce = new NonceManager(deployer);
 
   await logDeployers();
@@ -19,7 +30,7 @@ export async function main() {
   const FEE_SETTER_ROLE = toBytes32("FEE_SETTER_ROLE");
 
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
-  const verifier = getVerifier(process.env.DEPLOY_ID);
+const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
   let id = LiquidityPoolPublicUSDCVersions.at(-1);
 
@@ -64,6 +75,7 @@ export async function main() {
     lastTx = await usdcPublicPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
   }
 
+  await verifier.performSimulation(config.ChainId.toString(), deployer);
   await verifier.verify(process.env.VERIFY === "true");
   await lastTx.wait();
 }

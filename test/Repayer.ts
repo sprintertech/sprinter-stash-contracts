@@ -991,7 +991,7 @@ describe("Repayer", function () {
   });
 
   it("Should allow repayer to initiate Everclear repay with other token", async function () {
-    const {deployer, repayer, admin, repayUser, USDC_DEC, eurcOwner,
+    const {repayer, admin, repayUser, USDC_DEC, eurcOwner,
       liquidityPool, everclearFeeAdapter, forkNetworkConfig, setTokensUser, eurc,
     } = await loadFixture(deployAll);
 

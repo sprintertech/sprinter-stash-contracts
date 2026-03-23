@@ -82,17 +82,19 @@ export async function main() {
   await aavePoolLongTerm.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
   await aavePoolLongTerm.grantRole(PAUSER_ROLE, config.Pauser);
   await aavePoolLongTerm.grantRole(BORROW_LONG_TERM_ROLE, config.AavePoolLongTerm.BorrowLongTermAdmin);
-  await aavePoolLongTerm.grantRole(REPAYER_ROLE, config.AavePoolLongTerm.RepayCaller);
+  await aavePoolLongTerm.grantRole(REPAYER_ROLE, config.AavePoolLongTerm.BorrowLongTermAdmin);
+  let lastTx = await aavePoolLongTerm.grantRole(REPAYER_ROLE, config.AavePoolLongTerm.RepayCaller);
 
   if (!sameAddress(deployer.address, config.Admin)) {
     await aavePoolLongTerm.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-    await aavePoolLongTerm.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    lastTx = await aavePoolLongTerm.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
   }
 
   console.log("Access control setup complete.");
   console.log("Remember to update Rebalancer and Repayer routes in the config and then onchain.");
 
   await verifier.verify(process.env.VERIFY === "true");
+  await lastTx.wait();
 }
 
 if (process.env.SCRIPT_ENV !== "CI") {

@@ -991,11 +991,11 @@ describe("Repayer", function () {
   });
 
   it("Should allow repayer to initiate Everclear repay with other token", async function () {
-    const {deployer, repayer, weth, admin, repayUser,
-      liquidityPool, everclearFeeAdapter, forkNetworkConfig, setTokensUser,
+    const {deployer, repayer, admin, repayUser, USDC_DEC, eurcOwner,
+      liquidityPool, everclearFeeAdapter, forkNetworkConfig, setTokensUser, eurc,
     } = await loadFixture(deployAll);
 
-    await deployer.sendTransaction({to: repayer, value: 10n * ETH});
+    await eurc.connect(eurcOwner).transfer(repayer, 20_000n * USDC_DEC);
 
     await repayer.connect(admin).setRoute(
       [liquidityPool],
@@ -1004,9 +1004,9 @@ describe("Repayer", function () {
       [true],
       ALLOWED
     );
-    const amount = 4n * ETH;
+    const amount = 10_000n * USDC_DEC;
 
-    const apiData = (await (await fetch("https://api.everclear.org/intents", {
+    const resp = (await (await fetch("https://api.everclear.org/intents", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -1015,12 +1015,13 @@ describe("Repayer", function () {
         origin: forkNetworkConfig.ChainId.toString(),
         destinations: [networkConfig.ETHEREUM.ChainId.toString()],
         to: liquidityPool.target,
-        inputAsset: weth.target,
+        inputAsset: eurc.target,
         amount: amount.toString(),
         callData: "",
         maxFee: "200",
       })
-    })).json()).data;
+    })).json());
+    const apiData = resp.data;
 
     const newIntentSelector = "0xae9b2bad";
     // API returns selector for a variety of newIntent that takes 'address' as resipient.
@@ -1037,7 +1038,7 @@ describe("Repayer", function () {
     expect(apiAmountWithFee).to.be.lessThanOrEqual(amount);
     await repayer.connect(setTokensUser).setInputOutputTokens(
       [{
-        inputToken: weth,
+        inputToken: eurc,
         destinationTokens: [
           {destinationDomain: Domain.ETHEREUM, outputToken: apiTx[3]}
         ]
@@ -1045,7 +1046,7 @@ describe("Repayer", function () {
       ALLOWED
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      weth,
+      eurc,
       apiAmountWithFee,
       liquidityPool,
       Domain.ETHEREUM,
@@ -1055,13 +1056,13 @@ describe("Repayer", function () {
 
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")
-      .withArgs(weth.target, apiAmountWithFee, liquidityPool.target, Domain.ETHEREUM, Provider.EVERCLEAR);
+      .withArgs(eurc.target, apiAmountWithFee, liquidityPool.target, Domain.ETHEREUM, Provider.EVERCLEAR);
     await expect(tx)
-      .to.emit(weth, "Transfer")
+      .to.emit(eurc, "Transfer")
       .withArgs(repayer.target, everclearFeeAdapter.target, apiAmountWithFee);
     await expect(tx)
       .to.emit(everclearFeeAdapter, "IntentWithFeesAdded");
-    expect(await weth.balanceOf(repayer)).to.equal(10n * ETH - apiAmountWithFee);
+    expect(await eurc.balanceOf(repayer)).to.equal(20_000n * USDC_DEC - apiAmountWithFee);
     expect(await getBalance(repayer)).to.equal(0n);
   });
 

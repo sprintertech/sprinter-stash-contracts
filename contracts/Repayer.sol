@@ -14,6 +14,7 @@ import {AcrossAdapter} from "./utils/AcrossAdapter.sol";
 import {StargateAdapter} from "./utils/StargateAdapter.sol";
 import {EverclearAdapter} from "./utils/EverclearAdapter.sol";
 import {SuperchainStandardBridgeAdapter} from "./utils/SuperchainStandardBridgeAdapter.sol";
+import {ArbitrumGatewayAdapter} from "./utils/ArbitrumGatewayAdapter.sol";
 import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 
 /// @title Performs repayment to Liquidity Pools on same/different chains.
@@ -28,7 +29,8 @@ contract Repayer is
     AcrossAdapter,
     StargateAdapter,
     EverclearAdapter,
-    SuperchainStandardBridgeAdapter
+    SuperchainStandardBridgeAdapter,
+    ArbitrumGatewayAdapter
 {
     using SafeERC20 for IERC20;
     using BitMaps for BitMaps.BitMap;
@@ -95,13 +97,15 @@ contract Repayer is
         address wrappedNativeToken,
         address stargateTreasurer,
         address optimismBridge,
-        address baseBridge
+        address baseBridge,
+        address arbitrumGatewayRouter
     )
         CCTPAdapter(cctpTokenMessenger, cctpMessageTransmitter)
         AcrossAdapter(acrossSpokePool)
         StargateAdapter(stargateTreasurer)
         EverclearAdapter(everclearFeeAdapter)
         SuperchainStandardBridgeAdapter(optimismBridge, baseBridge, wrappedNativeToken)
+        ArbitrumGatewayAdapter(arbitrumGatewayRouter)
     {
         ERC7201Helper.validateStorageLocation(
             STORAGE_LOCATION,
@@ -217,6 +221,17 @@ contract Repayer is
         } else
         if (provider == Provider.SUPERCHAIN_STANDARD_BRIDGE) {
             initiateTransferSuperchainStandardBridge(
+                token,
+                amount,
+                destinationPool,
+                destinationDomain,
+                extraData,
+                DOMAIN,
+                $.inputOutputTokens[address(token)]
+            );
+        } else 
+        if (provider == Provider.ARBITRUM_GATEWAY) {
+            initiateTransferArbitrum(
                 token,
                 amount,
                 destinationPool,

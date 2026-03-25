@@ -27,7 +27,8 @@ interface IRoute {
         ACROSS,
         STARGATE,
         EVERCLEAR,
-        SUPERCHAIN_STANDARD_BRIDGE
+        SUPERCHAIN_STANDARD_BRIDGE,
+        ARBITRUM_GATEWAY
     }
 
     enum PoolType {

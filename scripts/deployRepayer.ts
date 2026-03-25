@@ -73,6 +73,9 @@ export async function main() {
   if (!config.BaseStandardBridge) {
     config.BaseStandardBridge = ZERO_ADDRESS;
   }
+  if (!config.ArbitrumGatewayRouter) {
+    config.ArbitrumGatewayRouter = ZERO_ADDRESS;
+  }
 
   const inputOutputTokens = getInputOutputTokens(network, config);
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
@@ -93,6 +96,7 @@ export async function main() {
       config.StargateTreasurer,
       config.OptimismStandardBridge,
       config.BaseStandardBridge,
+      config.ArbitrumGatewayRouter,
     ],
     [
       config.Admin,

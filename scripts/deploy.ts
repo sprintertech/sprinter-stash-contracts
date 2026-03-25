@@ -124,6 +124,9 @@ export async function main() {
   if (!config.BaseStandardBridge) {
     config.BaseStandardBridge = ZERO_ADDRESS;
   }
+  if (!config.ArbitrumGatewayRouter) {
+    config.ArbitrumGatewayRouter = ZERO_ADDRESS;
+  }
 
   let mainPool: LiquidityPool | undefined = undefined;
   let aavePoolLongTerm: LiquidityPoolAaveLongTerm;
@@ -412,6 +415,7 @@ export async function main() {
         config.StargateTreasurer,
         config.OptimismStandardBridge,
         config.BaseStandardBridge,
+        config.ArbitrumGatewayRouter,
       ],
       [
         config.Admin,

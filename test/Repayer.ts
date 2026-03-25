@@ -3,7 +3,7 @@ import {
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {expect} from "chai";
 import hre from "hardhat";
-import {AbiCoder} from "ethers";
+import {AbiCoder, hexlify, toUtf8Bytes} from "ethers";
 import {anyValue} from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import {
   getCreateAddress, getContractAt, deploy, deployX, toBytes32, getBalance,
@@ -16,7 +16,7 @@ import {
   TestUSDC, TransparentUpgradeableProxy, ProxyAdmin,
   TestLiquidityPool, Repayer, TestCCTPTokenMessenger, TestCCTPMessageTransmitter,
   TestAcrossV3SpokePool, TestStargate, MockStargateTreasurerTrue, MockStargateTreasurerFalse,
-  TestSuperchainStandardBridge, IWrappedNativeToken
+  TestSuperchainStandardBridge, IWrappedNativeToken, TestArbitrumGatewayRouter
 } from "../typechain-types";
 import {networkConfig} from "../network.config";
 
@@ -72,6 +72,10 @@ describe("Repayer", function () {
     const baseBridge = (
       await deploy("TestSuperchainStandardBridge", deployer, {})
     ) as TestSuperchainStandardBridge;
+    const l2TokenAddress = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd";
+    const arbitrumGatewayRouter = (
+      await deploy("TestArbitrumGatewayRouter", deployer, {}, usdc.target, l2TokenAddress)
+    ) as TestArbitrumGatewayRouter;
 
     const USDC_DEC = 10n ** (await usdc.decimals());
 
@@ -100,6 +104,7 @@ describe("Repayer", function () {
         stargateTreasurerTrue,
         optimismBridge,
         baseBridge,
+        arbitrumGatewayRouter
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -138,7 +143,7 @@ describe("Repayer", function () {
       USDC_DEC, eurc, EURC_DEC, eurcOwner, liquidityPool, liquidityPool2, repayer, repayerProxy, repayerAdmin,
       cctpTokenMessenger, cctpMessageTransmitter, REPAYER_ROLE, DEFAULT_ADMIN_ROLE, acrossV3SpokePool, weth,
       stargateTreasurerTrue, stargateTreasurerFalse, everclearFeeAdapter, forkNetworkConfig, optimismBridge,
-      baseBridge, setTokensUser,
+      baseBridge, setTokensUser, arbitrumGatewayRouter, l2TokenAddress,
     };
   };
 
@@ -695,7 +700,7 @@ describe("Repayer", function () {
   it("Should allow repayer to initiate Across repay with SpokePool on fork", async function () {
     const {deployer, repayer, USDC_DEC, admin, repayUser, repayerAdmin, repayerProxy,
       liquidityPool, cctpTokenMessenger, cctpMessageTransmitter, weth, stargateTreasurerTrue, everclearFeeAdapter,
-      optimismBridge, baseBridge, setTokensUser,
+      optimismBridge, baseBridge, setTokensUser, arbitrumGatewayRouter,
     } = await loadFixture(deployAll);
 
     const acrossV3SpokePoolFork = await hre.ethers.getContractAt(
@@ -725,6 +730,7 @@ describe("Repayer", function () {
         stargateTreasurerTrue,
         optimismBridge,
         baseBridge,
+        arbitrumGatewayRouter,
       )
     ) as Repayer;
 
@@ -985,11 +991,11 @@ describe("Repayer", function () {
   });
 
   it("Should allow repayer to initiate Everclear repay with other token", async function () {
-    const {deployer, repayer, weth, admin, repayUser,
-      liquidityPool, everclearFeeAdapter, forkNetworkConfig, setTokensUser,
+    const {repayer, admin, repayUser, USDC_DEC, eurcOwner,
+      liquidityPool, everclearFeeAdapter, forkNetworkConfig, setTokensUser, eurc,
     } = await loadFixture(deployAll);
 
-    await deployer.sendTransaction({to: repayer, value: 10n * ETH});
+    await eurc.connect(eurcOwner).transfer(repayer, 20_000n * USDC_DEC);
 
     await repayer.connect(admin).setRoute(
       [liquidityPool],
@@ -998,9 +1004,9 @@ describe("Repayer", function () {
       [true],
       ALLOWED
     );
-    const amount = 4n * ETH;
+    const amount = 10_000n * USDC_DEC;
 
-    const apiData = (await (await fetch("https://api.everclear.org/intents", {
+    const resp = (await (await fetch("https://api.everclear.org/intents", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -1009,16 +1015,19 @@ describe("Repayer", function () {
         origin: forkNetworkConfig.ChainId.toString(),
         destinations: [networkConfig.ETHEREUM.ChainId.toString()],
         to: liquidityPool.target,
-        inputAsset: weth.target,
+        inputAsset: eurc.target,
         amount: amount.toString(),
         callData: "",
         maxFee: "200",
       })
-    })).json()).data;
+    })).json());
+    const apiData = resp.data;
+
     const newIntentSelector = "0xae9b2bad";
     // API returns selector for a variety of newIntent that takes 'address' as resipient.
     // We are using version that expects a 'bytes32' instead. Encoding other data remains the same.
     const apiTx = everclearFeeAdapter.interface.decodeFunctionData("newIntent", newIntentSelector + apiData.substr(10));
+
     const extraData = AbiCoder.defaultAbiCoder().encode(
       ["bytes32", "uint256", "uint48", "tuple(uint256, uint256, bytes)"],
       [apiTx[3], apiTx[5], apiTx[6], apiTx[8]]
@@ -1029,7 +1038,7 @@ describe("Repayer", function () {
     expect(apiAmountWithFee).to.be.lessThanOrEqual(amount);
     await repayer.connect(setTokensUser).setInputOutputTokens(
       [{
-        inputToken: weth,
+        inputToken: eurc,
         destinationTokens: [
           {destinationDomain: Domain.ETHEREUM, outputToken: apiTx[3]}
         ]
@@ -1037,7 +1046,7 @@ describe("Repayer", function () {
       ALLOWED
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      weth,
+      eurc,
       apiAmountWithFee,
       liquidityPool,
       Domain.ETHEREUM,
@@ -1047,13 +1056,13 @@ describe("Repayer", function () {
 
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")
-      .withArgs(weth.target, apiAmountWithFee, liquidityPool.target, Domain.ETHEREUM, Provider.EVERCLEAR);
+      .withArgs(eurc.target, apiAmountWithFee, liquidityPool.target, Domain.ETHEREUM, Provider.EVERCLEAR);
     await expect(tx)
-      .to.emit(weth, "Transfer")
+      .to.emit(eurc, "Transfer")
       .withArgs(repayer.target, everclearFeeAdapter.target, apiAmountWithFee);
     await expect(tx)
       .to.emit(everclearFeeAdapter, "IntentWithFeesAdded");
-    expect(await weth.balanceOf(repayer)).to.equal(10n * ETH - apiAmountWithFee);
+    expect(await eurc.balanceOf(repayer)).to.equal(20_000n * USDC_DEC - apiAmountWithFee);
     expect(await getBalance(repayer)).to.equal(0n);
   });
 
@@ -1131,7 +1140,7 @@ describe("Repayer", function () {
     const {
       USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
       acrossV3SpokePool, everclearFeeAdapter, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
-      setTokensUser,
+      setTokensUser, arbitrumGatewayRouter,
     } = await loadFixture(deployAll);
     const amount = 4n * USDC_DEC;
     const outputToken = networkConfig.OP_MAINNET.Tokens.USDC;
@@ -1149,6 +1158,7 @@ describe("Repayer", function () {
         stargateTreasurerTrue,
         optimismBridge,
         baseBridge,
+        arbitrumGatewayRouter,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -1198,7 +1208,7 @@ describe("Repayer", function () {
     const {
       USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
       acrossV3SpokePool, everclearFeeAdapter, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
-      setTokensUser,
+      setTokensUser, arbitrumGatewayRouter,
     } = await loadFixture(deployAll);
     const amount = 4n * USDC_DEC;
     const outputToken = networkConfig.BASE.Tokens.USDC;
@@ -1216,6 +1226,7 @@ describe("Repayer", function () {
         stargateTreasurerTrue,
         optimismBridge,
         baseBridge,
+        arbitrumGatewayRouter,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -1265,7 +1276,7 @@ describe("Repayer", function () {
     const {
       USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
       acrossV3SpokePool, everclearFeeAdapter, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
-      setTokensUser,
+      setTokensUser, arbitrumGatewayRouter,
     } = await loadFixture(deployAll);
 
     const repayerImpl = (
@@ -1280,6 +1291,7 @@ describe("Repayer", function () {
         stargateTreasurerTrue,
         optimismBridge,
         baseBridge,
+        arbitrumGatewayRouter,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -1328,7 +1340,7 @@ describe("Repayer", function () {
     const {
       USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
       acrossV3SpokePool, everclearFeeAdapter, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
-      setTokensUser,
+      setTokensUser, arbitrumGatewayRouter,
     } = await loadFixture(deployAll);
 
     const repayerImpl = (
@@ -1343,6 +1355,7 @@ describe("Repayer", function () {
         stargateTreasurerTrue,
         optimismBridge,
         baseBridge,
+        arbitrumGatewayRouter,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -1392,7 +1405,7 @@ describe("Repayer", function () {
     const {
       USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
       acrossV3SpokePool, everclearFeeAdapter, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
-      setTokensUser,
+      setTokensUser, arbitrumGatewayRouter,
     } = await loadFixture(deployAll);
 
     const repayerImpl = (
@@ -1407,6 +1420,7 @@ describe("Repayer", function () {
         stargateTreasurerTrue,
         optimismBridge,
         baseBridge,
+        arbitrumGatewayRouter,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -1475,6 +1489,666 @@ describe("Repayer", function () {
     );
     await expect(tx)
       .to.be.revertedWithCustomError(repayer, "UnsupportedDomain");
+  });
+
+  it("Should allow repayer to initiate Arbitrum Gateway repay with mock bridge", async function () {
+    const {
+      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+      acrossV3SpokePool, everclearFeeAdapter, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
+      setTokensUser, l2TokenAddress, arbitrumGatewayRouter
+    } = await loadFixture(deployAll);
+    const amount = 4n * USDC_DEC;
+    const maxGas = 10000000n;
+    const gasPriceBid = 1000000000n;
+    const maxSubmissionCost = 100000000000000n;
+
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "Repayer2", {},
+        Domain.ETHEREUM,
+        usdc,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
+        acrossV3SpokePool,
+        everclearFeeAdapter,
+        weth,
+        stargateTreasurerTrue,
+        optimismBridge,
+        baseBridge,
+        arbitrumGatewayRouter,
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin,
+      repayUser,
+      setTokensUser,
+      [liquidityPool, liquidityPool],
+      [Domain.ETHEREUM, Domain.ARBITRUM_ONE],
+      [Provider.LOCAL, Provider.ARBITRUM_GATEWAY],
+      [true, true],
+      [{
+        inputToken: usdc,
+        destinationTokens: [
+          {destinationDomain: Domain.ARBITRUM_ONE, outputToken: addressToBytes32(l2TokenAddress)}
+        ]
+      }],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    await usdc.transfer(repayer, 10n * USDC_DEC);
+
+    const data = AbiCoder.defaultAbiCoder().encode(
+      ["uint256", "bytes"],
+      [maxSubmissionCost, "0x"],
+    );
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256", "uint256", "bytes"],
+      [l2TokenAddress, maxGas, gasPriceBid, data]
+    );
+
+    const tx = repayer.connect(repayUser).initiateRepay(
+      usdc,
+      amount,
+      liquidityPool,
+      Domain.ARBITRUM_ONE,
+      Provider.ARBITRUM_GATEWAY,
+      extraData
+    );
+    await expect(tx)
+      .to.emit(repayer, "InitiateRepay")
+      .withArgs(usdc.target, amount, liquidityPool.target, Domain.ARBITRUM_ONE, Provider.ARBITRUM_GATEWAY);
+    await expect(tx)
+      .to.emit(repayer, "ArbitrumERC20TransferInitiated")
+      .withArgs(hexlify(toUtf8Bytes("GATEWAY_DATA")));
+    await expect(tx)
+      .to.emit(arbitrumGatewayRouter, "TransferRouted")
+      .withArgs(usdc.target, repayer.target, liquidityPool.target, arbitrumGatewayRouter.target);
+  });
+
+  it("Should revert Arbitrum Gateway repay if output token doesn't match", async function () {
+    const {
+      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+      acrossV3SpokePool, everclearFeeAdapter, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
+      setTokensUser, arbitrumGatewayRouter
+    } = await loadFixture(deployAll);
+    const amount = 4n * USDC_DEC;
+    const maxGas = 10000000n;
+    const gasPriceBid = 1000000000n;
+    const maxSubmissionCost = 100000000000000n;
+
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "Repayer2", {},
+        Domain.ETHEREUM,
+        usdc,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
+        acrossV3SpokePool,
+        everclearFeeAdapter,
+        weth,
+        stargateTreasurerTrue,
+        optimismBridge,
+        baseBridge,
+        arbitrumGatewayRouter,
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin,
+      repayUser,
+      setTokensUser,
+      [liquidityPool, liquidityPool],
+      [Domain.ETHEREUM, Domain.ARBITRUM_ONE],
+      [Provider.LOCAL, Provider.ARBITRUM_GATEWAY],
+      [true, true],
+      [{
+        inputToken: usdc,
+        destinationTokens: [
+          {destinationDomain: Domain.ARBITRUM_ONE, outputToken: addressToBytes32(weth.target)}
+        ]
+      }],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    await usdc.transfer(repayer, 10n * USDC_DEC);
+
+    const data = AbiCoder.defaultAbiCoder().encode(
+      ["uint256", "bytes"],
+      [maxSubmissionCost, "0x"],
+    );
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256", "uint256", "bytes"],
+      [weth.target, maxGas, gasPriceBid, data]
+    );
+
+    await expect(repayer.connect(repayUser).initiateRepay(
+      usdc,
+      amount,
+      liquidityPool,
+      Domain.ARBITRUM_ONE,
+      Provider.ARBITRUM_GATEWAY,
+      extraData
+    )).to.be.revertedWithCustomError(repayer, "InvalidOutputToken()");
+  });
+
+  it("Should revert Arbitrum Gateway repay if call to Arbitrum Gateway reverts", async function () {
+    const {
+      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+      acrossV3SpokePool, everclearFeeAdapter, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
+      setTokensUser, l2TokenAddress, arbitrumGatewayRouter
+    } = await loadFixture(deployAll);
+
+    // Deploy repayer configured to use Arbitrum Gateway Router
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "Repayer2", {},
+        Domain.ETHEREUM,
+        usdc,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
+        acrossV3SpokePool,
+        everclearFeeAdapter,
+        weth,
+        stargateTreasurerTrue,
+        optimismBridge,
+        baseBridge,
+        arbitrumGatewayRouter,
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin,
+      repayUser,
+      setTokensUser,
+      [liquidityPool, liquidityPool],
+      [Domain.ETHEREUM, Domain.ARBITRUM_ONE],
+      [Provider.LOCAL, Provider.ARBITRUM_GATEWAY],
+      [true, true],
+      [{
+        inputToken: usdc,
+        destinationTokens: [
+          {destinationDomain: Domain.ARBITRUM_ONE, outputToken: addressToBytes32(l2TokenAddress)}
+        ]
+      }],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    await usdc.transfer(repayer, 10n * USDC_DEC);
+
+    // Use amount 2000 to trigger the mock router revert
+    const amount = 2000n;
+    const maxGas = 10000000n;
+    const gasPriceBid = 1000000000n;
+    const maxSubmissionCost = 100000000000000n;
+
+    const data = AbiCoder.defaultAbiCoder().encode(
+      ["uint256", "bytes"],
+      [maxSubmissionCost, "0x"],
+    );
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256", "uint256", "bytes"],
+      [l2TokenAddress, maxGas, gasPriceBid, data]
+    );
+
+    await expect(repayer.connect(repayUser).initiateRepay(
+      usdc,
+      amount,
+      liquidityPool,
+      Domain.ARBITRUM_ONE,
+      Provider.ARBITRUM_GATEWAY,
+      extraData
+  )).to.be.reverted;
+  });
+
+  it("Should initiate Arbitrum Gateway repay with wrapped native currency", async function () {
+    const {
+      usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+      acrossV3SpokePool, everclearFeeAdapter, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
+      setTokensUser, l2TokenAddress,
+    } = await loadFixture(deployAll);
+    const amount = 100000n;
+    const maxGas = 10000000n;
+    const gasPriceBid = 1000000000n;
+    const maxSubmissionCost = 100000000000000n;
+
+    const arbitrumGatewayRouter = (
+      await deploy("TestArbitrumGatewayRouter", deployer, {}, weth.target, l2TokenAddress)
+    ) as TestArbitrumGatewayRouter;
+
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "Repayer2", {},
+        Domain.ETHEREUM,
+        usdc,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
+        acrossV3SpokePool,
+        everclearFeeAdapter,
+        weth,
+        stargateTreasurerTrue,
+        optimismBridge,
+        baseBridge,
+        arbitrumGatewayRouter,
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin,
+      repayUser,
+      setTokensUser,
+      [liquidityPool, liquidityPool],
+      [Domain.ETHEREUM, Domain.ARBITRUM_ONE],
+      [Provider.LOCAL, Provider.ARBITRUM_GATEWAY],
+      [true, true],
+      [{
+        inputToken: weth,
+        destinationTokens: [
+          {destinationDomain: Domain.ARBITRUM_ONE, outputToken: addressToBytes32(l2TokenAddress)}
+        ]
+      }],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    await weth.connect(repayUser).deposit({value: amount});
+    await weth.connect(repayUser).transfer(repayer, amount);
+
+    const data = AbiCoder.defaultAbiCoder().encode(
+      ["uint256", "bytes"],
+      [maxSubmissionCost, "0x"],
+    );
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256", "uint256", "bytes"],
+      [l2TokenAddress, maxGas, gasPriceBid, data]
+    );
+    const tx = repayer.connect(repayUser).initiateRepay(
+      weth,
+      amount,
+      liquidityPool,
+      Domain.ARBITRUM_ONE,
+      Provider.ARBITRUM_GATEWAY,
+      extraData
+    );
+    await expect(tx)
+      .to.emit(repayer, "InitiateRepay")
+      .withArgs(weth.target, amount, liquidityPool.target, Domain.ARBITRUM_ONE, Provider.ARBITRUM_GATEWAY);
+    await expect(tx)
+      .to.emit(arbitrumGatewayRouter, "TransferRouted")
+      .withArgs(weth.target, repayer.target, liquidityPool.target, arbitrumGatewayRouter.target);
+  });
+
+  it("Should revert Arbitrum Gateway repay if output token doesn't match the gateway token", async function () {
+    const {
+      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+      acrossV3SpokePool, everclearFeeAdapter, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
+      setTokensUser, l2TokenAddress, arbitrumGatewayRouter
+    } = await loadFixture(deployAll);
+
+    // Deploy repayer configured to use Arbitrum Gateway Router
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "Repayer2", {},
+        Domain.ETHEREUM,
+        usdc,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
+        acrossV3SpokePool,
+        everclearFeeAdapter,
+        weth,
+        stargateTreasurerTrue,
+        optimismBridge,
+        baseBridge,
+        arbitrumGatewayRouter,
+      )
+    ) as Repayer;
+
+    const wrongOutputToken = weth.target;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin,
+      repayUser,
+      setTokensUser,
+      [liquidityPool, liquidityPool],
+      [Domain.ETHEREUM, Domain.ARBITRUM_ONE],
+      [Provider.LOCAL, Provider.ARBITRUM_GATEWAY],
+      [true, true],
+      [{
+        inputToken: usdc,
+        destinationTokens: [
+          {destinationDomain: Domain.ARBITRUM_ONE, outputToken: addressToBytes32(wrongOutputToken)}
+        ]
+      }],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    await usdc.transfer(repayer, 10n * USDC_DEC);
+
+    // Use amount 2000 to trigger the mock router revert
+    const amount = 2000n;
+    const maxGas = 10000000n;
+    const gasPriceBid = 1000000000n;
+    const maxSubmissionCost = 100000000000000n;
+
+    const data = AbiCoder.defaultAbiCoder().encode(
+      ["uint256", "bytes"],
+      [maxSubmissionCost, "0x"],
+    );
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256", "uint256", "bytes"],
+      [l2TokenAddress, maxGas, gasPriceBid, data]
+    );
+
+    await expect(repayer.connect(repayUser).initiateRepay(
+      usdc,
+      amount,
+      liquidityPool,
+      Domain.ARBITRUM_ONE,
+      Provider.ARBITRUM_GATEWAY,
+      extraData
+    )).to.be.revertedWithCustomError(repayer, "InvalidOutputToken");
+  });
+
+  it("Should revert Arbitrum Gateway repay if output token is not allowed", async function () {
+    const {
+      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+      acrossV3SpokePool, everclearFeeAdapter, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
+      setTokensUser, arbitrumGatewayRouter
+    } = await loadFixture(deployAll);
+
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "Repayer2", {},
+        Domain.ETHEREUM,
+        usdc,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
+        acrossV3SpokePool,
+        everclearFeeAdapter,
+        weth,
+        stargateTreasurerTrue,
+        optimismBridge,
+        baseBridge,
+        arbitrumGatewayRouter
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin,
+      repayUser,
+      setTokensUser,
+      [liquidityPool, liquidityPool],
+      [Domain.ETHEREUM, Domain.ARBITRUM_ONE],
+      [Provider.LOCAL, Provider.ARBITRUM_GATEWAY],
+      [true, true],
+      [],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    await usdc.transfer(repayer, 10n * USDC_DEC);
+
+    const amount = 4n * USDC_DEC;
+    const outputToken = ZERO_ADDRESS;
+    const minGasLimit = 100000n;
+    const maxSubmissionCost = 100000000000000n;
+    const data = AbiCoder.defaultAbiCoder().encode(
+      ["uint256", "bytes"],
+      [maxSubmissionCost, "0x"],
+    );
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint32", "bytes"],
+      [outputToken, minGasLimit, data],
+    );
+    const tx = repayer.connect(repayUser).initiateRepay(
+      usdc,
+      amount,
+      liquidityPool,
+      Domain.ARBITRUM_ONE,
+      Provider.ARBITRUM_GATEWAY,
+      extraData
+    );
+    await expect(tx)
+      .to.be.revertedWithCustomError(repayer, "InvalidOutputToken()");
+  });
+
+  it("Should NOT allow repayer to initiate Arbitrum Gateway repay on invalid route", async function () {
+    const {
+      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+      acrossV3SpokePool, everclearFeeAdapter, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
+      setTokensUser, arbitrumGatewayRouter, l2TokenAddress
+    } = await loadFixture(deployAll);
+
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "Repayer2", {},
+        Domain.ETHEREUM,
+        usdc,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
+        acrossV3SpokePool,
+        everclearFeeAdapter,
+        weth,
+        stargateTreasurerTrue,
+        optimismBridge,
+        baseBridge,
+        arbitrumGatewayRouter
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin,
+      repayUser,
+      setTokensUser,
+      [liquidityPool],
+      [Domain.ETHEREUM],
+      [Provider.LOCAL],
+      [true],
+      [],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    const amount = 4n * USDC_DEC;
+
+    await usdc.transfer(repayer, 10n * USDC_DEC);
+      const maxGas = 10000000n;
+    const gasPriceBid = 1000000000n;
+    const maxSubmissionCost = 100000000000000n;
+    const data = AbiCoder.defaultAbiCoder().encode(
+      ["uint256", "bytes"],
+      [maxSubmissionCost, "0x"],
+    );
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256", "uint256", "bytes"],
+      [l2TokenAddress, maxGas, gasPriceBid, data]
+    );
+    const tx = repayer.connect(repayUser).initiateRepay(
+      usdc,
+      amount,
+      liquidityPool,
+      Domain.ARBITRUM_ONE,
+      Provider.ARBITRUM_GATEWAY,
+      extraData
+    );
+    await expect(tx)
+      .to.be.revertedWithCustomError(repayer, "RouteDenied");
+  });
+
+  it("Should NOT allow repayer to initiate Arbitrum Gateway repay if local domain is not ETHEREUM", async function () {
+    const {admin, USDC_DEC, usdc, repayUser, liquidityPool, repayer, l2TokenAddress} = await loadFixture(deployAll);
+
+    await repayer.connect(admin).setRoute(
+      [liquidityPool],
+      [Domain.ARBITRUM_ONE],
+      [Provider.ARBITRUM_GATEWAY],
+      [true],
+      ALLOWED
+    );
+
+    const amount = 4n * USDC_DEC;
+
+    await usdc.transfer(repayer, 10n * USDC_DEC);
+      const maxGas = 10000000n;
+    const gasPriceBid = 1000000000n;
+    const maxSubmissionCost = 100000000000000n;
+    const data = AbiCoder.defaultAbiCoder().encode(
+      ["uint256", "bytes"],
+      [maxSubmissionCost, "0x"],
+    );
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256", "uint256", "bytes"],
+      [l2TokenAddress, maxGas, gasPriceBid, data]
+    );
+    const tx = repayer.connect(repayUser).initiateRepay(
+      usdc,
+      amount,
+      liquidityPool,
+      Domain.ARBITRUM_ONE,
+      Provider.ARBITRUM_GATEWAY,
+      extraData
+    );
+    await expect(tx)
+      .to.be.revertedWithCustomError(repayer, "UnsupportedDomain");
+  });
+
+  it("Should NOT initiate Arbitrum Gateway repay if destination domain is not ARBITRUM_ONE", async function () {
+    const {USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+      acrossV3SpokePool, everclearFeeAdapter, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
+      setTokensUser, arbitrumGatewayRouter, l2TokenAddress} = await loadFixture(deployAll);
+
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "Repayer2", {},
+        Domain.ETHEREUM,
+        usdc,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
+        acrossV3SpokePool,
+        everclearFeeAdapter,
+        weth,
+        stargateTreasurerTrue,
+        optimismBridge,
+        baseBridge,
+        arbitrumGatewayRouter
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin,
+      repayUser,
+      setTokensUser,
+      [liquidityPool, liquidityPool],
+      [Domain.ETHEREUM, Domain.BASE],
+      [Provider.LOCAL, Provider.ARBITRUM_GATEWAY],
+      [true, true],
+      [],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    const amount = 4n * USDC_DEC;
+
+    await usdc.transfer(repayer, 10n * USDC_DEC);
+      const maxGas = 10000000n;
+    const gasPriceBid = 1000000000n;
+    const maxSubmissionCost = 100000000000000n;
+    const data = AbiCoder.defaultAbiCoder().encode(
+      ["uint256", "bytes"],
+      [maxSubmissionCost, "0x"],
+    );
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256", "uint256", "bytes"],
+      [l2TokenAddress, maxGas, gasPriceBid, data]
+    );
+    const tx = repayer.connect(repayUser).initiateRepay(
+      usdc,
+      amount,
+      liquidityPool,
+      Domain.BASE,
+      Provider.ARBITRUM_GATEWAY,
+      extraData
+    );
+    await expect(tx)
+      .to.be.revertedWithCustomError(repayer, "UnsupportedDomain");
+  });
+
+  it("Should revert Arbitrum Gateway repay if router address is 0", async function () {
+    const {
+      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+      acrossV3SpokePool, everclearFeeAdapter, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
+      setTokensUser, l2TokenAddress
+    } = await loadFixture(deployAll);
+
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "Repayer2", {},
+        Domain.ETHEREUM,
+        usdc,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
+        acrossV3SpokePool,
+        everclearFeeAdapter,
+        weth,
+        stargateTreasurerTrue,
+        optimismBridge,
+        baseBridge,
+        ZERO_ADDRESS
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin,
+      repayUser,
+      setTokensUser,
+      [liquidityPool, liquidityPool],
+      [Domain.ETHEREUM, Domain.ARBITRUM_ONE],
+      [Provider.LOCAL, Provider.ARBITRUM_GATEWAY],
+      [true, true],
+      [],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    await usdc.transfer(repayer, 10n * USDC_DEC);
+
+    const amount = 4n * USDC_DEC;
+
+    await usdc.transfer(repayer, 10n * USDC_DEC);
+      const maxGas = 10000000n;
+    const gasPriceBid = 1000000000n;
+    const maxSubmissionCost = 100000000000000n;
+    const data = AbiCoder.defaultAbiCoder().encode(
+      ["uint256", "bytes"],
+      [maxSubmissionCost, "0x"],
+    );
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256", "uint256", "bytes"],
+      [l2TokenAddress, maxGas, gasPriceBid, data]
+    );
+    const tx = repayer.connect(repayUser).initiateRepay(
+      usdc,
+      amount,
+      liquidityPool,
+      Domain.ARBITRUM_ONE,
+      Provider.ARBITRUM_GATEWAY,
+      extraData
+    );
+    await expect(tx)
+      .to.be.revertedWithCustomError(repayer, "ZeroAddress");
   });
 
   it("Should allow repayer to initiate repay of a different token", async function () {
@@ -1754,7 +2428,7 @@ describe("Repayer", function () {
   it("Should revert Stargate repay if the pool is not registered", async function () {
     const {repayer, USDC_DEC, usdc, admin, repayUser, liquidityPool, deployer, cctpTokenMessenger,
       cctpMessageTransmitter, acrossV3SpokePool, weth, stargateTreasurerFalse, repayerAdmin, repayerProxy,
-      everclearFeeAdapter, optimismBridge, baseBridge,
+      everclearFeeAdapter, optimismBridge, baseBridge, arbitrumGatewayRouter,
     } = await loadFixture(deployAll);
 
     await usdc.transfer(repayer, 10n * USDC_DEC);
@@ -1780,6 +2454,7 @@ describe("Repayer", function () {
         stargateTreasurerFalse,
         optimismBridge,
         baseBridge,
+        arbitrumGatewayRouter,
       )
     ) as Repayer;
 
@@ -1887,6 +2562,7 @@ describe("Repayer", function () {
     const {
       repayer, USDC_DEC, admin, repayUser, liquidityPool, deployer, cctpTokenMessenger, cctpMessageTransmitter,
       acrossV3SpokePool, weth, repayerAdmin, repayerProxy, everclearFeeAdapter, optimismBridge, baseBridge,
+      arbitrumGatewayRouter,
     } = await loadFixture(deployAll);
 
     const stargatePoolUsdcAddress = "0x27a16dc786820B16E5c9028b75B99F6f604b5d26";
@@ -1918,6 +2594,7 @@ describe("Repayer", function () {
         stargateTreasurer,
         optimismBridge,
         baseBridge,
+        arbitrumGatewayRouter,
       )
     ) as Repayer;
 
@@ -2056,7 +2733,7 @@ describe("Repayer", function () {
   it("Should unwrap enough native tokens on initiate repay", async function () {
     const {
       repayer, repayUser, liquidityPool, optimismBridge, usdc, cctpTokenMessenger,
-      cctpMessageTransmitter, repayerAdmin, admin, repayerProxy, deployer, baseBridge,
+      cctpMessageTransmitter, repayerAdmin, admin, repayerProxy, deployer, baseBridge, arbitrumGatewayRouter,
     } = await loadFixture(deployAll);
 
     const wrappedAmount = 10n * ETH;
@@ -2085,6 +2762,7 @@ describe("Repayer", function () {
         ZERO_ADDRESS,
         optimismBridge,
         baseBridge,
+        arbitrumGatewayRouter,
       )
     ) as Repayer;
 

@@ -1,0 +1,57 @@
+name: Echidna
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  echidna:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile contracts
+        run: npx hardhat compile
+
+      - name: Run Echidna for EchidnaPublicLiquidityPool
+        uses: crytic/echidna-action@v2
+        with:
+          solc-version: 0.8.28
+          files: .
+          contract: EchidnaPublicLiquidityPool
+          config: contracts/echidna/config.yaml
+
+      - name: Run Echidna for EchidnaLiquidityHub
+        uses: crytic/echidna-action@v2
+        with:
+          solc-version: 0.8.28
+          files: .
+          contract: EchidnaLiquidityHub
+          config: contracts/echidna/config.yaml
+
+      - name: Run Echidna for EchidnaLiquidityMining
+        uses: crytic/echidna-action@v2
+        with:
+          solc-version: 0.8.28
+          files: .
+          contract: EchidnaLiquidityMining
+          config: contracts/echidna/config.yaml
+
+      - name: Run Echidna for EchidnaLiquidityPool
+        uses: crytic/echidna-action@v2
+        with:
+          solc-version: 0.8.28
+          files: .
+          contract: EchidnaLiquidityPool
+          config: contracts/echidna/config.yaml

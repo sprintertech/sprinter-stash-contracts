@@ -693,6 +693,11 @@ const config: HardhatUserConfig = {
       url: process.env.LINEA_RPC || "https://linea-rpc.publicnode.com",
       accounts,
     },
+    [Network.GNOSIS_CHAIN]: {
+      chainId: networkConfig.GNOSIS_CHAIN.ChainId,
+      url: process.env.GNOSIS_CHAIN_RPC || "https://public-gno-mainnet.fastnode.io",
+      accounts,
+    },
     hardhat: {
       chainId: isSet(process.env.DRY_RUN) || isSet(process.env.FORK_TEST)
         ? networkConfig[`${process.env.DRY_RUN || process.env.FORK_TEST}` as Network]!.ChainId
@@ -706,8 +711,11 @@ const config: HardhatUserConfig = {
       accounts: isSet(process.env.DRY_RUN)
         ? [{privateKey: process.env.PRIVATE_KEY!, balance: "1000000000000000000"}]
         : undefined,
-      chains: isSet(process.env.DRY_RUN) // https://github.com/NomicFoundation/hardhat/issues/5511
-        ? {[networkConfig[`${process.env.DRY_RUN}` as Network]!.ChainId]: {hardforkHistory: {cancun: 0}}}
+      // https://github.com/NomicFoundation/hardhat/issues/5511
+      chains: isSet(process.env.DRY_RUN) || isSet(process.env.FORK_TEST)
+        ? {[networkConfig[
+            `${process.env.DRY_RUN || process.env.FORK_TEST}` as Network
+          ]!.ChainId]: {hardforkHistory: {cancun: 0}}}
         : {[networkConfig.BASE.ChainId]: {hardforkHistory: {cancun: 0}}},
     },
   },
@@ -741,6 +749,14 @@ const config: HardhatUserConfig = {
           browserURL: "https://lineascan.build/"
         },
       },
+      {
+        network: "gnosis",
+        chainId: networkConfig.GNOSIS_CHAIN.ChainId,
+        urls: {
+          apiURL: "https://api.gnosisscan.io/api",
+          browserURL: "https://gnosisscan.io"
+        },
+      },
     ],
   },
   warnings: {
@@ -753,6 +769,9 @@ const config: HardhatUserConfig = {
     "contracts/utils/PushNativeToken.sol": {
       default: "off",
     },
+  },
+  mocha: {
+    timeout: 80000,
   },
 };
 

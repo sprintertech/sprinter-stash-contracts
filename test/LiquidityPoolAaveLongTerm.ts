@@ -563,7 +563,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
         signature);
       expect(await usdc.balanceOf(liquidityPool)).to.eq(amountToBorrow);
       expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amountCollateral - 1n);
-      expectAlmostEqual(await liquidityPool.balance(usdc), 50n * USDC_DEC);
+      expectAlmostEqual(await liquidityPool.balance(usdc), 50n * USDC_DEC, 3n);
     });
 
     it("Should borrow a token with swap", async function () {

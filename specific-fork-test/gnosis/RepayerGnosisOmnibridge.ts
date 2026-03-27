@@ -108,7 +108,6 @@ describe("Repayer Gnosis Omnibridge (Gnosis Chain fork)", function () {
     await usdce.connect(usdceOwner).transfer(repayer, 10n * USDCE_DEC);
 
     const gnosisOmnibridge = gnosisConfig.Omnibridge!;
-    const bridgeBalanceBefore = await usdcxdai.balanceOf(gnosisOmnibridge);
 
     const tx = await repayer.connect(repayUser).initiateRepay(
       usdce,

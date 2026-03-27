@@ -1496,7 +1496,7 @@ describe("Repayer", function () {
       .to.be.revertedWithCustomError(repayer, "InvalidOutputToken()");
   });
 
-  it("Should NOT allow repayer to initiate Superchain Standard Bridge repay from not Ethereum domain", async function () {
+  it("Should NOT allow repayer to initiate Superchain Bridge repay from not Ethereum domain", async function () {
     const {repayer, USDC_DEC, usdc, admin, repayUser, liquidityPool} = await loadFixture(deployAll);
 
     await usdc.transfer(repayer, 10n * USDC_DEC);

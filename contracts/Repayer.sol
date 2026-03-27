@@ -276,6 +276,9 @@ contract Repayer is
         } else
         if (provider == Provider.GNOSIS_OMNIBRIDGE) {
             (token, amount) = processTransferGnosisOmnibridge(destinationPool, extraData);
+            if (!_getStorage().poolSupportsAllTokens[destinationPool]) {
+                require(token == ASSETS, InvalidToken());
+            }
         } else {
             revert UnsupportedProvider();
         }

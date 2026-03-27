@@ -3559,6 +3559,65 @@ describe("Repayer", function () {
     expect(await usdc.balanceOf(ethereumAmb)).to.equal(6n * USDC_DEC);
   });
 
+  it("Should revert repayer processRepay with Gnosis Omnibridge of arbitrary token if target pool does not support all tokens", async function () {
+    const {
+      USDC_DEC, usdc, repayUser, liquidityPool,
+      cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool,
+      everclearFeeAdapter, weth, stargateTreasurerTrue, admin, deployer,
+      optimismBridge, baseBridge, arbitrumGatewayRouter, setTokensUser,
+    } = await loadFixture(deployAll);
+    const amount = 4n * USDC_DEC;
+
+    const ethereumOmnibridge = (await deploy("TestGnosisOmnibridge", deployer, {})) as TestGnosisOmnibridge;
+    const ethereumAmb = (await deploy("TestGnosisAMB", deployer, {})) as TestGnosisAMB;
+
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "Repayer2", {},
+        Domain.ETHEREUM,
+        usdc,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
+        acrossV3SpokePool,
+        everclearFeeAdapter,
+        weth,
+        stargateTreasurerTrue,
+        optimismBridge,
+        baseBridge,
+        arbitrumGatewayRouter,
+        ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb,
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin, repayUser, setTokensUser,
+      [liquidityPool], [Domain.ETHEREUM], [Provider.LOCAL], [false], [],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    const usdc2 = (await deploy("TestUSDC", deployer, {})) as TestUSDC;
+    // Fund the AMB so it can deliver tokens to the pool
+    await usdc2.transfer(ethereumAmb, 10n * USDC_DEC);
+
+    const message = AbiCoder.defaultAbiCoder().encode(
+      ["address", "address", "uint256"],
+      [usdc2.target, liquidityPool.target, amount]
+    );
+    const signatures = AbiCoder.defaultAbiCoder().encode(["bool"], [true]);
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "bytes", "bytes"],
+      [usdc2.target, message, signatures]
+    );
+
+    const tx = repayer.connect(repayUser).processRepay(
+      liquidityPool, Provider.GNOSIS_OMNIBRIDGE, extraData
+    );
+    await expect(tx)
+      .to.be.revertedWithCustomError(repayer, "InvalidToken()");
+  });
+
   it("Should revert constructor if AMB or Omnibridge address is 0 on Ethereum", async function () {
     const {
       usdc,

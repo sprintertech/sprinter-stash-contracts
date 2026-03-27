@@ -41,6 +41,7 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable, CCTPAdapter, Gnosi
     error InvalidRoute();
     error UnsupportedProvider();
     error InvalidPoolAssets();
+    error InvalidReceivedToken();
 
     /// @custom:storage-location erc7201:sprinter.storage.Rebalancer
     struct RebalancerStorage {
@@ -212,14 +213,15 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable, CCTPAdapter, Gnosi
         uint256 depositAmount = 0;
         if (provider == Provider.CCTP) {
             depositAmount = processTransferCCTP(ASSETS, destinationPool, extraData);
-            ILiquidityPoolBase(destinationPool).deposit(depositAmount);
         } else
         if (provider == Provider.GNOSIS_OMNIBRIDGE) {
-            (, depositAmount) = processTransferGnosisOmnibridge(destinationPool, extraData);
-            ILiquidityPoolBase(destinationPool).deposit(depositAmount);
+            IERC20 receivedToken;
+            (receivedToken, depositAmount) = processTransferGnosisOmnibridge(destinationPool, extraData);
+            require(receivedToken == ASSETS, InvalidReceivedToken());
         } else {
             revert UnsupportedProvider();
         }
+        ILiquidityPoolBase(destinationPool).deposit(depositAmount);
 
         emit ProcessRebalance(depositAmount, destinationPool, provider);
     }

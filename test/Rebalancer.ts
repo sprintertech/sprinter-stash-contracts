@@ -605,4 +605,51 @@ describe("Rebalancer", function () {
     expect(await usdc.balanceOf(liquidityPool)).to.equal(4n * USDC);
     expect(await usdc.balanceOf(rebalancer)).to.equal(0n);
   });
+
+  it("Should revert rebalancer processRebalance via Gnosis Omnibridge if arbitrary token received", async function () {
+    const {
+      usdc, USDC, rebalanceUser, liquidityPool, admin, deployer,
+      cctpTokenMessenger, cctpMessageTransmitter,
+    } = await loadFixture(deployAll);
+
+    const ethereumOmnibridge = (await deploy("TestGnosisOmnibridge", deployer, {})) as TestGnosisOmnibridge;
+    const ethereumAmb = (await deploy("TestGnosisAMB", deployer, {})) as TestGnosisAMB;
+
+    const rebalancerImpl = (
+      await deployX("Rebalancer", deployer, "Rebalancer2", {},
+        Domain.ETHEREUM, usdc, cctpTokenMessenger, cctpMessageTransmitter,
+        ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb,
+      )
+    ) as Rebalancer;
+    const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(
+      admin, rebalanceUser,
+      [liquidityPool],
+      [Domain.ETHEREUM],
+      [Provider.LOCAL],
+    )).data;
+    const rebalancerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRebalancer2", {},
+      rebalancerImpl, admin, rebalancerInit
+    )) as TransparentUpgradeableProxy;
+    const rebalancer = (await getContractAt("Rebalancer", rebalancerProxy, deployer)) as Rebalancer;
+
+    const usdc2 = (await deploy("TestUSDC", deployer, {})) as TestUSDC;
+    await usdc2.transfer(ethereumAmb, 4n * USDC);
+
+    const message = AbiCoder.defaultAbiCoder().encode(
+      ["address", "address", "uint256"],
+      [usdc2.target, liquidityPool.target, 4n * USDC]
+    );
+    const signatures = AbiCoder.defaultAbiCoder().encode(["bool"], [true]);
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "bytes", "bytes"],
+      [usdc2.target, message, signatures]
+    );
+
+    const tx = rebalancer.connect(rebalanceUser).processRebalance(
+      liquidityPool, Provider.GNOSIS_OMNIBRIDGE, extraData
+    );
+    await expect(tx)
+      .to.be.revertedWithCustomError(rebalancer, "InvalidReceivedToken()");
+  });
 });

@@ -127,6 +127,10 @@ export async function main() {
   if (!config.ArbitrumGatewayRouter) {
     config.ArbitrumGatewayRouter = ZERO_ADDRESS;
   }
+  if (!config.Omnibridge) config.Omnibridge = ZERO_ADDRESS;
+  if (!config.GnosisUSDCxDAI) config.GnosisUSDCxDAI = ZERO_ADDRESS;
+  if (!config.GnosisUSDCTransmuter) config.GnosisUSDCTransmuter = ZERO_ADDRESS;
+  if (!config.GnosisAMB) config.GnosisAMB = ZERO_ADDRESS;
 
   let mainPool: LiquidityPool | undefined = undefined;
   let aavePoolLongTerm: LiquidityPoolAaveLongTerm;
@@ -334,7 +338,10 @@ export async function main() {
     rebalancerVersion,
     deployer,
     config.Admin,
-    [DomainSolidity[network], config.Tokens.USDC, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter],
+    [
+      DomainSolidity[network], config.Tokens.USDC, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter,
+      config.Omnibridge, config.GnosisUSDCxDAI, config.GnosisUSDCTransmuter, config.GnosisAMB,
+    ],
     [
       config.Admin,
       config.RebalanceCaller,
@@ -416,6 +423,10 @@ export async function main() {
         config.OptimismStandardBridge,
         config.BaseStandardBridge,
         config.ArbitrumGatewayRouter,
+        config.Omnibridge,
+        config.GnosisUSDCxDAI,
+        config.GnosisUSDCTransmuter,
+        config.GnosisAMB,
       ],
       [
         config.Admin,

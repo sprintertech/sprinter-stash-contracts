@@ -113,11 +113,11 @@ contract Repayer is
         SuperchainStandardBridgeAdapter(optimismBridge, baseBridge, wrappedNativeToken)
         ArbitrumGatewayAdapter(arbitrumGatewayRouter)
         GnosisOmnibridgeAdapter(
-            localDomain, 
-            omnibridge, 
-            localDomain == Domain.GNOSIS_CHAIN ? address(assets) : address(0), 
-            gnosisUsdcxdai, 
-            gnosisUsdceSwap, 
+            localDomain,
+            omnibridge,
+            address(assets),
+            gnosisUsdcxdai,
+            gnosisUsdceSwap,
             ethereumAmb
         )
     {

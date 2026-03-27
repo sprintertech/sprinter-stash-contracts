@@ -33,22 +33,22 @@ abstract contract GnosisOmnibridgeAdapter is AdapterHelper {
         if (localDomain == Domain.ETHEREUM) {
             require(omnibridge != address(0), ZeroAddress());
             require(ethereumAmb != address(0), ZeroAddress());
+            ETHEREUM_AMB = IGnosisAMB(ethereumAmb);
         } else if (localDomain == Domain.GNOSIS_CHAIN) {
             require(omnibridge != address(0), ZeroAddress());
+            require(gnosisUsdce != address(0), ZeroAddress());
             require(gnosisUsdcxdai != address(0), ZeroAddress());
             require(gnosisUsdcTransmuter != address(0), ZeroAddress());
+            GNOSIS_USDCE = IERC20(gnosisUsdce);
+            GNOSIS_USDCXDAI = IERC20(gnosisUsdcxdai);
+            GNOSIS_USDC_TRANSMUTER = IUSDCTransmuter(gnosisUsdcTransmuter);
         } else {
             require(omnibridge == address(0), ZeroAddress());
-            require(gnosisUsdce == address(0), ZeroAddress());
             require(gnosisUsdcxdai == address(0), ZeroAddress());
             require(gnosisUsdcTransmuter == address(0), ZeroAddress());
             require(ethereumAmb == address(0), ZeroAddress());
         }
         OMNIBRIDGE = IGnosisOmnibridge(omnibridge);
-        GNOSIS_USDCE = IERC20(gnosisUsdce);
-        GNOSIS_USDCXDAI = IERC20(gnosisUsdcxdai);
-        GNOSIS_USDC_TRANSMUTER = IUSDCTransmuter(gnosisUsdcTransmuter);
-        ETHEREUM_AMB = IGnosisAMB(ethereumAmb);
     }
 
     /// @notice Bridges ERC20 tokens between Ethereum and Gnosis Chain via the Omnibridge.

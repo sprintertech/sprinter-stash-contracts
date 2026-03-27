@@ -1318,6 +1318,8 @@ export const networkConfig: NetworksConfig = {
   },
   GNOSIS_CHAIN: {
     ChainId: 100,
+    EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
+    StargateTreasurer: "0xF1815bd50389c46847f0Bda824eC8da914045D14",
     Omnibridge: "0xf6A78083ca3e2a662D6dd1703c939c8aCE2e268d",
     // USDC bridged from Ethereum via Omnibridge — must bridge this token back via Omnibridge
     GnosisUSDCxDAI: "0xDDAfbb505ad214D7b80b1f830fcCc89B60fb7A83",
@@ -1339,7 +1341,38 @@ export const networkConfig: NetworksConfig = {
     SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-    RepayerRoutes: {},
+    RepayerRoutes: {
+      [LiquidityPoolUSDCV4]: {
+        SupportsAllTokens: false,
+        Domains: {
+          [Network.ETHEREUM]: [Provider.STARGATE, Provider.GNOSIS_OMNIBRIDGE],
+          [Network.ARBITRUM_ONE]: [Provider.STARGATE],
+          [Network.BASE]: [Provider.STARGATE],
+          [Network.OP_MAINNET]: [Provider.STARGATE],
+        },
+      },
+      [LiquidityPoolAaveUSDCV4]: {
+        SupportsAllTokens: true,
+        Domains: {
+          [Network.ARBITRUM_ONE]: [Provider.STARGATE],
+          [Network.BASE]: [Provider.STARGATE],
+          [Network.OP_MAINNET]: [Provider.STARGATE],
+        },
+      },
+      [LiquidityPoolUSDCStablecoinV4]: {
+        SupportsAllTokens: true,
+        Domains: {
+          [Network.ETHEREUM]: [Provider.STARGATE, Provider.GNOSIS_OMNIBRIDGE],
+          [Network.UNICHAIN]: [Provider.STARGATE],
+        },
+      },
+      [LiquidityPoolAaveUSDCLongTermV3]: {
+        SupportsAllTokens: true,
+        Domains: {
+          [Network.ETHEREUM]: [Provider.STARGATE, Provider.GNOSIS_OMNIBRIDGE],
+        }
+      },
+    },
   },
   ETHEREUM_SEPOLIA: {
     ChainId: 11155111,
@@ -1598,6 +1631,10 @@ export interface StandaloneRepayerConfig {
   OptimismStandardBridge?: string;
   BaseStandardBridge?: string;
   ArbitrumGatewayRouter?: string;
+  Omnibridge?: string;
+  GnosisUSDCxDAI?: string;
+  GnosisUSDCTransmuter?: string;
+  GnosisAMB?: string;
   // Repayer tokens are used from the general network config.
   WrappedNativeToken: string;
   RepayerRoutes: RepayerRoutesConfig;

@@ -14,6 +14,7 @@ import {
 import {
   TestUSDC, TransparentUpgradeableProxy, ProxyAdmin,
   TestLiquidityPool, Rebalancer, TestCCTPTokenMessenger, TestCCTPMessageTransmitter,
+  TestGnosisOmnibridge, TestGnosisAMB,
 } from "../typechain-types";
 import {networkConfig} from "../network.config";
 
@@ -53,7 +54,8 @@ describe("Rebalancer", function () {
 
     const rebalancerImpl = (
       await deployX("Rebalancer", deployer, "Rebalancer", {},
-        Domain.BASE, usdc, cctpTokenMessenger, cctpMessageTransmitter
+        Domain.BASE, usdc, cctpTokenMessenger, cctpMessageTransmitter,
+        ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Rebalancer;
     const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(
@@ -499,5 +501,108 @@ describe("Rebalancer", function () {
     const extraData = AbiCoder.defaultAbiCoder().encode(["bytes", "bytes"], [message, signature]);
     await expect(rebalancer.connect(rebalanceUser).processRebalance(liquidityPool, Provider.CCTP, extraData))
       .to.be.revertedWithCustomError(rebalancer, "ProcessFailed()");
+  });
+
+  it("Should allow rebalancer to initiate rebalance via Gnosis Omnibridge from Ethereum to Gnosis", async function () {
+    const {
+      usdc, USDC, rebalanceUser, liquidityPool, admin, deployer,
+      cctpTokenMessenger, cctpMessageTransmitter,
+    } = await loadFixture(deployAll);
+    const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
+
+    const ethereumOmnibridge = (await deploy("TestGnosisOmnibridge", deployer, {})) as TestGnosisOmnibridge;
+    const ethereumAmb = (await deploy("TestGnosisAMB", deployer, {})) as TestGnosisAMB;
+
+    const rebalancerImpl = (
+      await deployX("Rebalancer", deployer, "Rebalancer2", {},
+        Domain.ETHEREUM, usdc, cctpTokenMessenger, cctpMessageTransmitter,
+        ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb,
+      )
+    ) as Rebalancer;
+    const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(
+      admin, rebalanceUser,
+      [liquidityPool, liquidityPool],
+      [Domain.ETHEREUM, Domain.GNOSIS_CHAIN],
+      [Provider.LOCAL, Provider.GNOSIS_OMNIBRIDGE],
+    )).data;
+    const rebalancerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRebalancer2", {},
+      rebalancerImpl, admin, rebalancerInit
+    )) as TransparentUpgradeableProxy;
+    const rebalancer = (await getContractAt("Rebalancer", rebalancerProxy, deployer)) as Rebalancer;
+    await liquidityPool.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
+
+    await usdc.transfer(liquidityPool, 10n * USDC);
+
+    const tx = rebalancer.connect(rebalanceUser).initiateRebalance(
+      4n * USDC, liquidityPool, liquidityPool, Domain.GNOSIS_CHAIN, Provider.GNOSIS_OMNIBRIDGE, "0x"
+    );
+    await expect(tx)
+      .to.emit(rebalancer, "InitiateRebalance")
+      .withArgs(4n * USDC, liquidityPool.target, liquidityPool.target, Domain.GNOSIS_CHAIN, Provider.GNOSIS_OMNIBRIDGE);
+    await expect(tx)
+      .to.emit(rebalancer, "GnosisOmnibridgeTransferInitiated")
+      .withArgs(usdc.target, liquidityPool.target, 4n * USDC);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(rebalancer.target, ethereumOmnibridge.target, 4n * USDC);
+
+    expect(await usdc.balanceOf(liquidityPool)).to.equal(6n * USDC);
+    expect(await usdc.balanceOf(ethereumOmnibridge)).to.equal(4n * USDC);
+  });
+
+  it("Should allow rebalancer to process rebalance via Gnosis Omnibridge", async function () {
+    const {
+      usdc, USDC, rebalanceUser, liquidityPool, admin, deployer,
+      cctpTokenMessenger, cctpMessageTransmitter,
+    } = await loadFixture(deployAll);
+
+    const ethereumOmnibridge = (await deploy("TestGnosisOmnibridge", deployer, {})) as TestGnosisOmnibridge;
+    const ethereumAmb = (await deploy("TestGnosisAMB", deployer, {})) as TestGnosisAMB;
+
+    const rebalancerImpl = (
+      await deployX("Rebalancer", deployer, "Rebalancer2", {},
+        Domain.ETHEREUM, usdc, cctpTokenMessenger, cctpMessageTransmitter,
+        ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb,
+      )
+    ) as Rebalancer;
+    const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(
+      admin, rebalanceUser,
+      [liquidityPool],
+      [Domain.ETHEREUM],
+      [Provider.LOCAL],
+    )).data;
+    const rebalancerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRebalancer2", {},
+      rebalancerImpl, admin, rebalancerInit
+    )) as TransparentUpgradeableProxy;
+    const rebalancer = (await getContractAt("Rebalancer", rebalancerProxy, deployer)) as Rebalancer;
+
+    await usdc.transfer(ethereumAmb, 4n * USDC);
+
+    const message = AbiCoder.defaultAbiCoder().encode(
+      ["address", "address", "uint256"],
+      [usdc.target, liquidityPool.target, 4n * USDC]
+    );
+    const signatures = AbiCoder.defaultAbiCoder().encode(["bool"], [true]);
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "bytes", "bytes"],
+      [usdc.target, message, signatures]
+    );
+
+    const tx = rebalancer.connect(rebalanceUser).processRebalance(
+      liquidityPool, Provider.GNOSIS_OMNIBRIDGE, extraData
+    );
+    await expect(tx)
+      .to.emit(rebalancer, "ProcessRebalance")
+      .withArgs(4n * USDC, liquidityPool.target, Provider.GNOSIS_OMNIBRIDGE);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(ethereumAmb.target, liquidityPool.target, 4n * USDC);
+    await expect(tx)
+      .to.emit(liquidityPool, "Deposit");
+
+    expect(await usdc.balanceOf(liquidityPool)).to.equal(4n * USDC);
+    expect(await usdc.balanceOf(rebalancer)).to.equal(0n);
   });
 });

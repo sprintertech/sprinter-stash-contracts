@@ -9,6 +9,7 @@ import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 import {ILiquidityPoolBase} from "./interfaces/ILiquidityPoolBase.sol";
 import {IRebalancer} from "./interfaces/IRebalancer.sol";
 import {CCTPAdapter} from "./utils/CCTPAdapter.sol";
+import {GnosisOmnibridgeAdapter} from "./utils/GnosisOmnibridgeAdapter.sol";
 
 /// @title Facilitates liquidity movement between Liquidity Pools on same/different chains.
 /// Routes, which is a destination pool/domain and a bridging provider, have to be approved by admin.
@@ -16,7 +17,7 @@ import {CCTPAdapter} from "./utils/CCTPAdapter.sol";
 /// REBALANCER_ROLE is needed to finalize/init rebalancing process.
 /// @notice Upgradeable.
 /// @author Oleksii Matiiasevych <oleksii@chainsafe.io>
-contract Rebalancer is IRebalancer, AccessControlUpgradeable, CCTPAdapter {
+contract Rebalancer is IRebalancer, AccessControlUpgradeable, CCTPAdapter, GnosisOmnibridgeAdapter {
     using SafeERC20 for IERC20;
     using BitMaps for BitMaps.BitMap;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -53,9 +54,21 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable, CCTPAdapter {
         Domain localDomain,
         IERC20 assets,
         address cctpTokenMessenger,
-        address cctpMessageTransmitter
+        address cctpMessageTransmitter,
+        address omnibridge,
+        address gnosisUsdcxdai,
+        address gnosisUsdcTransmuter,
+        address ethereumAmb
     )
         CCTPAdapter(cctpTokenMessenger, cctpMessageTransmitter)
+        GnosisOmnibridgeAdapter(
+            localDomain,
+            omnibridge,
+            address(assets),
+            gnosisUsdcxdai,
+            gnosisUsdcTransmuter,
+            ethereumAmb
+        )
     {
         ERC7201Helper.validateStorageLocation(
             STORAGE_LOCATION,
@@ -182,6 +195,9 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable, CCTPAdapter {
         } else
         if (provider == Provider.CCTP) {
             initiateTransferCCTP(ASSETS, amount, destinationPool, destinationDomain);
+        } else
+        if (provider == Provider.GNOSIS_OMNIBRIDGE) {
+            initiateTransferGnosisOmnibridge(ASSETS, amount, destinationPool, destinationDomain, DOMAIN);
         } else {
             revert UnsupportedProvider();
         }
@@ -196,6 +212,10 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable, CCTPAdapter {
         uint256 depositAmount = 0;
         if (provider == Provider.CCTP) {
             depositAmount = processTransferCCTP(ASSETS, destinationPool, extraData);
+            ILiquidityPoolBase(destinationPool).deposit(depositAmount);
+        } else
+        if (provider == Provider.GNOSIS_OMNIBRIDGE) {
+            (, depositAmount) = processTransferGnosisOmnibridge(destinationPool, extraData);
             ILiquidityPoolBase(destinationPool).deposit(depositAmount);
         } else {
             revert UnsupportedProvider();

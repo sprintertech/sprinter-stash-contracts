@@ -183,7 +183,6 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable, CCTPAdapter {
         if (provider == Provider.CCTP) {
             initiateTransferCCTP(ASSETS, amount, destinationPool, destinationDomain);
         } else {
-            // Unreachable atm, but could become so when more providers are added to enum.
             revert UnsupportedProvider();
         }
     }
@@ -199,7 +198,6 @@ contract Rebalancer is IRebalancer, AccessControlUpgradeable, CCTPAdapter {
             depositAmount = processTransferCCTP(ASSETS, destinationPool, extraData);
             ILiquidityPoolBase(destinationPool).deposit(depositAmount);
         } else {
-            // Unreachable atm, but could become so when more providers are added to enum.
             revert UnsupportedProvider();
         }
 

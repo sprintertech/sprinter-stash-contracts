@@ -187,6 +187,8 @@ describe("Repayer", function () {
     expect(await repayer.domainCCTP(Domain.ARBITRUM_ONE)).to.equal(3n);
     expect(await repayer.domainCCTP(Domain.BASE)).to.equal(6n);
     expect(await repayer.domainCCTP(Domain.POLYGON_MAINNET)).to.equal(7n);
+    await expect(repayer.domainCCTP(Domain.GNOSIS_CHAIN))
+      .to.be.revertedWithCustomError(repayer, "UnsupportedDomain()");
     expect(await repayer.domainChainId(Domain.ETHEREUM)).to.equal(1n);
     expect(await repayer.domainChainId(Domain.AVALANCHE)).to.equal(43114n);
     expect(await repayer.domainChainId(Domain.OP_MAINNET)).to.equal(10n);
@@ -196,6 +198,21 @@ describe("Repayer", function () {
     expect(await repayer.domainChainId(Domain.UNICHAIN)).to.equal(130n);
     expect(await repayer.domainChainId(Domain.BSC)).to.equal(56n);
     expect(await repayer.domainChainId(Domain.LINEA)).to.equal(59144n);
+    expect(await repayer.domainChainId(Domain.GNOSIS_CHAIN)).to.equal(100n);
+    await expect(repayer.domainChainId(Domain.OP_SEPOLIA))
+      .to.be.revertedWithCustomError(repayer, "UnsupportedDomain()");
+    expect(await repayer.stargateEndpointId(Domain.ETHEREUM)).to.equal(30101n);
+    expect(await repayer.stargateEndpointId(Domain.AVALANCHE)).to.equal(30106n);
+    expect(await repayer.stargateEndpointId(Domain.OP_MAINNET)).to.equal(30111n);
+    expect(await repayer.stargateEndpointId(Domain.ARBITRUM_ONE)).to.equal(30110n);
+    expect(await repayer.stargateEndpointId(Domain.BASE)).to.equal(30184n);
+    expect(await repayer.stargateEndpointId(Domain.POLYGON_MAINNET)).to.equal(30109n);
+    expect(await repayer.stargateEndpointId(Domain.UNICHAIN)).to.equal(30320n);
+    expect(await repayer.stargateEndpointId(Domain.BSC)).to.equal(30102n);
+    expect(await repayer.stargateEndpointId(Domain.LINEA)).to.equal(30183n);
+    expect(await repayer.stargateEndpointId(Domain.GNOSIS_CHAIN)).to.equal(30145n);
+    await expect(repayer.stargateEndpointId(Domain.OP_SEPOLIA))
+      .to.be.revertedWithCustomError(repayer, "UnsupportedDomain()");
     expect(await repayer.getAllRoutes()).to.deep.equal([
       [liquidityPool.target, liquidityPool.target, liquidityPool.target, liquidityPool2.target],
       [Domain.ETHEREUM, Domain.ARBITRUM_ONE, Domain.BASE, Domain.BASE],
@@ -1479,7 +1496,7 @@ describe("Repayer", function () {
       .to.be.revertedWithCustomError(repayer, "InvalidOutputToken()");
   });
 
-  it("Should NOT allow repayer to initiate Superchain Standard Bridge repay on invalid route", async function () {
+  it("Should NOT allow repayer to initiate Superchain Standard Bridge repay from not Ethereum domain", async function () {
     const {repayer, USDC_DEC, usdc, admin, repayUser, liquidityPool} = await loadFixture(deployAll);
 
     await usdc.transfer(repayer, 10n * USDC_DEC);
@@ -1505,6 +1522,59 @@ describe("Repayer", function () {
       Domain.ETHEREUM,
       Provider.SUPERCHAIN_STANDARD_BRIDGE,
       extraData
+    );
+    await expect(tx)
+      .to.be.revertedWithCustomError(repayer, "UnsupportedDomain");
+  });
+
+  it("Should NOT allow repayer to initiate Superchain Standard Bridge repay to unsupported domain", async function () {
+    const {
+      USDC_DEC, usdc, admin, repayUser, liquidityPool, deployer, cctpTokenMessenger, cctpMessageTransmitter,
+      acrossV3SpokePool, everclearFeeAdapter, weth, stargateTreasurerTrue, optimismBridge, baseBridge,
+      arbitrumGatewayRouter, sharedEthereumOmnibridge, sharedEthereumAmb, setTokensUser,
+    } = await loadFixture(deployAll);
+
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "Repayer4", {},
+        Domain.ETHEREUM,
+        usdc,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
+        acrossV3SpokePool,
+        everclearFeeAdapter,
+        weth,
+        stargateTreasurerTrue,
+        optimismBridge,
+        baseBridge,
+        arbitrumGatewayRouter,
+        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb,
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin,
+      repayUser,
+      setTokensUser,
+      [liquidityPool, liquidityPool],
+      [Domain.ETHEREUM, Domain.GNOSIS_CHAIN],
+      [Provider.LOCAL, Provider.SUPERCHAIN_STANDARD_BRIDGE],
+      [true, true],
+      [],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer4", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    await usdc.transfer(repayer, 10n * USDC_DEC);
+    const amount = 4n * USDC_DEC;
+    const tx = repayer.connect(repayUser).initiateRepay(
+      usdc,
+      amount,
+      liquidityPool,
+      Domain.GNOSIS_CHAIN,
+      Provider.SUPERCHAIN_STANDARD_BRIDGE,
+      "0x"
     );
     await expect(tx)
       .to.be.revertedWithCustomError(repayer, "UnsupportedDomain");
@@ -2327,6 +2397,31 @@ describe("Repayer", function () {
       Provider.CCTP,
       "0x"
     )).to.be.revertedWithCustomError(repayer, "InvalidToken()");
+  });
+
+  it("Should revert processRepay for unsupported providers", async function () {
+    const {
+      repayUser, liquidityPool, repayer,
+    } = await loadFixture(deployAll);
+
+    await expect(repayer.connect(repayUser).processRepay(
+      liquidityPool, Provider.LOCAL, "0x"
+    )).to.be.revertedWithCustomError(repayer, "UnsupportedProvider()");
+    await expect(repayer.connect(repayUser).processRepay(
+      liquidityPool, Provider.ACROSS, "0x"
+    )).to.be.revertedWithCustomError(repayer, "UnsupportedProvider()");
+    await expect(repayer.connect(repayUser).processRepay(
+      liquidityPool, Provider.STARGATE, "0x"
+    )).to.be.revertedWithCustomError(repayer, "UnsupportedProvider()");
+    await expect(repayer.connect(repayUser).processRepay(
+      liquidityPool, Provider.EVERCLEAR, "0x"
+    )).to.be.revertedWithCustomError(repayer, "UnsupportedProvider()");
+    await expect(repayer.connect(repayUser).processRepay(
+      liquidityPool, Provider.SUPERCHAIN_STANDARD_BRIDGE, "0x"
+    )).to.be.revertedWithCustomError(repayer, "UnsupportedProvider()");
+    await expect(repayer.connect(repayUser).processRepay(
+      liquidityPool, Provider.ARBITRUM_GATEWAY, "0x"
+    )).to.be.revertedWithCustomError(repayer, "UnsupportedProvider()");
   });
 
   it("Should allow repayer to process repay", async function () {

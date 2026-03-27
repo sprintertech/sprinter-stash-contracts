@@ -103,6 +103,7 @@ describe("SprinterLiquidityMining", function () {
     expect(await liquidityMining.tiers(1)).to.eql([6n * MONTH, 150_0000000n]);
     expect(await liquidityMining.tiers(2)).to.eql([12n * MONTH, 200_0000000n]);
     expect(await liquidityMining.getStakes(user)).to.eql([]);
+    expect(await liquidityMining.allowance(user, user2)).to.eql(0n);
 
     await expect(liquidityMining.burn(1n))
       .to.be.revertedWithCustomError(liquidityMining, "NotImplemented()");

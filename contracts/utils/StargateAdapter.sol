@@ -61,6 +61,9 @@ abstract contract StargateAdapter is AdapterHelper {
         } else
         if (destinationDomain == Domain.LINEA) {
             return 30183;
+        } else
+        if (destinationDomain == Domain.GNOSIS_CHAIN) {
+            return 30145;
         } else {
             revert UnsupportedDomain();
         }

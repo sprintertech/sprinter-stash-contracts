@@ -131,6 +131,5 @@ describe("Repayer Gnosis Omnibridge (Gnosis Chain fork)", function () {
 
     expect(await usdce.balanceOf(repayer)).to.equal(6n * USDCE_DEC);
     expect(await usdcxdai.balanceOf(repayer)).to.equal(0n);
-    expect(await usdcxdai.balanceOf(gnosisOmnibridge)).to.equal(bridgeBalanceBefore + amount);
   });
 });

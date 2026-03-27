@@ -253,6 +253,27 @@ describe("Rebalancer", function () {
     )).to.be.revertedWithCustomError(rebalancer, "AccessControlUnauthorizedAccount(address,bytes32)");
   });
 
+  it("Should revert initiate rebalance for unsupported providers", async function () {
+    const {rebalancer, rebalanceUser, liquidityPool, admin, usdc} = await loadFixture(deployAll);
+
+    await rebalancer.connect(admin).setRoute(
+      [liquidityPool],
+      [Domain.ETHEREUM],
+      [Provider.ACROSS],
+      ALLOWED
+    );
+
+    await usdc.transfer(liquidityPool, 1n);
+    await expect(rebalancer.connect(rebalanceUser).initiateRebalance(
+      1n,
+      liquidityPool,
+      liquidityPool,
+      Domain.ETHEREUM,
+      Provider.ACROSS,
+      "0x"
+    )).to.be.revertedWithCustomError(rebalancer, "UnsupportedProvider()");
+  });
+
   it("Should allow rebalancer to initiate rebalance", async function () {
     const {rebalancer, usdc, USDC, rebalanceUser, liquidityPool,
       cctpTokenMessenger
@@ -391,6 +412,31 @@ describe("Rebalancer", function () {
       Provider.CCTP,
       "0x"
     )).to.be.revertedWithCustomError(rebalancer, "RouteDenied()");
+  });
+
+  it("Should revert processRebalance for unsupported providers", async function () {
+    const {
+      rebalanceUser, liquidityPool, rebalancer,
+    } = await loadFixture(deployAll);
+
+    await expect(rebalancer.connect(rebalanceUser).processRebalance(
+      liquidityPool, Provider.LOCAL, "0x"
+    )).to.be.revertedWithCustomError(rebalancer, "UnsupportedProvider()");
+    await expect(rebalancer.connect(rebalanceUser).processRebalance(
+      liquidityPool, Provider.ACROSS, "0x"
+    )).to.be.revertedWithCustomError(rebalancer, "UnsupportedProvider()");
+    await expect(rebalancer.connect(rebalanceUser).processRebalance(
+      liquidityPool, Provider.STARGATE, "0x"
+    )).to.be.revertedWithCustomError(rebalancer, "UnsupportedProvider()");
+    await expect(rebalancer.connect(rebalanceUser).processRebalance(
+      liquidityPool, Provider.EVERCLEAR, "0x"
+    )).to.be.revertedWithCustomError(rebalancer, "UnsupportedProvider()");
+    await expect(rebalancer.connect(rebalanceUser).processRebalance(
+      liquidityPool, Provider.SUPERCHAIN_STANDARD_BRIDGE, "0x"
+    )).to.be.revertedWithCustomError(rebalancer, "UnsupportedProvider()");
+    await expect(rebalancer.connect(rebalanceUser).processRebalance(
+      liquidityPool, Provider.ARBITRUM_GATEWAY, "0x"
+    )).to.be.revertedWithCustomError(rebalancer, "UnsupportedProvider()");
   });
 
   it("Should allow rebalancer to process rebalance", async function () {

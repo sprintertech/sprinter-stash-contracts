@@ -76,6 +76,7 @@ abstract contract GnosisOmnibridgeAdapter is AdapterHelper {
                 token = GNOSIS_USDCXDAI;
             }
         } else {
+            // Unreachable due to constructor check.
             revert UnsupportedDomain();
         }
         token.forceApprove(address(OMNIBRIDGE), amount);

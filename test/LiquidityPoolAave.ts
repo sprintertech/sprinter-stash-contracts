@@ -151,6 +151,8 @@ describe("LiquidityPoolAave", function () {
         .to.be.eq(mpc_signer);
       expect(await liquidityPool.signerAddress())
         .to.be.eq(mockSignerTrue);
+      expect(await liquidityPool.balance(usdc))
+        .to.be.eq(0n);
     });
 
     it("Should NOT deploy the contract if token cannot be used as collateral", async function () {

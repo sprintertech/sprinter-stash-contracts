@@ -3559,7 +3559,9 @@ describe("Repayer", function () {
     expect(await usdc.balanceOf(ethereumAmb)).to.equal(6n * USDC_DEC);
   });
 
-  it("Should revert repayer processRepay with Gnosis Omnibridge of arbitrary token if target pool does not support all tokens", async function () {
+  // Should revert repayer processRepay with Gnosis Omnibridge
+  // of arbitrary token if target pool does not support all tokens
+  it("Should revert repayer processRepay with Gnosis Omnibridge with invalid token", async function () {
     const {
       USDC_DEC, usdc, repayUser, liquidityPool,
       cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool,

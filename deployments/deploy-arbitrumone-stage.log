@@ -106,3 +106,14 @@ Rebalancer: 0x34Df9cD75fA0b4d8fF300AeDf7591f79dFdd61C9
 Target Vault: 0xEBa34aE94CFf4142E30544F86D210b1807BdCb42
 Deploying ERC4626 Adapter USDC
 ERC4626AdapterUSDC-V2-7187ffa: 0x5291A3582a7eC37BA800327f7Cd1e0bF137A4ec0
+
+Using config for: stage, ARBITRUM_ONE
+Following tokens will be added to 0x697ECA1cae710FA0348e2173900e6C09b180C35b.
+┌─────────┬──────────────────────────────────────────────┬───────────────────┬──────────────────────────────────────────────┐
+│ (index) │ InputToken                                   │ Domain            │ OutputToken                                  │
+├─────────┼──────────────────────────────────────────────┼───────────────────┼──────────────────────────────────────────────┤
+│ 0       │ '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9' │ 'BASE'            │ '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2' │
+│ 1       │ '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9' │ 'POLYGON_MAINNET' │ '0xc2132D05D31c914a87C6611C10748AEb04B58e8F' │
+│ 2       │ '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9' │ 'UNICHAIN'        │ '0x9151434b16b9763660705744891fA906F660EcC5' │
+└─────────┴──────────────────────────────────────────────┴───────────────────┴──────────────────────────────────────────────┘
+Done.

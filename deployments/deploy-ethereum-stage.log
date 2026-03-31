@@ -63,3 +63,14 @@ Using config for: stage, ETHEREUM
 Rebalancer: 0x34Df9cD75fA0b4d8fF300AeDf7591f79dFdd61C9
 Deploying USDC Liquidity Pool
 LiquidityPoolUSDC-V4-7187ffa: 0x626afF63118191b6202636848711c0645AFED94D
+
+Using config for: stage, ETHEREUM
+Following tokens will be added to 0x697ECA1cae710FA0348e2173900e6C09b180C35b.
+┌─────────┬──────────────────────────────────────────────┬───────────────────┬──────────────────────────────────────────────┐
+│ (index) │ InputToken                                   │ Domain            │ OutputToken                                  │
+├─────────┼──────────────────────────────────────────────┼───────────────────┼──────────────────────────────────────────────┤
+│ 0       │ '0xdAC17F958D2ee523a2206206994597C13D831ec7' │ 'BASE'            │ '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2' │
+│ 1       │ '0xdAC17F958D2ee523a2206206994597C13D831ec7' │ 'POLYGON_MAINNET' │ '0xc2132D05D31c914a87C6611C10748AEb04B58e8F' │
+│ 2       │ '0xdAC17F958D2ee523a2206206994597C13D831ec7' │ 'UNICHAIN'        │ '0x9151434b16b9763660705744891fA906F660EcC5' │
+└─────────┴──────────────────────────────────────────────┴───────────────────┴──────────────────────────────────────────────┘
+Done.

@@ -80,6 +80,9 @@ describe("Repayer", function () {
     const everclearFeeAdapter = await hre.ethers.getContractAt("IFeeAdapterV2", forkNetworkConfig.EverclearFeeAdapter!);
     const weth = await hre.ethers.getContractAt("IWrappedNativeToken", forkNetworkConfig.WrappedNativeToken);
 
+    assertAddress(forkNetworkConfig.Omnibridge, "ETHEREUM Omnibridge address is missing");
+    assertAddress(forkNetworkConfig.GnosisAMB, "ETHEREUM GnosisAMB address is missing");
+
     const USDC_DEC = 10n ** (await usdc.decimals());
     const DAI_DEC = 10n ** (await dai.decimals());
     const WBTC_DEC = 10n ** (await wbtc.decimals());
@@ -97,6 +100,7 @@ describe("Repayer", function () {
         optimismStandardBridge,
         baseStandardBridge,
         arbitrumGatewayRouter,
+        forkNetworkConfig.Omnibridge!, ZERO_ADDRESS, ZERO_ADDRESS, forkNetworkConfig.GnosisAMB!,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(

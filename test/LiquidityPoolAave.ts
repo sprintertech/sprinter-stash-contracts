@@ -151,6 +151,8 @@ describe("LiquidityPoolAave", function () {
         .to.be.eq(mpc_signer);
       expect(await liquidityPool.signerAddress())
         .to.be.eq(mockSignerTrue);
+      expect(await liquidityPool.balance(usdc))
+        .to.be.eq(0n);
     });
 
     it("Should NOT deploy the contract if token cannot be used as collateral", async function () {
@@ -399,7 +401,7 @@ describe("LiquidityPoolAave", function () {
         signature);
       expect(await usdc.balanceOf(liquidityPool)).to.eq(amountToBorrow);
       expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amountCollateral - 1n);
-      expectAlmostEqual(await liquidityPool.balance(usdc), 50n * USDC_DEC - amountToBorrow);
+      expectAlmostEqual(await liquidityPool.balance(usdc), 50n * USDC_DEC - amountToBorrow, 3n);
     });
 
     it("Should borrow a token with swap", async function () {

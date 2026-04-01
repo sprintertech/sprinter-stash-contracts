@@ -15,6 +15,7 @@ import {StargateAdapter} from "./utils/StargateAdapter.sol";
 import {EverclearAdapter} from "./utils/EverclearAdapter.sol";
 import {SuperchainStandardBridgeAdapter} from "./utils/SuperchainStandardBridgeAdapter.sol";
 import {ArbitrumGatewayAdapter} from "./utils/ArbitrumGatewayAdapter.sol";
+import {GnosisOmnibridgeAdapter} from "./utils/GnosisOmnibridgeAdapter.sol";
 import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 
 /// @title Performs repayment to Liquidity Pools on same/different chains.
@@ -30,7 +31,8 @@ contract Repayer is
     StargateAdapter,
     EverclearAdapter,
     SuperchainStandardBridgeAdapter,
-    ArbitrumGatewayAdapter
+    ArbitrumGatewayAdapter,
+    GnosisOmnibridgeAdapter
 {
     using SafeERC20 for IERC20;
     using BitMaps for BitMaps.BitMap;
@@ -98,7 +100,11 @@ contract Repayer is
         address stargateTreasurer,
         address optimismBridge,
         address baseBridge,
-        address arbitrumGatewayRouter
+        address arbitrumGatewayRouter,
+        address omnibridge,
+        address gnosisUsdcxdai,
+        address gnosisUsdceSwap,
+        address ethereumAmb
     )
         CCTPAdapter(cctpTokenMessenger, cctpMessageTransmitter)
         AcrossAdapter(acrossSpokePool)
@@ -106,6 +112,14 @@ contract Repayer is
         EverclearAdapter(everclearFeeAdapter)
         SuperchainStandardBridgeAdapter(optimismBridge, baseBridge, wrappedNativeToken)
         ArbitrumGatewayAdapter(arbitrumGatewayRouter)
+        GnosisOmnibridgeAdapter(
+            localDomain,
+            omnibridge,
+            address(assets),
+            gnosisUsdcxdai,
+            gnosisUsdceSwap,
+            ethereumAmb
+        )
     {
         ERC7201Helper.validateStorageLocation(
             STORAGE_LOCATION,
@@ -240,6 +254,9 @@ contract Repayer is
                 DOMAIN,
                 $.inputOutputTokens[address(token)]
             );
+        } else
+        if (provider == Provider.GNOSIS_OMNIBRIDGE) {
+            initiateTransferGnosisOmnibridge(token, amount, destinationPool, destinationDomain, DOMAIN);
         } else {
             // Unreachable atm, but could become so when more providers are added to enum.
             revert UnsupportedProvider();
@@ -252,14 +269,21 @@ contract Repayer is
         bytes calldata extraData
     ) external override onlyRole(REPAYER_ROLE) {
         require(isRouteAllowed(destinationPool, DOMAIN, Provider.LOCAL), RouteDenied());
+        IERC20 token = ASSETS;
         uint256 amount = 0;
         if (provider == Provider.CCTP) {
             amount = processTransferCCTP(ASSETS, destinationPool, extraData);
+        } else
+        if (provider == Provider.GNOSIS_OMNIBRIDGE) {
+            (token, amount) = processTransferGnosisOmnibridge(destinationPool, extraData);
+            if (!_getStorage().poolSupportsAllTokens[destinationPool]) {
+                require(token == ASSETS, InvalidToken());
+            }
         } else {
             revert UnsupportedProvider();
         }
 
-        emit ProcessRepay(ASSETS, amount, destinationPool, provider);
+        emit ProcessRepay(token, amount, destinationPool, provider);
     }
 
     function _processRepayLOCAL(

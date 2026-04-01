@@ -15,7 +15,11 @@ contract TestRepayer is Repayer {
         address stargateTreasurer,
         address optimismBridge,
         address baseBridge,
-        address arbitrumGatewayRouter
+        address arbitrumGatewayRouter,
+        address omnibridge,
+        address gnosisUsdcxdai,
+        address gnosisUsdceSwap,
+        address ethereumAmb
     ) Repayer(
         localDomain,
         assets,
@@ -27,7 +31,11 @@ contract TestRepayer is Repayer {
         stargateTreasurer,
         optimismBridge,
         baseBridge,
-        arbitrumGatewayRouter
+        arbitrumGatewayRouter,
+        omnibridge,
+        gnosisUsdcxdai,
+        gnosisUsdceSwap,
+        ethereumAmb
     ) {}
 
     function domainCCTP(Domain destinationDomain) public pure override returns (uint32) {

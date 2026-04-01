@@ -99,6 +99,8 @@ describe("LiquidityPool", function () {
         .to.be.eq(mpc_signer);
       expect(await liquidityPool.signerAddress())
         .to.be.eq(mockSignerTrue);
+      await expect(liquidityPool.repay([usdc]))
+        .to.be.revertedWithCustomError(liquidityPool, "NotImplemented");
     });
 
     it("Should NOT deploy the contract if liquidity token address is 0", async function () {

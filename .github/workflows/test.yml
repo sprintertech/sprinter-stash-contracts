@@ -27,7 +27,9 @@ jobs:
         run: npm run compile
       - name: Hardhat Tests
         run: npm run test
-      - name: Hardhat Fork Tests
+      - name: Hardhat Fork Tests Ethereum
         run: npm run test:ethereum
+      - name: Hardhat Fork Tests Gnosis Chain
+        run: npm run test:gnosis
       - name: Script Tests
         run: npm run test:scripts

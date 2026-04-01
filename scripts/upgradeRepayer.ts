@@ -51,6 +51,10 @@ export async function main() {
   if (!config.ArbitrumGatewayRouter) {
     config.ArbitrumGatewayRouter = ZERO_ADDRESS;
   }
+  if (!config.Omnibridge) config.Omnibridge = ZERO_ADDRESS;
+  if (!config.GnosisUSDCxDAI) config.GnosisUSDCxDAI = ZERO_ADDRESS;
+  if (!config.GnosisUSDCTransmuter) config.GnosisUSDCTransmuter = ZERO_ADDRESS;
+  if (!config.GnosisAMB) config.GnosisAMB = ZERO_ADDRESS;
 
   const repayerAddress = await getDeployProxyXAddress("Repayer");
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
@@ -72,6 +76,10 @@ export async function main() {
       config.OptimismStandardBridge,
       config.BaseStandardBridge,
       config.ArbitrumGatewayRouter,
+      config.Omnibridge,
+      config.GnosisUSDCxDAI,
+      config.GnosisUSDCTransmuter,
+      config.GnosisAMB,
     ],
     "Repayer",
   );

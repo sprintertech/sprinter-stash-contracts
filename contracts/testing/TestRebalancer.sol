@@ -8,8 +8,15 @@ contract TestRebalancer is Rebalancer {
         Domain localDomain,
         IERC20 assets,
         address cctpTokenMessenger,
-        address cctpMessageTransmitter
-    ) Rebalancer(localDomain, assets, cctpTokenMessenger, cctpMessageTransmitter) {}
+        address cctpMessageTransmitter,
+        address omnibridge,
+        address gnosisUsdcxdai,
+        address gnosisUsdcTransmuter,
+        address ethereumAmb
+    ) Rebalancer(
+        localDomain, assets, cctpTokenMessenger, cctpMessageTransmitter,
+        omnibridge, gnosisUsdcxdai, gnosisUsdcTransmuter, ethereumAmb
+    ) {}
 
     function domainCCTP(Domain destinationDomain) public pure override returns (uint32) {
         if (destinationDomain == Domain.ETHEREUM_SEPOLIA) {

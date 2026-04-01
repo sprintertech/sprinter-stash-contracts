@@ -43,6 +43,9 @@ abstract contract AdapterHelper is IRoute {
         } else
         if (destinationDomain == Domain.LINEA) {
             return 59144;
+        } else
+        if (destinationDomain == Domain.GNOSIS_CHAIN) {
+            return 100;
         } else {
             revert UnsupportedDomain();
         }

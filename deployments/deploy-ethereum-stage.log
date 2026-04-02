@@ -74,3 +74,87 @@ Following tokens will be added to 0x697ECA1cae710FA0348e2173900e6C09b180C35b.
 │ 2       │ '0xdAC17F958D2ee523a2206206994597C13D831ec7' │ 'UNICHAIN'        │ '0x9151434b16b9763660705744891fA906F660EcC5' │
 └─────────┴──────────────────────────────────────────────┴───────────────────┴──────────────────────────────────────────────┘
 Done.
+
+Using config for: stage, ETHEREUM
+The onchain configuration is:
+┌─────────┬──────────────────────────────────────────────┬────────────────┬──────────────────────────────┬───────────────────┐
+│ (index) │ Pool                                         │ Domain         │ Provider                     │ SupportsAllTokens │
+├─────────┼──────────────────────────────────────────────┼────────────────┼──────────────────────────────┼───────────────────┤
+│ 0       │ '0x072AFfAa29E812A9F680ba1266a9c61Ac10d3853' │ 'ARBITRUM_ONE' │ 'ACROSS'                     │ true              │
+│ 1       │ '0x072AFfAa29E812A9F680ba1266a9c61Ac10d3853' │ 'ARBITRUM_ONE' │ 'CCTP'                       │ true              │
+│ 2       │ '0x072AFfAa29E812A9F680ba1266a9c61Ac10d3853' │ 'ARBITRUM_ONE' │ 'EVERCLEAR'                  │ true              │
+│ 3       │ '0x4e13849d29a9a7A200196DC16722ddeb67b6e769' │ 'ARBITRUM_ONE' │ 'ACROSS'                     │ true              │
+│ 4       │ '0x4e13849d29a9a7A200196DC16722ddeb67b6e769' │ 'ARBITRUM_ONE' │ 'CCTP'                       │ true              │
+│ 5       │ '0x4e13849d29a9a7A200196DC16722ddeb67b6e769' │ 'ARBITRUM_ONE' │ 'EVERCLEAR'                  │ true              │
+│ 6       │ '0x4e13849d29a9a7A200196DC16722ddeb67b6e769' │ 'BASE'         │ 'ACROSS'                     │ true              │
+│ 7       │ '0x4e13849d29a9a7A200196DC16722ddeb67b6e769' │ 'BASE'         │ 'CCTP'                       │ true              │
+│ 8       │ '0x4e13849d29a9a7A200196DC16722ddeb67b6e769' │ 'BASE'         │ 'EVERCLEAR'                  │ true              │
+│ 9       │ '0x4e13849d29a9a7A200196DC16722ddeb67b6e769' │ 'BASE'         │ 'SUPERCHAIN_STANDARD_BRIDGE' │ true              │
+│ 10      │ '0x4e13849d29a9a7A200196DC16722ddeb67b6e769' │ 'OP_MAINNET'   │ 'ACROSS'                     │ true              │
+│ 11      │ '0x4e13849d29a9a7A200196DC16722ddeb67b6e769' │ 'OP_MAINNET'   │ 'CCTP'                       │ true              │
+│ 12      │ '0x4e13849d29a9a7A200196DC16722ddeb67b6e769' │ 'OP_MAINNET'   │ 'EVERCLEAR'                  │ true              │
+│ 13      │ '0x4e13849d29a9a7A200196DC16722ddeb67b6e769' │ 'OP_MAINNET'   │ 'SUPERCHAIN_STANDARD_BRIDGE' │ true              │
+│ 14      │ '0x578aD20ec27E11B3772F91cc6f435d782cc362EA' │ 'BASE'         │ 'ACROSS'                     │ false             │
+│ 15      │ '0x578aD20ec27E11B3772F91cc6f435d782cc362EA' │ 'BASE'         │ 'CCTP'                       │ false             │
+│ 16      │ '0x578aD20ec27E11B3772F91cc6f435d782cc362EA' │ 'BASE'         │ 'EVERCLEAR'                  │ false             │
+│ 17      │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'ARBITRUM_ONE' │ 'ACROSS'                     │ false             │
+│ 18      │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'ARBITRUM_ONE' │ 'CCTP'                       │ false             │
+│ 19      │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'ARBITRUM_ONE' │ 'EVERCLEAR'                  │ false             │
+│ 20      │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'BASE'         │ 'ACROSS'                     │ false             │
+│ 21      │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'BASE'         │ 'CCTP'                       │ false             │
+│ 22      │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'BASE'         │ 'EVERCLEAR'                  │ false             │
+│ 23      │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'BASE'         │ 'SUPERCHAIN_STANDARD_BRIDGE' │ false             │
+│ 24      │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'ETHEREUM'     │ 'LOCAL'                      │ false             │
+│ 25      │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'OP_MAINNET'   │ 'ACROSS'                     │ false             │
+│ 26      │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'OP_MAINNET'   │ 'CCTP'                       │ false             │
+│ 27      │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'OP_MAINNET'   │ 'EVERCLEAR'                  │ false             │
+│ 28      │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'OP_MAINNET'   │ 'SUPERCHAIN_STANDARD_BRIDGE' │ false             │
+└─────────┴──────────────────────────────────────────────┴────────────────┴──────────────────────────────┴───────────────────┘
+The updated configuration should be:
+┌─────────┬──────────────────────────────────────────────┬────────────────┬──────────────────────────────┬───────────────────┐
+│ (index) │ Pool                                         │ Domain         │ Provider                     │ SupportsAllTokens │
+├─────────┼──────────────────────────────────────────────┼────────────────┼──────────────────────────────┼───────────────────┤
+│ 0       │ '0x072AFfAa29E812A9F680ba1266a9c61Ac10d3853' │ 'ARBITRUM_ONE' │ 'ACROSS'                     │ true              │
+│ 1       │ '0x072AFfAa29E812A9F680ba1266a9c61Ac10d3853' │ 'ARBITRUM_ONE' │ 'ARBITRUM_GATEWAY'           │ true              │
+│ 2       │ '0x072AFfAa29E812A9F680ba1266a9c61Ac10d3853' │ 'ARBITRUM_ONE' │ 'CCTP'                       │ true              │
+│ 3       │ '0x072AFfAa29E812A9F680ba1266a9c61Ac10d3853' │ 'ARBITRUM_ONE' │ 'EVERCLEAR'                  │ true              │
+│ 4       │ '0x4e13849d29a9a7A200196DC16722ddeb67b6e769' │ 'ARBITRUM_ONE' │ 'ACROSS'                     │ true              │
+│ 5       │ '0x4e13849d29a9a7A200196DC16722ddeb67b6e769' │ 'ARBITRUM_ONE' │ 'ARBITRUM_GATEWAY'           │ true              │
+│ 6       │ '0x4e13849d29a9a7A200196DC16722ddeb67b6e769' │ 'ARBITRUM_ONE' │ 'CCTP'                       │ true              │
+│ 7       │ '0x4e13849d29a9a7A200196DC16722ddeb67b6e769' │ 'ARBITRUM_ONE' │ 'EVERCLEAR'                  │ true              │
+│ 8       │ '0x4e13849d29a9a7A200196DC16722ddeb67b6e769' │ 'BASE'         │ 'ACROSS'                     │ true              │
+│ 9       │ '0x4e13849d29a9a7A200196DC16722ddeb67b6e769' │ 'BASE'         │ 'CCTP'                       │ true              │
+│ 10      │ '0x4e13849d29a9a7A200196DC16722ddeb67b6e769' │ 'BASE'         │ 'EVERCLEAR'                  │ true              │
+│ 11      │ '0x4e13849d29a9a7A200196DC16722ddeb67b6e769' │ 'BASE'         │ 'SUPERCHAIN_STANDARD_BRIDGE' │ true              │
+│ 12      │ '0x4e13849d29a9a7A200196DC16722ddeb67b6e769' │ 'OP_MAINNET'   │ 'ACROSS'                     │ true              │
+│ 13      │ '0x4e13849d29a9a7A200196DC16722ddeb67b6e769' │ 'OP_MAINNET'   │ 'CCTP'                       │ true              │
+│ 14      │ '0x4e13849d29a9a7A200196DC16722ddeb67b6e769' │ 'OP_MAINNET'   │ 'EVERCLEAR'                  │ true              │
+│ 15      │ '0x4e13849d29a9a7A200196DC16722ddeb67b6e769' │ 'OP_MAINNET'   │ 'SUPERCHAIN_STANDARD_BRIDGE' │ true              │
+│ 16      │ '0x578aD20ec27E11B3772F91cc6f435d782cc362EA' │ 'BASE'         │ 'ACROSS'                     │ false             │
+│ 17      │ '0x578aD20ec27E11B3772F91cc6f435d782cc362EA' │ 'BASE'         │ 'CCTP'                       │ false             │
+│ 18      │ '0x578aD20ec27E11B3772F91cc6f435d782cc362EA' │ 'BASE'         │ 'EVERCLEAR'                  │ false             │
+│ 19      │ '0x578aD20ec27E11B3772F91cc6f435d782cc362EA' │ 'BASE'         │ 'SUPERCHAIN_STANDARD_BRIDGE' │ false             │
+│ 20      │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'ARBITRUM_ONE' │ 'ACROSS'                     │ false             │
+│ 21      │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'ARBITRUM_ONE' │ 'ARBITRUM_GATEWAY'           │ false             │
+│ 22      │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'ARBITRUM_ONE' │ 'CCTP'                       │ false             │
+│ 23      │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'ARBITRUM_ONE' │ 'EVERCLEAR'                  │ false             │
+│ 24      │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'BASE'         │ 'ACROSS'                     │ false             │
+│ 25      │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'BASE'         │ 'CCTP'                       │ false             │
+│ 26      │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'BASE'         │ 'EVERCLEAR'                  │ false             │
+│ 27      │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'BASE'         │ 'SUPERCHAIN_STANDARD_BRIDGE' │ false             │
+│ 28      │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'ETHEREUM'     │ 'LOCAL'                      │ false             │
+│ 29      │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'OP_MAINNET'   │ 'ACROSS'                     │ false             │
+│ 30      │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'OP_MAINNET'   │ 'CCTP'                       │ false             │
+│ 31      │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'OP_MAINNET'   │ 'EVERCLEAR'                  │ false             │
+│ 32      │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'OP_MAINNET'   │ 'SUPERCHAIN_STANDARD_BRIDGE' │ false             │
+└─────────┴──────────────────────────────────────────────┴────────────────┴──────────────────────────────┴───────────────────┘
+There are no excess routes to deny.
+Following routes are now allowed on 0x697ECA1cae710FA0348e2173900e6C09b180C35b.
+┌─────────┬──────────────────────────────────────────────┬────────────────┬──────────────────────────────┬───────────────────┐
+│ (index) │ Pool                                         │ Domain         │ Provider                     │ SupportsAllTokens │
+├─────────┼──────────────────────────────────────────────┼────────────────┼──────────────────────────────┼───────────────────┤
+│ 0       │ '0x072AFfAa29E812A9F680ba1266a9c61Ac10d3853' │ 'ARBITRUM_ONE' │ 'ARBITRUM_GATEWAY'           │ true              │
+│ 1       │ '0x4e13849d29a9a7A200196DC16722ddeb67b6e769' │ 'ARBITRUM_ONE' │ 'ARBITRUM_GATEWAY'           │ true              │
+│ 2       │ '0x578aD20ec27E11B3772F91cc6f435d782cc362EA' │ 'BASE'         │ 'SUPERCHAIN_STANDARD_BRIDGE' │ false             │
+│ 3       │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'ARBITRUM_ONE' │ 'ARBITRUM_GATEWAY'           │ false             │
+└─────────┴──────────────────────────────────────────────┴────────────────┴──────────────────────────────┴───────────────────┘

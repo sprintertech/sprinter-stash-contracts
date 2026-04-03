@@ -30,7 +30,8 @@ interface IRoute {
         EVERCLEAR,
         SUPERCHAIN_STANDARD_BRIDGE,
         ARBITRUM_GATEWAY,
-        GNOSIS_OMNIBRIDGE
+        GNOSIS_OMNIBRIDGE,
+        USDT0
     }
 
     enum PoolType {

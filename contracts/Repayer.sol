@@ -16,6 +16,7 @@ import {EverclearAdapter} from "./utils/EverclearAdapter.sol";
 import {SuperchainStandardBridgeAdapter} from "./utils/SuperchainStandardBridgeAdapter.sol";
 import {ArbitrumGatewayAdapter} from "./utils/ArbitrumGatewayAdapter.sol";
 import {GnosisOmnibridgeAdapter} from "./utils/GnosisOmnibridgeAdapter.sol";
+import {USDT0Adapter} from "./utils/USDT0Adapter.sol";
 import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 
 /// @title Performs repayment to Liquidity Pools on same/different chains.
@@ -32,7 +33,8 @@ contract Repayer is
     EverclearAdapter,
     SuperchainStandardBridgeAdapter,
     ArbitrumGatewayAdapter,
-    GnosisOmnibridgeAdapter
+    GnosisOmnibridgeAdapter,
+    USDT0Adapter
 {
     using SafeERC20 for IERC20;
     using BitMaps for BitMaps.BitMap;
@@ -75,7 +77,6 @@ contract Repayer is
     error ZeroAmount();
     error InsufficientBalance();
     error RouteDenied();
-    error InvalidToken();
     error UnsupportedProvider();
     error InvalidPoolAssets();
 
@@ -104,7 +105,8 @@ contract Repayer is
         address omnibridge,
         address gnosisUsdcxdai,
         address gnosisUsdceSwap,
-        address ethereumAmb
+        address ethereumAmb,
+        address usdt0Oft
     )
         CCTPAdapter(cctpTokenMessenger, cctpMessageTransmitter)
         AcrossAdapter(acrossSpokePool)
@@ -120,6 +122,7 @@ contract Repayer is
             gnosisUsdceSwap,
             ethereumAmb
         )
+        USDT0Adapter(usdt0Oft)
     {
         ERC7201Helper.validateStorageLocation(
             STORAGE_LOCATION,
@@ -257,6 +260,9 @@ contract Repayer is
         } else
         if (provider == Provider.GNOSIS_OMNIBRIDGE) {
             initiateTransferGnosisOmnibridge(token, amount, destinationPool, destinationDomain, DOMAIN);
+        } else
+        if (provider == Provider.USDT0) {
+            initiateTransferUSDT0(token, amount, destinationPool, destinationDomain, DOMAIN, _msgSender());
         } else {
             // Unreachable atm, but could become so when more providers are added to enum.
             revert UnsupportedProvider();

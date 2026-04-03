@@ -50,6 +50,7 @@ export const ProviderSolidity = {
   SUPERCHAIN_STANDARD_BRIDGE: 5n,
   ARBITRUM_GATEWAY: 6n,
   GNOSIS_OMNIBRIDGE: 7n,
+  USDT0: 8n,
 };
 
 export const DomainSolidity = {
@@ -99,6 +100,7 @@ export const SolidityProvider: { [n: number]: Provider } = {
   5: Provider.SUPERCHAIN_STANDARD_BRIDGE,
   6: Provider.ARBITRUM_GATEWAY,
   7: Provider.GNOSIS_OMNIBRIDGE,
+  8: Provider.USDT0,
 };
 
 export const CCTPDomain: { [n: number]: Network } = {

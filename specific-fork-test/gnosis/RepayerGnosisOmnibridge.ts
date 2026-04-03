@@ -59,6 +59,7 @@ describe("Repayer Gnosis Omnibridge (Gnosis Chain fork)", function () {
         gnosisConfig.GnosisUSDCxDAI,
         gnosisConfig.GnosisUSDCTransmuter,
         ZERO_ADDRESS,
+        ZERO_ADDRESS,
       )
     ) as Repayer;
 

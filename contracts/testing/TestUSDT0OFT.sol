@@ -8,6 +8,7 @@ import {SendParam, MessagingFee} from "../interfaces/ILayerZero.sol";
 
 /// @notice Minimal USDT0-style token with permissioned burn for testing.
 /// The OFT calls burn() directly without needing an approval from the token holder.
+/// To simplify the test setup, burn function here can be called by anyone.
 contract TestUSDT0 is ERC20 {
     constructor() ERC20("TestUSDT0", "tUSDT0") {}
 
@@ -17,6 +18,10 @@ contract TestUSDT0 is ERC20 {
 
     function burn(address from, uint256 amount) public {
         _burn(from, amount);
+    }
+
+    function decimals() public pure override returns (uint8) {
+        return 6;
     }
 }
 

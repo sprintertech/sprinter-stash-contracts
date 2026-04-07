@@ -893,7 +893,7 @@ export const networkConfig: NetworksConfig = {
       AcrossV3SpokePool: "0xe35e9842fceaCA96570B734083f4a58e8F7C5f2A",
       StargateTreasurer: "0x146c8e409C113ED87C6183f4d25c50251DFfbb3a",
       EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
-      USDT0OFT: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+      USDT0OFT: "0x14E4A1B13bf7F943c8ff7C51fb60FA964A298D92",
       Tokens: {
         USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
         USDT: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",

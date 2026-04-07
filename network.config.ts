@@ -434,6 +434,17 @@ export const networkConfig: NetworksConfig = {
             ],
           },
         },
+        [LiquidityPoolUSDCV3]: {
+          SupportsAllTokens: false,
+          Domains: {
+            [Network.BASE]: [
+              Provider.CCTP,
+              Provider.ACROSS,
+              Provider.EVERCLEAR,
+              Provider.SUPERCHAIN_STANDARD_BRIDGE,
+            ],
+          },
+        },
         [LiquidityPoolUSDCV4]: {
           SupportsAllTokens: false,
           Domains: {
@@ -713,6 +724,12 @@ export const networkConfig: NetworksConfig = {
             ],
           },
         },
+        [LiquidityPoolUSDCV3]: {
+          SupportsAllTokens: false,
+          Domains: {
+            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          },
+        },
         [LiquidityPoolUSDCV4]: {
           SupportsAllTokens: false,
           Domains: {
@@ -928,6 +945,12 @@ export const networkConfig: NetworksConfig = {
               Provider.EVERCLEAR,
               Provider.STARGATE,
             ],
+          },
+        },
+        [LiquidityPoolUSDCV3]: {
+          SupportsAllTokens: false,
+          Domains: {
+            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
           },
         },
         [LiquidityPoolUSDCV4]: {
@@ -1378,6 +1401,12 @@ export const networkConfig: NetworksConfig = {
             ],
           },
         },
+        [LiquidityPoolUSDCV3]: {
+          SupportsAllTokens: false,
+          Domains: {
+            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          },
+        },
         [LiquidityPoolUSDCV4]: {
           SupportsAllTokens: false,
           Domains: {
@@ -1553,6 +1582,12 @@ export const networkConfig: NetworksConfig = {
             ],
           },
         },
+        [LiquidityPoolUSDCV3]: {
+          SupportsAllTokens: false,
+          Domains: {
+            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          },
+        },
         [LiquidityPoolUSDCV4]: {
           SupportsAllTokens: false,
           Domains: {
@@ -1700,6 +1735,12 @@ export const networkConfig: NetworksConfig = {
               Provider.EVERCLEAR,
               Provider.STARGATE,
             ],
+          },
+        },
+        [LiquidityPoolUSDCV3]: {
+          SupportsAllTokens: false,
+          Domains: {
+            [Network.BASE]: [Provider.ACROSS, Provider.EVERCLEAR],
           },
         },
         [LiquidityPoolUSDCV4]: {

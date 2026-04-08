@@ -16,7 +16,7 @@ import {
 } from "../../typechain-types";
 import {networkConfig} from "../../network.config";
 
-describe("Repayer Gnosis Omnibridge (Ethereum fork)", function () {
+describe("Repayer USDT0 (Ethereum fork)", function () {
   const deployAll = async () => {
     const [deployer, admin, repayUser, setTokensUser] = await hre.ethers.getSigners();
     await setCode(repayUser.address, "0x00");
@@ -26,8 +26,17 @@ describe("Repayer Gnosis Omnibridge (Ethereum fork)", function () {
     const REPAYER_ROLE = hre.ethers.encodeBytes32String("REPAYER_ROLE");
     const DEPOSIT_PROFIT_ROLE = hre.ethers.encodeBytes32String("DEPOSIT_PROFIT_ROLE");
 
+    assertAddress(forkNetworkConfig.Tokens.USDT, "USDT address is missing from ETHEREUM config");
+    assertAddress(forkNetworkConfig.USDT0OFT, "USDT0OFT address is missing from ETHEREUM config");
+    assertAddress(forkNetworkConfig.Omnibridge, "ETHEREUM Omnibridge address is missing");
+    assertAddress(forkNetworkConfig.GnosisAMB, "ETHEREUM GnosisAMB address is missing");
+
     const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.USDC);
+    const usdt = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.USDT!);
     const weth = await hre.ethers.getContractAt("IWrappedNativeToken", forkNetworkConfig.WrappedNativeToken);
+    
+    const usdt0Oft = await hre.ethers.getContractAt("IOFT", forkNetworkConfig.USDT0OFT!);
+    expect(await usdt0Oft.token()).to.equal(forkNetworkConfig.Tokens.USDT);
 
     const liquidityPool = (await deploy(
       "TestLiquidityPool",
@@ -38,20 +47,14 @@ describe("Repayer Gnosis Omnibridge (Ethereum fork)", function () {
       forkNetworkConfig.WrappedNativeToken
     )) as TestLiquidityPool;
 
-    assertAddress(forkNetworkConfig.Omnibridge, "ETHEREUM Omnibridge address is missing");
-    assertAddress(forkNetworkConfig.GnosisAMB, "ETHEREUM GnosisAMB address is missing");
-
-    const cctpTokenMessenger = forkNetworkConfig.CCTP!.TokenMessenger!;
-    const cctpMessageTransmitter = forkNetworkConfig.CCTP!.MessageTransmitter!;
-
-    const USDC_DEC = 10n ** (await usdc.decimals());
+    const USDT_DEC = 10n ** (await usdt.decimals());
 
     const repayerImpl = (
-      await deployX("Repayer", deployer, "RepayerEthereumGnosis", {},
+      await deployX("Repayer", deployer, "RepayerEthereumUSDT0", {},
         Domain.ETHEREUM,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
+        forkNetworkConfig.CCTP!.TokenMessenger!,
+        forkNetworkConfig.CCTP!.MessageTransmitter!,
         forkNetworkConfig.AcrossV3SpokePool!,
         forkNetworkConfig.EverclearFeeAdapter!,
         weth,
@@ -63,7 +66,7 @@ describe("Repayer Gnosis Omnibridge (Ethereum fork)", function () {
         ZERO_ADDRESS,
         ZERO_ADDRESS,
         forkNetworkConfig.GnosisAMB,
-        ZERO_ADDRESS,
+        forkNetworkConfig.USDT0OFT,
       )
     ) as Repayer;
 
@@ -72,14 +75,14 @@ describe("Repayer Gnosis Omnibridge (Ethereum fork)", function () {
       repayUser,
       setTokensUser,
       [liquidityPool],
-      [Domain.GNOSIS_CHAIN],
-      [Provider.GNOSIS_OMNIBRIDGE],
+      [Domain.ARBITRUM_ONE],
+      [Provider.USDT0],
       [true],
       [],
     )).data;
 
     const repayerProxy = (await deployX(
-      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyGnosis", {},
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyEthereumUSDT0", {},
       repayerImpl, admin, repayerInit
     )) as TransparentUpgradeableProxy;
     const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
@@ -89,48 +92,49 @@ describe("Repayer Gnosis Omnibridge (Ethereum fork)", function () {
     await liquidityPool.grantRole(DEPOSIT_PROFIT_ROLE, repayer);
 
     return {
-      deployer, admin, repayUser, usdc, setTokensUser, weth,
-      USDC_DEC, liquidityPool, repayer, repayerProxy, repayerAdmin,
+      deployer, admin, repayUser, usdc, usdt, setTokensUser, weth,
+      USDT_DEC, liquidityPool, repayer, repayerProxy, repayerAdmin,
       REPAYER_ROLE, DEFAULT_ADMIN_ROLE, forkNetworkConfig,
     };
   };
 
-  it("Should allow repayer to initiate Gnosis Omnibridge repay from Ethereum to Gnosis on fork", async function () {
-    const {repayer, USDC_DEC, usdc, repayUser, liquidityPool, forkNetworkConfig} = await loadFixture(deployAll);
+  it("Should allow repayer to bridge USDT from Ethereum to Arbitrum via USDT0 OFT on fork", async function () {
+    const {repayer, USDT_DEC, usdt, repayUser, liquidityPool, forkNetworkConfig} = await loadFixture(deployAll);
 
     assertAddress(
-      process.env.USDC_OWNER_ETH_ADDRESS,
-      "Env variables not configured (USDC_OWNER_ETH_ADDRESS missing)"
+      process.env.USDT_OWNER_ETH_ADDRESS,
+      "Env variables not configured (USDT_OWNER_ETH_ADDRESS missing)"
     );
-    const USDC_OWNER_ETH_ADDRESS = process.env.USDC_OWNER_ETH_ADDRESS;
-    const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ETH_ADDRESS);
-    await setBalance(USDC_OWNER_ETH_ADDRESS, 10n ** 18n);
+    const usdtOwner = await hre.ethers.getImpersonatedSigner(process.env.USDT_OWNER_ETH_ADDRESS!);
+    await setBalance(process.env.USDT_OWNER_ETH_ADDRESS!, 10n ** 18n);
 
-    const amount = 4n * USDC_DEC;
-    await usdc.connect(usdcOwner).transfer(repayer, 10n * USDC_DEC);
+    const amount = 4n * USDT_DEC;
+    await usdt.connect(usdtOwner).transfer(repayer, 10n * USDT_DEC);
 
-    const ethereumOmnibridge = forkNetworkConfig.Omnibridge!;
-    const bridgeBalanceBefore = await usdc.balanceOf(ethereumOmnibridge);
+    const usdt0OftAddress = forkNetworkConfig.USDT0OFT!;
+    const usdtBalanceBefore = await usdt.balanceOf(repayer);
 
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc,
+      usdt,
       amount,
       liquidityPool,
-      Domain.GNOSIS_CHAIN,
-      Provider.GNOSIS_OMNIBRIDGE,
-      "0x"
+      Domain.ARBITRUM_ONE,
+      Provider.USDT0,
+      "0x",
+      {value: hre.ethers.parseEther("0.1")}
     );
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")
-      .withArgs(usdc.target, amount, liquidityPool.target, Domain.GNOSIS_CHAIN, Provider.GNOSIS_OMNIBRIDGE);
+      .withArgs(usdt.target, amount, liquidityPool.target, Domain.ARBITRUM_ONE, Provider.USDT0);
+    // Adapter locks USDT via transferFrom: USDT moves from repayer to USDT0 OFT.
     await expect(tx)
-      .to.emit(repayer, "GnosisOmnibridgeTransferInitiated")
-      .withArgs(usdc.target, liquidityPool.target, amount);
-    await expect(tx)
-      .to.emit(usdc, "Transfer")
-      .withArgs(repayer.target, ethereumOmnibridge, amount);
+      .to.emit(usdt, "Transfer")
+      .withArgs(repayer.target, usdt0OftAddress, amount);
 
-    expect(await usdc.balanceOf(repayer)).to.equal(6n * USDC_DEC);
-    expect(await usdc.balanceOf(ethereumOmnibridge)).to.equal(bridgeBalanceBefore + amount);
+    await expect(tx)
+      .to.emit(repayer, "USDT0Transfer")
+      .withArgs(usdt.target, liquidityPool.target, "30110", amount);
+
+    expect(await usdt.balanceOf(repayer)).to.equal(usdtBalanceBefore - amount);
   });
 });

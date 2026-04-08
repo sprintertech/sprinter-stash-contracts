@@ -101,6 +101,7 @@ describe("Repayer", function () {
         baseStandardBridge,
         arbitrumGatewayRouter,
         forkNetworkConfig.Omnibridge!, ZERO_ADDRESS, ZERO_ADDRESS, forkNetworkConfig.GnosisAMB!,
+        ZERO_ADDRESS,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(

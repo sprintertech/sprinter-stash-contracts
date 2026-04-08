@@ -19,7 +19,8 @@ contract TestRepayer is Repayer {
         address omnibridge,
         address gnosisUsdcxdai,
         address gnosisUsdceSwap,
-        address ethereumAmb
+        address ethereumAmb,
+        address usdt0Oft
     ) Repayer(
         localDomain,
         assets,
@@ -35,7 +36,8 @@ contract TestRepayer is Repayer {
         omnibridge,
         gnosisUsdcxdai,
         gnosisUsdceSwap,
-        ethereumAmb
+        ethereumAmb,
+        usdt0Oft
     ) {}
 
     function domainCCTP(Domain destinationDomain) public pure override returns (uint32) {

@@ -131,6 +131,7 @@ export async function main() {
   if (!config.GnosisUSDCxDAI) config.GnosisUSDCxDAI = ZERO_ADDRESS;
   if (!config.GnosisUSDCTransmuter) config.GnosisUSDCTransmuter = ZERO_ADDRESS;
   if (!config.GnosisAMB) config.GnosisAMB = ZERO_ADDRESS;
+  if (!config.USDT0OFT) config.USDT0OFT = ZERO_ADDRESS;
 
   let mainPool: LiquidityPool | undefined = undefined;
   let aavePoolLongTerm: LiquidityPoolAaveLongTerm;
@@ -427,6 +428,7 @@ export async function main() {
         config.GnosisUSDCxDAI,
         config.GnosisUSDCTransmuter,
         config.GnosisAMB,
+        config.USDT0OFT,
       ],
       [
         config.Admin,

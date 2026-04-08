@@ -87,6 +87,7 @@ export async function main() {
   if (!config.GnosisUSDCxDAI) config.GnosisUSDCxDAI = ZERO_ADDRESS;
   if (!config.GnosisUSDCTransmuter) config.GnosisUSDCTransmuter = ZERO_ADDRESS;
   if (!config.GnosisAMB) config.GnosisAMB = ZERO_ADDRESS;
+  if (!config.USDT0OFT) config.USDT0OFT = ZERO_ADDRESS;
 
   const inputOutputTokens = getInputOutputTokens(network, networkConfig[network]);
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
@@ -112,6 +113,7 @@ export async function main() {
       config.GnosisUSDCxDAI,
       config.GnosisUSDCTransmuter,
       config.GnosisAMB,
+      config.USDT0OFT,
     ],
     [
       deployer,

@@ -18,6 +18,7 @@ import {
   TestAcrossV3SpokePool, TestStargate, MockStargateTreasurerTrue, MockStargateTreasurerFalse,
   TestSuperchainStandardBridge, IWrappedNativeToken, TestArbitrumGatewayRouter,
   TestGnosisOmnibridge, TestGnosisAMB, TestUSDCTransmuter,
+  TestUSDT0, TestUSDT0OFTAdapter, TestUSDT0OFTNative,
 } from "../typechain-types";
 import {networkConfig} from "../network.config";
 
@@ -106,7 +107,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS
+        ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -201,17 +202,17 @@ describe("Repayer", function () {
     expect(await repayer.domainChainId(Domain.GNOSIS_CHAIN)).to.equal(100n);
     await expect(repayer.domainChainId(Domain.OP_SEPOLIA))
       .to.be.revertedWithCustomError(repayer, "UnsupportedDomain()");
-    expect(await repayer.stargateEndpointId(Domain.ETHEREUM)).to.equal(30101n);
-    expect(await repayer.stargateEndpointId(Domain.AVALANCHE)).to.equal(30106n);
-    expect(await repayer.stargateEndpointId(Domain.OP_MAINNET)).to.equal(30111n);
-    expect(await repayer.stargateEndpointId(Domain.ARBITRUM_ONE)).to.equal(30110n);
-    expect(await repayer.stargateEndpointId(Domain.BASE)).to.equal(30184n);
-    expect(await repayer.stargateEndpointId(Domain.POLYGON_MAINNET)).to.equal(30109n);
-    expect(await repayer.stargateEndpointId(Domain.UNICHAIN)).to.equal(30320n);
-    expect(await repayer.stargateEndpointId(Domain.BSC)).to.equal(30102n);
-    expect(await repayer.stargateEndpointId(Domain.LINEA)).to.equal(30183n);
-    expect(await repayer.stargateEndpointId(Domain.GNOSIS_CHAIN)).to.equal(30145n);
-    await expect(repayer.stargateEndpointId(Domain.OP_SEPOLIA))
+    expect(await repayer.layerZeroEndpointId(Domain.ETHEREUM)).to.equal(30101n);
+    expect(await repayer.layerZeroEndpointId(Domain.AVALANCHE)).to.equal(30106n);
+    expect(await repayer.layerZeroEndpointId(Domain.OP_MAINNET)).to.equal(30111n);
+    expect(await repayer.layerZeroEndpointId(Domain.ARBITRUM_ONE)).to.equal(30110n);
+    expect(await repayer.layerZeroEndpointId(Domain.BASE)).to.equal(30184n);
+    expect(await repayer.layerZeroEndpointId(Domain.POLYGON_MAINNET)).to.equal(30109n);
+    expect(await repayer.layerZeroEndpointId(Domain.UNICHAIN)).to.equal(30320n);
+    expect(await repayer.layerZeroEndpointId(Domain.BSC)).to.equal(30102n);
+    expect(await repayer.layerZeroEndpointId(Domain.LINEA)).to.equal(30183n);
+    expect(await repayer.layerZeroEndpointId(Domain.GNOSIS_CHAIN)).to.equal(30145n);
+    await expect(repayer.layerZeroEndpointId(Domain.OP_SEPOLIA))
       .to.be.revertedWithCustomError(repayer, "UnsupportedDomain()");
     expect(await repayer.getAllRoutes()).to.deep.equal([
       [liquidityPool.target, liquidityPool.target, liquidityPool.target, liquidityPool2.target],
@@ -756,7 +757,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+        ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Repayer;
 
@@ -1186,7 +1187,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb,
+        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb, ZERO_ADDRESS,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -1256,7 +1257,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb,
+        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb, ZERO_ADDRESS,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -1323,7 +1324,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb,
+        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb, ZERO_ADDRESS,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -1389,7 +1390,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb,
+        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb, ZERO_ADDRESS,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -1456,7 +1457,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb,
+        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb, ZERO_ADDRESS,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -1547,7 +1548,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb,
+        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb, ZERO_ADDRESS,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -1605,7 +1606,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb,
+        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb, ZERO_ADDRESS,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -1684,7 +1685,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb,
+        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb, ZERO_ADDRESS,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -1751,7 +1752,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb,
+        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb, ZERO_ADDRESS,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -1831,7 +1832,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb,
+        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb, ZERO_ADDRESS,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -1904,7 +1905,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb,
+        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb, ZERO_ADDRESS,
       )
     ) as Repayer;
 
@@ -1978,7 +1979,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb
+        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb, ZERO_ADDRESS,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -2044,7 +2045,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb
+        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb, ZERO_ADDRESS,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -2145,7 +2146,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb
+        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb, ZERO_ADDRESS,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -2211,7 +2212,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         ZERO_ADDRESS,
-        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb
+        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb, ZERO_ADDRESS,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -2587,7 +2588,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+        ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Repayer;
 
@@ -2728,7 +2729,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+        ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Repayer;
 
@@ -2898,7 +2899,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb,
+        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb, ZERO_ADDRESS,
       )
     ) as Repayer;
 
@@ -3079,7 +3080,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb,
+        ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb, ZERO_ADDRESS,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -3141,7 +3142,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        gnosisOmnibridge, usdc.target, dummySwap.target, ZERO_ADDRESS,
+        gnosisOmnibridge, usdc.target, dummySwap.target, ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -3202,7 +3203,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        gnosisOmnibridge, usdc.target, usdceSwap.target, ZERO_ADDRESS,
+        gnosisOmnibridge, usdc.target, usdceSwap.target, ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -3271,7 +3272,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        gnosisOmnibridge, usdc.target, usdceSwap.target, ZERO_ADDRESS,
+        gnosisOmnibridge, usdc.target, usdceSwap.target, ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -3319,7 +3320,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb,
+        ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb, ZERO_ADDRESS,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -3362,7 +3363,7 @@ describe("Repayer", function () {
       optimismBridge,
       baseBridge,
       arbitrumGatewayRouter,
-      ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb,
+      ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb, ZERO_ADDRESS,
     )).to.be.revertedWithCustomError(factory, "ZeroAddress");
   });
 
@@ -3389,19 +3390,19 @@ describe("Repayer", function () {
     // Omnibridge is 0
     await expect(factory.deploy(
       Domain.GNOSIS_CHAIN, ...baseArgs,
-      ZERO_ADDRESS, usdc, usdceSwap, ZERO_ADDRESS,
+      ZERO_ADDRESS, usdc, usdceSwap, ZERO_ADDRESS, ZERO_ADDRESS,
     )).to.be.revertedWithCustomError(factory, "ZeroAddress");
 
     // USDCxDAI is 0
     await expect(factory.deploy(
       Domain.GNOSIS_CHAIN, ...baseArgs,
-      gnosisOmnibridge, ZERO_ADDRESS, usdceSwap, ZERO_ADDRESS,
+      gnosisOmnibridge, ZERO_ADDRESS, usdceSwap, ZERO_ADDRESS, ZERO_ADDRESS,
     )).to.be.revertedWithCustomError(factory, "ZeroAddress");
 
     // USDCe swap is 0
     await expect(factory.deploy(
       Domain.GNOSIS_CHAIN, ...baseArgs,
-      gnosisOmnibridge, usdc, ZERO_ADDRESS, ZERO_ADDRESS,
+      gnosisOmnibridge, usdc, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
     )).to.be.revertedWithCustomError(factory, "ZeroAddress");
   });
 
@@ -3424,25 +3425,25 @@ describe("Repayer", function () {
     // Non-zero omnibridge
     await expect(factory.deploy(
       Domain.BASE, ...baseArgs,
-      someAddress, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+      someAddress, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
     )).to.be.revertedWithCustomError(factory, "ZeroAddress");
 
     // Non-zero gnosisUsdcxdai
     await expect(factory.deploy(
       Domain.BASE, ...baseArgs,
-      ZERO_ADDRESS, someAddress, ZERO_ADDRESS, ZERO_ADDRESS,
+      ZERO_ADDRESS, someAddress, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
     )).to.be.revertedWithCustomError(factory, "ZeroAddress");
 
     // Non-zero gnosisUsdceSwap
     await expect(factory.deploy(
       Domain.BASE, ...baseArgs,
-      ZERO_ADDRESS, ZERO_ADDRESS, someAddress, ZERO_ADDRESS,
+      ZERO_ADDRESS, ZERO_ADDRESS, someAddress, ZERO_ADDRESS, ZERO_ADDRESS,
     )).to.be.revertedWithCustomError(factory, "ZeroAddress");
 
     // Non-zero ethereumAmb
     await expect(factory.deploy(
       Domain.BASE, ...baseArgs,
-      ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, someAddress,
+      ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, someAddress, ZERO_ADDRESS,
     )).to.be.revertedWithCustomError(factory, "ZeroAddress");
   });
 
@@ -3470,7 +3471,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb,
+        ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb, ZERO_ADDRESS,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -3520,7 +3521,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb,
+        ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb, ZERO_ADDRESS,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -3586,7 +3587,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb,
+        ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb, ZERO_ADDRESS,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -3640,13 +3641,13 @@ describe("Repayer", function () {
     // Omnibridge is 0
     await expect(factory.deploy(
       Domain.ETHEREUM, ...baseArgs,
-      ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb,
+      ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb, ZERO_ADDRESS,
     )).to.be.revertedWithCustomError(factory, "ZeroAddress");
 
     // AMB is 0
     await expect(factory.deploy(
       Domain.ETHEREUM, ...baseArgs,
-      ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+      ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
     )).to.be.revertedWithCustomError(factory, "ZeroAddress");
   });
 
@@ -3674,7 +3675,7 @@ describe("Repayer", function () {
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb,
+        ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb, ZERO_ADDRESS,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -3699,5 +3700,251 @@ describe("Repayer", function () {
     await expect(repayer.connect(repayUser).processRepay(
       liquidityPool, Provider.GNOSIS_OMNIBRIDGE, extraData
     )).to.be.reverted;
+  });
+
+  it("Should perform USDT0 repay with a mock OFT adapter (approval required)", async function () {
+    // Adapter pattern (Ethereum): OFT calls transferFrom → forceApprove is triggered.
+    const {
+      usdc, admin, repayUser, liquidityPool, deployer,
+      cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool,
+      everclearFeeAdapter, weth, stargateTreasurerTrue,
+      optimismBridge, baseBridge, arbitrumGatewayRouter, setTokensUser,
+      sharedEthereumOmnibridge, sharedEthereumAmb,
+    } = await loadFixture(deployAll);
+
+    const testUsdt0 = (await deploy("TestUSDT0", deployer, {})) as TestUSDT0;
+    const testOFT = (
+      await deploy("TestUSDT0OFTAdapter", deployer, {}, testUsdt0)
+    ) as TestUSDT0OFTAdapter;
+    expect(await testOFT.token()).to.eq(testUsdt0.target);
+
+    const USDT0_DEC = 10n ** (await testUsdt0.decimals());
+
+    // Ethereum domain required so localDomain == Domain.ETHEREUM → forceApprove path.
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "RepayerUSDT0Adapter", {},
+        Domain.ETHEREUM,
+        usdc,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
+        acrossV3SpokePool,
+        everclearFeeAdapter,
+        weth,
+        stargateTreasurerTrue,
+        optimismBridge,
+        baseBridge,
+        arbitrumGatewayRouter,
+        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb,
+        testOFT,
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin, repayUser, setTokensUser,
+      [liquidityPool], [Domain.ARBITRUM_ONE], [Provider.USDT0], [true], [],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayerUSDT0Adapter", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    const amount = 4n * USDT0_DEC;
+    await testUsdt0.mint(repayer.target, 10n * USDT0_DEC);
+
+    const tx = repayer.connect(repayUser).initiateRepay(
+      testUsdt0,
+      amount,
+      liquidityPool,
+      Domain.ARBITRUM_ONE,
+      Provider.USDT0,
+      "0x",
+      {value: 1n * ETH}
+    );
+    await expect(tx)
+      .to.emit(repayer, "InitiateRepay")
+      .withArgs(testUsdt0.target, amount, liquidityPool.target, Domain.ARBITRUM_ONE, Provider.USDT0);
+    // Adapter locks via transferFrom: tokens move from repayer to OFT contract.
+    await expect(tx)
+      .to.emit(testUsdt0, "Transfer")
+      .withArgs(repayer.target, testOFT.target, amount);
+
+    await expect(tx)
+      .to.emit(repayer, "USDT0Transfer")
+      .withArgs(testUsdt0.target, liquidityPool.target, "30110", amount);
+    await expect(tx).to.changeEtherBalance(repayUser, -(await testOFT.NATIVE_FEE()));
+  });
+
+  it("Should perform USDT0 repay with a native OFT (no approval needed, token is burned)", async function () {
+    // Native OFT pattern (non-Ethereum): OFT calls token.burn() → no approval needed.
+    const {
+      usdc, admin, repayUser, liquidityPool, deployer,
+      cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool,
+      everclearFeeAdapter, weth, stargateTreasurerTrue,
+      optimismBridge, baseBridge, arbitrumGatewayRouter, setTokensUser,
+    } = await loadFixture(deployAll);
+
+    const testUsdt0 = (await deploy("TestUSDT0", deployer, {})) as TestUSDT0;
+    const testOFT = (
+      await deploy("TestUSDT0OFTNative", deployer, {}, testUsdt0)
+    ) as TestUSDT0OFTNative;
+    expect(await testOFT.token()).to.eq(testUsdt0.target);
+
+    const USDT0_DEC = 10n ** (await testUsdt0.decimals());
+
+    // ARBITRUM_ONE domain → localDomain != ETHEREUM → no forceApprove, OFT calls burn().
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "RepayerUSDT0Native", {},
+        Domain.ARBITRUM_ONE,
+        usdc,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
+        acrossV3SpokePool,
+        everclearFeeAdapter,
+        weth,
+        stargateTreasurerTrue,
+        optimismBridge,
+        baseBridge,
+        arbitrumGatewayRouter,
+        ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+        testOFT,
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin, repayUser, setTokensUser,
+      [liquidityPool], [Domain.ETHEREUM], [Provider.USDT0], [true], [],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayerUSDT0Native", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    const amount = 4n * USDT0_DEC;
+    await testUsdt0.mint(repayer.target, 10n * USDT0_DEC);
+
+    const tx = repayer.connect(repayUser).initiateRepay(
+      testUsdt0,
+      amount,
+      liquidityPool,
+      Domain.ETHEREUM,
+      Provider.USDT0,
+      "0x",
+      {value: 1n * ETH}
+    );
+    await expect(tx)
+      .to.emit(repayer, "InitiateRepay")
+      .withArgs(testUsdt0.target, amount, liquidityPool.target, Domain.ETHEREUM, Provider.USDT0);
+    // Native OFT burns via token.burn(): Transfer to zero address, no Transfer to OFT.
+    await expect(tx)
+      .to.emit(testUsdt0, "Transfer")
+      .withArgs(repayer.target, hre.ethers.ZeroAddress, amount);
+
+    await expect(tx)
+      .to.emit(repayer, "USDT0Transfer")
+      .withArgs(testUsdt0.target, liquidityPool.target, "30101", amount);
+    await expect(tx).to.changeEtherBalance(repayUser, -(await testOFT.NATIVE_FEE()));
+  });
+
+  it("Should revert USDT0 repay if token doesn't match OFT.token()", async function () {
+    const {
+      usdc, admin, repayUser, liquidityPool, deployer,
+      cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool,
+      everclearFeeAdapter, weth, stargateTreasurerTrue,
+      optimismBridge, baseBridge, arbitrumGatewayRouter, setTokensUser,
+      eurc, eurcOwner, EURC_DEC,
+    } = await loadFixture(deployAll);
+
+    const testUsdt0 = (await deploy("TestUSDT0", deployer, {})) as TestUSDT0;
+    const testOFT = (
+      await deploy("TestUSDT0OFTAdapter", deployer, {}, testUsdt0)
+    ) as TestUSDT0OFTAdapter;
+
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "RepayerUSDT0TokenMismatch", {},
+        Domain.BASE,
+        usdc,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
+        acrossV3SpokePool,
+        everclearFeeAdapter,
+        weth,
+        stargateTreasurerTrue,
+        optimismBridge,
+        baseBridge,
+        arbitrumGatewayRouter,
+        ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+        testOFT,
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin, repayUser, setTokensUser,
+      [liquidityPool], [Domain.ETHEREUM], [Provider.USDT0], [true], [],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayerUSDT0TokenMismatch", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    await eurc.connect(eurcOwner).transfer(repayer, 10n * EURC_DEC);
+
+    await expect(repayer.connect(repayUser).initiateRepay(
+      eurc,
+      4n * EURC_DEC,
+      liquidityPool,
+      Domain.ETHEREUM,
+      Provider.USDT0,
+      "0x",
+      {value: 1n * ETH}
+    )).to.be.revertedWithCustomError(repayer, "InvalidToken");
+  });
+
+  it("Should revert USDT0 repay if OFT address is zero", async function () {
+    const {
+      USDC_DEC, usdc, admin, repayUser, liquidityPool, deployer,
+      cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool,
+      everclearFeeAdapter, weth, stargateTreasurerTrue,
+      optimismBridge, baseBridge, arbitrumGatewayRouter, setTokensUser,
+    } = await loadFixture(deployAll);
+
+    // The default deployAll fixture uses ZERO_ADDRESS for usdt0Oft
+    // Redeploy a new repayer with ZERO_ADDRESS for usdt0Oft explicitly
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "RepayerUSDT0Zero", {},
+        Domain.BASE,
+        usdc,
+        cctpTokenMessenger,
+        cctpMessageTransmitter,
+        acrossV3SpokePool,
+        everclearFeeAdapter,
+        weth,
+        stargateTreasurerTrue,
+        optimismBridge,
+        baseBridge,
+        arbitrumGatewayRouter,
+        ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin, repayUser, setTokensUser,
+      [liquidityPool], [Domain.ETHEREUM], [Provider.USDT0], [true], [],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayerUSDT0Zero", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    await usdc.transfer(repayer, 10n * USDC_DEC);
+
+    await expect(repayer.connect(repayUser).initiateRepay(
+      usdc,
+      4n * USDC_DEC,
+      liquidityPool,
+      Domain.ETHEREUM,
+      Provider.USDT0,
+      "0x",
+      {value: 1n * ETH}
+    )).to.be.revertedWithCustomError(repayer, "ZeroAddress");
   });
 });

@@ -43,7 +43,7 @@ abstract contract StargateAdapter is LayerZeroHelper {
         address caller
     ) internal {
         (address stargateAddress, uint256 minAmountOut) = abi.decode(extraData, (address, uint256));
-        require(minAmountOut >= (amount * 9980 / 10000), SlippageTooHigh());
+        _validateOutputAmount(amount, minAmountOut);
         require(STARGATE_TREASURER.stargates(stargateAddress), PoolInvalid());
         IStargate stargate = IStargate(stargateAddress);
         require(address(token) == stargate.token(), PoolInvalid());

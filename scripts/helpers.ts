@@ -22,6 +22,7 @@ import {
   ERC4626AdapterUSDCVersions,
   PartialNetworksConfig,
   Token,
+  TokenInfo,
 } from "../network.config";
 
 export async function resolveAddresses(input: any[]): Promise<any[]> {
@@ -328,9 +329,9 @@ export function getNetworkConfigsForCurrentEnv(config: NetworkConfig): PartialNe
 export function getInputOutputTokens(network: Network, config: NetworkConfig) {
   const envConfigs = getNetworkConfigsForCurrentEnv(config);
   const inputOutputTokens: Repayer.InputOutputTokenStruct[] = [];
-  for (const [tokenSymbol, tokenAddress] of Object.entries(config.Tokens) as [Token, string][]) {
+  for (const [tokenSymbol, token] of Object.entries(config.Tokens) as [Token, TokenInfo][]) {
     const inputToken: Repayer.InputOutputTokenStruct = {
-      inputToken: tokenAddress,
+      inputToken: token.Address,
       destinationTokens: [],
     };
     for (const [envNetwork, envConfig] of Object.entries(envConfigs) as [Network, NetworkConfig][]) {
@@ -338,7 +339,8 @@ export function getInputOutputTokens(network: Network, config: NetworkConfig) {
       if (envConfig.Tokens[tokenSymbol]) {
         inputToken.destinationTokens.push({
           destinationDomain: DomainSolidity[envNetwork],
-          outputToken: addressToBytes32(envConfig.Tokens[tokenSymbol]),
+          outputToken: addressToBytes32(envConfig.Tokens[tokenSymbol].Address),
+          localDecimalsGreaterBy: token.Decimals - envConfig.Tokens[tokenSymbol].Decimals,
         });
       }
     }
@@ -354,6 +356,7 @@ export function flattenInputOutputTokens(inputOutputTokens: Repayer.InputOutputT
     InputToken: string;
     Domain: Network;
     OutputToken: string;
+    DecimalsDiff: number;
   }[] = [];
   for (const entry of inputOutputTokens) {
     for (const destinationToken of entry.destinationTokens) {
@@ -361,6 +364,7 @@ export function flattenInputOutputTokens(inputOutputTokens: Repayer.InputOutputT
         InputToken: entry.inputToken as string,
         Domain: SolidityDomain[Number(destinationToken.destinationDomain)],
         OutputToken: bytes32ToToken(destinationToken.outputToken),
+        DecimalsDiff: Number(destinationToken.localDecimalsGreaterBy),
       });
     }
   }

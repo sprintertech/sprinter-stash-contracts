@@ -2,8 +2,12 @@
 pragma solidity 0.8.28;
 
 import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
-import {IRoute} from ".././interfaces/IRoute.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IRoute} from "../interfaces/IRoute.sol";
+
+struct InputOutputTokenData {
+    BitMaps.BitMap destinationDomains;
+    mapping(IRoute.Domain destinationDomain => int8) localDecimalsGreaterBy;
+}
 
 abstract contract AdapterHelper is IRoute {
     using BitMaps for BitMaps.BitMap;
@@ -59,30 +63,77 @@ abstract contract AdapterHelper is IRoute {
     function _validateOutputToken(
         bytes32 outputToken,
         Domain destinationDomain,
-        mapping(bytes32 outputToken => BitMaps.BitMap destinationDomains) storage outputTokens
+        mapping(bytes32 outputToken => InputOutputTokenData) storage outputTokens
     ) internal view {
-        require(outputTokens[outputToken].get(uint256(destinationDomain)), InvalidOutputToken());
+        require(outputTokens[outputToken].destinationDomains.get(uint256(destinationDomain)), InvalidOutputToken());
     }
 
-    IERC20 private constant USDC_BSC = IERC20(0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d);
-    IERC20 private constant WBTC_BSC = IERC20(0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c);
-    IERC20 private constant USDT_BSC = IERC20(0x55d398326f99059fF775485246999027B3197955);
+    function _validateOutputToken(
+        address outputToken,
+        Domain destinationDomain,
+        mapping(bytes32 outputToken => InputOutputTokenData) storage outputTokens
+    ) internal view {
+        _validateOutputToken(_addressToBytes32(outputToken), destinationDomain, outputTokens);
+    }
 
-    // Only supports BSC origin for now as BSC doesn't have any pools deployed.
-    function _destAmountToLocal(
-        uint256 destAmount,
-        IERC20 localToken,
-        Domain localDomain
-    ) internal pure returns (uint256) {
-        if (localDomain == Domain.BSC) {
-            if (localToken == USDC_BSC || localToken == USDT_BSC) {
-                return destAmount * 10 ** (18 - 6);
-            } else
-            if (localToken == WBTC_BSC) {
-                return destAmount * 10 ** (18 - 8);
-            }
-            // Add other tokens here when supported.
+    function _outputAmountToLocal(
+        uint256 outputAmount,
+        bytes32 outputToken,
+        Domain destinationDomain,
+        mapping(bytes32 outputToken => InputOutputTokenData) storage outputTokens
+    ) internal view returns (uint256) {
+        int8 localDecimalsGreaterBy = outputTokens[outputToken].localDecimalsGreaterBy[destinationDomain];
+        if (localDecimalsGreaterBy == 0) {
+            return outputAmount;
         }
-        return destAmount;
+        if (localDecimalsGreaterBy > 0) {
+            return outputAmount * 10 ** uint256(uint8(localDecimalsGreaterBy));
+        }
+        return outputAmount / 10 ** uint256(uint8(-localDecimalsGreaterBy));
+    }
+
+    function _outputAmountToLocal(
+        uint256 outputAmount,
+        address outputToken,
+        Domain destinationDomain,
+        mapping(bytes32 outputToken => InputOutputTokenData) storage outputTokens
+    ) internal view returns (uint256) {
+        return _outputAmountToLocal(outputAmount, _addressToBytes32(outputToken), destinationDomain, outputTokens);
+    }
+
+    function _validateOutputAmount(
+        uint256 inputAmount,
+        uint256 outputAmount
+    ) internal pure {
+        require(outputAmount >= (inputAmount * 9980 / 10000), SlippageTooHigh());
+    }
+
+    function _validateOutputAmount(
+        uint256 inputAmount,
+        uint256 outputAmount,
+        bytes32 outputToken,
+        Domain destinationDomain,
+        mapping(bytes32 outputToken => InputOutputTokenData) storage outputTokens
+    ) internal view {
+        _validateOutputAmount(
+            inputAmount,
+            _outputAmountToLocal(outputAmount, outputToken, destinationDomain, outputTokens)
+        );
+    }
+
+    function _validateOutputAmount(
+        uint256 inputAmount,
+        uint256 outputAmount,
+        address outputToken,
+        Domain destinationDomain,
+        mapping(bytes32 outputToken => InputOutputTokenData) storage outputTokens
+    ) internal view {
+        _validateOutputAmount(
+            inputAmount,
+            outputAmount,
+            _addressToBytes32(outputToken),
+            destinationDomain,
+            outputTokens
+        );
     }
 }

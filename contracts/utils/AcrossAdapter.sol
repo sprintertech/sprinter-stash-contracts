@@ -3,8 +3,7 @@ pragma solidity 0.8.28;
 
 import {V3SpokePoolInterface} from ".././interfaces/IAcross.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {AdapterHelper} from "./AdapterHelper.sol";
-import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
+import {AdapterHelper, InputOutputTokenData} from "./AdapterHelper.sol";
 
 abstract contract AcrossAdapter is AdapterHelper {
     using SafeERC20 for IERC20;
@@ -24,8 +23,7 @@ abstract contract AcrossAdapter is AdapterHelper {
         address destinationPool,
         Domain destinationDomain,
         bytes calldata extraData,
-        Domain localDomain,
-        mapping(bytes32 => BitMaps.BitMap) storage outputTokens
+        mapping(bytes32 => InputOutputTokenData) storage outputTokens
     ) internal notPayable {
         require(address(ACROSS_SPOKE_POOL) != address(0), ZeroAddress());
         token.forceApprove(address(ACROSS_SPOKE_POOL), amount);
@@ -37,10 +35,8 @@ abstract contract AcrossAdapter is AdapterHelper {
             uint32 fillDeadline, // Validated in the spoke pool
             uint32 exclusivityDeadline
         ) = abi.decode(extraData, (address, uint256, address, uint32, uint32, uint32));
-        require(_destAmountToLocal(outputAmount, token, localDomain) >= (amount * 9980 / 10000), SlippageTooHigh());
-        if (outputToken != address(0)) {
-            _validateOutputToken(_addressToBytes32(outputToken), destinationDomain, outputTokens);
-        }
+        _validateOutputAmount(amount, outputAmount, outputToken, destinationDomain, outputTokens);
+        _validateOutputToken(outputToken, destinationDomain, outputTokens);
         ACROSS_SPOKE_POOL.depositV3(
             address(this),
             destinationPool,

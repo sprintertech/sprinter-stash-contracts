@@ -31,8 +31,8 @@ describe("Repayer USDT0 (Ethereum fork)", function () {
     assertAddress(forkNetworkConfig.Omnibridge, "ETHEREUM Omnibridge address is missing");
     assertAddress(forkNetworkConfig.GnosisAMB, "ETHEREUM GnosisAMB address is missing");
 
-    const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.USDC);
-    const usdt = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.USDT!);
+    const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.USDC.Address);
+    const usdt = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.USDT!.Address);
     const weth = await hre.ethers.getContractAt("IWrappedNativeToken", forkNetworkConfig.WrappedNativeToken);
     
     const usdt0Oft = await hre.ethers.getContractAt("IOFT", forkNetworkConfig.USDT0OFT!);

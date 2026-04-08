@@ -44,7 +44,7 @@ export async function main() {
     deployer,
     {},
     [
-      config.Tokens.USDC,
+      config.Tokens.USDC.Address,
       targetVault,
       deployer,
     ],

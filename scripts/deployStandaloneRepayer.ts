@@ -1,7 +1,7 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {getAddress} from "ethers";
+import {getAddress, isAddress} from "ethers";
 import {
   getVerifier, deployProxyX, getHardhatStandaloneRepayerConfig, getStandaloneRepayerConfig,
   getInputOutputTokens, flattenInputOutputTokens,
@@ -17,11 +17,22 @@ import {
 } from "../network.config";
 
 export async function main() {
-  const [deployer] = await hre.ethers.getSigners();
+  let deployer;
+
+  const simulate = process.env.SIMULATE === "true" ? true : false;
+
+  if (simulate) {
+    console.log("Simulation mode enabled");
+    assert(isAddress(process.env.DEPLOYER_ADDRESS), "Deployer address must be set");
+    deployer = await hre.ethers.getImpersonatedSigner(process.env.DEPLOYER_ADDRESS!);
+  } else {
+    [deployer] = await hre.ethers.getSigners();
+  }
+  console.log(`Deployer: ${deployer.address}`);
 
   const REPAYER_ROLE = toBytes32("REPAYER_ROLE");
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
-  const verifier = getVerifier(process.env.DEPLOY_ID);
+  const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
   const repayerEnv = process.env.STANDALONE_REPAYER_ENV as StandaloneRepayerEnv;
   assert(isSet(repayerEnv), "STANDALONE_REPAYER_ENV must be set");
@@ -152,6 +163,7 @@ export async function main() {
     await repayer.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
   }
 
+  await verifier.performSimulation(config.ChainId.toString(), deployer);
   await verifier.verify(process.env.VERIFY === "true");
 }
 

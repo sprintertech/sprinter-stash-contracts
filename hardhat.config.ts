@@ -709,7 +709,7 @@ const config: HardhatUserConfig = {
         blockNumber: process.env.FORK_BLOCK_NUMBER ? parseInt(process.env.FORK_BLOCK_NUMBER) : undefined,
       },
       accounts: isSet(process.env.DRY_RUN)
-        ? [{privateKey: process.env.PRIVATE_KEY!, balance: "1000000000000000000"}]
+        ? [{privateKey: process.env.PRIVATE_KEY!, balance: "100000000000000000000"}]
         : undefined,
       // https://github.com/NomicFoundation/hardhat/issues/5511
       chains: isSet(process.env.DRY_RUN) || isSet(process.env.FORK_TEST)

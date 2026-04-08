@@ -220,6 +220,7 @@ contract Repayer is
                 destinationPool,
                 destinationDomain,
                 extraData,
+                DOMAIN,
                 $.inputOutputTokens[address(token)]
             );
         } else
@@ -230,6 +231,7 @@ contract Repayer is
                 destinationPool,
                 destinationDomain,
                 extraData,
+                DOMAIN,
                 $.inputOutputTokens[address(token)]
             );
         } else

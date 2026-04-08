@@ -24,6 +24,7 @@ abstract contract EverclearAdapter is AdapterHelper {
         address destinationPool,
         Domain destinationDomain,
         bytes calldata extraData,
+        Domain localDomain,
         mapping(bytes32 => BitMaps.BitMap) storage outputTokens
     ) internal {
         require(address(EVERCLEAR_FEE_ADAPTER) != address(0), ZeroAddress());
@@ -34,7 +35,7 @@ abstract contract EverclearAdapter is AdapterHelper {
             uint48 ttl,
             IFeeAdapterV2.FeeParams memory feeParams
         ) = abi.decode(extraData, (bytes32, uint256, uint48, IFeeAdapterV2.FeeParams));
-        require(amountOutMin >= (amount * 9980 / 10000), SlippageTooHigh());
+        require(_destAmountToLocal(amountOutMin, token, localDomain) >= (amount * 9980 / 10000), SlippageTooHigh());
         _validateOutputToken(outputAsset, destinationDomain, outputTokens);
         uint32[] memory destinations = new uint32[](1);
         destinations[0] = domainChainId(destinationDomain);

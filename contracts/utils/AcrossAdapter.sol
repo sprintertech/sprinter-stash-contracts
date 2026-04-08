@@ -24,6 +24,7 @@ abstract contract AcrossAdapter is AdapterHelper {
         address destinationPool,
         Domain destinationDomain,
         bytes calldata extraData,
+        Domain localDomain,
         mapping(bytes32 => BitMaps.BitMap) storage outputTokens
     ) internal notPayable {
         require(address(ACROSS_SPOKE_POOL) != address(0), ZeroAddress());
@@ -36,10 +37,7 @@ abstract contract AcrossAdapter is AdapterHelper {
             uint32 fillDeadline, // Validated in the spoke pool
             uint32 exclusivityDeadline
         ) = abi.decode(extraData, (address, uint256, address, uint32, uint32, uint32));
-        // Note, in case we will start supporting destination tokens with a decimals value different from the source,
-        // then we will need to remove this requirement.
-        // Until then we leave it here as a protective measure on potential offchain component calculation errors.
-        require(outputAmount >= (amount * 9980 / 10000), SlippageTooHigh());
+        require(_destAmountToLocal(outputAmount, token, localDomain) >= (amount * 9980 / 10000), SlippageTooHigh());
         if (outputToken != address(0)) {
             _validateOutputToken(_addressToBytes32(outputToken), destinationDomain, outputTokens);
         }

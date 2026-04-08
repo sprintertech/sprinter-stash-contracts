@@ -26,17 +26,17 @@ describe("Repayer USDT0 (Ethereum fork)", function () {
     const REPAYER_ROLE = hre.ethers.encodeBytes32String("REPAYER_ROLE");
     const DEPOSIT_PROFIT_ROLE = hre.ethers.encodeBytes32String("DEPOSIT_PROFIT_ROLE");
 
-    assertAddress(forkNetworkConfig.Tokens.USDT, "USDT address is missing from ETHEREUM config");
+    assertAddress(forkNetworkConfig.Tokens.USDT?.Address, "USDT address is missing from ETHEREUM config");
     assertAddress(forkNetworkConfig.USDT0OFT, "USDT0OFT address is missing from ETHEREUM config");
     assertAddress(forkNetworkConfig.Omnibridge, "ETHEREUM Omnibridge address is missing");
     assertAddress(forkNetworkConfig.GnosisAMB, "ETHEREUM GnosisAMB address is missing");
 
     const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.USDC.Address);
-    const usdt = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.USDT!.Address);
+    const usdt = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.USDT.Address);
     const weth = await hre.ethers.getContractAt("IWrappedNativeToken", forkNetworkConfig.WrappedNativeToken);
     
     const usdt0Oft = await hre.ethers.getContractAt("IOFT", forkNetworkConfig.USDT0OFT!);
-    expect(await usdt0Oft.token()).to.equal(forkNetworkConfig.Tokens.USDT);
+    expect(await usdt0Oft.token()).to.equal(forkNetworkConfig.Tokens.USDT.Address);
 
     const liquidityPool = (await deploy(
       "TestLiquidityPool",

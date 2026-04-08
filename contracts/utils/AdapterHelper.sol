@@ -92,15 +92,6 @@ abstract contract AdapterHelper is IRoute {
         return outputAmount / 10 ** uint256(uint8(-localDecimalsGreaterBy));
     }
 
-    function _outputAmountToLocal(
-        uint256 outputAmount,
-        address outputToken,
-        Domain destinationDomain,
-        mapping(bytes32 outputToken => InputOutputTokenData) storage outputTokens
-    ) internal view returns (uint256) {
-        return _outputAmountToLocal(outputAmount, _addressToBytes32(outputToken), destinationDomain, outputTokens);
-    }
-
     function _validateOutputAmount(
         uint256 inputAmount,
         uint256 outputAmount

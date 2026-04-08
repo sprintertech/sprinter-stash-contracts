@@ -33,7 +33,7 @@ describe("Repayer USDT0 (Unichain fork)", function () {
     const usdt0Token = await hre.ethers.getContractAt("ERC20", await usdt0Oft.token());
     const weth = await hre.ethers.getContractAt("IWrappedNativeToken", forkNetworkConfig.WrappedNativeToken);
 
-    expect(usdt0Token.target).to.equal(forkNetworkConfig.Tokens.USDT);
+    expect(usdt0Token.target).to.equal(forkNetworkConfig.Tokens.USDT?.Address);
 
     const liquidityPool = (await deploy(
       "TestLiquidityPool",

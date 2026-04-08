@@ -6,6 +6,7 @@ import hre from "hardhat";
 import {AbiCoder} from "ethers";
 import {
   getCreateAddress, getContractAt, deploy, deployX, toBytes32, getBalance,
+  destinationToken,
 } from "../../test/helpers";
 import {
   ProviderSolidity as Provider, DomainSolidity as Domain,
@@ -17,7 +18,6 @@ import {
   TestLiquidityPool, Repayer,
 } from "../../typechain-types";
 import {networkConfig} from "../../network.config";
-import {destinationToken} from "../../test/Repayer";
 
 describe("Repayer", function () {
   const deployAll = async () => {
@@ -30,9 +30,9 @@ describe("Repayer", function () {
     const DEPOSIT_PROFIT_ROLE = toBytes32("DEPOSIT_PROFIT_ROLE");
 
     const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.USDC.Address);
-    assertAddress(forkNetworkConfig.Tokens.DAI, "DAI address is missing");
+    assertAddress(forkNetworkConfig.Tokens.DAI?.Address, "DAI address is missing");
     const dai = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.DAI.Address);
-    assertAddress(forkNetworkConfig.Tokens.WBTC, "WBTC address is missing");
+    assertAddress(forkNetworkConfig.Tokens.WBTC?.Address, "WBTC address is missing");
     const wbtc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.WBTC.Address);
     const liquidityPool = (await deploy(
       "TestLiquidityPool",

@@ -16,7 +16,7 @@ import {
 } from "../../typechain-types";
 import {networkConfig} from "../../network.config";
 
-describe.skip("Repayer USDT0 (Polygon fork), https://github.com/NomicFoundation/edr/issues/1214", function () {
+describe("Repayer USDT0 (Polygon fork), https://github.com/NomicFoundation/edr/issues/1214", function () {
   const deployAll = async () => {
     const [deployer, admin, repayUser, setTokensUser] = await hre.ethers.getSigners();
     await setCode(repayUser.address, "0x00");
@@ -33,7 +33,7 @@ describe.skip("Repayer USDT0 (Polygon fork), https://github.com/NomicFoundation/
     const usdt0Token = await hre.ethers.getContractAt("ERC20", await usdt0Oft.token());
     const weth = await hre.ethers.getContractAt("IWrappedNativeToken", forkNetworkConfig.WrappedNativeToken);
 
-    expect(usdt0Token.target).to.equal(forkNetworkConfig.Tokens.USDT);
+    expect(usdt0Token.target).to.equal(forkNetworkConfig.Tokens.USDT?.Address);
 
     const liquidityPool = (await deploy(
       "TestLiquidityPool",

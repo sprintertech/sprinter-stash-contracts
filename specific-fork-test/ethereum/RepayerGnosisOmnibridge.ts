@@ -26,7 +26,7 @@ describe("Repayer Gnosis Omnibridge (Ethereum fork)", function () {
     const REPAYER_ROLE = hre.ethers.encodeBytes32String("REPAYER_ROLE");
     const DEPOSIT_PROFIT_ROLE = hre.ethers.encodeBytes32String("DEPOSIT_PROFIT_ROLE");
 
-    const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.USDC);
+    const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.USDC.Address);
     const weth = await hre.ethers.getContractAt("IWrappedNativeToken", forkNetworkConfig.WrappedNativeToken);
 
     const liquidityPool = (await deploy(

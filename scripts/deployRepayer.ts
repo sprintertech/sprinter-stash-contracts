@@ -31,7 +31,7 @@ export async function main() {
     id += "-DeployTest";
   }
 
-  assertAddress(config.Tokens.USDC, "USDC must be an address");
+  assertAddress(config.Tokens.USDC.Address, "USDC must be an address");
   assertAddress(config.Admin, "Admin must be an address");
   assertAddress(config.RepayerCaller, "RepayerCaller must be an address");
   assertAddress(config.SetInputOutputTokens, "SetInputOutputTokens must be an address");
@@ -92,7 +92,7 @@ export async function main() {
     config.Admin,
     [
       DomainSolidity[network],
-      config.Tokens.USDC,
+      config.Tokens.USDC.Address,
       config.CCTP.TokenMessenger,
       config.CCTP.MessageTransmitter,
       config.AcrossV3SpokePool,

@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity 0.8.28;
 
-import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ISuperchainStandardBridge} from ".././interfaces/ISuperchainStandardBridge.sol";
 import {IWrappedNativeToken} from ".././interfaces/IWrappedNativeToken.sol";
-import {AdapterHelper} from "./AdapterHelper.sol";
+import {AdapterHelper, InputOutputTokenData} from "./AdapterHelper.sol";
 
 abstract contract SuperchainStandardBridgeAdapter is AdapterHelper {
     using SafeERC20 for IERC20;
@@ -32,7 +31,7 @@ abstract contract SuperchainStandardBridgeAdapter is AdapterHelper {
         Domain destinationDomain,
         bytes calldata extraData,
         Domain localDomain,
-        mapping(bytes32 => BitMaps.BitMap) storage outputTokens
+        mapping(bytes32 outputToken => InputOutputTokenData) storage outputTokens
     ) internal notPayable {
         // We are only interested in fast L1->L2 bridging, because the reverse is slow.
         require(localDomain == Domain.ETHEREUM, UnsupportedDomain());
@@ -45,8 +44,6 @@ abstract contract SuperchainStandardBridgeAdapter is AdapterHelper {
             revert UnsupportedDomain();
         }
         require(address(standardBridge) != address(0), ZeroAddress());
-        // WARNING: Contract doesn't maintain an input/output token mapping which could result in a mismatch.
-        // If the output token is wrong then the input tokens will be lost.
         // Notice: In case of minGasLimit being too low, the message could be retried on the destination chain.
         (address outputToken, uint32 minGasLimit, bytes memory message) =
             abi.decode(extraData, (address, uint32, bytes));
@@ -57,7 +54,7 @@ abstract contract SuperchainStandardBridgeAdapter is AdapterHelper {
             return;
         }
 
-        _validateOutputToken(_addressToBytes32(outputToken), destinationDomain, outputTokens);
+        _validateOutputToken(outputToken, destinationDomain, outputTokens);
         token.forceApprove(address(standardBridge), amount);
         standardBridge.bridgeERC20To(
             address(token),

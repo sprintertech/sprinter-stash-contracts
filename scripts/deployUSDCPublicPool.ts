@@ -42,7 +42,7 @@ export async function main() {
     deployerWithNonce,
     {},
     [
-      config.Tokens.USDC,
+      config.Tokens.USDC.Address,
       deployer,
       config.MpcAddress,
       config.WrappedNativeToken,

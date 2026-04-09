@@ -10,10 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6.0.2
-
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Setup Node.js
-        uses: actions/setup-node@v6.3.0
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
           node-version: 22
           cache: 'npm'
@@ -25,7 +24,7 @@ jobs:
         run: npx hardhat compile
 
       - name: Run Echidna for EchidnaPublicLiquidityPool
-        uses: crytic/echidna-action@v2.0.2
+        uses: crytic/echidna-action@f7e374e42bf7131f7307a92f5549ed6b2fd17c9d # v2.0.2
         with:
           solc-version: 0.8.28
           files: .
@@ -33,7 +32,7 @@ jobs:
           config: contracts/echidna/config.yaml
 
       - name: Run Echidna for EchidnaLiquidityHub
-        uses: crytic/echidna-action@v2.0.2
+        uses: crytic/echidna-action@f7e374e42bf7131f7307a92f5549ed6b2fd17c9d # v2.0.2
         with:
           solc-version: 0.8.28
           files: .
@@ -41,7 +40,7 @@ jobs:
           config: contracts/echidna/config.yaml
 
       - name: Run Echidna for EchidnaLiquidityMining
-        uses: crytic/echidna-action@v2.0.2
+        uses: crytic/echidna-action@f7e374e42bf7131f7307a92f5549ed6b2fd17c9d # v2.0.2
         with:
           solc-version: 0.8.28
           files: .
@@ -49,7 +48,7 @@ jobs:
           config: contracts/echidna/config.yaml
 
       - name: Run Echidna for EchidnaLiquidityPool
-        uses: crytic/echidna-action@v2.0.2
+        uses: crytic/echidna-action@f7e374e42bf7131f7307a92f5549ed6b2fd17c9d # v2.0.2
         with:
           solc-version: 0.8.28
           files: .

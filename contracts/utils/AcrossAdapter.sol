@@ -28,7 +28,7 @@ abstract contract AcrossAdapter is AdapterHelper {
         require(address(ACROSS_SPOKE_POOL) != address(0), ZeroAddress());
         token.forceApprove(address(ACROSS_SPOKE_POOL), amount);
         (
-            address outputToken, // Can be set to 0x0 for automapping by solvers.
+            address outputToken,
             uint256 outputAmount,
             address exclusiveRelayer,
             uint32 quoteTimestamp, // Validated in the spoke pool

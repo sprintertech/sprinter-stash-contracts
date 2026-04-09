@@ -16,7 +16,7 @@ import {
 } from "../../typechain-types";
 import {networkConfig} from "../../network.config";
 
-describe("Repayer USDT0 (Polygon fork), https://github.com/NomicFoundation/edr/issues/1214", function () {
+describe.skip("Repayer USDT0 (Polygon fork), https://github.com/NomicFoundation/edr/issues/1214", function () {
   const deployAll = async () => {
     const [deployer, admin, repayUser, setTokensUser] = await hre.ethers.getSigners();
     await setCode(repayUser.address, "0x00");

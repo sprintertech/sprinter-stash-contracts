@@ -5,6 +5,7 @@ import {getAddress} from "ethers";
 import {
   getVerifier, deployProxyX, getHardhatStandaloneRepayerConfig, getStandaloneRepayerConfig,
   getInputOutputTokens, flattenInputOutputTokens,
+  logDeployers,
 } from "./helpers";
 import {resolveXAddress, toBytes32} from "../test/helpers";
 import {
@@ -38,6 +39,8 @@ export async function main() {
     ({network, config} = await getHardhatStandaloneRepayerConfig(repayerEnv));
     id += "-DeployTest";
   }
+
+  await logDeployers();
 
   assertAddress(networkConfig[network].Tokens.USDC.Address, "USDC must be an address");
   assertAddress(config.Admin, "Admin must be an address");

@@ -1,11 +1,12 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {MaxUint256} from "ethers";
+import {MaxUint256, NonceManager} from "ethers";
 import {toBytes32, resolveProxyXAddress, resolveXAddress, getContractAt, resolveXAddresses} from "../test/helpers";
 import {
   getVerifier, deployProxyX, getHardhatNetworkConfig, getNetworkConfig, percentsToBps,
   getProxyXAdmin, getInputOutputTokens, flattenInputOutputTokens,
+  logDeployers,
 } from "./helpers";
 import {
   assert, isSet, ProviderSolidity, DomainSolidity, DEFAULT_ADMIN_ROLE, ZERO_ADDRESS,
@@ -28,6 +29,7 @@ import {
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
+  const deployerWithNonce = new NonceManager(deployer);
 
   const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
   const WITHDRAW_PROFIT_ROLE = toBytes32("WITHDRAW_PROFIT_ROLE");
@@ -47,6 +49,8 @@ export async function main() {
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
   }
+
+  await logDeployers();
 
   assert(config.AavePool! || config.AavePoolLongTerm! || config.USDCPool! || config.USDCStablecoinPool!,
     "At least one pool should be present.");
@@ -142,7 +146,7 @@ export async function main() {
     console.log("Deploying AAVE Liquidity Pool Long Term");
     aavePoolLongTerm = (await verifier.deployX(
       "LiquidityPoolAaveLongTerm",
-      deployer,
+      deployerWithNonce,
       {},
       [
         config.Tokens.USDC.Address,
@@ -187,7 +191,7 @@ export async function main() {
     console.log("Deploying AAVE Liquidity Pool");
     aavePool = (await verifier.deployX(
       "LiquidityPoolAave",
-      deployer,
+      deployerWithNonce,
       {},
       [
         config.Tokens.USDC.Address,
@@ -232,7 +236,7 @@ export async function main() {
     console.log("Deploying USDC Liquidity Pool");
     usdcPool = (await verifier.deployX(
       "LiquidityPool",
-      deployer,
+      deployerWithNonce,
       {},
       [config.Tokens.USDC.Address, deployer, config.MpcAddress, config.WrappedNativeToken, config.SignerAddress],
       id,
@@ -259,7 +263,7 @@ export async function main() {
     console.log("Deploying USDC Stablecoin Liquidity Pool");
     usdcStablecoinPool = (await verifier.deployX(
       "LiquidityPoolStablecoin",
-      deployer,
+      deployerWithNonce,
       {},
       [config.Tokens.USDC.Address, deployer, config.MpcAddress, config.WrappedNativeToken, config.SignerAddress],
       id,
@@ -287,7 +291,7 @@ export async function main() {
     console.log("Deploying USDC Public Liquidity Pool");
     usdcPublicPool = (await verifier.deployX(
       "PublicLiquidityPool",
-      deployer,
+      deployerWithNonce,
       {},
       [
         config.Tokens.USDC.Address,
@@ -337,7 +341,7 @@ export async function main() {
   const {target: rebalancer, targetAdmin: rebalancerAdmin} = await deployProxyX<Rebalancer>(
     verifier.deployX,
     rebalancerVersion,
-    deployer,
+    deployerWithNonce,
     config.Admin,
     [
       DomainSolidity[network], config.Tokens.USDC.Address, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter,
@@ -410,7 +414,7 @@ export async function main() {
     const result = await deployProxyX<Repayer>(
       verifier.deployX,
       repayerVersion,
-      deployer,
+      deployerWithNonce,
       config.Admin,
       [
         DomainSolidity[network],
@@ -454,7 +458,7 @@ export async function main() {
     const liquidityHubAddress = await verifier.predictDeployProxyXAddress("LiquidityHub", deployer);
     const lpToken = (await verifier.deployX(
       "SprinterUSDCLPShare",
-      deployer,
+      deployerWithNonce,
       {},
       [liquidityHubAddress],
       "SprinterUSDCLPShare",
@@ -464,7 +468,7 @@ export async function main() {
     const {target: liquidityHub, targetAdmin: liquidityHubAdmin} = await deployProxyX<LiquidityHub>(
       verifier.deployX,
       "LiquidityHub",
-      deployer,
+      deployerWithNonce,
       config.Admin,
       [lpToken, mainPool],
       [
@@ -540,7 +544,7 @@ export async function main() {
   } catch {
     multicall = await (await verifier.deployX(
       "CensoredTransferFromMulticall",
-      deployer,
+      deployerWithNonce,
     )).getAddress();
   }
 

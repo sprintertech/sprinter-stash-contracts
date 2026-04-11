@@ -158,3 +158,19 @@ Following routes are now allowed on 0x697ECA1cae710FA0348e2173900e6C09b180C35b.
 │ 2       │ '0x578aD20ec27E11B3772F91cc6f435d782cc362EA' │ 'BASE'         │ 'SUPERCHAIN_STANDARD_BRIDGE' │ false             │
 │ 3       │ '0x626afF63118191b6202636848711c0645AFED94D' │ 'ARBITRUM_ONE' │ 'ARBITRUM_GATEWAY'           │ false             │
 └─────────┴──────────────────────────────────────────────┴────────────────┴──────────────────────────────┴───────────────────┘
+
+Using config for: stage, ETHEREUM
+Following tokens will be added to 0x697ECA1cae710FA0348e2173900e6C09b180C35b.
+┌─────────┬──────────────────────────────────────────────┬────────────────┬──────────────────────────────────────────────┬──────────────┐
+│ (index) │ InputToken                                   │ Domain         │ OutputToken                                  │ DecimalsDiff │
+├─────────┼──────────────────────────────────────────────┼────────────────┼──────────────────────────────────────────────┼──────────────┤
+│ 0       │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ 'BSC'          │ '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d' │ -12          │
+│ 1       │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ 'GNOSIS_CHAIN' │ '0x2a22f9c3b484c3629090FeED35F17Ff8F88f76F0' │ 0            │
+│ 2       │ '0xdAC17F958D2ee523a2206206994597C13D831ec7' │ 'BSC'          │ '0x55d398326f99059fF775485246999027B3197955' │ -12          │
+│ 3       │ '0xdAC17F958D2ee523a2206206994597C13D831ec7' │ 'GNOSIS_CHAIN' │ '0x4ECaBa5870353805a9F068101A40E0f32ed605C6' │ 0            │
+│ 4       │ '0x6B175474E89094C44Da98b954EedeAC495271d0F' │ 'GNOSIS_CHAIN' │ '0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d' │ 0            │
+│ 5       │ '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2' │ 'BSC'          │ '0x2170Ed0880ac9A755fd29B2688956BD959F933F8' │ 0            │
+│ 6       │ '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2' │ 'GNOSIS_CHAIN' │ '0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1' │ 0            │
+│ 7       │ '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599' │ 'BSC'          │ '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c' │ -10          │
+└─────────┴──────────────────────────────────────────────┴────────────────┴──────────────────────────────────────────────┴──────────────┘
+Done.

@@ -317,7 +317,7 @@ export async function main() {
     console.log("Deploying ERC4626 Adapter USDC");
     erc4626AdapterUSDC = (await verifier.deployX(
       "ERC4626Adapter",
-      deployer,
+      deployerWithNonce,
       {},
       [
         config.Tokens.USDC.Address,
@@ -405,8 +405,8 @@ export async function main() {
   let repayer: Repayer;
   let repayerAdmin: ProxyAdmin;
   try {
-    repayer = (await getContractAt(repayerVersion, await resolveProxyXAddress(repayerId), deployer)) as Repayer;
-    repayerAdmin = await getProxyXAdmin(repayerId, deployer);
+    repayer = (await getContractAt(repayerVersion, await resolveProxyXAddress(repayerId), deployerWithNonce)) as Repayer;
+    repayerAdmin = await getProxyXAdmin(repayerId, deployerWithNonce);
     console.log("Repayer was already deployed");
     console.log("Make sure to update the Repayer routes with the update-routes-repayer task");
     repayerRoutes.Pools = []; // We don't automatically update the routes so need to skip the logging in the end.
@@ -485,7 +485,7 @@ export async function main() {
 
     assert(liquidityHubAddress == liquidityHub.target, "LiquidityHub address mismatch");
     const liquidityMining = (
-      await verifier.deployX("SprinterLiquidityMining", deployer, {}, [config.Admin, liquidityHub, tiers])
+      await verifier.deployX("SprinterLiquidityMining", deployerWithNonce, {}, [config.Admin, liquidityHub, tiers])
     ) as SprinterLiquidityMining;
 
     await mainPool.grantRole(LIQUIDITY_ADMIN_ROLE, liquidityHub);

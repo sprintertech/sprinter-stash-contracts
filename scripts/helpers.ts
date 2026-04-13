@@ -385,9 +385,18 @@ export async function getNetworkConfig() {
   }
   if (config! && network!) {
     if (process.env.DEPLOY_TYPE === "STAGE") {
+      assert(
+        process.env.DEPLOYER_ADDRESS === process.env.STAGE_DEPLOYER_ADDRESS,
+        "DEPLOYER_ADDRESS must match STAGE_DEPLOYER_ADDRESS"
+      );
       assert(config.Stage, "Stage config must be defined");
       message += "stage, ";
       config = config.Stage;
+    } else {
+      assert(
+        process.env.DEPLOYER_ADDRESS !== process.env.STAGE_DEPLOYER_ADDRESS,
+        "DEPLOYER_ADDRESS must not match STAGE_DEPLOYER_ADDRESS"
+      );
     }
     console.log(`${message}${network}`);
   }
@@ -479,8 +488,14 @@ export function percentsToBps(input: number[]): bigint[] {
   return input.map(el => BigInt(el) * 10000n / 100n);
 }
 
-export async function logDeployers() {
+export async function logDeployers(mustMatch: boolean = true) {
   const [deployer] = await hre.ethers.getSigners();
-  console.log(`Deployer: ${deployer.address}`);
+  console.log(`Deployer        : ${deployer.address}`);
   console.log(`DEPLOYER_ADDRESS: ${process.env.DEPLOYER_ADDRESS}`);
+  if (mustMatch) {
+    assert(
+      deployer.address === process.env.DEPLOYER_ADDRESS,
+      "Deployer address must match DEPLOYER_ADDRESS for new deployments",
+    );
+  }
 }

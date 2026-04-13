@@ -57,3 +57,30 @@ eip155:1:
   USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
   Rebalancer: "0x34Df9cD75fA0b4d8fF300AeDf7591f79dFdd61C9"
   Repayer: "0x697ECA1cae710FA0348e2173900e6C09b180C35b"
+
+eip155:137:
+  deployment id: MVP
+  env: stage
+  name: POLYGON_MAINNET
+  LiquidityPoolAaveUSDC_v2: "0x4e13849d29a9a7A200196DC16722ddeb67b6e769"
+  CensoredTransferFromMulticall: "0xd0A630c391daEb244369DB0f75CBDF7dFeEaEaC3"
+  USDC: "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359"
+  Rebalancer: "0x34Df9cD75fA0b4d8fF300AeDf7591f79dFdd61C9"
+  Repayer: "0x697ECA1cae710FA0348e2173900e6C09b180C35b"
+
+eip155:130:
+  deployment id: MVP
+  env: stage
+  name: UNICHAIN
+  LiquidityPoolUSDCStablecoin_v2: "0xfEb5C59D5091412C9Ee5C9f536dEAea8CE62FE0c"
+  CensoredTransferFromMulticall: "0xd0A630c391daEb244369DB0f75CBDF7dFeEaEaC3"
+  USDC: "0x078D782b760474a361dDA0AF3839290b0EF57AD6"
+  Rebalancer: "0x34Df9cD75fA0b4d8fF300AeDf7591f79dFdd61C9"
+  Repayer: "0x697ECA1cae710FA0348e2173900e6C09b180C35b"
+
+eip155:56:
+  deployment id: MVP
+  env: stage
+  name: BSC
+  USDC: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d"
+  Repayer: "0x697ECA1cae710FA0348e2173900e6C09b180C35b"

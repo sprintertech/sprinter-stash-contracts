@@ -386,6 +386,7 @@ export const networkConfig: NetworksConfig = {
           [Network.ARBITRUM_ONE]: [Provider.CCTP],
           [Network.OP_MAINNET]: [Provider.CCTP],
           [Network.POLYGON_MAINNET]: [Provider.CCTP],
+          [Network.GNOSIS_CHAIN]: [Provider.GNOSIS_OMNIBRIDGE],
         },
         [LiquidityPoolUSDCV4]: {
           [Network.BASE]: [Provider.CCTP],
@@ -433,6 +434,11 @@ export const networkConfig: NetworksConfig = {
               Provider.EVERCLEAR,
               Provider.STARGATE,
               Provider.USDT0,
+            ],
+            [Network.GNOSIS_CHAIN]: [
+              Provider.GNOSIS_OMNIBRIDGE,
+              Provider.EVERCLEAR,
+              Provider.STARGATE,
             ],
           },
         },
@@ -708,6 +714,10 @@ export const networkConfig: NetworksConfig = {
               Provider.EVERCLEAR,
               Provider.STARGATE,
             ],
+            [Network.GNOSIS_CHAIN]: [
+              Provider.EVERCLEAR,
+              Provider.STARGATE,
+            ],
           },
         },
         [LiquidityPoolUSDCV3]: {
@@ -918,6 +928,10 @@ export const networkConfig: NetworksConfig = {
               Provider.EVERCLEAR,
               Provider.STARGATE,
               Provider.USDT0,
+            ],
+            [Network.GNOSIS_CHAIN]: [
+              Provider.EVERCLEAR,
+              Provider.STARGATE,
             ],
           },
         },
@@ -1162,6 +1176,10 @@ export const networkConfig: NetworksConfig = {
               Provider.EVERCLEAR,
               Provider.STARGATE,
             ],
+            [Network.GNOSIS_CHAIN]: [
+              Provider.EVERCLEAR,
+              Provider.STARGATE,
+            ],
           },
         },
         [LiquidityPoolUSDCV4]: {
@@ -1360,6 +1378,10 @@ export const networkConfig: NetworksConfig = {
               Provider.EVERCLEAR,
               Provider.STARGATE,
               Provider.USDT0
+            ],
+            [Network.GNOSIS_CHAIN]: [
+              Provider.EVERCLEAR,
+              Provider.STARGATE,
             ],
           },
         },
@@ -1563,6 +1585,10 @@ export const networkConfig: NetworksConfig = {
               Provider.STARGATE,
               Provider.USDT0,
             ],
+            [Network.GNOSIS_CHAIN]: [
+              Provider.EVERCLEAR,
+              Provider.STARGATE,
+            ],
           },
         },
         [LiquidityPoolAaveUSDCLongTermV3]: {
@@ -1688,6 +1714,10 @@ export const networkConfig: NetworksConfig = {
             ],
             [Network.ARBITRUM_ONE]: [
               Provider.ACROSS,
+              Provider.EVERCLEAR,
+              Provider.STARGATE,
+            ],
+            [Network.GNOSIS_CHAIN]: [
               Provider.EVERCLEAR,
               Provider.STARGATE,
             ],
@@ -1839,6 +1869,89 @@ export const networkConfig: NetworksConfig = {
         }
       },
     },
+    Stage: {
+      ChainId: 100,
+      EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
+      StargateTreasurer: "0xF1815bd50389c46847f0Bda824eC8da914045D14",
+      Omnibridge: "0xf6A78083ca3e2a662D6dd1703c939c8aCE2e268d",
+      // USDC bridged from Ethereum via Omnibridge — must bridge this token back via Omnibridge
+      GnosisUSDCxDAI: "0xDDAfbb505ad214D7b80b1f830fcCc89B60fb7A83",
+      GnosisUSDCTransmuter: "0x0392A2F5Ac47388945D8c84212469F545fAE52B2",
+      Tokens: {
+        // Circle's Bridged USDC Standard (USDC.e) — primary USDC on Gnosis Chain
+        USDC: tokenInfo("0x2a22f9c3b484c3629090FeED35F17Ff8F88f76F0", 6),
+        USDT: tokenInfo("0x4ECaBa5870353805a9F068101A40E0f32ed605C6", 6),
+        WETH: tokenInfo("0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1", 18),
+        DAI: tokenInfo("0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d", 18),
+      },
+      WrappedNativeToken: "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d",
+      IsTest: false,
+      Admin: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      WithdrawProfit: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      Pauser: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      RebalanceCaller: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      RepayerCaller: "0xc1d6EEa5ce163d7D9f1952Db220830Aae16Cb607",
+      SetInputOutputTokens: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
+      SignerAddress: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
+      RebalancerRoutes: {
+        [LiquidityPoolUSDCV4]: {
+          [Network.ETHEREUM]: [Provider.GNOSIS_OMNIBRIDGE],
+        },
+      },
+      RepayerRoutes: {
+        [LiquidityPoolAaveUSDCV4]: {
+          SupportsAllTokens: true,
+          Domains: {
+            [Network.OP_MAINNET]: [Provider.EVERCLEAR, Provider.STARGATE],
+            [Network.BASE]: [Provider.EVERCLEAR, Provider.STARGATE],
+            [Network.POLYGON_MAINNET]: [
+              Provider.EVERCLEAR,
+              Provider.STARGATE,
+            ],
+            [Network.ARBITRUM_ONE]: [
+              Provider.EVERCLEAR,
+              Provider.STARGATE,
+            ],
+          },
+        },
+        [LiquidityPoolAaveUSDCLongTermV3]: {
+          SupportsAllTokens: true,
+          Domains: {
+            [Network.ARBITRUM_ONE]: [
+              Provider.EVERCLEAR,
+              Provider.STARGATE,
+            ],
+          },
+        },
+        [LiquidityPoolUSDCV3]: {
+          SupportsAllTokens: false,
+          Domains: {
+            [Network.BASE]: [Provider.EVERCLEAR, Provider.STARGATE],
+          },
+        },
+        [LiquidityPoolUSDCV4]: {
+          SupportsAllTokens: false,
+          Domains: {
+            [Network.OP_MAINNET]: [Provider.EVERCLEAR, Provider.STARGATE],
+            [Network.BASE]: [Provider.EVERCLEAR, Provider.STARGATE],
+            [Network.ETHEREUM]: [Provider.EVERCLEAR, Provider.STARGATE, Provider.GNOSIS_OMNIBRIDGE],
+            [Network.ARBITRUM_ONE]: [Provider.EVERCLEAR, Provider.STARGATE],
+          },
+        },
+      },
+      AavePool: {
+        AaveAddressesProvider: AAVEPools.AaveV3Gnosis.POOL_ADDRESSES_PROVIDER,
+        MinHealthFactor: 150,
+        DefaultLTV: 0,
+        TokenLTVs: {
+          "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d": 90, // DAI
+          "0x2a22f9c3b484c3629090FeED35F17Ff8F88f76F0": 100, // USDC
+          "0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1": 75, // WETH
+          "0x4ECaBa5870353805a9F068101A40E0f32ed605C6": 90, // USDT
+        },
+      },
+    }
   },
   ETHEREUM_SEPOLIA: {
     ChainId: 11155111,

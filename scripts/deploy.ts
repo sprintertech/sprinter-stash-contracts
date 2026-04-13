@@ -405,7 +405,9 @@ export async function main() {
   let repayer: Repayer;
   let repayerAdmin: ProxyAdmin;
   try {
-    repayer = (await getContractAt(repayerVersion, await resolveProxyXAddress(repayerId), deployerWithNonce)) as Repayer;
+    repayer = (await getContractAt(
+      repayerVersion, await resolveProxyXAddress(repayerId), deployerWithNonce
+    )) as Repayer;
     repayerAdmin = await getProxyXAdmin(repayerId, deployerWithNonce);
     console.log("Repayer was already deployed");
     console.log("Make sure to update the Repayer routes with the update-routes-repayer task");

@@ -36,7 +36,7 @@ export async function main() {
   assertAddress(config.Admin, "Admin must be an address");
   assertAddress(config.WithdrawProfit, "WithdrawProfit must be an address");
   assertAddress(config.Pauser, "Pauser must be an address");
-  assertAddress(config.Tokens.USDC, "USDC must be an address");
+  assertAddress(config.Tokens.USDC.Address, "USDC must be an address");
   assertAddress(config.MpcAddress, "MpcAddress must be an address");
   assertAddress(config.WrappedNativeToken, "WrappedNativeToken must be an address");
   assertAddress(config.SignerAddress, "SignerAddress must be an address");
@@ -52,7 +52,7 @@ export async function main() {
     deployerWithNonce,
     {},
     [
-      config.Tokens.USDC,
+      config.Tokens.USDC.Address,
       config.AavePool.AaveAddressesProvider,
       deployer,
       config.MpcAddress,

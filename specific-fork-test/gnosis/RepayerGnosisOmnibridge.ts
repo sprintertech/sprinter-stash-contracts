@@ -29,7 +29,7 @@ describe("Repayer Gnosis Omnibridge (Gnosis Chain fork)", function () {
     assertAddress(gnosisConfig.Omnibridge, "GNOSIS_CHAIN Omnibridge address is missing");
 
     // Primary USDC on Gnosis Chain is USDCe (Circle's Bridged USDC Standard = ASSETS).
-    const usdce = await hre.ethers.getContractAt("ERC20", gnosisConfig.Tokens.USDC);
+    const usdce = await hre.ethers.getContractAt("ERC20", gnosisConfig.Tokens.USDC.Address);
     const wxdai = await hre.ethers.getContractAt("IWrappedNativeToken", gnosisConfig.WrappedNativeToken);
 
     const liquidityPool = (await deploy(

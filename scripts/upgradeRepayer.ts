@@ -25,7 +25,7 @@ export async function main() {
     ({network, config} = await getHardhatNetworkConfig());
   }
 
-  assert(isAddress(config.Tokens.USDC), "USDC must be an address");
+  assert(isAddress(config.Tokens.USDC.Address), "USDC must be an address");
   assert(isAddress(config.WrappedNativeToken), "WrappedNativeToken must be an address");
   if (!config.CCTP) {
     config.CCTP = {
@@ -67,7 +67,7 @@ export async function main() {
     deployer,
     [
       DomainSolidity[network],
-      config.Tokens.USDC,
+      config.Tokens.USDC.Address,
       config.CCTP.TokenMessenger,
       config.CCTP.MessageTransmitter,
       config.AcrossV3SpokePool,

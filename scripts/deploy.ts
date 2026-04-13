@@ -50,7 +50,7 @@ export async function main() {
 
   assert(config.AavePool! || config.AavePoolLongTerm! || config.USDCPool! || config.USDCStablecoinPool!,
     "At least one pool should be present.");
-  assertAddress(config.Tokens.USDC, "USDC must be an address");
+  assertAddress(config.Tokens.USDC.Address, "USDC must be an address");
   assertAddress(config.Admin, "Admin must be an address");
   assertAddress(config.WithdrawProfit, "WithdrawProfit must be an address");
   assertAddress(config.Pauser, "Pauser must be an address");
@@ -145,7 +145,7 @@ export async function main() {
       deployer,
       {},
       [
-        config.Tokens.USDC,
+        config.Tokens.USDC.Address,
         config.AavePoolLongTerm.AaveAddressesProvider,
         deployer,
         config.MpcAddress,
@@ -190,7 +190,7 @@ export async function main() {
       deployer,
       {},
       [
-        config.Tokens.USDC,
+        config.Tokens.USDC.Address,
         config.AavePool.AaveAddressesProvider,
         deployer,
         config.MpcAddress,
@@ -234,7 +234,7 @@ export async function main() {
       "LiquidityPool",
       deployer,
       {},
-      [config.Tokens.USDC, deployer, config.MpcAddress, config.WrappedNativeToken, config.SignerAddress],
+      [config.Tokens.USDC.Address, deployer, config.MpcAddress, config.WrappedNativeToken, config.SignerAddress],
       id,
     )) as LiquidityPool;
     console.log(`${id}: ${usdcPool.target}`);
@@ -261,7 +261,7 @@ export async function main() {
       "LiquidityPoolStablecoin",
       deployer,
       {},
-      [config.Tokens.USDC, deployer, config.MpcAddress, config.WrappedNativeToken, config.SignerAddress],
+      [config.Tokens.USDC.Address, deployer, config.MpcAddress, config.WrappedNativeToken, config.SignerAddress],
       id,
     )) as LiquidityPool;
     console.log(`${id}: ${usdcStablecoinPool.target}`);
@@ -290,7 +290,7 @@ export async function main() {
       deployer,
       {},
       [
-        config.Tokens.USDC,
+        config.Tokens.USDC.Address,
         deployer,
         config.MpcAddress,
         config.WrappedNativeToken,
@@ -316,7 +316,7 @@ export async function main() {
       deployer,
       {},
       [
-        config.Tokens.USDC,
+        config.Tokens.USDC.Address,
         targetVault,
         deployer,
       ],
@@ -340,7 +340,7 @@ export async function main() {
     deployer,
     config.Admin,
     [
-      DomainSolidity[network], config.Tokens.USDC, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter,
+      DomainSolidity[network], config.Tokens.USDC.Address, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter,
       config.Omnibridge, config.GnosisUSDCxDAI, config.GnosisUSDCTransmuter, config.GnosisAMB,
     ],
     [
@@ -414,7 +414,7 @@ export async function main() {
       config.Admin,
       [
         DomainSolidity[network],
-        config.Tokens.USDC,
+        config.Tokens.USDC.Address,
         config.CCTP.TokenMessenger,
         config.CCTP.MessageTransmitter,
         config.AcrossV3SpokePool,
@@ -468,7 +468,7 @@ export async function main() {
       config.Admin,
       [lpToken, mainPool],
       [
-        config.Tokens.USDC,
+        config.Tokens.USDC.Address,
         config.Admin,
         config.Hub.AssetsAdjuster,
         config.Hub.DepositProfit,
@@ -549,7 +549,7 @@ export async function main() {
   console.log(`LiquidityPool Withdraw Profit: ${config.WithdrawProfit}`);
   console.log(`LiquidityPool Pauser: ${config.Pauser}`);
   console.log(`MPC Address: ${config.MpcAddress}`);
-  console.log(`USDC: ${config.Tokens.USDC}`);
+  console.log(`USDC: ${config.Tokens.USDC.Address}`);
   console.log(`Signer Address: ${config.SignerAddress}`);
   console.log(`Rebalancer: ${rebalancer.target}`);
   console.log(`RebalancerProxyAdmin: ${rebalancerAdmin.target}`);

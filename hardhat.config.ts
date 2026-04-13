@@ -3,7 +3,7 @@ import "@nomicfoundation/hardhat-toolbox";
 import {
   networkConfig, Network, Provider,
 } from "./network.config";
-import {TypedDataDomain, AbiCoder, toNumber, dataSlice, getAddress, parseEther} from "ethers";
+import {TypedDataDomain, AbiCoder, toNumber, dataSlice, getAddress, parseEther, NonceManager} from "ethers";
 import {
   LiquidityPoolAave, Rebalancer, Repayer
 } from "./typechain-types";
@@ -140,10 +140,11 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
   const {network, config} = await getNetworkConfig();
 
   const [admin] = await hre.ethers.getSigners();
+  const adminWithNonce = new NonceManager(admin);
 
   assert(["allow", "deny", "both"].includes(args.action), "Invalid action");
   const targetAddress = await resolveProxyXAddress(args.rebalancer);
-  const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, admin)) as Rebalancer;
+  const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, adminWithNonce)) as Rebalancer;
   const onchainRoutes = await target.getAllRoutes();
   const onchainConfig: {Pool: string, Domain: Network, Provider: Provider}[] = [];
   for (let i = 0; i < onchainRoutes.pools.length; i++) {
@@ -194,12 +195,12 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
       providers: ProviderSolidity[el.Provider],
     }));
     if (hasRole && (args.action === "allow" || args.action === "both")) {
-      await target.setRoute(
+      await (await target.setRoute(
         toAllowParams.map(el => el.pools),
         toAllowParams.map(el => el.domains),
         toAllowParams.map(el => el.providers),
         true
-      );
+      )).wait();
       console.log(`Following routes are now allowed on ${targetAddress}.`);
       console.table(toAllow);
     } else {
@@ -221,12 +222,12 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
       providers: ProviderSolidity[el.Provider],
     }));
     if (hasRole && (args.action === "deny" || args.action === "both")) {
-      await target.setRoute(
+      await (await target.setRoute(
         toDenyParams.map(el => el.pools),
         toDenyParams.map(el => el.domains),
         toDenyParams.map(el => el.providers),
         false
-      );
+      )).wait();
       console.log(`Following routes are now denied on ${targetAddress}.`);
       console.table(toDeny);
     } else {
@@ -296,10 +297,11 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
   const {network, config} = await getNetworkConfig();
 
   const [admin] = await hre.ethers.getSigners();
+  const adminWithNonce = new NonceManager(admin);
 
   assert(["allow", "deny", "both"].includes(args.action), "Invalid action");
   const targetAddress = await resolveProxyXAddress(args.repayer);
-  const target = (await hre.ethers.getContractAt("Repayer", targetAddress, admin)) as Repayer;
+  const target = (await hre.ethers.getContractAt("Repayer", targetAddress, adminWithNonce)) as Repayer;
   const onchainRoutes = await target.getAllRoutes();
   const onchainConfig: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens: boolean}[] = [];
   for (let i = 0; i < onchainRoutes.pools.length; i++) {
@@ -356,13 +358,13 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
       supportsAllTokens: el.SupportsAllTokens,
     }));
     if (hasRole && (args.action === "deny" || args.action === "both")) {
-      await target.setRoute(
+      await (await target.setRoute(
         toDenyParams.map(el => el.pools),
         toDenyParams.map(el => el.domains),
         toDenyParams.map(el => el.providers),
         toDenyParams.map(el => el.supportsAllTokens),
         false
-      );
+      )).wait();
       console.log(`Following routes are now denied on ${targetAddress}.`);
       console.table(toDeny);
     } else {
@@ -385,13 +387,13 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
       supportsAllTokens: el.SupportsAllTokens,
     }));
     if (hasRole && (args.action === "allow" || args.action === "both")) {
-      await target.setRoute(
+      await (await target.setRoute(
         toAllowParams.map(el => el.pools),
         toAllowParams.map(el => el.domains),
         toAllowParams.map(el => el.providers),
         toAllowParams.map(el => el.supportsAllTokens),
         true
-      );
+      )).wait();
       console.log(`Following routes are now allowed on ${targetAddress}.`);
       console.table(toAllow);
     } else {
@@ -407,7 +409,7 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
   }
 });
 
-task("add-tokens-repayer", "Add input output tokens based on current network configs")
+task("update-tokens-repayer", "Update input output tokens based on current network configs")
 .addOptionalParam("repayer", "Repayer address or id", "Repayer", types.string)
 .addOptionalParam("check", "Check if tokens are already allowed", true, types.boolean)
 .setAction(async (args: {
@@ -453,7 +455,7 @@ task("add-tokens-repayer", "Add input output tokens based on current network con
     console.table(flattenInputOutputTokens(filteredInputOutputTokens));
     const hasRole = await target.hasRole(toBytes32("SET_TOKENS_ROLE"), sender);
     if (hasRole) {
-      await target.setInputOutputTokens(filteredInputOutputTokens, true);
+      await (await target.setInputOutputTokens(filteredInputOutputTokens, true)).wait();
       console.log("Done.");
     } else {
       console.log("To add missing tokens execute the following transaction.");

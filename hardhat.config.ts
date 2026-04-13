@@ -430,13 +430,19 @@ task("add-tokens-repayer", "Add input output tokens based on current network con
   const target = (await hre.ethers.getContractAt("Repayer", targetAddress, sender)) as Repayer;
   const filteredInputOutputTokens: Repayer.InputOutputTokenStruct[] = [];
   for (const entry of inputOutputTokens) {
-    const alreadyAllowed = await Promise.all(entry.destinationTokens.map(el => {
+    const outputTokenData = await Promise.all(entry.destinationTokens.map(async el => {
       if (args.check) {
-        return target.isOutputTokenAllowed(entry.inputToken, el.destinationDomain, el.outputToken);
+        const result = await target.outputTokenData(entry.inputToken, el.destinationDomain, el.outputToken);
+        return {isAllowed: result.isAllowed, localDecimalsGreaterBy: Number(result.localDecimalsGreaterBy)};
       }
-      return false;
+      return {isAllowed: false, localDecimalsGreaterBy: 0};
     }));
-    entry.destinationTokens = entry.destinationTokens.filter((_, index) => !alreadyAllowed[index]);
+    entry.destinationTokens = entry.destinationTokens.filter((el, index) => {
+      const alreadyConfigured =
+        outputTokenData[index].isAllowed &&
+        outputTokenData[index].localDecimalsGreaterBy === el.localDecimalsGreaterBy;
+      return !alreadyConfigured;
+    });
     if (entry.destinationTokens.length > 0) {
       filteredInputOutputTokens.push(entry);
     }
@@ -517,7 +523,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
   };
 
   const token = await hre.ethers.getContractAt("IERC20", hre.ethers.ZeroAddress, signer);
-  const borrowToken = args.token || config.Tokens.USDC;
+  const borrowToken = args.token || config.Tokens.USDC.Address;
   const amount = args.amount;
   const target = args.target || borrowToken;
   const data = args.data || (await token.transfer.populateTransaction(signer, amount)).data;
@@ -615,14 +621,38 @@ const accounts: string[] = isSet(process.env.PRIVATE_KEY) ? [process.env.PRIVATE
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.28",
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 999999,
+    compilers: [{
+      version: "0.8.28",
+      settings: {
+        optimizer: {
+          enabled: true,
+          runs: 999999,
+        },
+        viaIR: true,
       },
-      viaIR: true,
-    },
+    }],
+    overrides: {
+      "contracts/Repayer.sol": {
+        version: "0.8.28",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 10000,
+          },
+          viaIR: true,
+        },
+      },
+      "contracts/testing/TestRepayer.sol": {
+        version: "0.8.28",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 10000,
+          },
+          viaIR: true,
+        },
+      }
+    }
   },
   networks: {
     localhost: {
@@ -709,7 +739,7 @@ const config: HardhatUserConfig = {
         blockNumber: process.env.FORK_BLOCK_NUMBER ? parseInt(process.env.FORK_BLOCK_NUMBER) : undefined,
       },
       accounts: isSet(process.env.DRY_RUN)
-        ? [{privateKey: process.env.PRIVATE_KEY!, balance: "1000000000000000000"}]
+        ? [{privateKey: process.env.PRIVATE_KEY!, balance: "100000000000000000000"}]
         : undefined,
       // https://github.com/NomicFoundation/hardhat/issues/5511
       chains: isSet(process.env.DRY_RUN) || isSet(process.env.FORK_TEST)

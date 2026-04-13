@@ -39,7 +39,7 @@ export async function main() {
     id += "-DeployTest";
   }
 
-  assertAddress(networkConfig[network].Tokens.USDC, "USDC must be an address");
+  assertAddress(networkConfig[network].Tokens.USDC.Address, "USDC must be an address");
   assertAddress(config.Admin, "Admin must be an address");
   assert(config.RepayerCallers.length > 0, "RepayerCallers must not be empty");
   config.RepayerCallers.forEach(el => assertAddress(el, "Each RepayerCaller must be an address"));
@@ -99,7 +99,7 @@ export async function main() {
     config.Admin,
     [
       DomainSolidity[network],
-      networkConfig[network].Tokens.USDC,
+      networkConfig[network].Tokens.USDC.Address,
       config.CCTP.TokenMessenger,
       config.CCTP.MessageTransmitter,
       config.AcrossV3SpokePool,

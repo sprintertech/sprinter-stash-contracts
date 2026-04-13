@@ -232,6 +232,10 @@ export const networkConfig: NetworksConfig = {
       TokenMessenger: "0xbd3fa81b58ba92a82136038b25adec7066af3155",
       MessageTransmitter: "0x0a992d191deec32afe36203ad87d7d289a738f81",
     },
+    CCTPV2: {
+      TokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+      MessageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
+    },
     AcrossV3SpokePool: "0x5c7BCd6E7De5423a257D81B442095A1a6ced35C5",
     StargateTreasurer: "0x1041D127b2d4BC700F0F563883bC689502606918",
     EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",

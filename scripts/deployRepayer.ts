@@ -58,6 +58,12 @@ export async function main() {
       MessageTransmitter: ZERO_ADDRESS,
     };
   }
+  if (!config.CCTPV2) {
+    config.CCTPV2 = {
+      TokenMessenger: ZERO_ADDRESS,
+      MessageTransmitter: ZERO_ADDRESS,
+    };
+  }
   if (!config.AcrossV3SpokePool) {
     config.AcrossV3SpokePool = ZERO_ADDRESS;
   }
@@ -107,6 +113,8 @@ export async function main() {
       config.GnosisUSDCTransmuter,
       config.GnosisAMB,
       config.USDT0OFT,
+      config.CCTPV2.TokenMessenger,
+      config.CCTPV2.MessageTransmitter,
     ],
     [
       config.Admin,

@@ -39,21 +39,26 @@ abstract contract CCTPAdapter is AdapterHelper {
         );
     }
    
+    /// @dev Shared receive-message helper used by both CCTP V1 and V2 adapters.
+    /// Both versions use the same `receiveMessage(bytes,bytes) returns (bool)` signature,
+    /// so the consumer just passes the appropriate transmitter address.
     function processTransferCCTP(
+        address messageTransmitter,
         IERC20 token,
         address destinationPool,
         bytes calldata extraData
     ) internal returns (uint256) {
-        uint256 balanceBefore = token.balanceOf(address(destinationPool));
+        uint256 balanceBefore = token.balanceOf(destinationPool);
 
         (bytes memory message, bytes memory attestation) = abi.decode(extraData, (bytes, bytes));
-        bool success = CCTP_MESSAGE_TRANSMITTER.receiveMessage(message, attestation);
+        bool success = ICCTPMessageTransmitter(messageTransmitter).receiveMessage(message, attestation);
         require(success, ProcessFailed());
 
-        uint256 balanceAfter = token.balanceOf(address(destinationPool));
+        uint256 balanceAfter = token.balanceOf(destinationPool);
         require(balanceAfter > balanceBefore, ProcessFailed());
-        uint256 amount = balanceAfter - balanceBefore;
-        return amount;
+        unchecked {
+            return balanceAfter - balanceBefore;
+        }
     }
 
      function domainCCTP(Domain destinationDomain) public pure virtual returns (uint32) {

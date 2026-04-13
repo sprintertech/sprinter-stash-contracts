@@ -89,6 +89,7 @@ export enum Provider {
   ARBITRUM_GATEWAY = "ARBITRUM_GATEWAY",
   GNOSIS_OMNIBRIDGE = "GNOSIS_OMNIBRIDGE",
   USDT0 = "USDT0",
+  CCTP_V2 = "CCTP_V2",
 }
 
 export enum Token {
@@ -100,6 +101,11 @@ export enum Token {
 }
 
 interface CCTPConfig {
+  TokenMessenger: string;
+  MessageTransmitter: string;
+}
+
+interface CCTPV2Config {
   TokenMessenger: string;
   MessageTransmitter: string;
 }
@@ -169,6 +175,7 @@ interface HubConfig {
 export interface NetworkConfig {
   ChainId: number;
   CCTP?: CCTPConfig;
+  CCTPV2?: CCTPV2Config;
   AcrossV3SpokePool?: string;
   StargateTreasurer?: string;
   EverclearFeeAdapter?: string;
@@ -1637,6 +1644,7 @@ export enum StandaloneRepayerEnv {
 export interface StandaloneRepayerConfig {
   ChainId: number;
   CCTP: CCTPConfig;
+  CCTPV2?: CCTPV2Config;
   AcrossV3SpokePool?: string;
   StargateTreasurer?: string;
   EverclearFeeAdapter?: string;

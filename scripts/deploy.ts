@@ -67,6 +67,12 @@ export async function main() {
       MessageTransmitter: ZERO_ADDRESS,
     };
   }
+  if (!config.CCTPV2) {
+    config.CCTPV2 = {
+      TokenMessenger: ZERO_ADDRESS,
+      MessageTransmitter: ZERO_ADDRESS,
+    };
+  }
 
   if (config.Hub) {
     assert(config.Hub.Tiers.length > 0, "Empty liquidity mining tiers configuration.");
@@ -342,6 +348,7 @@ export async function main() {
     [
       DomainSolidity[network], config.Tokens.USDC, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter,
       config.Omnibridge, config.GnosisUSDCxDAI, config.GnosisUSDCTransmuter, config.GnosisAMB,
+      config.CCTPV2.TokenMessenger, config.CCTPV2.MessageTransmitter,
     ],
     [
       config.Admin,
@@ -429,6 +436,8 @@ export async function main() {
         config.GnosisUSDCTransmuter,
         config.GnosisAMB,
         config.USDT0OFT,
+        config.CCTPV2.TokenMessenger,
+        config.CCTPV2.MessageTransmitter,
       ],
       [
         config.Admin,

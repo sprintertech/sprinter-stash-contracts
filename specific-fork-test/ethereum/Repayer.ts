@@ -6,6 +6,7 @@ import hre from "hardhat";
 import {AbiCoder, Contract} from "ethers";
 import {
   getCreateAddress, getContractAt, deploy, deployX, toBytes32, getBalance,
+  destinationToken,
 } from "../../test/helpers";
 import {
   ProviderSolidity as Provider, DomainSolidity as Domain,
@@ -28,11 +29,11 @@ describe("Repayer", function () {
     const REPAYER_ROLE = toBytes32("REPAYER_ROLE");
     const DEPOSIT_PROFIT_ROLE = toBytes32("DEPOSIT_PROFIT_ROLE");
 
-    const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.USDC);
-    assertAddress(forkNetworkConfig.Tokens.DAI, "DAI address is missing");
-    const dai = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.DAI);
-    assertAddress(forkNetworkConfig.Tokens.WBTC, "WBTC address is missing");
-    const wbtc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.WBTC);
+    const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.USDC.Address);
+    assertAddress(forkNetworkConfig.Tokens.DAI?.Address, "DAI address is missing");
+    const dai = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.DAI.Address);
+    assertAddress(forkNetworkConfig.Tokens.WBTC?.Address, "WBTC address is missing");
+    const wbtc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.WBTC.Address);
     const liquidityPool = (await deploy(
       "TestLiquidityPool",
       deployer,
@@ -135,40 +136,31 @@ describe("Repayer", function () {
         {
           inputToken: usdc,
           destinationTokens: [
-            {destinationDomain: Domain.OP_MAINNET, outputToken: addressToBytes32(networkConfig.OP_MAINNET.Tokens.USDC)}
+            destinationToken(Domain.OP_MAINNET, addressToBytes32(networkConfig.OP_MAINNET.Tokens.USDC.Address))
           ]
         },
         {
           inputToken: usdc,
           destinationTokens: [
-            {destinationDomain: Domain.BASE, outputToken: addressToBytes32(networkConfig.BASE.Tokens.USDC)}
+            destinationToken(Domain.BASE, addressToBytes32(networkConfig.BASE.Tokens.USDC.Address))
           ]
         },
         {
           inputToken: dai,
           destinationTokens: [
-            {
-              destinationDomain: Domain.ARBITRUM_ONE, 
-              outputToken: addressToBytes32(networkConfig.ARBITRUM_ONE.Tokens.DAI)
-            }
+            destinationToken(Domain.ARBITRUM_ONE, addressToBytes32(networkConfig.ARBITRUM_ONE.Tokens.DAI!.Address))
           ]
         },
         {
           inputToken: wbtc,
           destinationTokens: [
-            {
-              destinationDomain: Domain.ARBITRUM_ONE,
-              outputToken: addressToBytes32(networkConfig.ARBITRUM_ONE.Tokens.WBTC)
-            }
+            destinationToken(Domain.ARBITRUM_ONE, addressToBytes32(networkConfig.ARBITRUM_ONE.Tokens.WBTC!.Address))
           ]
         },
         {
           inputToken: weth,
           destinationTokens: [
-            {
-              destinationDomain: Domain.ARBITRUM_ONE,
-              outputToken: addressToBytes32(networkConfig.ARBITRUM_ONE.Tokens.WETH)
-            }
+            destinationToken(Domain.ARBITRUM_ONE, addressToBytes32(networkConfig.ARBITRUM_ONE.Tokens.WETH!.Address))
           ]
         },
       ],
@@ -207,7 +199,7 @@ describe("Repayer", function () {
     await usdc.connect(usdcOwner).transfer(repayer, 10n * USDC_DEC);
 
     const amount = 4n * USDC_DEC;
-    const outputToken = networkConfig.OP_MAINNET.Tokens.USDC;
+    const outputToken = networkConfig.OP_MAINNET.Tokens.USDC.Address;
     const minGasLimit = 100000n;
     const extraData = AbiCoder.defaultAbiCoder().encode(
       ["address", "uint32", "bytes"],
@@ -287,7 +279,7 @@ describe("Repayer", function () {
     await usdc.connect(usdcOwner).transfer(repayer, 10n * USDC_DEC);
 
     const amount = 4n * USDC_DEC;
-    const outputToken = networkConfig.BASE.Tokens.USDC;
+    const outputToken = networkConfig.BASE.Tokens.USDC.Address;
     const minGasLimit = 100000n;
     const extraData = AbiCoder.defaultAbiCoder().encode(
       ["address", "uint32", "bytes"],
@@ -370,7 +362,7 @@ describe("Repayer", function () {
     const fee = 1000000000000000n;
     await dai.connect(daiOwner).transfer(repayer, amount);
 
-    const outputToken = networkConfig.ARBITRUM_ONE.Tokens.DAI;
+    const outputToken = networkConfig.ARBITRUM_ONE.Tokens.DAI!.Address;
 
     const data = AbiCoder.defaultAbiCoder().encode(
       ["uint256", "bytes"],
@@ -417,7 +409,7 @@ describe("Repayer", function () {
     const fee = 1000000000000000n;
     await wbtc.connect(wbtcOwner).transfer(repayer, amount);
 
-    const outputToken = networkConfig.ARBITRUM_ONE.Tokens.WBTC;
+    const outputToken = networkConfig.ARBITRUM_ONE.Tokens.WBTC!.Address;
 
     const data = AbiCoder.defaultAbiCoder().encode(
       ["uint256", "bytes"],
@@ -460,7 +452,7 @@ describe("Repayer", function () {
     await weth.connect(repayUser).deposit({value: amount});
     await weth.connect(repayUser).transfer(repayer, amount);
 
-    const outputToken = networkConfig.ARBITRUM_ONE.Tokens.WETH;
+    const outputToken = networkConfig.ARBITRUM_ONE.Tokens.WETH!.Address;
 
     const data = AbiCoder.defaultAbiCoder().encode(
       ["uint256", "bytes"],
@@ -509,7 +501,7 @@ describe("Repayer", function () {
     await usdc.connect(usdcOwner).transfer(repayer, 10n * USDC_DEC);
     await usdc.connect(usdcOwner).transfer(repayer, amount);
 
-    const outputToken = networkConfig.ARBITRUM_ONE.Tokens.USDC;
+    const outputToken = networkConfig.ARBITRUM_ONE.Tokens.USDC.Address;
 
     const data = AbiCoder.defaultAbiCoder().encode(
       ["uint256", "bytes"],

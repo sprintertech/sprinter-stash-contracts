@@ -18,3 +18,25 @@ New Repayer implementation deployed to 0x0c90DD8ec43f985BDBEb536929a4507266383B0
 Sending Repayer upgrade transaction.
 0x6c8878bfb00da82902d7b3bc16d1831db7d18e47633336f2b2d2b0209de64001
 Repayer upgraded.
+
+Deployment ID: MVP
+Upgrade ID: REPAYER_DECIMALS
+Upgrading Repayer
+Using config for: stage, ETHEREUM
+Deployer        : 0x2D5B6C193C39D2AECb4a99052074E6F325258a0f
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+New Repayer implementation deployed to 0x8458176F9b85027823644699A9460B8525B96b0A
+Sending Repayer upgrade transaction.
+0x1c3cfb93975336c51591e0dbc1bdb0a54d65a94ff1313fbeecc3b9e7caddf256
+Repayer upgraded.
+
+Deployment ID: MVP
+Upgrade ID: REPAYER_DECIMALS
+Upgrading Rebalancer
+Using config for: stage, ETHEREUM
+Deployer        : 0x2D5B6C193C39D2AECb4a99052074E6F325258a0f
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+New Rebalancer implementation deployed to 0xd4E8FDb97c721c0d7BEA8e7d5DA8D6464dA5f7a9
+Sending Rebalancer upgrade transaction.
+0x3c7b402975e23889ae0abf7808276f98b5183dc09444dc4551a827010a0396d5
+Rebalancer upgraded.

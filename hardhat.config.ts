@@ -3,7 +3,7 @@ import "@nomicfoundation/hardhat-toolbox";
 import {
   networkConfig, Network, Provider,
 } from "./network.config";
-import {TypedDataDomain, AbiCoder, toNumber, dataSlice, getAddress, parseEther} from "ethers";
+import {TypedDataDomain, AbiCoder, toNumber, dataSlice, getAddress, parseEther, NonceManager} from "ethers";
 import {
   LiquidityPoolAave, Rebalancer, Repayer
 } from "./typechain-types";
@@ -140,10 +140,11 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
   const {network, config} = await getNetworkConfig();
 
   const [admin] = await hre.ethers.getSigners();
+  const adminWithNonce = new NonceManager(admin);
 
   assert(["allow", "deny", "both"].includes(args.action), "Invalid action");
   const targetAddress = await resolveProxyXAddress(args.rebalancer);
-  const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, admin)) as Rebalancer;
+  const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, adminWithNonce)) as Rebalancer;
   const onchainRoutes = await target.getAllRoutes();
   const onchainConfig: {Pool: string, Domain: Network, Provider: Provider}[] = [];
   for (let i = 0; i < onchainRoutes.pools.length; i++) {
@@ -194,12 +195,12 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
       providers: ProviderSolidity[el.Provider],
     }));
     if (hasRole && (args.action === "allow" || args.action === "both")) {
-      await target.setRoute(
+      await (await target.setRoute(
         toAllowParams.map(el => el.pools),
         toAllowParams.map(el => el.domains),
         toAllowParams.map(el => el.providers),
         true
-      );
+      )).wait();
       console.log(`Following routes are now allowed on ${targetAddress}.`);
       console.table(toAllow);
     } else {
@@ -221,12 +222,12 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
       providers: ProviderSolidity[el.Provider],
     }));
     if (hasRole && (args.action === "deny" || args.action === "both")) {
-      await target.setRoute(
+      await (await target.setRoute(
         toDenyParams.map(el => el.pools),
         toDenyParams.map(el => el.domains),
         toDenyParams.map(el => el.providers),
         false
-      );
+      )).wait();
       console.log(`Following routes are now denied on ${targetAddress}.`);
       console.table(toDeny);
     } else {
@@ -296,10 +297,11 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
   const {network, config} = await getNetworkConfig();
 
   const [admin] = await hre.ethers.getSigners();
+  const adminWithNonce = new NonceManager(admin);
 
   assert(["allow", "deny", "both"].includes(args.action), "Invalid action");
   const targetAddress = await resolveProxyXAddress(args.repayer);
-  const target = (await hre.ethers.getContractAt("Repayer", targetAddress, admin)) as Repayer;
+  const target = (await hre.ethers.getContractAt("Repayer", targetAddress, adminWithNonce)) as Repayer;
   const onchainRoutes = await target.getAllRoutes();
   const onchainConfig: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens: boolean}[] = [];
   for (let i = 0; i < onchainRoutes.pools.length; i++) {
@@ -356,13 +358,13 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
       supportsAllTokens: el.SupportsAllTokens,
     }));
     if (hasRole && (args.action === "deny" || args.action === "both")) {
-      await target.setRoute(
+      await (await target.setRoute(
         toDenyParams.map(el => el.pools),
         toDenyParams.map(el => el.domains),
         toDenyParams.map(el => el.providers),
         toDenyParams.map(el => el.supportsAllTokens),
         false
-      );
+      )).wait();
       console.log(`Following routes are now denied on ${targetAddress}.`);
       console.table(toDeny);
     } else {
@@ -385,13 +387,13 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
       supportsAllTokens: el.SupportsAllTokens,
     }));
     if (hasRole && (args.action === "allow" || args.action === "both")) {
-      await target.setRoute(
+      await (await target.setRoute(
         toAllowParams.map(el => el.pools),
         toAllowParams.map(el => el.domains),
         toAllowParams.map(el => el.providers),
         toAllowParams.map(el => el.supportsAllTokens),
         true
-      );
+      )).wait();
       console.log(`Following routes are now allowed on ${targetAddress}.`);
       console.table(toAllow);
     } else {
@@ -407,7 +409,7 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
   }
 });
 
-task("add-tokens-repayer", "Add input output tokens based on current network configs")
+task("update-tokens-repayer", "Update input output tokens based on current network configs")
 .addOptionalParam("repayer", "Repayer address or id", "Repayer", types.string)
 .addOptionalParam("check", "Check if tokens are already allowed", true, types.boolean)
 .setAction(async (args: {
@@ -430,13 +432,19 @@ task("add-tokens-repayer", "Add input output tokens based on current network con
   const target = (await hre.ethers.getContractAt("Repayer", targetAddress, sender)) as Repayer;
   const filteredInputOutputTokens: Repayer.InputOutputTokenStruct[] = [];
   for (const entry of inputOutputTokens) {
-    const alreadyAllowed = await Promise.all(entry.destinationTokens.map(el => {
+    const outputTokenData = await Promise.all(entry.destinationTokens.map(async el => {
       if (args.check) {
-        return target.isOutputTokenAllowed(entry.inputToken, el.destinationDomain, el.outputToken);
+        const result = await target.outputTokenData(entry.inputToken, el.destinationDomain, el.outputToken);
+        return {isAllowed: result.isAllowed, localDecimalsGreaterBy: Number(result.localDecimalsGreaterBy)};
       }
-      return false;
+      return {isAllowed: false, localDecimalsGreaterBy: 0};
     }));
-    entry.destinationTokens = entry.destinationTokens.filter((_, index) => !alreadyAllowed[index]);
+    entry.destinationTokens = entry.destinationTokens.filter((el, index) => {
+      const alreadyConfigured =
+        outputTokenData[index].isAllowed &&
+        outputTokenData[index].localDecimalsGreaterBy === el.localDecimalsGreaterBy;
+      return !alreadyConfigured;
+    });
     if (entry.destinationTokens.length > 0) {
       filteredInputOutputTokens.push(entry);
     }
@@ -447,7 +455,7 @@ task("add-tokens-repayer", "Add input output tokens based on current network con
     console.table(flattenInputOutputTokens(filteredInputOutputTokens));
     const hasRole = await target.hasRole(toBytes32("SET_TOKENS_ROLE"), sender);
     if (hasRole) {
-      await target.setInputOutputTokens(filteredInputOutputTokens, true);
+      await (await target.setInputOutputTokens(filteredInputOutputTokens, true)).wait();
       console.log("Done.");
     } else {
       console.log("To add missing tokens execute the following transaction.");
@@ -517,7 +525,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
   };
 
   const token = await hre.ethers.getContractAt("IERC20", hre.ethers.ZeroAddress, signer);
-  const borrowToken = args.token || config.Tokens.USDC;
+  const borrowToken = args.token || config.Tokens.USDC.Address;
   const amount = args.amount;
   const target = args.target || borrowToken;
   const data = args.data || (await token.transfer.populateTransaction(signer, amount)).data;
@@ -615,14 +623,38 @@ const accounts: string[] = isSet(process.env.PRIVATE_KEY) ? [process.env.PRIVATE
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.28",
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 999999,
+    compilers: [{
+      version: "0.8.28",
+      settings: {
+        optimizer: {
+          enabled: true,
+          runs: 999999,
+        },
+        viaIR: true,
       },
-      viaIR: true,
-    },
+    }],
+    overrides: {
+      "contracts/Repayer.sol": {
+        version: "0.8.28",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 10000,
+          },
+          viaIR: true,
+        },
+      },
+      "contracts/testing/TestRepayer.sol": {
+        version: "0.8.28",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 10000,
+          },
+          viaIR: true,
+        },
+      }
+    }
   },
   networks: {
     localhost: {
@@ -709,7 +741,7 @@ const config: HardhatUserConfig = {
         blockNumber: process.env.FORK_BLOCK_NUMBER ? parseInt(process.env.FORK_BLOCK_NUMBER) : undefined,
       },
       accounts: isSet(process.env.DRY_RUN)
-        ? [{privateKey: process.env.PRIVATE_KEY!, balance: "1000000000000000000"}]
+        ? [{privateKey: process.env.PRIVATE_KEY!, balance: "100000000000000000000"}]
         : undefined,
       // https://github.com/NomicFoundation/hardhat/issues/5511
       chains: isSet(process.env.DRY_RUN) || isSet(process.env.FORK_TEST)

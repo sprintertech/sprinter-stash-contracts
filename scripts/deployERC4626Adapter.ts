@@ -10,8 +10,6 @@ import {Network, NetworkConfig, ERC4626AdapterUSDCVersions} from "../network.con
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
 
-  await logDeployers();
-
   const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
   const WITHDRAW_PROFIT_ROLE = toBytes32("WITHDRAW_PROFIT_ROLE");
   const PAUSER_ROLE = toBytes32("PAUSER_ROLE");
@@ -29,6 +27,7 @@ export async function main() {
     ({network, config} = await getHardhatNetworkConfig());
     id += "-DeployTest";
   }
+  await logDeployers();
 
   assert(config.ERC4626AdapterUSDCTargetVault, "ERC4626AdapterUSDCTargetVault must be configured");
 
@@ -44,7 +43,7 @@ export async function main() {
     deployer,
     {},
     [
-      config.Tokens.USDC,
+      config.Tokens.USDC.Address,
       targetVault,
       deployer,
     ],

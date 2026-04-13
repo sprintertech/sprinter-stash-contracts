@@ -1,9 +1,11 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
+import {NonceManager} from "ethers";
 import {
   getVerifier, deployProxyX, getHardhatNetworkConfig, getNetworkConfig, addLocalPools,
   getInputOutputTokens, flattenInputOutputTokens,
+  logDeployers,
 } from "./helpers";
 import {resolveXAddress} from "../test/helpers";
 import {
@@ -16,6 +18,7 @@ import {
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
+  const deployerWithNonce = new NonceManager(deployer);
 
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
   const verifier = getVerifier(process.env.DEPLOY_ID);
@@ -31,7 +34,9 @@ export async function main() {
     id += "-DeployTest";
   }
 
-  assertAddress(config.Tokens.USDC, "USDC must be an address");
+  await logDeployers();
+
+  assertAddress(config.Tokens.USDC.Address, "USDC must be an address");
   assertAddress(config.Admin, "Admin must be an address");
   assertAddress(config.RepayerCaller, "RepayerCaller must be an address");
   assertAddress(config.SetInputOutputTokens, "SetInputOutputTokens must be an address");
@@ -94,11 +99,11 @@ export async function main() {
   const {target: repayer, targetAdmin: repayerAdmin} = await deployProxyX<Repayer>(
     verifier.deployX,
     repayerVersion,
-    deployer,
+    deployerWithNonce,
     config.Admin,
     [
       DomainSolidity[network],
-      config.Tokens.USDC,
+      config.Tokens.USDC.Address,
       config.CCTP.TokenMessenger,
       config.CCTP.MessageTransmitter,
       config.AcrossV3SpokePool,

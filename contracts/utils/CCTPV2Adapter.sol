@@ -33,6 +33,7 @@ abstract contract CCTPV2Adapter is CCTPAdapter {
         address destinationPool,
         Domain destinationDomain
     ) internal notPayable {
+        require(address(CCTP_V2_TOKEN_MESSENGER) != address(0), ZeroAddress());
         token.forceApprove(address(CCTP_V2_TOKEN_MESSENGER), amount);
         // Standard transfer: maxFee = 0, minFinalityThreshold = 2000 (hard finality, no fast-transfer fee).
         // See https://github.com/circlefin/evm-cctp-contracts/blob/master/src/v2/FinalityThresholds.sol
@@ -46,5 +47,4 @@ abstract contract CCTPV2Adapter is CCTPAdapter {
             2000
         );
     }
-
 }

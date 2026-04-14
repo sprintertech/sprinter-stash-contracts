@@ -319,7 +319,8 @@ export function getNetworkConfigsForCurrentEnv(config: NetworkConfig): PartialNe
   for (const network of Object.values(Network)) {
     if (isTest === networkConfig[network].IsTest) {
       networkConfigs[network] = networkConfig[network];
-    } else if (isStage && networkConfig[network].Stage) {
+    }
+    if (isStage && networkConfig[network].Stage) {
       networkConfigs[network] = networkConfig[network].Stage;
     }
   }

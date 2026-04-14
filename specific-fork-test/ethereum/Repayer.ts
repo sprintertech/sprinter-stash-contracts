@@ -81,15 +81,24 @@ describe("Repayer", function () {
     const everclearFeeAdapter = await hre.ethers.getContractAt("IFeeAdapterV2", forkNetworkConfig.EverclearFeeAdapter!);
     const weth = await hre.ethers.getContractAt("IWrappedNativeToken", forkNetworkConfig.WrappedNativeToken);
 
+    const cctpV1DepositForBurnAbi = [
+      "event DepositForBurn(uint64 indexed nonce, address indexed burnToken, " +
+      "uint256 amount, address indexed depositor, bytes32 mintRecipient, " +
+      "uint32 destinationDomain, bytes32 destinationTokenMessenger, " +
+      "bytes32 destinationCaller)",
+    ];
     const cctpV1Messenger = new Contract(
-      forkNetworkConfig.CCTP!.TokenMessenger!,
-      ["event DepositForBurn(uint64 indexed nonce, address indexed burnToken, uint256 amount, address indexed depositor, bytes32 mintRecipient, uint32 destinationDomain, bytes32 destinationTokenMessenger, bytes32 destinationCaller)"],
-      deployer
+      forkNetworkConfig.CCTP!.TokenMessenger!, cctpV1DepositForBurnAbi, deployer
     );
+    const cctpV2DepositForBurnAbi = [
+      "event DepositForBurn(address indexed burnToken, uint256 amount, " +
+      "address indexed depositor, bytes32 mintRecipient, " +
+      "uint32 destinationDomain, bytes32 destinationTokenMessenger, " +
+      "bytes32 destinationCaller, uint256 maxFee, " +
+      "uint32 indexed minFinalityThreshold, bytes hookData)",
+    ];
     const cctpV2Messenger = new Contract(
-      forkNetworkConfig.CCTPV2!.TokenMessenger!,
-      ["event DepositForBurn(address indexed burnToken, uint256 amount, address indexed depositor, bytes32 mintRecipient, uint32 destinationDomain, bytes32 destinationTokenMessenger, bytes32 destinationCaller, uint256 maxFee, uint32 indexed minFinalityThreshold, bytes hookData)"],
-      deployer
+      forkNetworkConfig.CCTPV2!.TokenMessenger!, cctpV2DepositForBurnAbi, deployer
     );
 
     assertAddress(forkNetworkConfig.Omnibridge, "ETHEREUM Omnibridge address is missing");
@@ -120,8 +129,14 @@ describe("Repayer", function () {
       admin,
       repayUser,
       setTokensUser,
-      [liquidityPool, liquidityPool2, liquidityPool, liquidityPool, liquidityPool, liquidityPool, liquidityPool],
-      [Domain.ETHEREUM, Domain.ETHEREUM, Domain.OP_MAINNET, Domain.BASE, Domain.ARBITRUM_ONE, Domain.ARBITRUM_ONE, Domain.ARBITRUM_ONE],
+      [
+        liquidityPool, liquidityPool2, liquidityPool, liquidityPool,
+        liquidityPool, liquidityPool, liquidityPool,
+      ],
+      [
+        Domain.ETHEREUM, Domain.ETHEREUM, Domain.OP_MAINNET, Domain.BASE,
+        Domain.ARBITRUM_ONE, Domain.ARBITRUM_ONE, Domain.ARBITRUM_ONE,
+      ],
       [
         Provider.LOCAL,
         Provider.LOCAL,

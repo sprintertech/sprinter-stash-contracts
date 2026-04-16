@@ -388,7 +388,8 @@ export async function getNetworkConfig() {
     if (process.env.DEPLOY_TYPE === "STAGE") {
       assert(
         process.env.DEPLOYER_ADDRESS === process.env.STAGE_DEPLOYER_ADDRESS,
-        "DEPLOYER_ADDRESS must match STAGE_DEPLOYER_ADDRESS"
+        `DEPLOYER_ADDRESS(${process.env.DEPLOYER_ADDRESS}) must match
+         STAGE_DEPLOYER_ADDRESS(${process.env.STAGE_DEPLOYER_ADDRESS})`
       );
       assert(config.Stage, "Stage config must be defined");
       message += "stage, ";
@@ -396,7 +397,8 @@ export async function getNetworkConfig() {
     } else {
       assert(
         process.env.DEPLOYER_ADDRESS !== process.env.STAGE_DEPLOYER_ADDRESS,
-        "DEPLOYER_ADDRESS must not match STAGE_DEPLOYER_ADDRESS"
+        `DEPLOYER_ADDRESS(${process.env.DEPLOYER_ADDRESS}) must not match
+         STAGE_DEPLOYER_ADDRESS(${process.env.STAGE_DEPLOYER_ADDRESS})`
       );
     }
     console.log(`${message}${network}`);

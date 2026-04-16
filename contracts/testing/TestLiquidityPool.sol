@@ -43,6 +43,8 @@ contract TestLiquidityPool is ILiquidityPool, AccessControl {
     ) external pure override {
         return;
     }
+    
+    function borrowDirect(address, uint256) external pure override { return; }
 
     function borrowMany(
         address[] calldata,
@@ -83,6 +85,10 @@ contract TestLiquidityPool is ILiquidityPool, AccessControl {
     }
 
     function repay(address[] calldata) external override {
+        emit Repaid();
+    }
+    
+    function repayDirect(address[] calldata) external override {
         emit Repaid();
     }
 

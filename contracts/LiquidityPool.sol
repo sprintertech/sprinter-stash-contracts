@@ -14,8 +14,10 @@ import {HelperLib} from "./utils/HelperLib.sol";
 import {NATIVE_TOKEN} from "./utils/Constants.sol";
 import {ISigner} from "./interfaces/ISigner.sol";
 
-/// @title Liquidity pool contract holds the liquidity asset and allows solvers to borrow
+/// @title LiquidityPool
+/// @notice Liquidity pool contract holds the liquidity asset and allows solvers to borrow
 /// the asset from the pool and to perform an external function call upon providing the MPC signature.
+/// The pool can also be used by trusted parties to borrow without the need of providing an MPC signature.
 /// It's possible to perform borrowing with swap by the solver (the solver gets the borrowed
 /// assets from the pool, swaps them to fill tokens, and then the pool performs the target call).
 /// Repayment is done by transferring the assets to the contract without calling any function.
@@ -65,10 +67,12 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     bool public borrowPaused;
     address public mpcAddress;
     address public signerAddress;
+    mapping(address => uint256) public directBorrowed;
 
     bytes32 private constant LIQUIDITY_ADMIN_ROLE = "LIQUIDITY_ADMIN_ROLE";
     bytes32 private constant WITHDRAW_PROFIT_ROLE = "WITHDRAW_PROFIT_ROLE";
     bytes32 private constant PAUSER_ROLE = "PAUSER_ROLE";
+    bytes32 private constant DIRECT_BORROW_ROLE = "DIRECT_BORROW";
     // bytes4(keccak256("isValidSignature(bytes32,bytes)")
     bytes4 constant internal MAGICVALUE = 0x1626ba7e;
     IWrappedNativeToken immutable public WRAPPED_NATIVE_TOKEN;
@@ -88,6 +92,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     error ExpectedPause();
     error InsufficientSwapResult();
     error NativeBorrowDenied();
+    error NotDirectBorrower();
 
     event Deposit(address from, uint256 amount);
     event Withdraw(address caller, address to, uint256 amount);
@@ -112,6 +117,11 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     modifier whenPaused() {
         require(paused, ExpectedPause());
         _;
+    }
+    
+    modifier onlyDirectBorrower() {
+      require(hasRole(DIRECT_BORROW_ROLE, _msgSender()), NotDirectBorrower());
+      _;
     }
 
     constructor(
@@ -180,6 +190,26 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         _unwrapNative(nativeValue);
         _finalizeBorrow(target, nativeValue, targetCallData);
     }
+    
+    /// @notice This function allows an authorized caller to borrow funds from the contract.
+    /// This is callable by authorized callers and does not need MPC signatures.
+    /// The contract approves the tokens for the target address.
+    /// It's supposed that the target is a trusted contract that fulfills the request, performs transferFrom
+    /// of borrow tokens and guarantees to repay the tokens to the pool later.
+    /// @param borrowToken can be specified as native token address which is 0x0. In this case, the function will
+    /// borrow wrapped native token, then unwrap it and include the native value in the target call.
+    function borrowDirect(
+      address borrowToken, 
+      uint256 amount
+    ) external override whenNotPaused() whenBorrowNotPaused() onlyRole(DIRECT_BORROW_ROLE) {
+        amount = _processBorrowAmount(amount, msg.data[0:0]);
+        directBorrowed[borrowToken] += amount;
+
+        (, address actualBorrowToken, bytes memory context) =
+            _borrow(borrowToken, amount, _msgSender(), false, "");
+        
+        _afterBorrowLogic(actualBorrowToken, context);
+    } 
 
     /// @param borrowTokens can include a native token address which is 0x0. In this case, the function will
     /// borrow wrapped native token, then unwrap it and include the native value in the target call.
@@ -276,6 +306,10 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     }
 
     function repay(address[] calldata) external virtual override {
+        revert NotImplemented();
+    }
+    
+    function repayDirect(address[] calldata) external virtual override {
         revert NotImplemented();
     }
 

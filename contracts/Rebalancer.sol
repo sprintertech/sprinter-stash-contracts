@@ -231,9 +231,7 @@ contract Rebalancer is
             );
         } else
         if (provider == Provider.CCTP_V2) {
-            depositAmount = processTransferCCTP(
-                address(CCTP_V2_MESSAGE_TRANSMITTER), ASSETS, destinationPool, extraData
-            );
+            depositAmount = processTransferCCTPV2(ASSETS, destinationPool, extraData);
         } else
         if (provider == Provider.GNOSIS_OMNIBRIDGE) {
             IERC20 receivedToken;

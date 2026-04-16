@@ -300,7 +300,7 @@ contract Repayer is
             amount = processTransferCCTP(address(CCTP_MESSAGE_TRANSMITTER), ASSETS, destinationPool, extraData);
         } else
         if (provider == Provider.CCTP_V2) {
-            amount = processTransferCCTP(address(CCTP_V2_MESSAGE_TRANSMITTER), ASSETS, destinationPool, extraData);
+            amount = processTransferCCTPV2(ASSETS, destinationPool, extraData);
         } else
         if (provider == Provider.GNOSIS_OMNIBRIDGE) {
             (token, amount) = processTransferGnosisOmnibridge(destinationPool, extraData);

@@ -7,7 +7,9 @@ import {AdapterHelper} from "./AdapterHelper.sol";
 
 /// @notice The child contract has to be deployed to the same address across chains, otherwise
 /// processTransferCCTP() won't work, as the same address has to call receiveMessage().
-/// Only supports CCTP V1 integration.
+/// Supports CCTP V1 initiate/receive directly, and hosts the shared processTransferCCTP()
+/// helper that is reused by the V2 adapter (both versions expose an identical
+/// receiveMessage(bytes,bytes) returns (bool) signature).
 abstract contract CCTPAdapter is AdapterHelper {
     using SafeERC20 for IERC20;
 

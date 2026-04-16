@@ -368,6 +368,34 @@ describe("Repayer", function () {
       [false],
       ALLOWED
     )).to.be.revertedWithCustomError(repayer, "InvalidPoolAssets()");
+    await expect(repayer.connect(admin).setRoute(
+      [liquidityPool2, liquidityPool2],
+      [Domain.BASE],
+      [Provider.LOCAL],
+      [true],
+      ALLOWED
+    )).to.be.revertedWithCustomError(repayer, "InvalidLength()");
+    await expect(repayer.connect(admin).setRoute(
+      [liquidityPool2],
+      [Domain.BASE],
+      [Provider.LOCAL, Provider.LOCAL],
+      [true],
+      ALLOWED
+    )).to.be.revertedWithCustomError(repayer, "InvalidLength()");
+    await expect(repayer.connect(admin).setRoute(
+      [liquidityPool2],
+      [Domain.BASE],
+      [Provider.LOCAL],
+      [true, true],
+      ALLOWED
+    )).to.be.revertedWithCustomError(repayer, "InvalidLength()");
+    await expect(repayer.connect(admin).setRoute(
+      [ZERO_ADDRESS],
+      [Domain.BASE],
+      [Provider.LOCAL],
+      [true],
+      ALLOWED
+    )).to.be.revertedWithCustomError(repayer, "ZeroAddress()");
   });
 
   it("Should not allow others to enable routes", async function () {
@@ -2631,6 +2659,106 @@ describe("Repayer", function () {
 
     expect(await usdc.balanceOf(liquidityPool)).to.equal(4n * USDC_DEC);
     expect(await usdc.balanceOf(repayer)).to.equal(0n);
+  });
+
+  it("Should revert CCTP V2 initiate if native currency is sent along", async function () {
+    const {repayer, usdc, USDC_DEC, liquidityPool, repayUser} = await loadFixture(deployAll);
+
+    await usdc.transfer(repayer, 10n * USDC_DEC);
+
+    await expect(repayer.connect(repayUser).initiateRepay(
+      usdc,
+      4n * USDC_DEC,
+      liquidityPool,
+      Domain.ETHEREUM,
+      Provider.CCTP_V2,
+      "0x",
+      {value: 1n}
+    )).to.be.revertedWithCustomError(repayer, "NotPayable()");
+  });
+
+  it("Should not allow repayer to initiate repay with other token if the provider is CCTP V2", async function () {
+    const {repayer, repayUser, eurc, EURC_DEC, eurcOwner, liquidityPool} = await loadFixture(deployAll);
+
+    await eurc.connect(eurcOwner).transfer(repayer, 10n * EURC_DEC);
+    await expect(repayer.connect(repayUser).initiateRepay(
+      eurc,
+      4n * EURC_DEC,
+      liquidityPool,
+      Domain.ETHEREUM,
+      Provider.CCTP_V2,
+      "0x"
+    )).to.be.revertedWithCustomError(repayer, "InvalidToken()");
+  });
+
+  it("Should revert CCTP V2 initiate if TokenMessenger is zero address", async function () {
+    const {deployer, admin, repayUser, setTokensUser, usdc, USDC_DEC, liquidityPool,
+      cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool, everclearFeeAdapter, weth,
+      stargateTreasurerTrue, optimismBridge, baseBridge, arbitrumGatewayRouter,
+    } = await loadFixture(deployAll);
+
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "RepayerNoCCTPV2", {},
+        Domain.BASE, usdc, cctpTokenMessenger, cctpMessageTransmitter,
+        acrossV3SpokePool, everclearFeeAdapter, weth, stargateTreasurerTrue,
+        optimismBridge, baseBridge, arbitrumGatewayRouter,
+        ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+        ZERO_ADDRESS, ZERO_ADDRESS,
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin, repayUser, setTokensUser,
+      [liquidityPool, liquidityPool], [Domain.BASE, Domain.AVALANCHE],
+      [Provider.LOCAL, Provider.CCTP_V2], [true, true], []
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayerNoCCTPV2", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    await usdc.transfer(repayer, 10n * USDC_DEC);
+    await expect(repayer.connect(repayUser).initiateRepay(
+      usdc, 4n * USDC_DEC, liquidityPool, Domain.AVALANCHE, Provider.CCTP_V2, "0x"
+    )).to.be.revertedWithCustomError(repayer, "ZeroAddress");
+  });
+
+  it("Should revert CCTP V2 process if MessageTransmitter is zero address", async function () {
+    const {deployer, admin, repayUser, setTokensUser, usdc, USDC_DEC, liquidityPool,
+      cctpTokenMessenger, cctpMessageTransmitter, cctpV2TokenMessenger,
+      acrossV3SpokePool, everclearFeeAdapter, weth,
+      stargateTreasurerTrue, optimismBridge, baseBridge, arbitrumGatewayRouter,
+    } = await loadFixture(deployAll);
+
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "RepayerNoCCTPV2Transmitter", {},
+        Domain.BASE, usdc, cctpTokenMessenger, cctpMessageTransmitter,
+        acrossV3SpokePool, everclearFeeAdapter, weth, stargateTreasurerTrue,
+        optimismBridge, baseBridge, arbitrumGatewayRouter,
+        ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+        cctpV2TokenMessenger, ZERO_ADDRESS,
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin, repayUser, setTokensUser,
+      [liquidityPool, liquidityPool], [Domain.BASE, Domain.AVALANCHE],
+      [Provider.LOCAL, Provider.CCTP_V2], [true, true], []
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer,
+      "TransparentUpgradeableProxyRepayerNoCCTPV2Transmitter", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    const message = AbiCoder.defaultAbiCoder().encode(
+      ["address", "address", "uint256"],
+      [usdc.target, liquidityPool.target, 4n * USDC_DEC]
+    );
+    const signature = AbiCoder.defaultAbiCoder().encode(["bool", "bool"], [true, true]);
+    const extraData = AbiCoder.defaultAbiCoder().encode(["bytes", "bytes"], [message, signature]);
+    await expect(repayer.connect(repayUser).processRepay(liquidityPool, Provider.CCTP_V2, extraData))
+      .to.be.revertedWithCustomError(repayer, "ZeroAddress");
   });
 
   it("Should revert processRepay for unsupported providers", async function () {

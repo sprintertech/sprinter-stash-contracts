@@ -13,8 +13,8 @@ import {CCTPAdapter} from "./CCTPAdapter.sol";
 abstract contract CCTPV2Adapter is CCTPAdapter {
     using SafeERC20 for IERC20;
 
-    ICCTPV2TokenMessenger immutable internal CCTP_V2_TOKEN_MESSENGER;
-    ICCTPV2MessageTransmitter immutable internal CCTP_V2_MESSAGE_TRANSMITTER;
+    ICCTPV2TokenMessenger immutable public CCTP_V2_TOKEN_MESSENGER;
+    ICCTPV2MessageTransmitter immutable public CCTP_V2_MESSAGE_TRANSMITTER;
 
     constructor(
         address cctpTokenMessenger,
@@ -46,5 +46,14 @@ abstract contract CCTPV2Adapter is CCTPAdapter {
             0,
             2000
         );
+    }
+
+    function processTransferCCTPV2(
+        IERC20 token,
+        address destinationPool,
+        bytes calldata extraData
+    ) internal returns (uint256) {
+        require(address(CCTP_V2_MESSAGE_TRANSMITTER) != address(0), ZeroAddress());
+        return processTransferCCTP(address(CCTP_V2_MESSAGE_TRANSMITTER), token, destinationPool, extraData);
     }
 }

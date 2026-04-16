@@ -256,6 +256,24 @@ describe("Rebalancer", function () {
       [Provider.LOCAL],
       ALLOWED
     )).to.be.revertedWithCustomError(rebalancer, "InvalidPoolAssets()");
+    await expect(rebalancer.connect(admin).setRoute(
+      [liquidityPool2, liquidityPool2],
+      [Domain.BASE],
+      [Provider.LOCAL],
+      ALLOWED
+    )).to.be.revertedWithCustomError(rebalancer, "InvalidLength()");
+    await expect(rebalancer.connect(admin).setRoute(
+      [liquidityPool2],
+      [Domain.BASE],
+      [Provider.LOCAL, Provider.LOCAL],
+      ALLOWED
+    )).to.be.revertedWithCustomError(rebalancer, "InvalidLength()");
+    await expect(rebalancer.connect(admin).setRoute(
+      [ZERO_ADDRESS],
+      [Domain.BASE],
+      [Provider.LOCAL],
+      ALLOWED
+    )).to.be.revertedWithCustomError(rebalancer, "ZeroAddress()");
   });
 
   it("Should not allow others to enable routes", async function () {
@@ -414,6 +432,40 @@ describe("Rebalancer", function () {
     await expect(rebalancer.connect(rebalanceUser).initiateRebalance(
       4n * USDC, liquidityPool, liquidityPool, Domain.AVALANCHE, Provider.CCTP_V2, "0x"
     )).to.be.revertedWithCustomError(rebalancer, "ZeroAddress");
+  });
+
+  it("Should revert CCTP V2 process if MessageTransmitter is zero address", async function () {
+    const {deployer, admin, rebalanceUser, usdc, USDC, liquidityPool,
+      cctpTokenMessenger, cctpMessageTransmitter, cctpV2TokenMessenger,
+    } = await loadFixture(deployAll);
+
+    const rebalancerImpl = (
+      await deployX("Rebalancer", deployer, "RebalancerNoCCTPV2Transmitter", {},
+        Domain.BASE, usdc, cctpTokenMessenger, cctpMessageTransmitter,
+        ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+        cctpV2TokenMessenger, ZERO_ADDRESS,
+      )
+    ) as Rebalancer;
+    const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(
+      admin, rebalanceUser,
+      [liquidityPool, liquidityPool], [Domain.BASE, Domain.AVALANCHE], [Provider.LOCAL, Provider.CCTP_V2]
+    )).data;
+    const rebalancerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer,
+      "TransparentUpgradeableProxyRebalancerNoCCTPV2Transmitter", {},
+      rebalancerImpl, admin, rebalancerInit
+    )) as TransparentUpgradeableProxy;
+    const rebalancer = (await getContractAt("Rebalancer", rebalancerProxy, deployer)) as Rebalancer;
+    await liquidityPool.grantRole(toBytes32("LIQUIDITY_ADMIN_ROLE"), rebalancer);
+
+    const message = AbiCoder.defaultAbiCoder().encode(
+      ["address", "address", "uint256"],
+      [usdc.target, liquidityPool.target, 4n * USDC]
+    );
+    const signature = AbiCoder.defaultAbiCoder().encode(["bool", "bool"], [true, true]);
+    const extraData = AbiCoder.defaultAbiCoder().encode(["bytes", "bytes"], [message, signature]);
+    await expect(rebalancer.connect(rebalanceUser).processRebalance(liquidityPool, Provider.CCTP_V2, extraData))
+      .to.be.revertedWithCustomError(rebalancer, "ZeroAddress");
   });
 
   it("Should allow rebalancer to initiate rebalance to local pool", async function () {

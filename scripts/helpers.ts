@@ -70,7 +70,9 @@ export class Verifier {
     this.chainId = chainId;
   }
 
-  static async initialize(deployer: Signer, deployXPrefix: string = "", simulate: boolean = false, chainId: string = ""): Promise<Verifier> {
+  static async initialize(
+    deployer: Signer, deployXPrefix: string = "", simulate: boolean = false, chainId: string = ""
+  ): Promise<Verifier> {
     const verifier = new Verifier(deployXPrefix, simulate, chainId);
     return verifier;
   }
@@ -182,7 +184,7 @@ export class Verifier {
     console.log(this.deployedTxHashes);
     try {
       const dir = path.join(process.cwd(), "./scripts/results/transactions");
-      await fs.mkdir(dir, { recursive: true });
+      await fs.mkdir(dir, {recursive: true});
 
       const now = new Date();
       const timestamp = now.toISOString().replace(/[:.]/g, "-");

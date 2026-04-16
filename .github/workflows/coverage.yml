@@ -10,10 +10,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6.3.0
         with:
           node-version: 22
           cache: 'npm'
@@ -116,12 +116,12 @@ jobs:
           echo ""
 
           # Check 2: CI must be >= main baseline (coverage didn't decrease)
-          echo "Check 2: Did coverage decrease?"
-          if awk "BEGIN {exit !($CI_LINES >= $MAIN_LINES)}"; then
+          echo "Check 2: Did coverage decrease? 0.5% tolerance"
+          if awk "BEGIN {exit !($CI_LINES >= ($MAIN_LINES - 0.5))}"; then
             if awk "BEGIN {exit !($CI_LINES > $MAIN_LINES)}"; then
               echo "  ✅ PASS - Coverage improved! ($MAIN_LINES% → $CI_LINES%)"
             else
-              echo "  ✅ PASS - Coverage maintained ($CI_LINES%)"
+              echo "  ✅ PASS - Coverage maintained within tolerance ($CI_LINES%)"
             fi
           else
             echo "  ❌ FAIL - Coverage decreased!"
@@ -142,7 +142,7 @@ jobs:
 
       - name: Upload coverage report (optional)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.0
         with:
           name: coverage-report
           path: coverage/

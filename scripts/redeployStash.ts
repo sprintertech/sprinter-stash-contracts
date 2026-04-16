@@ -1,7 +1,7 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {getVerifier, getHardhatNetworkConfig, getNetworkConfig} from "./helpers";
+import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers} from "./helpers";
 import {resolveProxyXAddress} from "../test/helpers";
 import {isSet, assert} from "./common";
 import {SprinterLiquidityMining} from "../typechain-types";
@@ -34,6 +34,8 @@ export async function main() {
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
   }
+
+  await logDeployers();
 
   assert(config.Hub, "Must be a network with a hub");
 

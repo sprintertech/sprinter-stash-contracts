@@ -27,6 +27,7 @@ import {
   ERC4626AdapterUSDCVersions,
   PartialNetworksConfig,
   Token,
+  TokenInfo,
 } from "../network.config";
 
 export async function resolveAddresses(input: any[]): Promise<any[]> {
@@ -527,7 +528,8 @@ export function getNetworkConfigsForCurrentEnv(config: NetworkConfig): PartialNe
   for (const network of Object.values(Network)) {
     if (isTest === networkConfig[network].IsTest) {
       networkConfigs[network] = networkConfig[network];
-    } else if (isStage && networkConfig[network].Stage) {
+    }
+    if (isStage && networkConfig[network].Stage) {
       networkConfigs[network] = networkConfig[network].Stage;
     }
   }
@@ -537,9 +539,9 @@ export function getNetworkConfigsForCurrentEnv(config: NetworkConfig): PartialNe
 export function getInputOutputTokens(network: Network, config: NetworkConfig) {
   const envConfigs = getNetworkConfigsForCurrentEnv(config);
   const inputOutputTokens: Repayer.InputOutputTokenStruct[] = [];
-  for (const [tokenSymbol, tokenAddress] of Object.entries(config.Tokens) as [Token, string][]) {
+  for (const [tokenSymbol, token] of Object.entries(config.Tokens) as [Token, TokenInfo][]) {
     const inputToken: Repayer.InputOutputTokenStruct = {
-      inputToken: tokenAddress,
+      inputToken: token.Address,
       destinationTokens: [],
     };
     for (const [envNetwork, envConfig] of Object.entries(envConfigs) as [Network, NetworkConfig][]) {
@@ -547,7 +549,8 @@ export function getInputOutputTokens(network: Network, config: NetworkConfig) {
       if (envConfig.Tokens[tokenSymbol]) {
         inputToken.destinationTokens.push({
           destinationDomain: DomainSolidity[envNetwork],
-          outputToken: addressToBytes32(envConfig.Tokens[tokenSymbol]),
+          outputToken: addressToBytes32(envConfig.Tokens[tokenSymbol].Address),
+          localDecimalsGreaterBy: token.Decimals - envConfig.Tokens[tokenSymbol].Decimals,
         });
       }
     }
@@ -563,6 +566,7 @@ export function flattenInputOutputTokens(inputOutputTokens: Repayer.InputOutputT
     InputToken: string;
     Domain: Network;
     OutputToken: string;
+    DecimalsDiff: number;
   }[] = [];
   for (const entry of inputOutputTokens) {
     for (const destinationToken of entry.destinationTokens) {
@@ -570,6 +574,7 @@ export function flattenInputOutputTokens(inputOutputTokens: Repayer.InputOutputT
         InputToken: entry.inputToken as string,
         Domain: SolidityDomain[Number(destinationToken.destinationDomain)],
         OutputToken: bytes32ToToken(destinationToken.outputToken),
+        DecimalsDiff: Number(destinationToken.localDecimalsGreaterBy),
       });
     }
   }
@@ -590,9 +595,18 @@ export async function getNetworkConfig() {
   }
   if (config! && network!) {
     if (process.env.DEPLOY_TYPE === "STAGE") {
+      assert(
+        process.env.DEPLOYER_ADDRESS === process.env.STAGE_DEPLOYER_ADDRESS,
+        "DEPLOYER_ADDRESS must match STAGE_DEPLOYER_ADDRESS"
+      );
       assert(config.Stage, "Stage config must be defined");
       message += "stage, ";
       config = config.Stage;
+    } else {
+      assert(
+        process.env.DEPLOYER_ADDRESS !== process.env.STAGE_DEPLOYER_ADDRESS,
+        "DEPLOYER_ADDRESS must not match STAGE_DEPLOYER_ADDRESS"
+      );
     }
     console.log(`${message}${network}`);
   }
@@ -684,8 +698,14 @@ export function percentsToBps(input: number[]): bigint[] {
   return input.map(el => BigInt(el) * 10000n / 100n);
 }
 
-export async function logDeployers() {
+export async function logDeployers(mustMatch: boolean = true) {
   const [deployer] = await hre.ethers.getSigners();
-  console.log(`Deployer: ${deployer.address}`);
+  console.log(`Deployer        : ${deployer.address}`);
   console.log(`DEPLOYER_ADDRESS: ${process.env.DEPLOYER_ADDRESS}`);
+  if (mustMatch) {
+    assert(
+      deployer.address === process.env.DEPLOYER_ADDRESS,
+      "Deployer address must match DEPLOYER_ADDRESS for new deployments",
+    );
+  }
 }

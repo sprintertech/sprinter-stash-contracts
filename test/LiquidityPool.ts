@@ -24,7 +24,7 @@ describe("LiquidityPool", function () {
     ] = await hre.ethers.getSigners();
     await setCode(user2.address, "0x00");
 
-    const USDC_ADDRESS = networkConfig.BASE.Tokens.USDC;
+    const USDC_ADDRESS = networkConfig.BASE.Tokens.USDC.Address;
     const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;
     if (!USDC_OWNER_ADDRESS) throw new Error("Env variables not configured (USDC_OWNER_ADDRESS missing)");
     const usdc = await hre.ethers.getContractAt("ERC20", USDC_ADDRESS);
@@ -99,6 +99,8 @@ describe("LiquidityPool", function () {
         .to.be.eq(mpc_signer);
       expect(await liquidityPool.signerAddress())
         .to.be.eq(mockSignerTrue);
+      await expect(liquidityPool.repay([usdc]))
+        .to.be.revertedWithCustomError(liquidityPool, "NotImplemented");
     });
 
     it("Should NOT deploy the contract if liquidity token address is 0", async function () {

@@ -1,8 +1,8 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {isAddress} from "ethers";
-import {getVerifier, upgradeProxyX, getHardhatNetworkConfig, getNetworkConfig} from "./helpers";
+import {isAddress, NonceManager} from "ethers";
+import {getVerifier, upgradeProxyX, getHardhatNetworkConfig, getNetworkConfig, logDeployers} from "./helpers";
 import {getDeployProxyXAddress} from "../test/helpers";
 import {isSet, assert, DomainSolidity, ZERO_ADDRESS} from "./common";
 import {Repayer} from "../typechain-types";
@@ -21,6 +21,7 @@ export async function main() {
     [deployer] = await hre.ethers.getSigners();
   }
   console.log(`Deployer: ${deployer.address}`);
+  const deployerWithNonce = new NonceManager(deployer);
 
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
   assert(isSet(process.env.UPGRADE_ID), "UPGRADE_ID must be set");
@@ -36,7 +37,9 @@ export async function main() {
     ({network, config} = await getHardhatNetworkConfig());
   }
 
-  assert(isAddress(config.Tokens.USDC), "USDC must be an address");
+  await logDeployers(false);
+
+  assert(isAddress(config.Tokens.USDC.Address), "USDC must be an address");
   assert(isAddress(config.WrappedNativeToken), "WrappedNativeToken must be an address");
   if (!config.CCTP) {
     config.CCTP = {
@@ -59,6 +62,14 @@ export async function main() {
   if (!config.BaseStandardBridge) {
     config.BaseStandardBridge = ZERO_ADDRESS;
   }
+  if (!config.ArbitrumGatewayRouter) {
+    config.ArbitrumGatewayRouter = ZERO_ADDRESS;
+  }
+  if (!config.Omnibridge) config.Omnibridge = ZERO_ADDRESS;
+  if (!config.GnosisUSDCxDAI) config.GnosisUSDCxDAI = ZERO_ADDRESS;
+  if (!config.GnosisUSDCTransmuter) config.GnosisUSDCTransmuter = ZERO_ADDRESS;
+  if (!config.GnosisAMB) config.GnosisAMB = ZERO_ADDRESS;
+  if (!config.USDT0OFT) config.USDT0OFT = ZERO_ADDRESS;
 
   const repayerAddress = await getDeployProxyXAddress("Repayer");
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
@@ -67,10 +78,10 @@ export async function main() {
     verifier.deployX,
     repayerAddress,
     repayerVersion,
-    deployer,
+    deployerWithNonce,
     [
       DomainSolidity[network],
-      config.Tokens.USDC,
+      config.Tokens.USDC.Address,
       config.CCTP.TokenMessenger,
       config.CCTP.MessageTransmitter,
       config.AcrossV3SpokePool,
@@ -79,6 +90,12 @@ export async function main() {
       config.StargateTreasurer,
       config.OptimismStandardBridge,
       config.BaseStandardBridge,
+      config.ArbitrumGatewayRouter,
+      config.Omnibridge,
+      config.GnosisUSDCxDAI,
+      config.GnosisUSDCTransmuter,
+      config.GnosisAMB,
+      config.USDT0OFT,
     ],
     "Repayer",
   );

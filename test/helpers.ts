@@ -2,7 +2,7 @@ import hre from "hardhat";
 import {
   AddressLike, resolveAddress, Signer, BaseContract, toUtf8Bytes, TypedDataDomain,
   keccak256, concat, dataSlice, AbiCoder, EventLog, encodeBytes32String, isAddress,
-  ContractDeployTransaction,
+  BigNumberish, BytesLike, ContractDeployTransaction,
 } from "ethers";
 import {assert, DEFAULT_PROXY_TYPE} from "../scripts/common";
 import {ICreateX} from "../typechain-types";
@@ -292,3 +292,11 @@ export async function signBorrowMany(
 export async function getBalance(addr: AddressLike): Promise<bigint> {
   return hre.ethers.provider.getBalance(addr);
 }
+
+export const destinationToken = (
+  destinationDomain: BigNumberish,
+  outputToken: BytesLike,
+  localDecimalsGreaterBy: BigNumberish = 0n,
+) => {
+  return {destinationDomain, outputToken, localDecimalsGreaterBy};
+};

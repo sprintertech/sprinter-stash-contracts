@@ -23,8 +23,6 @@ export async function main() {
   console.log(`Deployer: ${deployer.address}`);
   const deployerWithNonce = new NonceManager(deployer);
 
-  await logDeployers();
-
   const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
   const WITHDRAW_PROFIT_ROLE = toBytes32("WITHDRAW_PROFIT_ROLE");
   const PAUSER_ROLE = toBytes32("PAUSER_ROLE");
@@ -45,11 +43,13 @@ export async function main() {
 
   const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate, config.ChainId.toString());
 
+  await logDeployers();
+
   assert(config.AavePool, "Aave pool is not configured");
   assertAddress(config.Admin, "Admin must be an address");
   assertAddress(config.WithdrawProfit, "WithdrawProfit must be an address");
   assertAddress(config.Pauser, "Pauser must be an address");
-  assertAddress(config.Tokens.USDC, "USDC must be an address");
+  assertAddress(config.Tokens.USDC.Address, "USDC must be an address");
   assertAddress(config.MpcAddress, "MpcAddress must be an address");
   assertAddress(config.WrappedNativeToken, "WrappedNativeToken must be an address");
   assertAddress(config.SignerAddress, "SignerAddress must be an address");
@@ -65,7 +65,7 @@ export async function main() {
     deployerWithNonce,
     {},
     [
-      config.Tokens.USDC,
+      config.Tokens.USDC.Address,
       config.AavePool.AaveAddressesProvider,
       deployer,
       config.MpcAddress,

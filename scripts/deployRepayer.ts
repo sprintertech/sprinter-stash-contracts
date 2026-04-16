@@ -1,10 +1,11 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {isAddress} from "ethers";
+import {isAddress, NonceManager} from "ethers";
 import {
   getVerifier, deployProxyX, getHardhatNetworkConfig, getNetworkConfig, addLocalPools,
   getInputOutputTokens, flattenInputOutputTokens,
+  logDeployers,
 } from "./helpers";
 import {resolveXAddress} from "../test/helpers";
 import {
@@ -27,6 +28,7 @@ export async function main() {
   } else {
     [deployer] = await hre.ethers.getSigners();
   }
+  const deployerWithNonce = new NonceManager(deployer);
   console.log(`Deployer: ${deployer.address}`);
 
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
@@ -44,7 +46,9 @@ export async function main() {
 
   const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate, config.ChainId.toString());
 
-  assertAddress(config.Tokens.USDC, "USDC must be an address");
+  await logDeployers();
+
+  assertAddress(config.Tokens.USDC.Address, "USDC must be an address");
   assertAddress(config.Admin, "Admin must be an address");
   assertAddress(config.RepayerCaller, "RepayerCaller must be an address");
   assertAddress(config.SetInputOutputTokens, "SetInputOutputTokens must be an address");
@@ -86,6 +90,14 @@ export async function main() {
   if (!config.BaseStandardBridge) {
     config.BaseStandardBridge = ZERO_ADDRESS;
   }
+  if (!config.ArbitrumGatewayRouter) {
+    config.ArbitrumGatewayRouter = ZERO_ADDRESS;
+  }
+  if (!config.Omnibridge) config.Omnibridge = ZERO_ADDRESS;
+  if (!config.GnosisUSDCxDAI) config.GnosisUSDCxDAI = ZERO_ADDRESS;
+  if (!config.GnosisUSDCTransmuter) config.GnosisUSDCTransmuter = ZERO_ADDRESS;
+  if (!config.GnosisAMB) config.GnosisAMB = ZERO_ADDRESS;
+  if (!config.USDT0OFT) config.USDT0OFT = ZERO_ADDRESS;
 
   const inputOutputTokens = getInputOutputTokens(network, config);
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
@@ -93,11 +105,11 @@ export async function main() {
   const {target: repayer, targetAdmin: repayerAdmin} = await deployProxyX<Repayer>(
     verifier.deployX,
     repayerVersion,
-    deployer,
+    deployerWithNonce,
     config.Admin,
     [
       DomainSolidity[network],
-      config.Tokens.USDC,
+      config.Tokens.USDC.Address,
       config.CCTP.TokenMessenger,
       config.CCTP.MessageTransmitter,
       config.AcrossV3SpokePool,
@@ -106,6 +118,12 @@ export async function main() {
       config.StargateTreasurer,
       config.OptimismStandardBridge,
       config.BaseStandardBridge,
+      config.ArbitrumGatewayRouter,
+      config.Omnibridge,
+      config.GnosisUSDCxDAI,
+      config.GnosisUSDCTransmuter,
+      config.GnosisAMB,
+      config.USDT0OFT,
     ],
     [
       config.Admin,

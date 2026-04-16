@@ -23,8 +23,6 @@ export async function main() {
   console.log(`Deployer: ${deployer.address}`);
   const deployerWithNonce = new NonceManager(deployer);
 
-  await logDeployers();
-
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
   assert(isSet(process.env.UPGRADE_ID), "UPGRADE_ID must be set");
   const verifier = await getVerifier(deployer, process.env.UPGRADE_ID, simulate);
@@ -38,6 +36,8 @@ export async function main() {
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
   }
+
+  await logDeployers(false);
 
   assert(config.Hub, "LiquidityHub must be defined");
 

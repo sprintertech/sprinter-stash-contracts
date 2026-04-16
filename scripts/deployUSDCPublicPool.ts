@@ -23,8 +23,6 @@ export async function main() {
   console.log(`Deployer: ${deployer.address}`);
   const deployerWithNonce = new NonceManager(deployer);
 
-  await logDeployers();
-
   const WITHDRAW_PROFIT_ROLE = toBytes32("WITHDRAW_PROFIT_ROLE");
   const PAUSER_ROLE = toBytes32("PAUSER_ROLE");
   const FEE_SETTER_ROLE = toBytes32("FEE_SETTER_ROLE");
@@ -44,6 +42,8 @@ export async function main() {
 
   const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate, config.ChainId.toString());
 
+  await logDeployers();
+
   assert(config.USDCPublicPool, "USDC public pool is not configured");
   assertAddress(config.SignerAddress, "SignerAddress must be an address");
   assertAddress(config.USDCPublicPool.FeeSetter, "FeeSetter must be an address");
@@ -54,7 +54,7 @@ export async function main() {
     deployerWithNonce,
     {},
     [
-      config.Tokens.USDC,
+      config.Tokens.USDC.Address,
       deployer,
       config.MpcAddress,
       config.WrappedNativeToken,

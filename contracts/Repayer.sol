@@ -9,11 +9,15 @@ import {ILiquidityPool} from "./interfaces/ILiquidityPool.sol";
 import {IRepayer} from "./interfaces/IRepayer.sol";
 import {IWrappedNativeToken} from "./interfaces/IWrappedNativeToken.sol";
 
+import {InputOutputTokenData} from "./utils/AdapterHelper.sol";
 import {CCTPAdapter} from "./utils/CCTPAdapter.sol";
 import {AcrossAdapter} from "./utils/AcrossAdapter.sol";
 import {StargateAdapter} from "./utils/StargateAdapter.sol";
 import {EverclearAdapter} from "./utils/EverclearAdapter.sol";
 import {SuperchainStandardBridgeAdapter} from "./utils/SuperchainStandardBridgeAdapter.sol";
+import {ArbitrumGatewayAdapter} from "./utils/ArbitrumGatewayAdapter.sol";
+import {GnosisOmnibridgeAdapter} from "./utils/GnosisOmnibridgeAdapter.sol";
+import {USDT0Adapter} from "./utils/USDT0Adapter.sol";
 import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 
 /// @title Performs repayment to Liquidity Pools on same/different chains.
@@ -28,7 +32,10 @@ contract Repayer is
     AcrossAdapter,
     StargateAdapter,
     EverclearAdapter,
-    SuperchainStandardBridgeAdapter
+    SuperchainStandardBridgeAdapter,
+    ArbitrumGatewayAdapter,
+    GnosisOmnibridgeAdapter,
+    USDT0Adapter
 {
     using SafeERC20 for IERC20;
     using BitMaps for BitMaps.BitMap;
@@ -36,8 +43,8 @@ contract Repayer is
 
     Domain immutable public DOMAIN;
     IERC20 immutable public ASSETS;
-    bytes32 constant public REPAYER_ROLE = "REPAYER_ROLE";
-    bytes32 constant public SET_TOKENS_ROLE = "SET_TOKENS_ROLE";
+    bytes32 constant internal REPAYER_ROLE = "REPAYER_ROLE";
+    bytes32 constant internal SET_TOKENS_ROLE = "SET_TOKENS_ROLE";
     IWrappedNativeToken immutable public WRAPPED_NATIVE_TOKEN;
 
     /// @custom:storage-location erc7201:sprinter.storage.Repayer
@@ -46,7 +53,7 @@ contract Repayer is
         EnumerableSet.AddressSet knownPools;
         mapping(address pool => bool) poolSupportsAllTokens;
         mapping(address inputToken =>
-            mapping(bytes32 outputToken => BitMaps.BitMap destinationDomains)) inputOutputTokens;
+            mapping(bytes32 outputToken => InputOutputTokenData)) inputOutputTokens;
     }
 
     bytes32 private constant STORAGE_LOCATION = 0xa6615d19cc0b2a17ee46271ca76cd3f303efb9bf682e7eb5c4e7290e895cde00;
@@ -66,18 +73,24 @@ contract Repayer is
         Provider provider
     );
     event ProcessRepay(IERC20 token, uint256 amount, address destinationPool, Provider provider);
-    event SetInputOutputToken(address inputToken, Domain destinationDomain, bytes32 outputToken, bool isAllowed);
+    event SetInputOutputToken(
+        address inputToken,
+        Domain destinationDomain,
+        bytes32 outputToken,
+        int8 localDecimalsGreaterBy,
+        bool isAllowed
+    );
 
     error ZeroAmount();
     error InsufficientBalance();
     error RouteDenied();
-    error InvalidToken();
     error UnsupportedProvider();
     error InvalidPoolAssets();
 
     struct DestinationToken {
         Domain destinationDomain;
         bytes32 outputToken;
+        int8 localDecimalsGreaterBy;
     }
 
     struct InputOutputToken {
@@ -95,13 +108,29 @@ contract Repayer is
         address wrappedNativeToken,
         address stargateTreasurer,
         address optimismBridge,
-        address baseBridge
+        address baseBridge,
+        address arbitrumGatewayRouter,
+        address omnibridge,
+        address gnosisUsdcxdai,
+        address gnosisUsdceSwap,
+        address ethereumAmb,
+        address usdt0Oft
     )
         CCTPAdapter(cctpTokenMessenger, cctpMessageTransmitter)
         AcrossAdapter(acrossSpokePool)
         StargateAdapter(stargateTreasurer)
         EverclearAdapter(everclearFeeAdapter)
         SuperchainStandardBridgeAdapter(optimismBridge, baseBridge, wrappedNativeToken)
+        ArbitrumGatewayAdapter(arbitrumGatewayRouter)
+        GnosisOmnibridgeAdapter(
+            localDomain,
+            omnibridge,
+            address(assets),
+            gnosisUsdcxdai,
+            gnosisUsdceSwap,
+            ethereumAmb
+        )
+        USDT0Adapter(usdt0Oft)
     {
         ERC7201Helper.validateStorageLocation(
             STORAGE_LOCATION,
@@ -225,6 +254,23 @@ contract Repayer is
                 DOMAIN,
                 $.inputOutputTokens[address(token)]
             );
+        } else 
+        if (provider == Provider.ARBITRUM_GATEWAY) {
+            initiateTransferArbitrum(
+                token,
+                amount,
+                destinationPool,
+                destinationDomain,
+                extraData,
+                DOMAIN,
+                $.inputOutputTokens[address(token)]
+            );
+        } else
+        if (provider == Provider.GNOSIS_OMNIBRIDGE) {
+            initiateTransferGnosisOmnibridge(token, amount, destinationPool, destinationDomain, DOMAIN);
+        } else
+        if (provider == Provider.USDT0) {
+            initiateTransferUSDT0(token, amount, destinationPool, destinationDomain, DOMAIN, _msgSender());
         } else {
             // Unreachable atm, but could become so when more providers are added to enum.
             revert UnsupportedProvider();
@@ -237,14 +283,21 @@ contract Repayer is
         bytes calldata extraData
     ) external override onlyRole(REPAYER_ROLE) {
         require(isRouteAllowed(destinationPool, DOMAIN, Provider.LOCAL), RouteDenied());
+        IERC20 token = ASSETS;
         uint256 amount = 0;
         if (provider == Provider.CCTP) {
             amount = processTransferCCTP(ASSETS, destinationPool, extraData);
+        } else
+        if (provider == Provider.GNOSIS_OMNIBRIDGE) {
+            (token, amount) = processTransferGnosisOmnibridge(destinationPool, extraData);
+            if (!_getStorage().poolSupportsAllTokens[destinationPool]) {
+                require(token == ASSETS, InvalidToken());
+            }
         } else {
             revert UnsupportedProvider();
         }
 
-        emit ProcessRepay(ASSETS, amount, destinationPool, provider);
+        emit ProcessRepay(token, amount, destinationPool, provider);
     }
 
     function _processRepayLOCAL(
@@ -302,9 +355,18 @@ contract Repayer is
                 DestinationToken calldata destinationToken = destinationTokens[j];
                 Domain destinationDomain = destinationToken.destinationDomain;
                 bytes32 outputToken = destinationToken.outputToken;
+                int8 localDecimalsGreaterBy = destinationToken.localDecimalsGreaterBy;
                 require(destinationDomain != DOMAIN, UnsupportedDomain());
-                $.inputOutputTokens[inputToken][outputToken].setTo(uint256(destinationDomain), isAllowed);
-                emit SetInputOutputToken(inputToken, destinationDomain, outputToken, isAllowed);
+                InputOutputTokenData storage inputOutputTokenData = $.inputOutputTokens[inputToken][outputToken];
+                inputOutputTokenData.destinationDomains.setTo(uint256(destinationDomain), isAllowed);
+                inputOutputTokenData.localDecimalsGreaterBy[destinationDomain] = localDecimalsGreaterBy;
+                emit SetInputOutputToken(
+                    inputToken,
+                    destinationDomain,
+                    outputToken,
+                    localDecimalsGreaterBy,
+                    isAllowed
+                );
             }
         }
     }
@@ -358,12 +420,15 @@ contract Repayer is
         return _getStorage().allowedRoutes[pool].get(_toIndex(domain, provider));
     }
 
-    function isOutputTokenAllowed(
+    function outputTokenData(
         address inputToken,
         Domain destinationDomain,
         bytes32 outputToken
-    ) public view returns (bool) {
-        return _getStorage().inputOutputTokens[inputToken][outputToken].get(uint256(destinationDomain));
+    ) public view returns (bool isAllowed, int8 localDecimalsGreaterBy) {
+        InputOutputTokenData storage inputOutputTokenData = _getStorage().inputOutputTokens[inputToken][outputToken];
+        isAllowed = inputOutputTokenData.destinationDomains.get(uint256(destinationDomain));
+        localDecimalsGreaterBy = inputOutputTokenData.localDecimalsGreaterBy[destinationDomain];
+        return (isAllowed, localDecimalsGreaterBy);
     }
 
     function _getStorage() private pure returns (RepayerStorage storage $) {

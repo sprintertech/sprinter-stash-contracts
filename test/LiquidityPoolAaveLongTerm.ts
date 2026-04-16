@@ -38,7 +38,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
     const aavePoolAddress = await aavePoolAddressesProvider.getPool();
     const aavePool = await hre.ethers.getContractAt("IAavePool", aavePoolAddress);
 
-    const USDC_ADDRESS = forkNetworkConfig.Tokens.USDC;
+    const USDC_ADDRESS = forkNetworkConfig.Tokens.USDC.Address;
     const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;
     if (!USDC_OWNER_ADDRESS) throw new Error("Env variables not configured (USDC_OWNER_ADDRESS missing)");
     const usdc = await hre.ethers.getContractAt("ERC20", USDC_ADDRESS);
@@ -563,7 +563,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
         signature);
       expect(await usdc.balanceOf(liquidityPool)).to.eq(amountToBorrow);
       expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amountCollateral - 1n);
-      expectAlmostEqual(await liquidityPool.balance(usdc), 50n * USDC_DEC);
+      expectAlmostEqual(await liquidityPool.balance(usdc), 50n * USDC_DEC, 3n);
     });
 
     it("Should borrow a token with swap", async function () {

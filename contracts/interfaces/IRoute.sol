@@ -18,7 +18,8 @@ interface IRoute {
         POLYGON_AMOY,
         UNICHAIN,
         BSC,
-        LINEA
+        LINEA,
+        GNOSIS_CHAIN
     }
 
     enum Provider {
@@ -27,7 +28,10 @@ interface IRoute {
         ACROSS,
         STARGATE,
         EVERCLEAR,
-        SUPERCHAIN_STANDARD_BRIDGE
+        SUPERCHAIN_STANDARD_BRIDGE,
+        ARBITRUM_GATEWAY,
+        GNOSIS_OMNIBRIDGE,
+        USDT0
     }
 
     enum PoolType {

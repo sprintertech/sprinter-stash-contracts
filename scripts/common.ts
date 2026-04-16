@@ -48,6 +48,9 @@ export const ProviderSolidity = {
   STARGATE: 3n,
   EVERCLEAR: 4n,
   SUPERCHAIN_STANDARD_BRIDGE: 5n,
+  ARBITRUM_GATEWAY: 6n,
+  GNOSIS_OMNIBRIDGE: 7n,
+  USDT0: 8n,
 };
 
 export const DomainSolidity = {
@@ -66,6 +69,7 @@ export const DomainSolidity = {
   UNICHAIN: 12n,
   BSC: 13n,
   LINEA: 14n,
+  GNOSIS_CHAIN: 15n,
 };
 
 export const SolidityDomain: { [n: number]: Network } = {
@@ -84,6 +88,7 @@ export const SolidityDomain: { [n: number]: Network } = {
   12: Network.UNICHAIN,
   13: Network.BSC,
   14: Network.LINEA,
+  15: Network.GNOSIS_CHAIN,
 };
 
 export const SolidityProvider: { [n: number]: Provider } = {
@@ -93,6 +98,9 @@ export const SolidityProvider: { [n: number]: Provider } = {
   3: Provider.STARGATE,
   4: Provider.EVERCLEAR,
   5: Provider.SUPERCHAIN_STANDARD_BRIDGE,
+  6: Provider.ARBITRUM_GATEWAY,
+  7: Provider.GNOSIS_OMNIBRIDGE,
+  8: Provider.USDT0,
 };
 
 export const CCTPDomain: { [n: number]: Network } = {

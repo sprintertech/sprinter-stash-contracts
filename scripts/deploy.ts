@@ -1,11 +1,12 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {MaxUint256, isAddress} from "ethers";
+import {MaxUint256, isAddress, NonceManager} from "ethers";
 import {toBytes32, resolveProxyXAddress, resolveXAddress, getContractAt, resolveXAddresses} from "../test/helpers";
 import {
   getVerifier, deployProxyX, getHardhatNetworkConfig, getNetworkConfig, percentsToBps,
   getProxyXAdmin, getInputOutputTokens, flattenInputOutputTokens,
+  logDeployers,
 } from "./helpers";
 import {
   assert, isSet, ProviderSolidity, DomainSolidity, DEFAULT_ADMIN_ROLE, ZERO_ADDRESS,
@@ -38,6 +39,7 @@ export async function main() {
   } else {
     [deployer] = await hre.ethers.getSigners();
   }
+  const deployerWithNonce = new NonceManager(deployer);
   console.log(`Deployer: ${deployer.address}`);
 
   const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
@@ -60,9 +62,11 @@ export async function main() {
   
   const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate, config.ChainId.toString());
 
+  await logDeployers();
+
   assert(config.AavePool! || config.AavePoolLongTerm! || config.USDCPool! || config.USDCStablecoinPool!,
     "At least one pool should be present.");
-  assertAddress(config.Tokens.USDC, "USDC must be an address");
+  assertAddress(config.Tokens.USDC.Address, "USDC must be an address");
   assertAddress(config.Admin, "Admin must be an address");
   assertAddress(config.WithdrawProfit, "WithdrawProfit must be an address");
   assertAddress(config.Pauser, "Pauser must be an address");
@@ -136,6 +140,14 @@ export async function main() {
   if (!config.BaseStandardBridge) {
     config.BaseStandardBridge = ZERO_ADDRESS;
   }
+  if (!config.ArbitrumGatewayRouter) {
+    config.ArbitrumGatewayRouter = ZERO_ADDRESS;
+  }
+  if (!config.Omnibridge) config.Omnibridge = ZERO_ADDRESS;
+  if (!config.GnosisUSDCxDAI) config.GnosisUSDCxDAI = ZERO_ADDRESS;
+  if (!config.GnosisUSDCTransmuter) config.GnosisUSDCTransmuter = ZERO_ADDRESS;
+  if (!config.GnosisAMB) config.GnosisAMB = ZERO_ADDRESS;
+  if (!config.USDT0OFT) config.USDT0OFT = ZERO_ADDRESS;
 
   let mainPool: LiquidityPool | undefined = undefined;
   let aavePoolLongTerm: LiquidityPoolAaveLongTerm;
@@ -146,10 +158,10 @@ export async function main() {
     console.log("Deploying AAVE Liquidity Pool Long Term");
     aavePoolLongTerm = (await verifier.deployX(
       "LiquidityPoolAaveLongTerm",
-      deployer,
+      deployerWithNonce,
       {},
       [
-        config.Tokens.USDC,
+        config.Tokens.USDC.Address,
         config.AavePoolLongTerm.AaveAddressesProvider,
         deployer,
         config.MpcAddress,
@@ -191,10 +203,10 @@ export async function main() {
     console.log("Deploying AAVE Liquidity Pool");
     aavePool = (await verifier.deployX(
       "LiquidityPoolAave",
-      deployer,
+      deployerWithNonce,
       {},
       [
-        config.Tokens.USDC,
+        config.Tokens.USDC.Address,
         config.AavePool.AaveAddressesProvider,
         deployer,
         config.MpcAddress,
@@ -236,9 +248,9 @@ export async function main() {
     console.log("Deploying USDC Liquidity Pool");
     usdcPool = (await verifier.deployX(
       "LiquidityPool",
-      deployer,
+      deployerWithNonce,
       {},
-      [config.Tokens.USDC, deployer, config.MpcAddress, config.WrappedNativeToken, config.SignerAddress],
+      [config.Tokens.USDC.Address, deployer, config.MpcAddress, config.WrappedNativeToken, config.SignerAddress],
       id,
     )) as LiquidityPool;
     console.log(`${id}: ${usdcPool.target}`);
@@ -263,9 +275,9 @@ export async function main() {
     console.log("Deploying USDC Stablecoin Liquidity Pool");
     usdcStablecoinPool = (await verifier.deployX(
       "LiquidityPoolStablecoin",
-      deployer,
+      deployerWithNonce,
       {},
-      [config.Tokens.USDC, deployer, config.MpcAddress, config.WrappedNativeToken, config.SignerAddress],
+      [config.Tokens.USDC.Address, deployer, config.MpcAddress, config.WrappedNativeToken, config.SignerAddress],
       id,
     )) as LiquidityPool;
     console.log(`${id}: ${usdcStablecoinPool.target}`);
@@ -291,10 +303,10 @@ export async function main() {
     console.log("Deploying USDC Public Liquidity Pool");
     usdcPublicPool = (await verifier.deployX(
       "PublicLiquidityPool",
-      deployer,
+      deployerWithNonce,
       {},
       [
-        config.Tokens.USDC,
+        config.Tokens.USDC.Address,
         deployer,
         config.MpcAddress,
         config.WrappedNativeToken,
@@ -317,10 +329,10 @@ export async function main() {
     console.log("Deploying ERC4626 Adapter USDC");
     erc4626AdapterUSDC = (await verifier.deployX(
       "ERC4626Adapter",
-      deployer,
+      deployerWithNonce,
       {},
       [
-        config.Tokens.USDC,
+        config.Tokens.USDC.Address,
         targetVault,
         deployer,
       ],
@@ -341,9 +353,12 @@ export async function main() {
   const {target: rebalancer, targetAdmin: rebalancerAdmin} = await deployProxyX<Rebalancer>(
     verifier.deployX,
     rebalancerVersion,
-    deployer,
+    deployerWithNonce,
     config.Admin,
-    [DomainSolidity[network], config.Tokens.USDC, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter],
+    [
+      DomainSolidity[network], config.Tokens.USDC.Address, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter,
+      config.Omnibridge, config.GnosisUSDCxDAI, config.GnosisUSDCTransmuter, config.GnosisAMB,
+    ],
     [
       config.Admin,
       config.RebalanceCaller,
@@ -402,8 +417,10 @@ export async function main() {
   let repayer: Repayer;
   let repayerAdmin: ProxyAdmin;
   try {
-    repayer = (await getContractAt(repayerVersion, await resolveProxyXAddress(repayerId), deployer)) as Repayer;
-    repayerAdmin = await getProxyXAdmin(repayerId, deployer);
+    repayer = (await getContractAt(
+      repayerVersion, await resolveProxyXAddress(repayerId), deployerWithNonce
+    )) as Repayer;
+    repayerAdmin = await getProxyXAdmin(repayerId, deployerWithNonce);
     console.log("Repayer was already deployed");
     console.log("Make sure to update the Repayer routes with the update-routes-repayer task");
     repayerRoutes.Pools = []; // We don't automatically update the routes so need to skip the logging in the end.
@@ -411,11 +428,11 @@ export async function main() {
     const result = await deployProxyX<Repayer>(
       verifier.deployX,
       repayerVersion,
-      deployer,
+      deployerWithNonce,
       config.Admin,
       [
         DomainSolidity[network],
-        config.Tokens.USDC,
+        config.Tokens.USDC.Address,
         config.CCTP.TokenMessenger,
         config.CCTP.MessageTransmitter,
         config.AcrossV3SpokePool,
@@ -424,6 +441,12 @@ export async function main() {
         config.StargateTreasurer,
         config.OptimismStandardBridge,
         config.BaseStandardBridge,
+        config.ArbitrumGatewayRouter,
+        config.Omnibridge,
+        config.GnosisUSDCxDAI,
+        config.GnosisUSDCTransmuter,
+        config.GnosisAMB,
+        config.USDT0OFT,
       ],
       [
         config.Admin,
@@ -449,7 +472,7 @@ export async function main() {
     const liquidityHubAddress = await verifier.predictDeployProxyXAddress("LiquidityHub", deployer);
     const lpToken = (await verifier.deployX(
       "SprinterUSDCLPShare",
-      deployer,
+      deployerWithNonce,
       {},
       [liquidityHubAddress],
       "SprinterUSDCLPShare",
@@ -459,11 +482,11 @@ export async function main() {
     const {target: liquidityHub, targetAdmin: liquidityHubAdmin} = await deployProxyX<LiquidityHub>(
       verifier.deployX,
       "LiquidityHub",
-      deployer,
+      deployerWithNonce,
       config.Admin,
       [lpToken, mainPool],
       [
-        config.Tokens.USDC,
+        config.Tokens.USDC.Address,
         config.Admin,
         config.Hub.AssetsAdjuster,
         config.Hub.DepositProfit,
@@ -476,7 +499,7 @@ export async function main() {
 
     assert(liquidityHubAddress == liquidityHub.target, "LiquidityHub address mismatch");
     const liquidityMining = (
-      await verifier.deployX("SprinterLiquidityMining", deployer, {}, [config.Admin, liquidityHub, tiers])
+      await verifier.deployX("SprinterLiquidityMining", deployerWithNonce, {}, [config.Admin, liquidityHub, tiers])
     ) as SprinterLiquidityMining;
 
     await mainPool.grantRole(LIQUIDITY_ADMIN_ROLE, liquidityHub);
@@ -535,7 +558,7 @@ export async function main() {
   } catch {
     multicall = await (await verifier.deployX(
       "CensoredTransferFromMulticall",
-      deployer,
+      deployerWithNonce,
     )).getAddress();
   }
 
@@ -544,7 +567,7 @@ export async function main() {
   console.log(`LiquidityPool Withdraw Profit: ${config.WithdrawProfit}`);
   console.log(`LiquidityPool Pauser: ${config.Pauser}`);
   console.log(`MPC Address: ${config.MpcAddress}`);
-  console.log(`USDC: ${config.Tokens.USDC}`);
+  console.log(`USDC: ${config.Tokens.USDC.Address}`);
   console.log(`Signer Address: ${config.SignerAddress}`);
   console.log(`Rebalancer: ${rebalancer.target}`);
   console.log(`RebalancerProxyAdmin: ${rebalancerAdmin.target}`);

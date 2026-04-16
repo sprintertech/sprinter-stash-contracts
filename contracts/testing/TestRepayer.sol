@@ -14,7 +14,13 @@ contract TestRepayer is Repayer {
         address wrappedNativeToken,
         address stargateTreasurer,
         address optimismBridge,
-        address baseBridge
+        address baseBridge,
+        address arbitrumGatewayRouter,
+        address omnibridge,
+        address gnosisUsdcxdai,
+        address gnosisUsdceSwap,
+        address ethereumAmb,
+        address usdt0Oft
     ) Repayer(
         localDomain,
         assets,
@@ -25,7 +31,13 @@ contract TestRepayer is Repayer {
         wrappedNativeToken,
         stargateTreasurer,
         optimismBridge,
-        baseBridge
+        baseBridge,
+        arbitrumGatewayRouter,
+        omnibridge,
+        gnosisUsdcxdai,
+        gnosisUsdceSwap,
+        ethereumAmb,
+        usdt0Oft
     ) {}
 
     function domainCCTP(Domain destinationDomain) public pure override returns (uint32) {

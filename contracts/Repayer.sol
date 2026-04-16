@@ -224,13 +224,13 @@ contract Repayer is
             // For local we proceed to the process right away.
             _processRepayLOCAL(token, amount, destinationPool);
         } else
-        if (provider == Provider.CCTP || provider == Provider.CCTP_V2) {
+        if (provider == Provider.CCTP) {
             require(token == ASSETS, InvalidToken());
-            if (provider == Provider.CCTP) {
-                initiateTransferCCTP(token, amount, destinationPool, destinationDomain);
-            } else {
-                initiateTransferCCTPV2(token, amount, destinationPool, destinationDomain);
-            }
+            initiateTransferCCTP(token, amount, destinationPool, destinationDomain);
+        } else
+        if (provider == Provider.CCTP_V2) {
+            require(token == ASSETS, InvalidToken());
+            initiateTransferCCTPV2(token, amount, destinationPool, destinationDomain);
         } else
         if (provider == Provider.ACROSS) {
             initiateTransferAcross(

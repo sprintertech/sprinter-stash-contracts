@@ -70,7 +70,7 @@ describe("Rebalancer", function () {
       admin,
       rebalanceUser,
       [liquidityPool, liquidityPool2, liquidityPool, liquidityPool, liquidityPool],
-      [Domain.BASE, Domain.BASE, Domain.ETHEREUM, Domain.ARBITRUM_ONE, Domain.AVALANCHE],
+      [Domain.BASE, Domain.BASE, Domain.ETHEREUM, Domain.ARBITRUM_ONE, Domain.ARBITRUM_ONE],
       [Provider.LOCAL, Provider.LOCAL, Provider.CCTP, Provider.CCTP, Provider.CCTP_V2]
     )).data;
     const rebalancerProxy = (await deployX(
@@ -123,8 +123,8 @@ describe("Rebalancer", function () {
         liquidityPool.target, liquidityPool.target, liquidityPool.target,
         liquidityPool.target, liquidityPool2.target,
       ],
-      [Domain.ETHEREUM, Domain.AVALANCHE, Domain.ARBITRUM_ONE, Domain.BASE, Domain.BASE],
-      [Provider.CCTP, Provider.CCTP_V2, Provider.CCTP, Provider.LOCAL, Provider.LOCAL],
+      [Domain.ETHEREUM, Domain.ARBITRUM_ONE, Domain.ARBITRUM_ONE, Domain.BASE, Domain.BASE],
+      [Provider.CCTP, Provider.CCTP, Provider.CCTP_V2, Provider.LOCAL, Provider.LOCAL],
     ]);
 
     await expect(rebalancer.connect(admin).initialize(
@@ -162,12 +162,12 @@ describe("Rebalancer", function () {
         liquidityPool.target, liquidityPool.target, liquidityPool2.target,
       ],
       [
-        Domain.ETHEREUM, Domain.AVALANCHE, Domain.AVALANCHE,
+        Domain.ETHEREUM, Domain.AVALANCHE, Domain.ARBITRUM_ONE,
         Domain.ARBITRUM_ONE, Domain.BASE, Domain.BASE,
       ],
       [
-        Provider.CCTP, Provider.CCTP, Provider.CCTP_V2,
-        Provider.CCTP, Provider.LOCAL, Provider.LOCAL,
+        Provider.CCTP, Provider.CCTP, Provider.CCTP,
+        Provider.CCTP_V2, Provider.LOCAL, Provider.LOCAL,
       ],
     ]);
     expect(await rebalancer.isRouteAllowed(liquidityPool, Domain.ETHEREUM, Provider.CCTP)).to.be.true;
@@ -210,8 +210,8 @@ describe("Rebalancer", function () {
         liquidityPool.target, liquidityPool.target,
         liquidityPool.target, liquidityPool2.target,
       ],
-      [Domain.AVALANCHE, Domain.ARBITRUM_ONE, Domain.BASE, Domain.BASE],
-      [Provider.CCTP_V2, Provider.CCTP, Provider.LOCAL, Provider.LOCAL],
+      [Domain.ARBITRUM_ONE, Domain.ARBITRUM_ONE, Domain.BASE, Domain.BASE],
+      [Provider.CCTP, Provider.CCTP_V2, Provider.LOCAL, Provider.LOCAL],
     ]);
 
     expect(await rebalancer.isRouteAllowed(liquidityPool, Domain.ETHEREUM, Provider.CCTP)).to.be.false;
@@ -360,13 +360,13 @@ describe("Rebalancer", function () {
       4n * USDC,
       liquidityPool,
       liquidityPool,
-      Domain.AVALANCHE,
+      Domain.ARBITRUM_ONE,
       Provider.CCTP_V2,
       "0x"
     );
     await expect(tx)
       .to.emit(rebalancer, "InitiateRebalance")
-      .withArgs(4n * USDC, liquidityPool.target, liquidityPool.target, Domain.AVALANCHE, Provider.CCTP_V2);
+      .withArgs(4n * USDC, liquidityPool.target, liquidityPool.target, Domain.ARBITRUM_ONE, Provider.CCTP_V2);
     await expect(tx)
       .to.emit(usdc, "Transfer")
       .withArgs(liquidityPool.target, rebalancer.target, 4n * USDC);
@@ -419,7 +419,7 @@ describe("Rebalancer", function () {
     ) as Rebalancer;
     const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(
       admin, rebalanceUser,
-      [liquidityPool, liquidityPool], [Domain.BASE, Domain.AVALANCHE], [Provider.LOCAL, Provider.CCTP_V2]
+      [liquidityPool, liquidityPool], [Domain.BASE, Domain.ARBITRUM_ONE], [Provider.LOCAL, Provider.CCTP_V2]
     )).data;
     const rebalancerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRebalancerNoCCTPV2", {},
@@ -430,7 +430,7 @@ describe("Rebalancer", function () {
 
     await usdc.transfer(liquidityPool, 10n * USDC);
     await expect(rebalancer.connect(rebalanceUser).initiateRebalance(
-      4n * USDC, liquidityPool, liquidityPool, Domain.AVALANCHE, Provider.CCTP_V2, "0x"
+      4n * USDC, liquidityPool, liquidityPool, Domain.ARBITRUM_ONE, Provider.CCTP_V2, "0x"
     )).to.be.revertedWithCustomError(rebalancer, "ZeroAddress");
   });
 
@@ -448,7 +448,7 @@ describe("Rebalancer", function () {
     ) as Rebalancer;
     const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(
       admin, rebalanceUser,
-      [liquidityPool, liquidityPool], [Domain.BASE, Domain.AVALANCHE], [Provider.LOCAL, Provider.CCTP_V2]
+      [liquidityPool, liquidityPool], [Domain.BASE, Domain.ARBITRUM_ONE], [Provider.LOCAL, Provider.CCTP_V2]
     )).data;
     const rebalancerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer,

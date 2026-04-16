@@ -48,7 +48,6 @@ export async function main() {
   const FEE_SETTER_ROLE = toBytes32("FEE_SETTER_ROLE");
 
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
-  const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
 
   let network: Network;
@@ -58,6 +57,8 @@ export async function main() {
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
   }
+  
+  const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate, config.ChainId.toString());
 
   assert(config.AavePool! || config.AavePoolLongTerm! || config.USDCPool! || config.USDCStablecoinPool!,
     "At least one pool should be present.");
@@ -579,6 +580,7 @@ export async function main() {
     console.table(flattenInputOutputTokens(inputOutputTokens));
   }
   await verifier.performSimulation(config.ChainId.toString(), deployer);
+  await verifier.saveDeploymentTransactions();
   await verifier.verify(process.env.VERIFY === "true");
 }
 

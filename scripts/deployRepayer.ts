@@ -30,7 +30,6 @@ export async function main() {
   console.log(`Deployer: ${deployer.address}`);
 
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
-  const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
   let id = "Repayer";
 
@@ -42,6 +41,8 @@ export async function main() {
     ({network, config} = await getHardhatNetworkConfig());
     id += "-DeployTest";
   }
+
+  const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate, config.ChainId.toString());
 
   assertAddress(config.Tokens.USDC, "USDC must be an address");
   assertAddress(config.Admin, "Admin must be an address");
@@ -132,6 +133,7 @@ export async function main() {
   }
 
   await verifier.performSimulation(config.ChainId.toString(), deployer);
+  await verifier.saveDeploymentTransactions();
   await verifier.verify(process.env.VERIFY === "true");
 }
 

@@ -9,6 +9,10 @@ import {ICreateX} from "../typechain-types";
 import dotenv from "dotenv";
 dotenv.config();
 
+export interface DeployedContract extends BaseContract {
+  deployTxHash?: string;
+}
+
 async function resolveAddresses(input: AddressLike[]): Promise<string[]> {
   return await Promise.all(input.map(el => resolveAddress(el)));
 }
@@ -110,10 +114,13 @@ export async function deploy(
   signer: Signer,
   txParams: object = {},
   ...params: any[]
-): Promise<BaseContract> {
+): Promise<DeployedContract> {
   const factory = await hre.ethers.getContractFactory(contractName, signer);
-  const instance = await factory.deploy(...params, txParams);
+  const instance = await factory.deploy(...params, txParams) as DeployedContract;
+  const deployTx = instance.deploymentTransaction();
+  const txHash = deployTx?.hash;
   await instance.waitForDeployment();
+  instance.deployTxHash = txHash;
   return instance;
 }
 
@@ -140,7 +147,7 @@ export async function deployX(
   id: string = contractName,
   txParams: object = {},
   ...params: any[]
-): Promise<BaseContract> {
+): Promise<DeployedContract> {
   const factory = await hre.ethers.getContractFactory(contractName, signer);
   const deployCode = (await factory.getDeployTransaction(...params)).data;
   const createX = await getCreateX(signer);
@@ -151,7 +158,8 @@ export async function deployX(
   ]);
   const deployTx = await (await createX["deployCreate3(bytes32,bytes)"](salt, deployCode, txParams)).wait();
   const deployedTo = (deployTx!.logs.filter(el => el.address == createX.target).pop() as EventLog).args[0];
-  const instance = await getContractAt(contractName, deployedTo, signer);
+  const instance = await getContractAt(contractName, deployedTo, signer) as DeployedContract;
+  instance.deployTxHash = deployTx?.hash;
   return instance;
 }
 

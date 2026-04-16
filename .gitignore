@@ -19,4 +19,4 @@ ignition/deployments/chain-31337
 echidna-corpus
 crytic-export
 
-scripts/simulation
+scripts/results/

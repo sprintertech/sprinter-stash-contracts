@@ -32,7 +32,6 @@ export async function main() {
 
   const REPAYER_ROLE = toBytes32("REPAYER_ROLE");
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
-  const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
   const repayerEnv = process.env.STANDALONE_REPAYER_ENV as StandaloneRepayerEnv;
   assert(isSet(repayerEnv), "STANDALONE_REPAYER_ENV must be set");
@@ -49,6 +48,8 @@ export async function main() {
     ({network, config} = await getHardhatStandaloneRepayerConfig(repayerEnv));
     id += "-DeployTest";
   }
+
+  const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate, config.ChainId.toString());
 
   assertAddress(networkConfig[network].Tokens.USDC, "USDC must be an address");
   assertAddress(config.Admin, "Admin must be an address");
@@ -150,6 +151,7 @@ export async function main() {
   }
 
   await verifier.performSimulation(config.ChainId.toString(), deployer);
+  await verifier.saveDeploymentTransactions();
   await verifier.verify(process.env.VERIFY === "true");
 }
 

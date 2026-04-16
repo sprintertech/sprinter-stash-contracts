@@ -28,7 +28,6 @@ export async function main() {
   const PAUSER_ROLE = toBytes32("PAUSER_ROLE");
 
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
-  const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
   let id = ERC4626AdapterUSDCVersions.at(-1);
 
@@ -40,6 +39,8 @@ export async function main() {
     ({network, config} = await getHardhatNetworkConfig());
     id += "-DeployTest";
   }
+
+  const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate, config.ChainId.toString());
 
   assert(config.ERC4626AdapterUSDCTargetVault, "ERC4626AdapterUSDCTargetVault must be configured");
 
@@ -73,6 +74,7 @@ export async function main() {
   }
 
   verifier.performSimulation(config.ChainId.toString(), deployer);
+  await verifier.saveDeploymentTransactions();
   await verifier.verify(process.env.VERIFY === "true");
   await lastTx.wait();
 }

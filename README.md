@@ -79,6 +79,38 @@ You can optionally set VERIFY to `true` in order to publish the source code to E
 [Base](deployments/deploy-base.log), [Optimism Mainnet](deployments/deploy-opmainnet.log), [Arbitrum One](deployments/deploy-arbitrumone.log),
 [Ethereum](deployments/deploy-ethereum.log), [Polygon Mainnet](deployments/deploy-polygon.log), [Unichain](deployments/deploy-unichain.log)
 
+### Deployment simulation
+To ensure that the deployment machine is not corrupted and the deployment is performed without any side effects (i.e. the storage is not tampered with), the simulation could be performed on a separate machine and the logs could be compared with the actual deployment logs.
+
+#### Steps to perform:
+On two machines (the deployment machine and the validation machine):
+1. Fill in the `TENDERLY_NODE_BASE`, `TENDERLY_ACCESS_KEY`, `TENDERLY_PROJECT`, and `TENDERLY_ACCOUNT` variables in the `.env` file.
+    
+2. Run the `simulate` command for the inteded deployment script, for example:
+```
+npm run dry:deploy-repayer-base-simulate
+```
+
+3. Compare the output logs in the `scripts/results/simulation` folder from both machines. There will be two files: `sim-<timestamp>.json` and `statediff-<timestamp>.json`. The first one contains the logs of the deployment simulation, and the second one contains the storage diff of the simulated contracts. Make sure they match on both machines (except timestamps or order of entries).
+
+4. On the deployment machine, run the actual deployment command, for example:
+```
+npm run deploy-repayer-base
+```
+
+The deployment script will save the deployment transaction hashes in the `scripts/results/transactions` folder in a file named `txs-<timestamp>.json`.
+
+The deployment script will also generate the state diff files for the actual deployment (`scripts/results/simulation/statediff-<timestamp>.json`). Compare them with the state diff logs from the simulation step.
+
+5. On the validation machine, collect the state diff files from Tenderly for the actual deployment by running the Hardhat task:
+```
+npm run hardhat -- collect-tx-state-changes --file scripts/transactions/txs-<timestamp>.json
+```
+
+The resulting state changes will be written to the `scripts/results/tx-state-changes` directory in the form of `tx-state-changes-<timestamp>.json`.
+
+6. Compare the actual state diff files from both machines to ensure consistency.
+
 ### Hardhat tasks
 
 In order to update onchain rebalancer or repayer configurations to reflect what is put into configuration, execute the following tasks:

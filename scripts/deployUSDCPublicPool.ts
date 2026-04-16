@@ -30,7 +30,6 @@ export async function main() {
   const FEE_SETTER_ROLE = toBytes32("FEE_SETTER_ROLE");
 
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
-const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
   let id = LiquidityPoolPublicUSDCVersions.at(-1);
 
@@ -42,6 +41,8 @@ const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate);
     ({network, config} = await getHardhatNetworkConfig());
     id += "-DeployTest";
   }
+
+  const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate, config.ChainId.toString());
 
   assert(config.USDCPublicPool, "USDC public pool is not configured");
   assertAddress(config.SignerAddress, "SignerAddress must be an address");
@@ -76,6 +77,7 @@ const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate);
   }
 
   await verifier.performSimulation(config.ChainId.toString(), deployer);
+  await verifier.saveDeploymentTransactions();
   await verifier.verify(process.env.VERIFY === "true");
   await lastTx.wait();
 }

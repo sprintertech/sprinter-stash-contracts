@@ -32,7 +32,6 @@ export async function main() {
   const REPAYER_ROLE = toBytes32("REPAYER_ROLE");
 
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
-  const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
 
   let id = LiquidityPoolAaveUSDCLongTermVersions.at(-1);
@@ -45,6 +44,9 @@ export async function main() {
     ({network, config} = await getHardhatNetworkConfig());
     id += "-DeployTest";
   }
+
+  const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate, config.ChainId.toString());
+
   assert(config.AavePoolLongTerm, "Aave pool long term is not configured");
   assertAddress(config.Admin, "Admin must be an address");
   assertAddress(config.WithdrawProfit, "WithdrawProfit must be an address");
@@ -105,6 +107,7 @@ export async function main() {
   console.log("Remember to update Rebalancer and Repayer routes in the config and then onchain.");
 
   await verifier.performSimulation(config.ChainId.toString(), deployer);
+  await verifier.saveDeploymentTransactions();
   await verifier.verify(process.env.VERIFY === "true");
   await lastTx.wait();
 }

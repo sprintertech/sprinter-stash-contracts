@@ -58,16 +58,19 @@ interface VerificationInput {
 export class Verifier {
   private contracts: VerificationInput[] = [];
   private transactions: (ContractTransaction | ContractDeployTransaction)[] = [];
+  private deployedTxHashes: string[] = [];
   private deployXPrefix: string;
   private simulate: boolean;
+  private chainId: string = "";
 
-  constructor(deployXPrefix: string = "", simulate: boolean = false) {
+  constructor(deployXPrefix: string = "", simulate: boolean = false, chainId: string = "") {
     this.deployXPrefix = deployXPrefix;
     this.simulate = simulate;
+    this.chainId = chainId;
   }
 
-  static async initialize(deployer: Signer, deployXPrefix: string = "", simulate: boolean = false): Promise<Verifier> {
-    const verifier = new Verifier(deployXPrefix, simulate);
+  static async initialize(deployer: Signer, deployXPrefix: string = "", simulate: boolean = false, chainId: string = ""): Promise<Verifier> {
+    const verifier = new Verifier(deployXPrefix, simulate, chainId);
     return verifier;
   }
   
@@ -90,6 +93,9 @@ export class Verifier {
       return instance;
     } else {
       const contract = await deploy(contractName, deployer, txParams, ...params);
+      if (contract.deployTxHash) {
+        this.deployedTxHashes.push(contract.deployTxHash);
+      }
       await this.addContractForVerification(contract, params, contractVerificationName);
       return contract;
     }
@@ -118,6 +124,9 @@ export class Verifier {
       return instance;
     } else {
       const contract = await deployX(contractName, deployer, this.deployXPrefix + id, txParams, ...params);
+      if (contract.deployTxHash) {
+        this.deployedTxHashes.push(contract.deployTxHash);
+      }
       await this.addContractForVerification(contract, params, contractVerificationName);
       return contract;
     }
@@ -156,6 +165,41 @@ export class Verifier {
       constructorArguments: await resolveAddresses(constructorArguments),
       contract: contract,
     });
+  }
+
+  addTxHash = (txHash: string) => {
+    if (!this.simulate && txHash) {
+      this.deployedTxHashes.push(txHash);
+    }
+  }
+
+  saveDeploymentTransactions = async () => {
+    if (this.simulate || this.deployedTxHashes.length === 0) {
+      return;
+    }
+    console.log("Saving deployment transactions...");
+    console.log(this.deployedTxHashes);
+    try {
+      const dir = path.join(process.cwd(), "./scripts/results/transactions");
+      await fs.mkdir(dir, { recursive: true });
+
+      const now = new Date();
+      const timestamp = now.toISOString().replace(/[:.]/g, "-");
+      const filename = `txs-${timestamp}.json`;
+      const filepath = path.join(dir, filename);
+
+      const transactions = this.deployedTxHashes.map(txHash => ({
+        txHash,
+        networkId: this.chainId,
+      }));
+
+      const content = JSON.stringify(transactions, null, 2);
+      await fs.writeFile(filepath, content, "utf8");
+      console.log(`Deployment transactions saved to ${filepath}`);
+      console.log(`Total transactions: ${this.deployedTxHashes.length}`);
+    } catch (err) {
+      console.error("Failed to save deployment transactions:", err);
+    }
   }
 
   verify = async (performVerification: boolean) => {
@@ -231,22 +275,78 @@ export class Verifier {
           }
         }
       );
+
+      // Extract state changes from simulation response
+      const contractAddresses = new Set(this.contracts.map(c => c.address.toLowerCase()));
+      const stateChanges: {
+        address: string;
+        storageSlots: {slot: string; original: string; dirty: string}[];
+      }[] = [];
+      
+      // Parse state_diff from simulation results
+      for (const result of response.data.simulation_results) {
+        const stateDiff = result.transaction?.transaction_info?.state_diff;
+        if (stateDiff) {
+          for (const diff of stateDiff) {
+            const addr = diff.address?.toLowerCase();
+            if (addr && contractAddresses.has(addr)) {
+              const slots: {slot: string; original: string; dirty: string}[] = [];
+              if (diff.raw) {
+                for (const rawEntry of diff.raw) {
+                  slots.push({
+                    slot: rawEntry.key,
+                    original: rawEntry.original,
+                    dirty: rawEntry.dirty,
+                  });
+                }
+              }
+              // Find existing entry or create new one
+              let existing = stateChanges.find(s => s.address.toLowerCase() === addr);
+              if (!existing) {
+                existing = {address: diff.address, storageSlots: []};
+                stateChanges.push(existing);
+              }
+              existing.storageSlots.push(...slots);
+            }
+          }
+        }
+      }
+      
+      // Log state changes for deployed contracts
+      if (stateChanges.length > 0) {
+        console.log("\nStorage changes for deployed contracts:");
+        for (const change of stateChanges) {
+          console.log(`  ${change.address}: ${change.storageSlots.length} slot(s) changed`);
+          for (const slot of change.storageSlots) {
+            console.log(`    Slot ${slot.slot}: ${slot.original} -> ${slot.dirty}`);
+          }
+        }
+      }
+
       try {
-        const dir = path.join(process.cwd(), "./scripts/simulation");
+        const dir = path.join(process.cwd(), "./scripts/results/simulation/");
         await fs.mkdir(dir, {recursive: true});
 
         const now = new Date();
         const timestamp = now.toISOString().replace(/[:.]/g, "-");
-        const filename = `sim-${timestamp}.json`;
-        const filepath = path.join(dir, filename);
+        
+        // Write simulation results
+        const simFilename = `sim-${timestamp}.json`;
+        const simFilepath = path.join(dir, simFilename);
         const extracted = response.data.simulation_results.map((entry: any) => ({
           transaction: entry.transaction,
           simulation: entry.simulation,
         }));
-        const content = JSON.stringify(extracted, null, 2);
+        const simContent = JSON.stringify({simulations: extracted}, null, 2);
+        await fs.writeFile(simFilepath, simContent, "utf8");
+        console.log(`Simulation results written to ${simFilepath}`);
 
-        await fs.writeFile(filepath, content, "utf8");
-        console.log(`Simulation results written to ${filepath}`);
+        // Write state diff to separate file
+        const statediffFilename = `statediff-${timestamp}.json`;
+        const statediffFilepath = path.join(dir, statediffFilename);
+        const statediffContent = JSON.stringify({stateChanges: stateChanges}, null, 2);
+        await fs.writeFile(statediffFilepath, statediffContent, "utf8");
+        console.log(`State diff written to ${statediffFilepath}`);
       } catch (err) {
         console.error("Failed to write simulation results:", err);
       }
@@ -259,9 +359,10 @@ export class Verifier {
 export async function getVerifier(
   deployer: Signer,
   deployXPrefix: string = "",
-  simulate: boolean = false
+  simulate: boolean = false,
+  chainId: string = "",
 ): Promise<Verifier> {
-  return await Verifier.initialize(deployer, deployXPrefix, simulate);
+  return await Verifier.initialize(deployer, deployXPrefix, simulate, chainId);
 }
 
 interface Initializable extends BaseContract {

@@ -201,7 +201,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     function borrowDirect(
       address borrowToken, 
       uint256 amount
-    ) external override whenNotPaused() whenBorrowNotPaused() onlyRole(DIRECT_BORROW_ROLE) {
+    ) external override whenNotPaused() whenBorrowNotPaused() onlyDirectBorrower() {
         amount = _processBorrowAmount(amount, msg.data[0:0]);
         directBorrowed[borrowToken] += amount;
 

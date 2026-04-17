@@ -12,6 +12,8 @@ export async function main() {
   const [deployer] = await hre.ethers.getSigners();
   const deployerWithNonce = new NonceManager(deployer);
 
+  await logDeployers();
+
   const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
   const WITHDRAW_PROFIT_ROLE = toBytes32("WITHDRAW_PROFIT_ROLE");
   const PAUSER_ROLE = toBytes32("PAUSER_ROLE");
@@ -29,8 +31,6 @@ export async function main() {
     ({network, config} = await getHardhatNetworkConfig());
     id += "-DeployTest";
   }
-
-  await logDeployers();
 
   assert(config.USDCPool, "USDC pool is not configured");
 

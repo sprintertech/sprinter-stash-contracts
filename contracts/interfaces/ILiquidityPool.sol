@@ -21,6 +21,8 @@ interface ILiquidityPool is ILiquidityPoolBase {
         uint256 deadline,
         bytes calldata signature
     ) external;
+    
+    function borrowDirect(address borrowToken, uint256 amount) external;
 
     function borrowMany(
         address[] calldata borrowTokens,
@@ -55,6 +57,8 @@ interface ILiquidityPool is ILiquidityPoolBase {
     ) external;
 
     function repay(address[] calldata borrowTokens) external;
+    
+    function repayDirect(address[] calldata borrowTokens, uint256[] calldata maxAmounts) external;
 
     function pauseBorrow() external;
 

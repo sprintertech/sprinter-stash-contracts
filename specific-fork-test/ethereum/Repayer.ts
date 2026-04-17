@@ -90,15 +90,8 @@ describe("Repayer", function () {
     const cctpV1Messenger = new Contract(
       forkNetworkConfig.CCTP!.TokenMessenger!, cctpV1DepositForBurnAbi, deployer
     );
-    const cctpV2DepositForBurnAbi = [
-      "event DepositForBurn(address indexed burnToken, uint256 amount, " +
-      "address indexed depositor, bytes32 mintRecipient, " +
-      "uint32 destinationDomain, bytes32 destinationTokenMessenger, " +
-      "bytes32 destinationCaller, uint256 maxFee, " +
-      "uint32 indexed minFinalityThreshold, bytes hookData)",
-    ];
-    const cctpV2Messenger = new Contract(
-      forkNetworkConfig.CCTPV2!.TokenMessenger!, cctpV2DepositForBurnAbi, deployer
+    const cctpV2Messenger = await hre.ethers.getContractAt(
+      "ICCTPV2TokenMessenger", forkNetworkConfig.CCTPV2!.TokenMessenger!
     );
 
     assertAddress(forkNetworkConfig.Omnibridge, "ETHEREUM Omnibridge address is missing");

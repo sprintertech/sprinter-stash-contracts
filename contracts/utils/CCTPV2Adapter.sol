@@ -40,7 +40,7 @@ abstract contract CCTPV2Adapter is CCTPAdapter {
         CCTP_V2_TOKEN_MESSENGER.depositForBurn(
             amount,
             domainCCTP(destinationDomain),
-            _addressToBytes32(address(destinationPool)),
+            _addressToBytes32(destinationPool),
             address(token),
             _addressToBytes32(address(this)),
             0,

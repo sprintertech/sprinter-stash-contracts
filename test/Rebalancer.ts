@@ -14,6 +14,7 @@ import {
 import {
   TestUSDC, TransparentUpgradeableProxy, ProxyAdmin,
   TestLiquidityPool, Rebalancer, TestCCTPTokenMessenger, TestCCTPMessageTransmitter,
+  TestCCTPV2TokenMessenger, TestCCTPV2MessageTransmitter,
   TestGnosisOmnibridge, TestGnosisAMB,
 } from "../typechain-types";
 import {networkConfig} from "../network.config";
@@ -49,6 +50,12 @@ describe("Rebalancer", function () {
     const cctpMessageTransmitter = (
       await deploy("TestCCTPMessageTransmitter", deployer, {})
     ) as TestCCTPMessageTransmitter
+    const cctpV2TokenMessenger = (
+      await deploy("TestCCTPV2TokenMessenger", deployer, {})
+    ) as TestCCTPV2TokenMessenger;
+    const cctpV2MessageTransmitter = (
+      await deploy("TestCCTPV2MessageTransmitter", deployer, {})
+    ) as TestCCTPV2MessageTransmitter;
 
     const USDC = 10n ** (await usdc.decimals());
 
@@ -56,14 +63,15 @@ describe("Rebalancer", function () {
       await deployX("Rebalancer", deployer, "Rebalancer", {},
         Domain.BASE, usdc, cctpTokenMessenger, cctpMessageTransmitter,
         ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+        cctpV2TokenMessenger, cctpV2MessageTransmitter,
       )
     ) as Rebalancer;
     const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(
       admin,
       rebalanceUser,
-      [liquidityPool, liquidityPool2, liquidityPool, liquidityPool],
-      [Domain.BASE, Domain.BASE, Domain.ETHEREUM, Domain.ARBITRUM_ONE],
-      [Provider.LOCAL, Provider.LOCAL, Provider.CCTP, Provider.CCTP]
+      [liquidityPool, liquidityPool2, liquidityPool, liquidityPool, liquidityPool],
+      [Domain.BASE, Domain.BASE, Domain.ETHEREUM, Domain.ARBITRUM_ONE, Domain.ARBITRUM_ONE],
+      [Provider.LOCAL, Provider.LOCAL, Provider.CCTP, Provider.CCTP, Provider.CCTP_V2]
     )).data;
     const rebalancerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRebalancer", {},
@@ -78,7 +86,9 @@ describe("Rebalancer", function () {
     return {
       deployer, admin, rebalanceUser, user, usdc,
       USDC, liquidityPool, liquidityPool2, rebalancer, rebalancerProxy, rebalancerAdmin,
-      cctpTokenMessenger, cctpMessageTransmitter, REBALANCER_ROLE, DEFAULT_ADMIN_ROLE,
+      cctpTokenMessenger, cctpMessageTransmitter,
+      cctpV2TokenMessenger, cctpV2MessageTransmitter,
+      REBALANCER_ROLE, DEFAULT_ADMIN_ROLE,
     };
   };
 
@@ -109,9 +119,12 @@ describe("Rebalancer", function () {
     expect(await rebalancer.domainCCTP(Domain.BASE)).to.equal(6n);
     expect(await rebalancer.domainCCTP(Domain.POLYGON_MAINNET)).to.equal(7n);
     expect(await rebalancer.getAllRoutes()).to.deep.equal([
-      [liquidityPool.target, liquidityPool.target, liquidityPool.target, liquidityPool2.target],
-      [Domain.ETHEREUM, Domain.ARBITRUM_ONE, Domain.BASE, Domain.BASE],
-      [Provider.CCTP, Provider.CCTP, Provider.LOCAL, Provider.LOCAL],
+      [
+        liquidityPool.target, liquidityPool.target, liquidityPool.target,
+        liquidityPool.target, liquidityPool2.target,
+      ],
+      [Domain.ETHEREUM, Domain.ARBITRUM_ONE, Domain.ARBITRUM_ONE, Domain.BASE, Domain.BASE],
+      [Provider.CCTP, Provider.CCTP, Provider.CCTP_V2, Provider.LOCAL, Provider.LOCAL],
     ]);
 
     await expect(rebalancer.connect(admin).initialize(
@@ -144,9 +157,18 @@ describe("Rebalancer", function () {
       .withArgs(liquidityPool.target, Domain.AVALANCHE, Provider.CCTP, ALLOWED);
 
     expect(await rebalancer.getAllRoutes()).to.deep.equal([
-      [liquidityPool.target, liquidityPool.target, liquidityPool.target, liquidityPool.target, liquidityPool2.target],
-      [Domain.ETHEREUM, Domain.AVALANCHE, Domain.ARBITRUM_ONE, Domain.BASE, Domain.BASE],
-      [Provider.CCTP, Provider.CCTP, Provider.CCTP, Provider.LOCAL, Provider.LOCAL],
+      [
+        liquidityPool.target, liquidityPool.target, liquidityPool.target,
+        liquidityPool.target, liquidityPool.target, liquidityPool2.target,
+      ],
+      [
+        Domain.ETHEREUM, Domain.AVALANCHE, Domain.ARBITRUM_ONE,
+        Domain.ARBITRUM_ONE, Domain.BASE, Domain.BASE,
+      ],
+      [
+        Provider.CCTP, Provider.CCTP, Provider.CCTP,
+        Provider.CCTP_V2, Provider.LOCAL, Provider.LOCAL,
+      ],
     ]);
     expect(await rebalancer.isRouteAllowed(liquidityPool, Domain.ETHEREUM, Provider.CCTP)).to.be.true;
     expect(await rebalancer.isRouteAllowed(liquidityPool, Domain.AVALANCHE, Provider.CCTP)).to.be.true;
@@ -184,9 +206,12 @@ describe("Rebalancer", function () {
       .withArgs(liquidityPool.target, Domain.ETHEREUM, Provider.CCTP, DISALLOWED);
 
     expect(await rebalancer.getAllRoutes()).to.deep.equal([
-      [liquidityPool.target, liquidityPool.target, liquidityPool2.target],
-      [Domain.ARBITRUM_ONE, Domain.BASE, Domain.BASE],
-      [Provider.CCTP, Provider.LOCAL, Provider.LOCAL],
+      [
+        liquidityPool.target, liquidityPool.target,
+        liquidityPool.target, liquidityPool2.target,
+      ],
+      [Domain.ARBITRUM_ONE, Domain.ARBITRUM_ONE, Domain.BASE, Domain.BASE],
+      [Provider.CCTP, Provider.CCTP_V2, Provider.LOCAL, Provider.LOCAL],
     ]);
 
     expect(await rebalancer.isRouteAllowed(liquidityPool, Domain.ETHEREUM, Provider.CCTP)).to.be.false;
@@ -231,6 +256,24 @@ describe("Rebalancer", function () {
       [Provider.LOCAL],
       ALLOWED
     )).to.be.revertedWithCustomError(rebalancer, "InvalidPoolAssets()");
+    await expect(rebalancer.connect(admin).setRoute(
+      [liquidityPool2, liquidityPool2],
+      [Domain.BASE],
+      [Provider.LOCAL],
+      ALLOWED
+    )).to.be.revertedWithCustomError(rebalancer, "InvalidLength()");
+    await expect(rebalancer.connect(admin).setRoute(
+      [liquidityPool2],
+      [Domain.BASE],
+      [Provider.LOCAL, Provider.LOCAL],
+      ALLOWED
+    )).to.be.revertedWithCustomError(rebalancer, "InvalidLength()");
+    await expect(rebalancer.connect(admin).setRoute(
+      [ZERO_ADDRESS],
+      [Domain.BASE],
+      [Provider.LOCAL],
+      ALLOWED
+    )).to.be.revertedWithCustomError(rebalancer, "ZeroAddress()");
   });
 
   it("Should not allow others to enable routes", async function () {
@@ -305,6 +348,124 @@ describe("Rebalancer", function () {
 
     expect(await usdc.balanceOf(liquidityPool)).to.equal(6n * USDC);
     expect(await usdc.balanceOf(rebalancer)).to.equal(0n);
+  });
+
+  it("Should allow rebalancer to initiate rebalance via CCTP V2 with standard transfer params", async function () {
+    const {rebalancer, usdc, USDC, rebalanceUser, liquidityPool,
+      cctpV2TokenMessenger
+    } = await loadFixture(deployAll);
+
+    await usdc.transfer(liquidityPool, 10n * USDC);
+    const tx = rebalancer.connect(rebalanceUser).initiateRebalance(
+      4n * USDC,
+      liquidityPool,
+      liquidityPool,
+      Domain.ARBITRUM_ONE,
+      Provider.CCTP_V2,
+      "0x"
+    );
+    await expect(tx)
+      .to.emit(rebalancer, "InitiateRebalance")
+      .withArgs(4n * USDC, liquidityPool.target, liquidityPool.target, Domain.ARBITRUM_ONE, Provider.CCTP_V2);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(liquidityPool.target, rebalancer.target, 4n * USDC);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(rebalancer.target, cctpV2TokenMessenger.target, 4n * USDC);
+    // V2 mock asserts maxFee == 0 and minFinalityThreshold == 2000.
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(cctpV2TokenMessenger.target, ZERO_ADDRESS, 4n * USDC);
+
+    expect(await usdc.balanceOf(liquidityPool)).to.equal(6n * USDC);
+    expect(await usdc.balanceOf(rebalancer)).to.equal(0n);
+  });
+
+  it("Should allow rebalancer to process rebalance via CCTP V2", async function () {
+    const {rebalancer, usdc, USDC, liquidityPool, rebalanceUser} = await loadFixture(deployAll);
+
+    const message = AbiCoder.defaultAbiCoder().encode(
+      ["address", "address", "uint256"],
+      [usdc.target, liquidityPool.target, 4n * USDC]
+    );
+    const signature = AbiCoder.defaultAbiCoder().encode(["bool", "bool"], [true, true]);
+    const extraData = AbiCoder.defaultAbiCoder().encode(["bytes", "bytes"], [message, signature]);
+    const tx = rebalancer.connect(rebalanceUser).processRebalance(liquidityPool, Provider.CCTP_V2, extraData);
+    await expect(tx)
+      .to.emit(rebalancer, "ProcessRebalance")
+      .withArgs(4n * USDC, liquidityPool.target, Provider.CCTP_V2);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(ZERO_ADDRESS, liquidityPool.target, 4n * USDC);
+    await expect(tx)
+      .to.emit(liquidityPool, "Deposit");
+
+    expect(await usdc.balanceOf(liquidityPool)).to.equal(4n * USDC);
+    expect(await usdc.balanceOf(rebalancer)).to.equal(0n);
+  });
+
+  it("Should revert CCTP V2 initiate if TokenMessenger is zero address", async function () {
+    const {deployer, admin, rebalanceUser, usdc, USDC, liquidityPool,
+      cctpTokenMessenger, cctpMessageTransmitter,
+    } = await loadFixture(deployAll);
+
+    const rebalancerImpl = (
+      await deployX("Rebalancer", deployer, "RebalancerNoCCTPV2", {},
+        Domain.BASE, usdc, cctpTokenMessenger, cctpMessageTransmitter,
+        ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+        ZERO_ADDRESS, ZERO_ADDRESS,
+      )
+    ) as Rebalancer;
+    const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(
+      admin, rebalanceUser,
+      [liquidityPool, liquidityPool], [Domain.BASE, Domain.ARBITRUM_ONE], [Provider.LOCAL, Provider.CCTP_V2]
+    )).data;
+    const rebalancerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRebalancerNoCCTPV2", {},
+      rebalancerImpl, admin, rebalancerInit
+    )) as TransparentUpgradeableProxy;
+    const rebalancer = (await getContractAt("Rebalancer", rebalancerProxy, deployer)) as Rebalancer;
+    await liquidityPool.grantRole(toBytes32("LIQUIDITY_ADMIN_ROLE"), rebalancer);
+
+    await usdc.transfer(liquidityPool, 10n * USDC);
+    await expect(rebalancer.connect(rebalanceUser).initiateRebalance(
+      4n * USDC, liquidityPool, liquidityPool, Domain.ARBITRUM_ONE, Provider.CCTP_V2, "0x"
+    )).to.be.revertedWithCustomError(rebalancer, "ZeroAddress");
+  });
+
+  it("Should revert CCTP V2 process if MessageTransmitter is zero address", async function () {
+    const {deployer, admin, rebalanceUser, usdc, USDC, liquidityPool,
+      cctpTokenMessenger, cctpMessageTransmitter, cctpV2TokenMessenger,
+    } = await loadFixture(deployAll);
+
+    const rebalancerImpl = (
+      await deployX("Rebalancer", deployer, "RebalancerNoCCTPV2Transmitter", {},
+        Domain.BASE, usdc, cctpTokenMessenger, cctpMessageTransmitter,
+        ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+        cctpV2TokenMessenger, ZERO_ADDRESS,
+      )
+    ) as Rebalancer;
+    const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(
+      admin, rebalanceUser,
+      [liquidityPool, liquidityPool], [Domain.BASE, Domain.ARBITRUM_ONE], [Provider.LOCAL, Provider.CCTP_V2]
+    )).data;
+    const rebalancerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer,
+      "TransparentUpgradeableProxyRebalancerNoCCTPV2Transmitter", {},
+      rebalancerImpl, admin, rebalancerInit
+    )) as TransparentUpgradeableProxy;
+    const rebalancer = (await getContractAt("Rebalancer", rebalancerProxy, deployer)) as Rebalancer;
+    await liquidityPool.grantRole(toBytes32("LIQUIDITY_ADMIN_ROLE"), rebalancer);
+
+    const message = AbiCoder.defaultAbiCoder().encode(
+      ["address", "address", "uint256"],
+      [usdc.target, liquidityPool.target, 4n * USDC]
+    );
+    const signature = AbiCoder.defaultAbiCoder().encode(["bool", "bool"], [true, true]);
+    const extraData = AbiCoder.defaultAbiCoder().encode(["bytes", "bytes"], [message, signature]);
+    await expect(rebalancer.connect(rebalanceUser).processRebalance(liquidityPool, Provider.CCTP_V2, extraData))
+      .to.be.revertedWithCustomError(rebalancer, "ZeroAddress");
   });
 
   it("Should allow rebalancer to initiate rebalance to local pool", async function () {
@@ -517,6 +678,7 @@ describe("Rebalancer", function () {
       await deployX("Rebalancer", deployer, "Rebalancer2", {},
         Domain.ETHEREUM, usdc, cctpTokenMessenger, cctpMessageTransmitter,
         ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb,
+        ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Rebalancer;
     const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(
@@ -564,6 +726,7 @@ describe("Rebalancer", function () {
       await deployX("Rebalancer", deployer, "Rebalancer2", {},
         Domain.ETHEREUM, usdc, cctpTokenMessenger, cctpMessageTransmitter,
         ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb,
+        ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Rebalancer;
     const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(
@@ -619,6 +782,7 @@ describe("Rebalancer", function () {
       await deployX("Rebalancer", deployer, "Rebalancer2", {},
         Domain.ETHEREUM, usdc, cctpTokenMessenger, cctpMessageTransmitter,
         ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb,
+        ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Rebalancer;
     const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(

@@ -89,6 +89,7 @@ export enum Provider {
   ARBITRUM_GATEWAY = "ARBITRUM_GATEWAY",
   GNOSIS_OMNIBRIDGE = "GNOSIS_OMNIBRIDGE",
   USDT0 = "USDT0",
+  CCTP_V2 = "CCTP_V2",
 }
 
 export enum Token {
@@ -100,6 +101,11 @@ export enum Token {
 }
 
 interface CCTPConfig {
+  TokenMessenger: string;
+  MessageTransmitter: string;
+}
+
+interface CCTPV2Config {
   TokenMessenger: string;
   MessageTransmitter: string;
 }
@@ -181,6 +187,7 @@ function tokenInfo(address: string, decimals: number): TokenInfo {
 export interface NetworkConfig {
   ChainId: number;
   CCTP?: CCTPConfig;
+  CCTPV2?: CCTPV2Config;
   AcrossV3SpokePool?: string;
   StargateTreasurer?: string;
   EverclearFeeAdapter?: string;
@@ -236,6 +243,10 @@ export const networkConfig: NetworksConfig = {
     CCTP: {
       TokenMessenger: "0xbd3fa81b58ba92a82136038b25adec7066af3155",
       MessageTransmitter: "0x0a992d191deec32afe36203ad87d7d289a738f81",
+    },
+    CCTPV2: {
+      TokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+      MessageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
     },
     AcrossV3SpokePool: "0x5c7BCd6E7De5423a257D81B442095A1a6ced35C5",
     StargateTreasurer: "0x1041D127b2d4BC700F0F563883bC689502606918",
@@ -500,6 +511,10 @@ export const networkConfig: NetworksConfig = {
       TokenMessenger: "0x6b25532e1060ce10cc3b0a99e5683b91bfde6982",
       MessageTransmitter: "0x8186359af5f57fbb40c6b14a588d2a59c0c29880",
     },
+    CCTPV2: {
+      TokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+      MessageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
+    },
     StargateTreasurer: "0xC2b638Cb5042c1B3c5d5C969361fB50569840583",
     EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
     Tokens: {
@@ -558,6 +573,10 @@ export const networkConfig: NetworksConfig = {
     CCTP: {
       TokenMessenger: "0x2B4069517957735bE00ceE0fadAE88a26365528f",
       MessageTransmitter: "0x4d41f22c5a0e5c74090899e5a8fb597a8842b3e8",
+    },
+    CCTPV2: {
+      TokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+      MessageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
     },
     AcrossV3SpokePool: "0x6f26Bf09B1C792e3228e5467807a900A503c0281",
     StargateTreasurer: "0x644abb1e17291b4403966119d15Ab081e4a487e9",
@@ -774,6 +793,10 @@ export const networkConfig: NetworksConfig = {
     CCTP: {
       TokenMessenger: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
       MessageTransmitter: "0xC30362313FBBA5cf9163F0bb16a0e01f01A896ca",
+    },
+    CCTPV2: {
+      TokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+      MessageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
     },
     AcrossV3SpokePool: "0xe35e9842fceaCA96570B734083f4a58e8F7C5f2A",
     StargateTreasurer: "0x146c8e409C113ED87C6183f4d25c50251DFfbb3a",
@@ -1003,6 +1026,10 @@ export const networkConfig: NetworksConfig = {
       TokenMessenger: "0x1682Ae6375C4E4A97e4B583BC394c861A46D8962",
       MessageTransmitter: "0xAD09780d193884d503182aD4588450C416D6F9D4",
     },
+    CCTPV2: {
+      TokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+      MessageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
+    },
     AcrossV3SpokePool: "0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64",
     StargateTreasurer: "0xd47b03ee6d86Cf251ee7860FB2ACf9f91B9fD4d7",
     EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
@@ -1231,6 +1258,10 @@ export const networkConfig: NetworksConfig = {
       TokenMessenger: "0x9daF8c91AEFAE50b9c0E69629D3F6Ca40cA3B3FE",
       MessageTransmitter: "0xF3be9355363857F3e001be68856A2f96b4C39Ba9",
     },
+    CCTPV2: {
+      TokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+      MessageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
+    },
     AcrossV3SpokePool: "0x9295ee1d8C5b022Be115A2AD3c30C72E34e7F096",
     StargateTreasurer: "0x36ed193dc7160D3858EC250e69D12B03Ca087D08",
     EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
@@ -1438,6 +1469,10 @@ export const networkConfig: NetworksConfig = {
     CCTP: {
       TokenMessenger: "0x4e744b28E787c3aD0e810eD65A24461D4ac5a762",
       MessageTransmitter: "0x353bE9E2E38AB1D19104534e4edC21c643Df86f4",
+    },
+    CCTPV2: {
+      TokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+      MessageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
     },
     AcrossV3SpokePool: "0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64",
     StargateTreasurer: "0x6D205337F45D6850c3c3006e28d5b52c8a432c35",
@@ -2204,6 +2239,7 @@ export enum StandaloneRepayerEnv {
 export interface StandaloneRepayerConfig {
   ChainId: number;
   CCTP: CCTPConfig;
+  CCTPV2?: CCTPV2Config;
   AcrossV3SpokePool?: string;
   StargateTreasurer?: string;
   EverclearFeeAdapter?: string;

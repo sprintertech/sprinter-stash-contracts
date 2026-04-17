@@ -309,7 +309,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         revert NotImplemented();
     }
     
-    function repayDirect(address[] calldata) external virtual override {
+    function repayDirect(address[] calldata, uint256[] calldata) external virtual override {
         revert NotImplemented();
     }
 

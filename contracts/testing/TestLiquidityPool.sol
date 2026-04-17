@@ -88,7 +88,7 @@ contract TestLiquidityPool is ILiquidityPool, AccessControl {
         emit Repaid();
     }
     
-    function repayDirect(address[] calldata) external override {
+    function repayDirect(address[] calldata, uint256[] calldata) external override {
         emit Repaid();
     }
 

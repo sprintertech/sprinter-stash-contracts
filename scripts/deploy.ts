@@ -1,7 +1,7 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {MaxUint256, NonceManager} from "ethers";
+import {MaxUint256, isAddress, NonceManager} from "ethers";
 import {toBytes32, resolveProxyXAddress, resolveXAddress, getContractAt, resolveXAddresses} from "../test/helpers";
 import {
   getVerifier, deployProxyX, getHardhatNetworkConfig, getNetworkConfig, percentsToBps,
@@ -28,8 +28,19 @@ import {
 } from "../network.config";
 
 export async function main() {
-  const [deployer] = await hre.ethers.getSigners();
+  let deployer;
+
+  const simulate = process.env.SIMULATE === "true" ? true : false;
+
+  if (simulate) {
+    console.log("Simulation mode enabled");
+    assert(isAddress(process.env.DEPLOYER_ADDRESS), "Deployer address must be set");
+    deployer = await hre.ethers.getImpersonatedSigner(process.env.DEPLOYER_ADDRESS!);
+  } else {
+    [deployer] = await hre.ethers.getSigners();
+  }
   const deployerWithNonce = new NonceManager(deployer);
+  console.log(`Deployer: ${deployer.address}`);
 
   const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
   const WITHDRAW_PROFIT_ROLE = toBytes32("WITHDRAW_PROFIT_ROLE");
@@ -39,7 +50,6 @@ export async function main() {
   const FEE_SETTER_ROLE = toBytes32("FEE_SETTER_ROLE");
 
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
-  const verifier = getVerifier(process.env.DEPLOY_ID);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
 
   let network: Network;
@@ -49,6 +59,8 @@ export async function main() {
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
   }
+  
+  const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate, config.ChainId.toString());
 
   await logDeployers();
 
@@ -599,7 +611,8 @@ export async function main() {
     console.log("InputOutputTokens:");
     console.table(flattenInputOutputTokens(inputOutputTokens));
   }
-
+  await verifier.performSimulation(config.ChainId.toString(), deployer);
+  await verifier.saveDeploymentTransactions();
   await verifier.verify(process.env.VERIFY === "true");
 }
 

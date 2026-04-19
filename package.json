@@ -191,6 +191,7 @@
     "dry:upgrade-repayer-gnosis-stage": "DRY_RUN=GNOSIS_CHAIN DEPLOY_TYPE=STAGE VERIFY=false ts-node --files ./scripts/upgradeRepayer.ts",
     "dry:deploy-repayer-base-simulate": "DRY_RUN=BASE SIMULATE=true VERIFY=false ts-node --files ./scripts/deployRepayer.ts",
     "dry:upgrade-repayer-ethereum-simulate": "DRY_RUN=ETHEREUM SIMULATE=true VERIFY=false ts-node --files ./scripts/upgradeRepayer.ts",
+    "dry:upgrade-repayer-base-simulate": "DRY_RUN=BASE SIMULATE=true VERIFY=false ts-node --files ./scripts/upgradeRepayer.ts",
     "lint": "npm run lint:solidity && npm run lint:ts",
     "lint:solidity": "solhint 'contracts/**/*.sol'",
     "lint:ts": "eslint --ignore-pattern 'coverage/'",

@@ -25,7 +25,6 @@ export async function main() {
 
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
   assert(isSet(process.env.UPGRADE_ID), "UPGRADE_ID must be set");
-  const verifier = await getVerifier(deployer, process.env.UPGRADE_ID, simulate);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
   console.log(`Upgrade ID: ${process.env.UPGRADE_ID}`);
 
@@ -37,7 +36,9 @@ export async function main() {
     ({network, config} = await getHardhatNetworkConfig());
   }
 
-  await logDeployers(false);
+  const verifier = await getVerifier(deployerWithNonce, process.env.UPGRADE_ID, simulate, config.ChainId.toString());
+
+  await logDeployers(deployer, simulate, false);
 
   assert(isAddress(config.Tokens.USDC.Address), "USDC must be an address");
   if (!config.CCTP) {
@@ -64,9 +65,11 @@ export async function main() {
       config.Omnibridge, config.GnosisUSDCxDAI, config.GnosisUSDCTransmuter, config.GnosisAMB,
     ],
     "Rebalancer",
+    simulate,
   );
 
   await verifier.performSimulation(config.ChainId.toString(), deployer);
+  await verifier.saveDeploymentTransactions();
   await verifier.verify(process.env.VERIFY === "true");
 }
 

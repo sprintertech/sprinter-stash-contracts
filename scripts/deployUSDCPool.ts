@@ -40,9 +40,11 @@ export async function main() {
     id += "-DeployTest";
   }
 
-  const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate, config.ChainId.toString());
+  const verifier = await getVerifier(
+    deployerWithNonce, process.env.DEPLOY_ID, simulate, config.ChainId.toString()
+  );
 
-  await logDeployers();
+  await logDeployers(deployer, simulate);
 
   assert(config.USDCPool, "USDC pool is not configured");
 
@@ -50,7 +52,7 @@ export async function main() {
   console.log(`Rebalancer: ${rebalancer}`);
 
   console.log("Deploying USDC Liquidity Pool");
-  const usdcPool: LiquidityPool = (await verifier.deployX(
+  const usdcPool: LiquidityPool = verifier.wrapContract((await verifier.deployX(
     "LiquidityPool",
     deployerWithNonce,
     {},
@@ -62,16 +64,16 @@ export async function main() {
       config.SignerAddress,
     ],
     id
-  )) as LiquidityPool;
+  )) as LiquidityPool);
   console.log(`${id}: ${usdcPool.target}`);
 
-  await usdcPool!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
-  await usdcPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
-  let lastTx = await usdcPool!.grantRole(PAUSER_ROLE, config.Pauser);
+  await usdcPool.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
+  await usdcPool.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
+  let lastTx = await usdcPool.grantRole(PAUSER_ROLE, config.Pauser);
 
   if (!sameAddress(deployer.address, config.Admin)) {
-    await usdcPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-    lastTx = await usdcPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    await usdcPool.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
+    lastTx = await usdcPool.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
   }
 
   await verifier.performSimulation(config.ChainId.toString(), deployer);

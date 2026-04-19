@@ -40,9 +40,11 @@ export async function main() {
     id += "-DeployTest";
   }
 
-  const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate, config.ChainId.toString());
+  const verifier = await getVerifier(
+    deployerWithNonce, process.env.DEPLOY_ID, simulate, config.ChainId.toString()
+  );
 
-  await logDeployers();
+  await logDeployers(deployer, simulate);
 
   assert(config.USDCStablecoinPool, "USDC stablecoin pool is not configured");
 
@@ -50,7 +52,7 @@ export async function main() {
   console.log(`Rebalancer: ${rebalancer}`);
 
   console.log("Deploying USDC Stablecoin Liquidity Pool");
-  const usdcPoolStablecoin: LiquidityPoolStablecoin = (await verifier.deployX(
+  const usdcPoolStablecoin: LiquidityPoolStablecoin = verifier.wrapContract((await verifier.deployX(
     "LiquidityPoolStablecoin",
     deployerWithNonce,
     {},
@@ -62,7 +64,7 @@ export async function main() {
       config.SignerAddress,
     ],
     id
-  )) as LiquidityPoolStablecoin;
+  )) as LiquidityPoolStablecoin);
   console.log(`${id}: ${usdcPoolStablecoin.target}`);
 
   await usdcPoolStablecoin!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);

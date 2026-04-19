@@ -52,7 +52,7 @@ export async function main() {
 
   const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate, config.ChainId.toString());
 
-  await logDeployers();
+  await logDeployers(deployer, simulate);
 
   assertAddress(networkConfig[network].Tokens.USDC.Address, "USDC must be an address");
   assertAddress(config.Admin, "Admin must be an address");

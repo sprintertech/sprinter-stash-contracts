@@ -37,7 +37,7 @@ export async function main() {
     ({network, config} = await getHardhatNetworkConfig());
     id += "-DeployTest";
   }
-  await logDeployers();
+  await logDeployers(deployer, simulate);
 
   const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate, config.ChainId.toString());
 
@@ -50,7 +50,7 @@ export async function main() {
   console.log(`Target Vault: ${targetVault}`);
 
   console.log("Deploying ERC4626 Adapter USDC");
-  const erc4626AdapterUSDC: ERC4626Adapter = (await verifier.deployX(
+  const erc4626AdapterUSDC: ERC4626Adapter = verifier.wrapContract((await verifier.deployX(
     "ERC4626Adapter",
     deployer,
     {},
@@ -60,16 +60,16 @@ export async function main() {
       deployer,
     ],
     id
-  )) as ERC4626Adapter;
+  )) as ERC4626Adapter);
   console.log(`${id}: ${erc4626AdapterUSDC.target}`);
 
-  await erc4626AdapterUSDC!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
-  await erc4626AdapterUSDC!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
-  let lastTx = await erc4626AdapterUSDC!.grantRole(PAUSER_ROLE, config.Pauser);
+  await erc4626AdapterUSDC.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
+  await erc4626AdapterUSDC.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
+  let lastTx = await erc4626AdapterUSDC.grantRole(PAUSER_ROLE, config.Pauser);
 
   if (!sameAddress(deployer.address, config.Admin)) {
-    await erc4626AdapterUSDC!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-    lastTx = await erc4626AdapterUSDC!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    await erc4626AdapterUSDC.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
+    lastTx = await erc4626AdapterUSDC.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
   }
 
   verifier.performSimulation(config.ChainId.toString(), deployer);

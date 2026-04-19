@@ -104,7 +104,7 @@ The deployment script will also generate the state diff files for the actual dep
 
 5. On the validation machine, collect the state diff files from Tenderly for the actual deployment by running the Hardhat task:
 ```
-npm run hardhat -- collect-tx-state-changes --file scripts/transactions/txs-<timestamp>.json
+npx ts-node scripts/collect-tx-state-changes.ts --file scripts/transactions/txs-<timestamp>.json
 ```
 
 The resulting state changes will be written to the `scripts/results/tx-state-changes` directory in the form of `tx-state-changes-<timestamp>.json`.

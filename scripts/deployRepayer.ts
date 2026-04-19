@@ -44,9 +44,11 @@ export async function main() {
     id += "-DeployTest";
   }
 
-  const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate, config.ChainId.toString());
+  const verifier = await getVerifier(
+    deployerWithNonce, process.env.DEPLOY_ID, simulate, config.ChainId.toString()
+  );
 
-  await logDeployers();
+  await logDeployers(deployer, simulate);
 
   assertAddress(config.Tokens.USDC.Address, "USDC must be an address");
   assertAddress(config.Admin, "Admin must be an address");

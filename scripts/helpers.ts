@@ -3,7 +3,8 @@ import axios from "axios";
 import {promises as fs} from "fs";
 import * as path from "path";
 import {Signer, BaseContract, AddressLike, resolveAddress, ContractTransaction,
-  ContractDeployTransaction, isAddress, ZeroAddress, NonceManager} from "ethers";
+  ContractDeployTransaction, isAddress, ZeroAddress, NonceManager, ContractTransactionResponse,
+} from "ethers";
 import {
   deploy, deployX, getContractAt, getCreateAddress, getDeployXAddressBase,
   resolveXAddress, resolveProxyXAddress, assertCode, getDeployTx, getDeployXTx
@@ -59,10 +60,11 @@ interface VerificationInput {
 export class Verifier {
   private contracts: VerificationInput[] = [];
   private transactions: (ContractTransaction | ContractDeployTransaction)[] = [];
-  private deployedTxHashes: string[] = [];
   private deployXPrefix: string;
   private simulate: boolean;
   private chainId: string = "";
+  private deployer: Signer | null = null;
+  private startingNonce: number = 0;
 
   constructor(deployXPrefix: string = "", simulate: boolean = false, chainId: string = "") {
     this.deployXPrefix = deployXPrefix;
@@ -74,6 +76,8 @@ export class Verifier {
     deployer: Signer, deployXPrefix: string = "", simulate: boolean = false, chainId: string = ""
   ): Promise<Verifier> {
     const verifier = new Verifier(deployXPrefix, simulate, chainId);
+    verifier.deployer = deployer;
+    verifier.startingNonce = await deployer.getNonce();
     return verifier;
   }
   
@@ -93,12 +97,10 @@ export class Verifier {
         deployer.increment();
       }
       this.transactions.push(transaction);
+      await this.addContractForVerification(instance, params, contractVerificationName);
       return instance;
     } else {
       const contract = await deploy(contractName, deployer, txParams, ...params);
-      if (contract.deployTxHash) {
-        this.deployedTxHashes.push(contract.deployTxHash);
-      }
       await this.addContractForVerification(contract, params, contractVerificationName);
       return contract;
     }
@@ -124,12 +126,10 @@ export class Verifier {
         deployer.increment();
       }
       this.transactions.push(transaction);
+      await this.addContractForVerification(instance, params, contractVerificationName);
       return instance;
     } else {
       const contract = await deployX(contractName, deployer, this.deployXPrefix + id, txParams, ...params);
-      if (contract.deployTxHash) {
-        this.deployedTxHashes.push(contract.deployTxHash);
-      }
       await this.addContractForVerification(contract, params, contractVerificationName);
       return contract;
     }
@@ -170,19 +170,98 @@ export class Verifier {
     });
   }
 
-  addTxHash = (txHash: string) => {
-    if (!this.simulate && txHash) {
-      this.deployedTxHashes.push(txHash);
+  /**
+   * Wraps a contract instance to intercept method calls.
+   * In simulation mode, captures transaction data instead of executing.
+   * In normal mode, returns the contract unchanged.
+   */
+  wrapContract = <T extends BaseContract>(contract: T): T => {
+    if (!this.simulate) {
+      return contract;
     }
+
+    const transactions = this.transactions;
+    return new Proxy(contract, {
+      get(target, prop, receiver) {
+        const value = Reflect.get(target, prop, receiver);
+
+        // If it's a function that returns a transaction (contract method)
+        if (typeof value === "function" && typeof prop === "string") {
+          // Skip internal properties and view functions
+          if (prop.startsWith("_") || prop === "getAddress" || prop === "connect" ||
+              prop === "attach" || prop === "deployed" || prop === "interface" ||
+              prop === "runner" || prop === "target" || prop === "filters" ||
+              prop === "queryFilter" || prop === "on" || prop === "once" ||
+              prop === "removeListener" || prop === "removeAllListeners" ||
+              prop === "listenerCount" || prop === "listeners" ||
+              prop === "populateTransaction" || prop === "estimateGas" ||
+              prop === "staticCall" || prop === "getFunction" || prop === "getEvent") {
+            return value;
+          }
+
+          return async (...args: any[]) => {
+            try {
+              // Try to populate the transaction
+              const contractFunc = target.getFunction(prop);
+              if (contractFunc) {
+                const txData = await contractFunc.populateTransaction(...args);
+                transactions.push({
+                  to: await target.getAddress(),
+                  data: txData.data,
+                } as ContractTransaction);
+                // Return a mock response for simulation
+                return {
+                  hash: "0x" + "0".repeat(64),
+                  wait: async () => ({status: 1}),
+                } as unknown as ContractTransactionResponse;
+              }
+            } catch {
+              // If populateTransaction fails, it might be a view function, call normally
+            }
+            return value.apply(target, args);
+          };
+        }
+        return value;
+      }
+    }) as T;
   }
 
   saveDeploymentTransactions = async () => {
-    if (this.simulate || this.deployedTxHashes.length === 0) {
+    if (this.simulate || !this.deployer) {
       return;
     }
-    console.log("Saving deployment transactions...");
-    console.log(this.deployedTxHashes);
+
+    const currentNonce = await this.deployer.getNonce();
+    const txCount = currentNonce - this.startingNonce;
+
+    if (txCount <= 0) {
+      console.log("No deployment transactions to save.");
+      return;
+    }
+
+    console.log(`Fetching ${txCount} deployment transaction(s)...`);
+    console.log(`Nonce range: ${this.startingNonce} to ${currentNonce - 1}`);
+
     try {
+      const deployerAddress = await this.deployer.getAddress();
+      const txHashes: string[] = [];
+
+      // Query transaction hashes for each nonce in range
+      for (let nonce = this.startingNonce; nonce < currentNonce; nonce++) {
+        const txHash = await this.getTxHashByNonce(deployerAddress, nonce);
+        if (txHash) {
+          txHashes.push(txHash);
+        }
+      }
+
+      if (txHashes.length === 0) {
+        console.log("No transaction hashes found.");
+        return;
+      }
+
+      console.log("Transaction hashes:");
+      console.log(txHashes);
+
       const dir = path.join(process.cwd(), "./scripts/results/transactions");
       await fs.mkdir(dir, {recursive: true});
 
@@ -191,7 +270,7 @@ export class Verifier {
       const filename = `txs-${timestamp}.json`;
       const filepath = path.join(dir, filename);
 
-      const transactions = this.deployedTxHashes.map(txHash => ({
+      const transactions = txHashes.map(txHash => ({
         txHash,
         networkId: this.chainId,
       }));
@@ -199,9 +278,38 @@ export class Verifier {
       const content = JSON.stringify(transactions, null, 2);
       await fs.writeFile(filepath, content, "utf8");
       console.log(`Deployment transactions saved to ${filepath}`);
-      console.log(`Total transactions: ${this.deployedTxHashes.length}`);
+      console.log(`Total transactions: ${txHashes.length}`);
     } catch (err) {
       console.error("Failed to save deployment transactions:", err);
+    }
+  }
+
+  private getTxHashByNonce = async (address: string, nonce: number): Promise<string | null> => {
+    try {
+      // We need to scan recent blocks for transactions from this address with this nonce
+      const latestBlock = await hre.ethers.provider.getBlockNumber();
+      
+      // Scan backwards through recent blocks to find the transaction
+      // Limit search to last 1000 blocks for performance
+      const searchDepth = Math.min(1000, latestBlock);
+      
+      for (let i = 0; i <= searchDepth; i++) {
+        const blockNum = latestBlock - i;
+        const block = await hre.ethers.provider.getBlock(blockNum, true);
+        if (!block || !block.prefetchedTransactions) continue;
+        
+        for (const tx of block.prefetchedTransactions) {
+          if (tx.from.toLowerCase() === address.toLowerCase() && tx.nonce === nonce) {
+            return tx.hash;
+          }
+        }
+      }
+      
+      console.warn(`Transaction with nonce ${nonce} not found in recent blocks`);
+      return null;
+    } catch (err) {
+      console.error(`Error fetching tx for nonce ${nonce}:`, err);
+      return null;
     }
   }
 
@@ -283,7 +391,7 @@ export class Verifier {
       const contractAddresses = new Set(this.contracts.map(c => c.address.toLowerCase()));
       const stateChanges: {
         address: string;
-        storageSlots: {slot: string; original: string; dirty: string}[];
+        slots: {slot: string; from: string; to: string}[];
       }[] = [];
       
       // Parse state_diff from simulation results
@@ -293,23 +401,23 @@ export class Verifier {
           for (const diff of stateDiff) {
             const addr = diff.address?.toLowerCase();
             if (addr && contractAddresses.has(addr)) {
-              const slots: {slot: string; original: string; dirty: string}[] = [];
+              const slots: {slot: string; from: string; to: string}[] = [];
               if (diff.raw) {
                 for (const rawEntry of diff.raw) {
                   slots.push({
                     slot: rawEntry.key,
-                    original: rawEntry.original,
-                    dirty: rawEntry.dirty,
+                    from: rawEntry.original,
+                    to: rawEntry.dirty,
                   });
                 }
               }
               // Find existing entry or create new one
               let existing = stateChanges.find(s => s.address.toLowerCase() === addr);
               if (!existing) {
-                existing = {address: diff.address, storageSlots: []};
+                existing = {address: diff.address, slots: []};
                 stateChanges.push(existing);
               }
-              existing.storageSlots.push(...slots);
+              existing.slots.push(...slots);
             }
           }
         }
@@ -319,9 +427,9 @@ export class Verifier {
       if (stateChanges.length > 0) {
         console.log("\nStorage changes for deployed contracts:");
         for (const change of stateChanges) {
-          console.log(`  ${change.address}: ${change.storageSlots.length} slot(s) changed`);
-          for (const slot of change.storageSlots) {
-            console.log(`    Slot ${slot.slot}: ${slot.original} -> ${slot.dirty}`);
+          console.log(`  ${change.address}: ${change.slots.length} slot(s) changed`);
+          for (const slot of change.slots) {
+            console.log(`    Slot ${slot.slot}: ${slot.from} -> ${slot.to}`);
           }
         }
       }
@@ -401,7 +509,10 @@ export async function deployProxyX<ContractType extends Initializable>(
     [targetImpl, await resolveAddress(upgradeAdmin), targetInit],
     DEFAULT_PROXY_TYPE + id,
   )) as TransparentUpgradeableProxy;
-  const target = (await getContractAt(contractName, targetProxy, deployer)) as ContractType;
+  let target = (await getContractAt(contractName, targetProxy, deployer)) as ContractType;
+  if (verifier) {
+    target = verifier.wrapContract(target);
+  }
   const targetProxyAdminAddress = await getCreateAddress(targetProxy, 1);
   const targetAdmin = (await getContractAt("ProxyAdmin", targetProxyAdminAddress)) as ProxyAdmin;
   await verifier?.addContractForVerification(targetProxyAdminAddress, [upgradeAdmin]);
@@ -415,6 +526,7 @@ export async function upgradeProxyX<ContractType extends Initializable>(
   deployer: Signer,
   contructorArgs: any[] = [],
   id: string = contractName,
+  simulate: boolean = false,
 ): Promise<{target?: ContractType; txRequired: boolean}> {
   const targetImpl = (
     await deployFunc(contractName, deployer, {}, contructorArgs, id)
@@ -433,9 +545,11 @@ export async function upgradeProxyX<ContractType extends Initializable>(
     const tx = await targetAdmin.upgradeAndCall.populateTransaction(
       proxyAddress, targetImpl, "0x", {from: adminOwner}
     );
-    console.log(`Simulating ${contractName} upgrade.`);
-    await hre.ethers.provider.call(tx);
-    console.log("Success.");
+    if (!simulate) {
+      console.log(`Simulating ${contractName} upgrade.`);
+      await hre.ethers.provider.call(tx);
+      console.log("Success.");
+    }
     console.log(`To finalize upgrade send the following transaction from ProxyAdmin owner: ${adminOwner}`);
     console.log(`To: ${tx.to}`);
     console.log("Value: 0");
@@ -700,13 +814,19 @@ export function percentsToBps(input: number[]): bigint[] {
   return input.map(el => BigInt(el) * 10000n / 100n);
 }
 
-export async function logDeployers(mustMatch: boolean = true) {
-  const [deployer] = await hre.ethers.getSigners();
-  console.log(`Deployer        : ${deployer.address}`);
+export async function logDeployers(
+  deployer: Signer,
+  simulate: boolean = false,
+  mustMatch: boolean = true
+) {
+  if (!simulate) {
+    [deployer] = await hre.ethers.getSigners();
+  }
+  console.log(`Deployer        : ${await resolveAddress(deployer)}`);
   console.log(`DEPLOYER_ADDRESS: ${process.env.DEPLOYER_ADDRESS}`);
   if (mustMatch) {
     assert(
-      deployer.address === process.env.DEPLOYER_ADDRESS,
+      await resolveAddress(deployer) === process.env.DEPLOYER_ADDRESS,
       "Deployer address must match DEPLOYER_ADDRESS for new deployments",
     );
   }

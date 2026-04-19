@@ -43,9 +43,11 @@ export async function main() {
     id += "-DeployTest";
   }
 
-  const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate, config.ChainId.toString());
+  const verifier = await getVerifier(
+    deployerWithNonce, process.env.DEPLOY_ID, simulate, config.ChainId.toString()
+  );
 
-  await logDeployers();
+  await logDeployers(deployer, simulate);
 
   assert(config.AavePoolLongTerm, "Aave pool long term is not configured");
   assertAddress(config.Admin, "Admin must be an address");
@@ -64,7 +66,7 @@ export async function main() {
   console.log("Deploying Aave USDC Long Term Liquidity Pool");
   const minHealthFactor = BigInt(config.AavePoolLongTerm.MinHealthFactor) * 10000n / 100n;
   const defaultLTV = BigInt(config.AavePoolLongTerm.DefaultLTV) * 10000n / 100n;
-  const aavePoolLongTerm = (await verifier.deployX(
+  const aavePoolLongTerm = verifier.wrapContract((await verifier.deployX(
     "LiquidityPoolAaveLongTerm",
     deployerWithNonce,
     {},
@@ -79,7 +81,7 @@ export async function main() {
       config.SignerAddress,
     ],
     id,
-  )) as LiquidityPoolAaveLongTerm;
+  )) as LiquidityPoolAaveLongTerm);
 
   if (config.AavePoolLongTerm.TokenLTVs) {
     const tokens = Object.keys(config.AavePoolLongTerm.TokenLTVs);

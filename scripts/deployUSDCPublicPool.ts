@@ -40,16 +40,18 @@ export async function main() {
     id += "-DeployTest";
   }
 
-  const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate, config.ChainId.toString());
+  const verifier = await getVerifier(
+    deployerWithNonce, process.env.DEPLOY_ID, simulate, config.ChainId.toString()
+  );
 
-  await logDeployers();
+  await logDeployers(deployer, simulate);
 
   assert(config.USDCPublicPool, "USDC public pool is not configured");
   assertAddress(config.SignerAddress, "SignerAddress must be an address");
   assertAddress(config.USDCPublicPool.FeeSetter, "FeeSetter must be an address");
 
   console.log("Deploying USDC Public Liquidity Pool");
-  const usdcPublicPool: PublicLiquidityPool = (await verifier.deployX(
+  const usdcPublicPool: PublicLiquidityPool = verifier.wrapContract((await verifier.deployX(
     "PublicLiquidityPool",
     deployerWithNonce,
     {},
@@ -64,7 +66,7 @@ export async function main() {
       config.USDCPublicPool.ProtocolFeeRate * 10000 / 100,
     ],
     id
-  )) as PublicLiquidityPool;
+  )) as PublicLiquidityPool);
   console.log(`${id}: ${usdcPublicPool.target}`);
 
   await usdcPublicPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);

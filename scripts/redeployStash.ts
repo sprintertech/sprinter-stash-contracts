@@ -23,19 +23,23 @@ export async function main() {
 
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
   assert(isSet(process.env.UPGRADE_ID), "UPGRADE_ID must be set");
-  const verifier = await getVerifier(deployer, process.env.UPGRADE_ID, simulate);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
   console.log(`Redeployment ID: ${process.env.UPGRADE_ID}`);
 
   let network: Network;
   let config: NetworkConfig;
+  ({network, config} = await getNetworkConfig());
+  if (!network) {
+    ({network, config} = await getHardhatNetworkConfig());
+  }
+  const verifier = await getVerifier(deployer, process.env.UPGRADE_ID, simulate, config.ChainId.toString());
   console.log("Redeploying Stash");
   ({network, config} = await getNetworkConfig());
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
   }
 
-  await logDeployers();
+  await logDeployers(deployer, simulate);
 
   assert(config.Hub, "Must be a network with a hub");
 
@@ -55,6 +59,7 @@ export async function main() {
   }));
 
   await verifier.performSimulation(config.ChainId.toString(), deployer);
+  await verifier.saveDeploymentTransactions();
   await verifier.verify(process.env.VERIFY === "true");
 }
 

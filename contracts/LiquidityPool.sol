@@ -95,7 +95,6 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     error NativeBorrowDenied();
     error NotDirectBorrower();
     error NothingToRepay();
-    error DirectRepayNotSupported();
     error InvalidAsset();
 
     event Deposit(address from, uint256 amount);

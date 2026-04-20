@@ -42,7 +42,6 @@ contract LiquidityPoolAave is LiquidityPool {
     error HealthFactorTooLow();
     error CollateralNotSupported();
     error CannotWithdrawAToken();
-    error WrongAmountsForRepay();
 
     event SuppliedToAave(uint256 amount);
     event BorrowTokenLTVSet(address token, uint256 oldLTV, uint256 newLTV);

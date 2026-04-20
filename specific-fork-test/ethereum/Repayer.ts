@@ -3,7 +3,7 @@ import {
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {expect} from "chai";
 import hre from "hardhat";
-import {AbiCoder} from "ethers";
+import {AbiCoder, Contract} from "ethers";
 import {
   getCreateAddress, getContractAt, deploy, deployX, toBytes32, getBalance,
   destinationToken,
@@ -81,6 +81,19 @@ describe("Repayer", function () {
     const everclearFeeAdapter = await hre.ethers.getContractAt("IFeeAdapterV2", forkNetworkConfig.EverclearFeeAdapter!);
     const weth = await hre.ethers.getContractAt("IWrappedNativeToken", forkNetworkConfig.WrappedNativeToken);
 
+    const cctpV1DepositForBurnAbi = [
+      "event DepositForBurn(uint64 indexed nonce, address indexed burnToken, " +
+      "uint256 amount, address indexed depositor, bytes32 mintRecipient, " +
+      "uint32 destinationDomain, bytes32 destinationTokenMessenger, " +
+      "bytes32 destinationCaller)",
+    ];
+    const cctpV1Messenger = new Contract(
+      forkNetworkConfig.CCTP!.TokenMessenger!, cctpV1DepositForBurnAbi, deployer
+    );
+    const cctpV2Messenger = await hre.ethers.getContractAt(
+      "ICCTPV2TokenMessenger", forkNetworkConfig.CCTPV2!.TokenMessenger!
+    );
+
     assertAddress(forkNetworkConfig.Omnibridge, "ETHEREUM Omnibridge address is missing");
     assertAddress(forkNetworkConfig.GnosisAMB, "ETHEREUM GnosisAMB address is missing");
 
@@ -102,23 +115,31 @@ describe("Repayer", function () {
         baseStandardBridge,
         arbitrumGatewayRouter,
         forkNetworkConfig.Omnibridge!, ZERO_ADDRESS, ZERO_ADDRESS, forkNetworkConfig.GnosisAMB!,
-        ZERO_ADDRESS,
+        ZERO_ADDRESS, forkNetworkConfig.CCTPV2!.TokenMessenger!, forkNetworkConfig.CCTPV2!.MessageTransmitter!,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin,
       repayUser,
       setTokensUser,
-      [liquidityPool, liquidityPool2, liquidityPool, liquidityPool, liquidityPool],
-      [Domain.ETHEREUM, Domain.ETHEREUM, Domain.OP_MAINNET, Domain.BASE, Domain.ARBITRUM_ONE],
+      [
+        liquidityPool, liquidityPool2, liquidityPool, liquidityPool,
+        liquidityPool, liquidityPool, liquidityPool,
+      ],
+      [
+        Domain.ETHEREUM, Domain.ETHEREUM, Domain.OP_MAINNET, Domain.BASE,
+        Domain.ARBITRUM_ONE, Domain.ARBITRUM_ONE, Domain.ARBITRUM_ONE,
+      ],
       [
         Provider.LOCAL,
         Provider.LOCAL,
         Provider.SUPERCHAIN_STANDARD_BRIDGE,
         Provider.SUPERCHAIN_STANDARD_BRIDGE,
-        Provider.ARBITRUM_GATEWAY
+        Provider.ARBITRUM_GATEWAY,
+        Provider.CCTP,
+        Provider.CCTP_V2,
       ],
-      [true, false, true, true, true],
+      [true, false, true, true, true, true, true],
       [
         {
           inputToken: usdc,
@@ -165,7 +186,8 @@ describe("Repayer", function () {
     return {
       deployer, admin, repayUser, usdc, setTokensUser,
       USDC_DEC, liquidityPool, liquidityPool2, repayer, repayerProxy, repayerAdmin,
-      cctpTokenMessenger, cctpMessageTransmitter, REPAYER_ROLE, DEFAULT_ADMIN_ROLE, acrossV3SpokePool, weth,
+      cctpTokenMessenger, cctpMessageTransmitter, cctpV1Messenger, cctpV2Messenger,
+      REPAYER_ROLE, DEFAULT_ADMIN_ROLE, acrossV3SpokePool, weth,
       stargateTreasurer, everclearFeeAdapter, forkNetworkConfig, optimismStandardBridge, baseStandardBridge,
       arbitrumGatewayRouter, dai, DAI_DEC, wbtc, WBTC_DEC,
     };
@@ -507,5 +529,59 @@ describe("Repayer", function () {
       extraData,
       {value: fee}
     )).to.be.revertedWithCustomError(repayer, "InvalidOutputToken()");
+  });
+
+  it("Should allow repayer to initiate CCTP V1 repay on fork", async function () {
+    const {repayer, USDC_DEC, usdc, repayUser, liquidityPool, cctpV1Messenger} = await loadFixture(deployAll);
+
+    assertAddress(process.env.USDC_OWNER_ETH_ADDRESS, "Env variables not configured (USDC_OWNER_ETH_ADDRESS missing)");
+    const USDC_OWNER_ETH_ADDRESS = process.env.USDC_OWNER_ETH_ADDRESS;
+    const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ETH_ADDRESS);
+    await setBalance(USDC_OWNER_ETH_ADDRESS, 10n ** 18n);
+
+    const amount = 4n * USDC_DEC;
+    await usdc.connect(usdcOwner).transfer(repayer, amount);
+
+    const tx = repayer.connect(repayUser).initiateRepay(
+      usdc,
+      amount,
+      liquidityPool,
+      Domain.ARBITRUM_ONE,
+      Provider.CCTP,
+      "0x"
+    );
+    await expect(tx)
+      .to.emit(repayer, "InitiateRepay")
+      .withArgs(usdc.target, amount, liquidityPool.target, Domain.ARBITRUM_ONE, Provider.CCTP);
+    await expect(tx)
+      .to.emit(cctpV1Messenger, "DepositForBurn");
+    expect(await usdc.balanceOf(repayer)).to.equal(0n);
+  });
+
+  it("Should allow repayer to initiate CCTP V2 repay on fork", async function () {
+    const {repayer, USDC_DEC, usdc, repayUser, liquidityPool, cctpV2Messenger} = await loadFixture(deployAll);
+
+    assertAddress(process.env.USDC_OWNER_ETH_ADDRESS, "Env variables not configured (USDC_OWNER_ETH_ADDRESS missing)");
+    const USDC_OWNER_ETH_ADDRESS = process.env.USDC_OWNER_ETH_ADDRESS;
+    const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ETH_ADDRESS);
+    await setBalance(USDC_OWNER_ETH_ADDRESS, 10n ** 18n);
+
+    const amount = 4n * USDC_DEC;
+    await usdc.connect(usdcOwner).transfer(repayer, amount);
+
+    const tx = repayer.connect(repayUser).initiateRepay(
+      usdc,
+      amount,
+      liquidityPool,
+      Domain.ARBITRUM_ONE,
+      Provider.CCTP_V2,
+      "0x"
+    );
+    await expect(tx)
+      .to.emit(repayer, "InitiateRepay")
+      .withArgs(usdc.target, amount, liquidityPool.target, Domain.ARBITRUM_ONE, Provider.CCTP_V2);
+    await expect(tx)
+      .to.emit(cctpV2Messenger, "DepositForBurn");
+    expect(await usdc.balanceOf(repayer)).to.equal(0n);
   });
 });

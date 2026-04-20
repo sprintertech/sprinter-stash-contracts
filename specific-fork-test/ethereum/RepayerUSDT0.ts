@@ -66,7 +66,7 @@ describe("Repayer USDT0 (Ethereum fork)", function () {
         ZERO_ADDRESS,
         ZERO_ADDRESS,
         forkNetworkConfig.GnosisAMB,
-        forkNetworkConfig.USDT0OFT,
+        forkNetworkConfig.USDT0OFT, ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Repayer;
 

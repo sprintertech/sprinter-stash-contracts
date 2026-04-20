@@ -7,7 +7,9 @@ import {AdapterHelper} from "./AdapterHelper.sol";
 
 /// @notice The child contract has to be deployed to the same address across chains, otherwise
 /// processTransferCCTP() won't work, as the same address has to call receiveMessage().
-/// Only supports CCTP V1 integration.
+/// Supports CCTP V1 initiate/receive directly, and hosts the shared processTransferCCTP()
+/// helper that is reused by the V2 adapter (both versions expose an identical
+/// receiveMessage(bytes,bytes) returns (bool) signature).
 abstract contract CCTPAdapter is AdapterHelper {
     using SafeERC20 for IERC20;
 
@@ -39,21 +41,26 @@ abstract contract CCTPAdapter is AdapterHelper {
         );
     }
    
+    /// @dev Shared receive-message helper used by both CCTP V1 and V2 adapters.
+    /// Both versions use the same `receiveMessage(bytes,bytes) returns (bool)` signature,
+    /// so the consumer just passes the appropriate transmitter address.
     function processTransferCCTP(
+        address messageTransmitter,
         IERC20 token,
         address destinationPool,
         bytes calldata extraData
     ) internal returns (uint256) {
-        uint256 balanceBefore = token.balanceOf(address(destinationPool));
+        uint256 balanceBefore = token.balanceOf(destinationPool);
 
         (bytes memory message, bytes memory attestation) = abi.decode(extraData, (bytes, bytes));
-        bool success = CCTP_MESSAGE_TRANSMITTER.receiveMessage(message, attestation);
+        bool success = ICCTPMessageTransmitter(messageTransmitter).receiveMessage(message, attestation);
         require(success, ProcessFailed());
 
-        uint256 balanceAfter = token.balanceOf(address(destinationPool));
+        uint256 balanceAfter = token.balanceOf(destinationPool);
         require(balanceAfter > balanceBefore, ProcessFailed());
-        uint256 amount = balanceAfter - balanceBefore;
-        return amount;
+        unchecked {
+            return balanceAfter - balanceBefore;
+        }
     }
 
      function domainCCTP(Domain destinationDomain) public pure virtual returns (uint32) {

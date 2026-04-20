@@ -40,7 +40,6 @@ contract LiquidityPoolAave is LiquidityPool {
     error TokenLtvExceeded();
     error NoCollateral();
     error HealthFactorTooLow();
-    error NothingToRepay();
     error CollateralNotSupported();
     error CannotWithdrawAToken();
     error WrongAmountsForRepay();
@@ -50,7 +49,6 @@ contract LiquidityPoolAave is LiquidityPool {
     event HealthFactorSet(uint256 oldHealthFactor, uint256 newHealthFactor);
     event DefaultLTVSet(uint256 oldDefaultLTV, uint256 newDefaultLTV);
     event WithdrawnFromAave(address to, uint256 amount);
-    event Repaid(address borrowToken, uint256 repaidAmount);
 
     constructor(
         address liquidityToken,
@@ -75,28 +73,6 @@ contract LiquidityPoolAave is LiquidityPool {
         require(usageAsCollateralEnabled && isActive && !isFrozen, CollateralNotSupported());
         _setMinHealthFactor(minHealthFactor_);
         _setDefaultLTV(defaultLTV_);
-    }
-
-    function repay(address[] calldata borrowTokens) external override {
-        _repayAccessCheck();
-        // Repay token to aave
-        bool success;
-        for (uint256 i = 0; i < borrowTokens.length; i++) {
-            success = _repay(borrowTokens[i], type(uint256).max) || success;
-        }
-        require(success, NothingToRepay());
-    }
-    
-    function repayDirect(
-        address[] calldata borrowTokens, 
-        uint256[] calldata maxAmounts
-    ) external override onlyDirectBorrower {
-        uint256 length = HelperLib.validatePositiveLength(borrowTokens.length, maxAmounts.length);
-        bool success;
-        for (uint256 i = 0; i < length; i++) {
-            success = _repayDirect(borrowTokens[i], maxAmounts[i]) || success;  
-        }
-        require(success, NothingToRepay());
     }
 
     // Admin functions
@@ -211,7 +187,7 @@ contract LiquidityPoolAave is LiquidityPool {
         address vdt = AAVE_POOL.getReserveData(address(token)).variableDebtTokenAddress;
         if (vdt != address(0)) {
             uint256 debt = 
-              IERC20(vdt).balanceOf(address(this)) - directBorrowed[address(token)]; 
+              IERC20(vdt).balanceOf(address(this)) - directDebt[address(token)]; 
             if (debt > 0) return 0;
         }
 
@@ -225,16 +201,26 @@ contract LiquidityPoolAave is LiquidityPool {
             }
         }
         return totalBalance;
-    }
+    } 
     
-    function _repay(address borrowToken, uint256 maxRepayAmount) internal returns(bool success) {
+    function _repay(address[] calldata borrowTokens) internal override {
+        _repayAccessCheck();
+        // Repay token to aave
+        bool success;
+        for (uint256 i = 0; i < borrowTokens.length; i++) {
+            success = _repayToken(borrowTokens[i], type(uint256).max) || success;
+        }
+        require(success, NothingToRepay());
+    }
+
+    function _repayToken(address borrowToken, uint256 maxRepayAmount) internal returns(bool success) {
         _wrapIfNative(IERC20(borrowToken));
         
         address vdToken = AAVE_POOL.getReserveData(borrowToken).variableDebtTokenAddress;
         if (vdToken == address(0)) return false;
 
         uint256 outstandingDebt = 
-            IERC20(vdToken).balanceOf(address(this)) - directBorrowed[borrowToken];
+            IERC20(vdToken).balanceOf(address(this)) - directDebt[borrowToken];
         if (outstandingDebt == 0) return false;
         
         uint256 balance = IERC20(borrowToken).balanceOf(address(this));
@@ -252,29 +238,34 @@ contract LiquidityPoolAave is LiquidityPool {
 
         return true;
     }
+    
+    function _repayDirect(
+        address[] calldata borrowTokens, 
+        uint256[] calldata maxAmounts
+    ) internal override {
+        uint256 length = HelperLib.validatePositiveLength(borrowTokens.length, maxAmounts.length);
+        bool success;
+        for (uint256 i = 0; i < length; i++) {
+            success = _repayTokenDirect(borrowTokens[i], maxAmounts[i]) || success;  
+        }
+        require(success, NothingToRepay());
+    }
 
-    function _repayDirect(address borrowToken, uint256 maxRepayAmount)
+    function _repayTokenDirect(address borrowToken, uint256 maxRepayAmount)
         internal
         returns(bool success)
     {
         address vdToken = AAVE_POOL.getReserveData(borrowToken).variableDebtTokenAddress;
         if (vdToken == address(0)) return false;
         
-        uint256 outstandingDebt = directBorrowed[borrowToken];
+        uint256 outstandingDebt = directDebt[borrowToken];
         uint256 repayAmount = Math.min(outstandingDebt, maxRepayAmount);
         if (repayAmount == 0) return false; 
         
-        IERC20(borrowToken).safeTransferFrom(_msgSender(), address(this), repayAmount);
-        
+        IERC20(borrowToken).safeTransferFrom(_msgSender(), address(this), repayAmount);        
         uint256 repaidAmount = _executeRepay(borrowToken, repayAmount);
 
-        unchecked { directBorrowed[borrowToken] -= repaidAmount; }
-        if (repaidAmount < repayAmount) {
-            uint256 refund;
-            unchecked { refund = repayAmount - repaidAmount; }
-            IERC20(borrowToken).safeTransfer(_msgSender(), refund);
-            IERC20(borrowToken).forceApprove(address(AAVE_POOL), 0);
-        }
+        unchecked { directDebt[borrowToken] -= repaidAmount; }
 
         emit Repaid(borrowToken, repaidAmount);
         return true;

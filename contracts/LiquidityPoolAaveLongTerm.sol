@@ -49,7 +49,7 @@ contract LiquidityPoolAaveLongTerm is LiquidityPoolAave, ILiquidityPoolLongTerm 
         uint256 length = HelperLib.validatePositiveLength(borrowTokens.length, amounts.length);
         bool success;
         for (uint256 i = 0; i < length; i++) {
-            success = _repay(borrowTokens[i], amounts[i]) || success;
+            success = _repayToken(borrowTokens[i], amounts[i]) || success;
         }
         require(success, NothingToRepay());
     }

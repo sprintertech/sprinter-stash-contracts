@@ -73,7 +73,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     bytes32 private constant LIQUIDITY_ADMIN_ROLE = "LIQUIDITY_ADMIN_ROLE";
     bytes32 private constant WITHDRAW_PROFIT_ROLE = "WITHDRAW_PROFIT_ROLE";
     bytes32 private constant PAUSER_ROLE = "PAUSER_ROLE";
-    bytes32 private constant DIRECT_BORROW_ROLE = "DIRECT_BORROW";
+    bytes32 private constant DIRECT_BORROW_ROLE = "DIRECT_BORROW_ROLE";
     // bytes4(keccak256("isValidSignature(bytes32,bytes)")
     bytes4 constant internal MAGICVALUE = 0x1626ba7e;
     IWrappedNativeToken immutable public WRAPPED_NATIVE_TOKEN;
@@ -107,6 +107,8 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     event Paused(address account);
     event Unpaused(address account);
     event Repaid(address token, uint256 amount);
+    event RepaidDirect(address indexed token, uint256 amount);
+    event BorrowDirect(address indexed account, address indexed borrowToken, uint256 amount);
 
     modifier whenNotPaused() {
         require(!paused, EnforcedPause());
@@ -213,6 +215,8 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
             _borrow(borrowToken, amount, _msgSender(), false, "");
         
         _afterBorrowLogic(actualBorrowToken, context);
+        
+        emit BorrowDirect(_msgSender(), borrowToken, amount);
     } 
 
     /// @param borrowTokens can include a native token address which is 0x0. In this case, the function will
@@ -591,7 +595,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         // and the max amount they are willing to repay. 
         HelperLib.validatePositiveLength(borrowTokens.length, maxAmounts.length);
 
-        if (borrowTokens[0] == address(ASSETS)) revert InvalidAsset();
+        if (borrowTokens[0] != address(ASSETS)) revert InvalidAsset();
         uint256 debt = directDebt[address(ASSETS)];
         if (debt == 0) revert NothingToRepay();
         
@@ -602,6 +606,8 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         // of direct debt if they support direct borrowing.
         ASSETS.safeTransferFrom(_msgSender(), address(this), repayAmount);
         directDebt[address(ASSETS)] -= repayAmount;
+
+        emit RepaidDirect(address(ASSETS), repayAmount);
     }
 
 

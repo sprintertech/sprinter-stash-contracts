@@ -266,7 +266,7 @@ contract LiquidityPoolAave is LiquidityPool {
 
         unchecked { directDebt[borrowToken] -= repaidAmount; }
 
-        emit Repaid(borrowToken, repaidAmount);
+        emit RepaidDirect(borrowToken, repaidAmount);
         return true;
     }
     

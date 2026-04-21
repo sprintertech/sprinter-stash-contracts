@@ -1760,7 +1760,7 @@ describe("LiquidityPool", function () {
 
     it("Should reduce direct debt if repaid", async function () {
       const {
-        liquidityPool, usdc, USDC_DEC, withdrawProfit, usdcOwner, liquidityAdmin, directBorrower
+        liquidityPool, usdc, USDC_DEC, usdcOwner, liquidityAdmin, directBorrower
       } = await loadFixture(deployAll);
       const amountLiquidity = 1000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, amountLiquidity);

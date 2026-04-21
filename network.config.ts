@@ -1,5 +1,4 @@
 import * as AAVEPools from "@bgd-labs/aave-address-book";
-import { P } from "@bgd-labs/aave-address-book/dist/GovernanceV3Ethereum--W36OWI7";
 
 // Upgradeable contracts proxies are deployed once with the contract name suffix in id.
 // Subsequent implementation just use UPGRADE_ID env variable.
@@ -741,7 +740,6 @@ export const networkConfig: NetworksConfig = {
             [Network.GNOSIS_CHAIN]: [
               Provider.EVERCLEAR,
               Provider.STARGATE,
-              Provider.CCTP_V2,
             ],
           },
         },
@@ -1645,12 +1643,11 @@ export const networkConfig: NetworksConfig = {
           Domains: {
             [Network.ARBITRUM_ONE]: [
               Provider.CCTP,
-              Provider.CCTP_V2,
               Provider.ACROSS,
               Provider.EVERCLEAR,
               Provider.STARGATE,
               Provider.USDT0,
-              Provider.CCTP_V2,
+              Provider.CCTP_V2
             ],
           },
         },

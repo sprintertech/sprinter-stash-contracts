@@ -2991,7 +2991,7 @@ describe("LiquidityPoolAave", function () {
 
     it("Should repay direct debt", async function() {
       const {
-        liquidityPool, usdc, eurc, mpc_signer, user, user2, usdcOwner, eurcOwner, liquidityAdmin, USDC_DEC, EURC_DEC,
+        liquidityPool, usdc, eurc, usdcOwner, liquidityAdmin, USDC_DEC, EURC_DEC,
         aavePool, directBorrower
       } = await loadFixture(deployAll);
       const amountCollateral = 1000n * USDC_DEC; // $1000

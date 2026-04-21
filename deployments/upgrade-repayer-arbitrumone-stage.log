@@ -43,3 +43,25 @@ New Rebalancer implementation deployed to 0xd4E8FDb97c721c0d7BEA8e7d5DA8D6464dA5
 Sending Rebalancer upgrade transaction.
 0x22691c651e3088b53e69a39edf999e3128ebe572a32a44e1c531524f7c28bb56
 Rebalancer upgraded.
+
+Deployment ID: MVP
+Upgrade ID: MVP4
+Upgrading Rebalancer
+Using config for: stage, ARBITRUM_ONE
+Deployer        : 0x2D5B6C193C39D2AECb4a99052074E6F325258a0f
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+New Rebalancer implementation deployed to 0x1e0AbEA02b2963D80132f18750777C9205473823
+Sending Rebalancer upgrade transaction.
+0x6947ec9403034030c7cd1675e8a0f53b85b5ff47818985f4c2eedab7dfe5a3e4
+Rebalancer upgraded.
+
+Deployment ID: MVP
+Upgrade ID: MVP4
+Upgrading Repayer
+Using config for: stage, ARBITRUM_ONE
+Deployer        : 0x2D5B6C193C39D2AECb4a99052074E6F325258a0f
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+New Repayer implementation deployed to 0x5C8dcB27470fa758Af7Fba900093D589a51Ec9b6
+Sending Repayer upgrade transaction.
+0xc5620517e1a7f973eb82721ce32d02a5c73498bf210648461cace5c780219d23
+Repayer upgraded.

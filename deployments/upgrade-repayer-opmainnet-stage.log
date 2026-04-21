@@ -43,3 +43,25 @@ New Rebalancer implementation deployed to 0xd4E8FDb97c721c0d7BEA8e7d5DA8D6464dA5
 Sending Rebalancer upgrade transaction.
 0xe5162523c25c04c6f76c07c8c8733c537711ec1a2e20adce641e3c825e141e6b
 Rebalancer upgraded.
+
+Deployment ID: MVP
+Upgrade ID: MVP4
+Upgrading Rebalancer
+Using config for: stage, OP_MAINNET
+Deployer        : 0x2D5B6C193C39D2AECb4a99052074E6F325258a0f
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+New Rebalancer implementation deployed to 0x1e0AbEA02b2963D80132f18750777C9205473823
+Sending Rebalancer upgrade transaction.
+0x852380c385e3f0d13e9a8b2555c82e872cc5952d98e84330345675842729be06
+Rebalancer upgraded.
+
+Deployment ID: MVP
+Upgrade ID: MVP4
+Upgrading Repayer
+Using config for: stage, OP_MAINNET
+Deployer        : 0x2D5B6C193C39D2AECb4a99052074E6F325258a0f
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+New Repayer implementation deployed to 0x5C8dcB27470fa758Af7Fba900093D589a51Ec9b6
+Sending Repayer upgrade transaction.
+0x10e60fd05e8df94b2939b9cb268cb07a43f29a67c061cd484af6a60f3adfcc6f
+Repayer upgraded.

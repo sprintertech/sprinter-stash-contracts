@@ -741,6 +741,7 @@ const config: HardhatUserConfig = {
       chainId: networkConfig.POLYGON_MAINNET.ChainId,
       url: process.env.POLYGON_MAINNET_RPC || "https://polygon-bor-rpc.publicnode.com",
       accounts,
+      gasMultiplier: 1.5
     },
     [Network.UNICHAIN]: {
       chainId: networkConfig.UNICHAIN.ChainId,

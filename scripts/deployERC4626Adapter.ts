@@ -8,14 +8,24 @@ import {ERC4626Adapter} from "../typechain-types";
 import {Network, NetworkConfig, ERC4626AdapterUSDCVersions} from "../network.config";
 
 export async function main() {
-  const [deployer] = await hre.ethers.getSigners();
+  let deployer;
+
+  const simulate = process.env.SIMULATE === "true" ? true : false;
+
+  if (simulate) {
+    console.log("Simulation mode enabled");
+    assert(isSet(process.env.DEPLOYER_ADDRESS), "Deployer address must be set");
+    deployer = await hre.ethers.getImpersonatedSigner(process.env.DEPLOYER_ADDRESS!);
+  } else {
+    [deployer] = await hre.ethers.getSigners();
+  }
+  console.log(`Deployer: ${deployer.address}`);
 
   const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
   const WITHDRAW_PROFIT_ROLE = toBytes32("WITHDRAW_PROFIT_ROLE");
   const PAUSER_ROLE = toBytes32("PAUSER_ROLE");
 
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
-  const verifier = getVerifier(process.env.DEPLOY_ID);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
   let id = ERC4626AdapterUSDCVersions.at(-1);
 
@@ -27,7 +37,9 @@ export async function main() {
     ({network, config} = await getHardhatNetworkConfig());
     id += "-DeployTest";
   }
-  await logDeployers();
+  await logDeployers(deployer, simulate);
+
+  const verifier = await getVerifier(deployer, process.env.DEPLOY_ID, simulate, config.ChainId.toString());
 
   assert(config.ERC4626AdapterUSDCTargetVault, "ERC4626AdapterUSDCTargetVault must be configured");
 
@@ -38,7 +50,7 @@ export async function main() {
   console.log(`Target Vault: ${targetVault}`);
 
   console.log("Deploying ERC4626 Adapter USDC");
-  const erc4626AdapterUSDC: ERC4626Adapter = (await verifier.deployX(
+  const erc4626AdapterUSDC: ERC4626Adapter = verifier.wrapContract((await verifier.deployX(
     "ERC4626Adapter",
     deployer,
     {},
@@ -48,18 +60,20 @@ export async function main() {
       deployer,
     ],
     id
-  )) as ERC4626Adapter;
+  )) as ERC4626Adapter);
   console.log(`${id}: ${erc4626AdapterUSDC.target}`);
 
-  await erc4626AdapterUSDC!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
-  await erc4626AdapterUSDC!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
-  let lastTx = await erc4626AdapterUSDC!.grantRole(PAUSER_ROLE, config.Pauser);
+  await erc4626AdapterUSDC.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
+  await erc4626AdapterUSDC.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
+  let lastTx = await erc4626AdapterUSDC.grantRole(PAUSER_ROLE, config.Pauser);
 
   if (!sameAddress(deployer.address, config.Admin)) {
-    await erc4626AdapterUSDC!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-    lastTx = await erc4626AdapterUSDC!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    await erc4626AdapterUSDC.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
+    lastTx = await erc4626AdapterUSDC.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
   }
 
+  verifier.performSimulation(config.ChainId.toString(), deployer);
+  await verifier.saveDeploymentTransactions();
   await verifier.verify(process.env.VERIFY === "true");
   await lastTx.wait();
 }

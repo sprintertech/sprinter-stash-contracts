@@ -651,6 +651,15 @@ task("push-native-token", "Push native currency through a selfdestruct")
   console.log("Done.");
 });
 
+task("get-proof", "Get proof of a contract")
+.addParam("contract", "Contract address")
+.setAction(async ({contract}: {contract: string}, hre) => {
+  console.log(contract);
+  const proof = await hre.ethers.provider.send("eth_getProof", [contract, [], "latest"]);
+  console.log(`Proof for the address ${contract}:`);
+  console.log(proof);
+});
+
 const accounts: string[] = isSet(process.env.PRIVATE_KEY) ? [process.env.PRIVATE_KEY || ""] : [];
 
 const config: HardhatUserConfig = {

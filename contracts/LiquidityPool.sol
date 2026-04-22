@@ -7,6 +7,7 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {ILiquidityPool} from "./interfaces/ILiquidityPool.sol";
 import {IBorrower} from "./interfaces/IBorrower.sol";
 import {IWrappedNativeToken} from "./interfaces/IWrappedNativeToken.sol";
@@ -14,8 +15,10 @@ import {HelperLib} from "./utils/HelperLib.sol";
 import {NATIVE_TOKEN} from "./utils/Constants.sol";
 import {ISigner} from "./interfaces/ISigner.sol";
 
-/// @title Liquidity pool contract holds the liquidity asset and allows solvers to borrow
+/// @title LiquidityPool
+/// @notice Liquidity pool contract holds the liquidity asset and allows solvers to borrow
 /// the asset from the pool and to perform an external function call upon providing the MPC signature.
+/// The pool can also be used by trusted parties to borrow without the need of providing an MPC signature.
 /// It's possible to perform borrowing with swap by the solver (the solver gets the borrowed
 /// assets from the pool, swaps them to fill tokens, and then the pool performs the target call).
 /// Repayment is done by transferring the assets to the contract without calling any function.
@@ -65,10 +68,12 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     bool public borrowPaused;
     address public mpcAddress;
     address public signerAddress;
+    mapping(address => uint256) public directDebt;
 
     bytes32 private constant LIQUIDITY_ADMIN_ROLE = "LIQUIDITY_ADMIN_ROLE";
     bytes32 private constant WITHDRAW_PROFIT_ROLE = "WITHDRAW_PROFIT_ROLE";
     bytes32 private constant PAUSER_ROLE = "PAUSER_ROLE";
+    bytes32 private constant DIRECT_BORROW_ROLE = "DIRECT_BORROW_ROLE";
     // bytes4(keccak256("isValidSignature(bytes32,bytes)")
     bytes4 constant internal MAGICVALUE = 0x1626ba7e;
     IWrappedNativeToken immutable public WRAPPED_NATIVE_TOKEN;
@@ -88,6 +93,9 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     error ExpectedPause();
     error InsufficientSwapResult();
     error NativeBorrowDenied();
+    error NotDirectBorrower();
+    error NothingToRepay();
+    error InvalidAsset();
 
     event Deposit(address from, uint256 amount);
     event Withdraw(address caller, address to, uint256 amount);
@@ -98,6 +106,9 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     event SignerAddressSet(address oldSignerAddress, address newSignerAddress);
     event Paused(address account);
     event Unpaused(address account);
+    event Repaid(address token, uint256 amount);
+    event RepaidDirect(address indexed token, uint256 amount);
+    event BorrowDirect(address indexed account, address indexed borrowToken, uint256 amount);
 
     modifier whenNotPaused() {
         require(!paused, EnforcedPause());
@@ -112,6 +123,11 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     modifier whenPaused() {
         require(paused, ExpectedPause());
         _;
+    }
+    
+    modifier onlyDirectBorrower() {
+      require(hasRole(DIRECT_BORROW_ROLE, _msgSender()), NotDirectBorrower());
+      _;
     }
 
     constructor(
@@ -180,6 +196,28 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         _unwrapNative(nativeValue);
         _finalizeBorrow(target, nativeValue, targetCallData);
     }
+    
+    /// @notice This function allows an authorized caller to borrow funds from the contract.
+    /// This is callable by authorized callers and does not need MPC signatures.
+    /// The contract approves the tokens for the target address.
+    /// It's supposed that the target is a trusted contract that fulfills the request, performs transferFrom
+    /// of borrow tokens and guarantees to repay the tokens to the pool later.
+    /// @param borrowToken can be specified as native token address which is 0x0. In this case, the function will
+    /// borrow wrapped native token, then unwrap it and include the native value in the target call.
+    function borrowDirect(
+      address borrowToken, 
+      uint256 amount
+    ) external override whenNotPaused() whenBorrowNotPaused() onlyDirectBorrower() {
+        amount = _processBorrowAmount(amount, msg.data[0:0]);
+        directDebt[borrowToken] += amount;
+
+        (, address actualBorrowToken, bytes memory context) =
+            _borrow(borrowToken, amount, _msgSender(), false, "");
+        
+        _afterBorrowLogic(actualBorrowToken, context);
+        
+        emit BorrowDirect(_msgSender(), borrowToken, amount);
+    } 
 
     /// @param borrowTokens can include a native token address which is 0x0. In this case, the function will
     /// borrow wrapped native token, then unwrap it and include the native value in the target call.
@@ -275,10 +313,17 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         _finalizeSwap(swap, target, targetCallData, nativeBalanceBefore);
     }
 
-    function repay(address[] calldata) external virtual override {
-        revert NotImplemented();
+    function repay(address[] calldata borrowTokens) external override {
+        _repay(borrowTokens);
     }
-
+    
+    function repayDirect(
+        address[] calldata borrowTokens, 
+        uint256[] calldata maxAmounts
+    ) external override onlyDirectBorrower {
+        _repayDirect(borrowTokens, maxAmounts);
+    }
+  
     // Admin functions
 
     /// @notice Can withdraw a maximum of _totalDeposited. If anything is left, it is meant to be withdrawn through
@@ -530,6 +575,42 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         }
         return totalBalance;
     }
+    
+    function _repay(address[] calldata) internal virtual {
+        // Repayment is done by sending tokens directly to LiquidityPool.
+        // Pool implementations that need to actively settle debt (e.g. Aave) must override this.
+        // This base implementation is a no-op because LiquidityPool uses a single asset as both
+        // the liquidity asset and the borrow asset: there is no external protocol to repay, so
+        // transferring the asset back to this contract is itself the repayment. Accounting for
+        // repaid funds is handled implicitly via the contract's balance relative to _totalDeposited
+        // (see _withdrawProfitLogic for example).
+        revert NotImplemented();
+    }
+ 
+    function _repayDirect(
+        address[] calldata borrowTokens,
+        uint256[] calldata maxAmounts
+    ) internal virtual {
+        // Validate calldata: we want the caller to send us ASSETS 
+        // and the max amount they are willing to repay. 
+        HelperLib.validatePositiveLength(borrowTokens.length, maxAmounts.length);
+        if (borrowTokens.length != 1) revert InvalidAsset();
+        if (borrowTokens[0] != address(ASSETS)) revert InvalidAsset();
+
+        uint256 debt = directDebt[address(ASSETS)];
+        if (debt == 0) revert NothingToRepay();
+        
+        uint256 repayAmount = (maxAmounts[0] > debt) ? debt : maxAmounts[0];
+
+        // Repay the amount and decrease direct debt.
+        // Note that extensions of this pool will need to take care
+        // of direct debt if they support direct borrowing.
+        ASSETS.safeTransferFrom(_msgSender(), address(this), repayAmount);
+        directDebt[address(ASSETS)] -= repayAmount;
+
+        emit RepaidDirect(address(ASSETS), repayAmount);
+    }
+
 
     function _balance(IERC20 token) internal view virtual returns (uint256) {
         if (token != ASSETS) return 0;

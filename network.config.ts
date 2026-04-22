@@ -6,6 +6,7 @@ import * as AAVEPools from "@bgd-labs/aave-address-book";
 // Subsequent versions use version suffix plus a git commit from the main branch.
 export const LiquidityPoolAaveUSDC = "LiquidityPoolAaveUSDC";
 export const LiquidityPoolUSDC = "LiquidityPoolUSDC";
+export const LiquidityPoolEURe = "LiquidityPoolEURe";
 export const LiquidityPoolPublicUSDC = "LiquidityPoolPublicUSDC";
 export const LiquidityPoolUSDCStablecoin = "LiquidityPoolUSDCStablecoin";
 export const LiquidityPoolAaveUSDCLongTerm = "LiquidityPoolAaveUSDCLongTerm";
@@ -42,6 +43,9 @@ export const LiquidityPoolUSDCVersions = [
   LiquidityPoolUSDCV2,
   LiquidityPoolUSDCV3,
   LiquidityPoolUSDCV4,
+] as const;
+export const LiquidityPoolEUReVersions = [
+  LiquidityPoolEURe
 ] as const;
 export const LiquidityPoolUSDCStablecoinVersions = [
   LiquidityPoolUSDCStablecoin,
@@ -98,6 +102,7 @@ export enum Token {
   DAI = "DAI",
   WETH = "WETH",
   WBTC = "WBTC",
+  EURe = "EURe",
 }
 
 interface CCTPConfig {
@@ -205,6 +210,7 @@ export interface NetworkConfig {
     [Token.DAI]?: TokenInfo;
     [Token.WETH]?: TokenInfo;
     [Token.WBTC]?: TokenInfo;
+    [Token.EURe]?: TokenInfo;
   };
   WrappedNativeToken: string;
   RebalancerRoutes?: RebalancerRoutesConfig;
@@ -1869,6 +1875,7 @@ export const networkConfig: NetworksConfig = {
       USDT: tokenInfo("0x4ECaBa5870353805a9F068101A40E0f32ed605C6", 6),
       WETH: tokenInfo("0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1", 18),
       DAI: tokenInfo("0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d", 18),
+      EURe: tokenInfo("0x420CA0f9B9b604cE0fd9C18EF134C705e5Fa3430", 18),
     },
     WrappedNativeToken: "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d",
     IsTest: false,
@@ -1926,6 +1933,7 @@ export const networkConfig: NetworksConfig = {
         USDT: tokenInfo("0x4ECaBa5870353805a9F068101A40E0f32ed605C6", 6),
         WETH: tokenInfo("0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1", 18),
         DAI: tokenInfo("0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d", 18),
+        EURe: tokenInfo("0x420CA0f9B9b604cE0fd9C18EF134C705e5Fa3430", 18),
       },
       WrappedNativeToken: "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d",
       IsTest: false,

@@ -131,7 +131,7 @@ Manual Rebalance transaction creation through Safe UI:
 10. Click Simulate.
 11. Click Send Batch.
 
----
+--- 
 
 If the rebalancing destination was another chain, then you will need to execute one more transaction on the destination multisig.
 According to CCTP V1 docs, attestation could be produced 9-19 minutes after the initial transaction, and you will need a tx hash for that.

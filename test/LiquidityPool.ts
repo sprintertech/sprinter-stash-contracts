@@ -1823,7 +1823,27 @@ describe("LiquidityPool", function () {
       await expect(liquidityPool.connect(directBorrower).repayDirect([eurc], [amountToBorrow]))
         .to.be.revertedWithCustomError(liquidityPool, "InvalidAsset");
     });
+    
+    it("Can't repay debt if input is more than two tokens", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, eurc, usdcOwner, liquidityAdmin, directBorrower
+      } = await loadFixture(deployAll);
+      const amountLiquidity = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountLiquidity);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+        .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
 
+      const amountToBorrow = 300n * USDC_DEC;
+
+      await expect(liquidityPool.connect(directBorrower).borrowDirect(usdc, amountToBorrow))
+        .to.emit(liquidityPool, "BorrowDirect").withArgs(directBorrower, usdc, amountToBorrow); 
+      await usdc.connect(directBorrower).transferFrom(liquidityPool, directBorrower, amountToBorrow);
+      expect(await liquidityPool.directDebt(usdc)).to.be.eq(amountToBorrow);
+      
+      await usdc.connect(directBorrower).approve(liquidityPool, amountToBorrow);
+      await expect(liquidityPool.connect(directBorrower).repayDirect([usdc, eurc], [amountToBorrow, amountToBorrow]))
+        .to.be.revertedWithCustomError(liquidityPool, "InvalidAsset");
+    });
     it("Can't repay debt if nothing to repay", async function () {
       const {
         liquidityPool, usdc, USDC_DEC, usdcOwner, liquidityAdmin, directBorrower

@@ -594,8 +594,9 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         // Validate calldata: we want the caller to send us ASSETS 
         // and the max amount they are willing to repay. 
         HelperLib.validatePositiveLength(borrowTokens.length, maxAmounts.length);
-
+        if (borrowTokens.length != 1) revert InvalidAsset();
         if (borrowTokens[0] != address(ASSETS)) revert InvalidAsset();
+
         uint256 debt = directDebt[address(ASSETS)];
         if (debt == 0) revert NothingToRepay();
         

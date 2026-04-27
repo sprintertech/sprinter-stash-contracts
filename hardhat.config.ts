@@ -741,7 +741,7 @@ const config: HardhatUserConfig = {
       chainId: networkConfig.POLYGON_MAINNET.ChainId,
       url: process.env.POLYGON_MAINNET_RPC || "https://polygon-bor-rpc.publicnode.com",
       accounts,
-      gasMultiplier: 1.5
+      gasMultiplier: 1.5,
     },
     [Network.UNICHAIN]: {
       chainId: networkConfig.UNICHAIN.ChainId,
@@ -781,7 +781,7 @@ const config: HardhatUserConfig = {
         ? {[networkConfig[
             `${process.env.DRY_RUN || process.env.FORK_TEST}` as Network
           ]!.ChainId]: {hardforkHistory: {cancun: 0}}}
-        : {[networkConfig.BASE.ChainId]: {hardforkHistory: {cancun: 0}}},
+        : {[networkConfig.BASE.ChainId]: {hardforkHistory: {cancun: 0,}}},
     },
   },
   sourcify: {

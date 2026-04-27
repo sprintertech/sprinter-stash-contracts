@@ -279,6 +279,7 @@ export const networkConfig: NetworksConfig = {
         [Network.OP_MAINNET]: [Provider.CCTP],
         [Network.ARBITRUM_ONE]: [Provider.CCTP],
         [Network.BASE]: [Provider.CCTP],
+        [Network.POLYGON_MAINNET]: [Provider.CCTP],
       },
       [LiquidityPoolUSDCV4]: {
         [Network.OP_MAINNET]: [Provider.CCTP],
@@ -313,6 +314,11 @@ export const networkConfig: NetworksConfig = {
             Provider.ACROSS,
 
             Provider.SUPERCHAIN_STANDARD_BRIDGE,
+            Provider.STARGATE
+          ],
+          [Network.POLYGON_MAINNET]: [
+            Provider.CCTP,
+            Provider.ACROSS,
             Provider.STARGATE
           ],
         },
@@ -550,6 +556,10 @@ export const networkConfig: NetworksConfig = {
           [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.STARGATE],
           [Network.BASE]: [Provider.CCTP, Provider.STARGATE],
           [Network.OP_MAINNET]: [Provider.CCTP, Provider.STARGATE],
+          [Network.POLYGON_MAINNET]: [
+            Provider.CCTP,
+            Provider.STARGATE
+          ],
         },
       },
       [LiquidityPoolUSDCV4]: {
@@ -611,6 +621,7 @@ export const networkConfig: NetworksConfig = {
       [LiquidityPoolAaveUSDCV4]: {
         [Network.BASE]: [Provider.CCTP],
         [Network.ARBITRUM_ONE]: [Provider.CCTP],
+        [Network.POLYGON_MAINNET]: [Provider.CCTP],
       },
       [LiquidityPoolUSDCV4]: {
         [Network.BASE]: [Provider.CCTP],
@@ -631,6 +642,7 @@ export const networkConfig: NetworksConfig = {
         Domains: {
           [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE],
           [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE],
+          [Network.POLYGON_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE],
         },
       },
       [LiquidityPoolUSDCV4]: {
@@ -829,6 +841,7 @@ export const networkConfig: NetworksConfig = {
       [LiquidityPoolAaveUSDCV4]: {
         [Network.BASE]: [Provider.CCTP],
         [Network.OP_MAINNET]: [Provider.CCTP],
+        [Network.POLYGON_MAINNET]: [Provider.CCTP],
       },
       [LiquidityPoolUSDCV4]: {
         [Network.BASE]: [Provider.CCTP],
@@ -849,6 +862,7 @@ export const networkConfig: NetworksConfig = {
         Domains: {
           [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE],
           [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE],
+          [Network.POLYGON_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE],
         },
       },
       [LiquidityPoolUSDCV4]: {
@@ -1068,6 +1082,7 @@ export const networkConfig: NetworksConfig = {
       [LiquidityPoolAaveUSDCV4]: {
         [Network.OP_MAINNET]: [Provider.CCTP],
         [Network.ARBITRUM_ONE]: [Provider.CCTP],
+        [Network.POLYGON_MAINNET]: [Provider.CCTP],
       },
       [LiquidityPoolUSDCV4]: {
         [Network.OP_MAINNET]: [Provider.CCTP],
@@ -1088,6 +1103,7 @@ export const networkConfig: NetworksConfig = {
         Domains: {
           [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE],
           [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE],
+          [Network.POLYGON_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE],
         },
       },
       [LiquidityPoolUSDCV4]: {
@@ -1293,11 +1309,14 @@ export const networkConfig: NetworksConfig = {
       [LiquidityPoolAaveUSDCV4]: {
         [Network.OP_MAINNET]: [Provider.CCTP],
         [Network.ARBITRUM_ONE]: [Provider.CCTP],
+        [Network.BASE]: [Provider.CCTP],
+        [Network.ETHEREUM]: [Provider.CCTP],
       },
       [LiquidityPoolUSDCV4]: {
         [Network.OP_MAINNET]: [Provider.CCTP],
         [Network.ETHEREUM]: [Provider.CCTP],
         [Network.ARBITRUM_ONE]: [Provider.CCTP],
+        [Network.BASE]: [Provider.CCTP],
       },
       [LiquidityPoolUSDCStablecoinV4]: {
         [Network.ETHEREUM]: [Provider.CCTP],
@@ -1513,6 +1532,7 @@ export const networkConfig: NetworksConfig = {
         [Network.OP_MAINNET]: [Provider.CCTP],
         [Network.ARBITRUM_ONE]: [Provider.CCTP],
         [Network.BASE]: [Provider.CCTP],
+        [Network.POLYGON_MAINNET]: [Provider.CCTP],
       },
       [LiquidityPoolUSDCV4]: {
         [Network.OP_MAINNET]: [Provider.CCTP],
@@ -1534,12 +1554,12 @@ export const networkConfig: NetworksConfig = {
           [Network.ARBITRUM_ONE]: [
             Provider.CCTP,
             Provider.ACROSS,
-
             Provider.STARGATE,
             Provider.USDT0,
           ],
           [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE],
           [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE],
+          [Network.POLYGON_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE],
         },
       },
       [LiquidityPoolUSDCV4]: {
@@ -1748,7 +1768,6 @@ export const networkConfig: NetworksConfig = {
             [Network.BASE]: [Provider.ACROSS, Provider.STARGATE],
             [Network.POLYGON_MAINNET]: [
               Provider.ACROSS,
-
               Provider.STARGATE,
             ],
             [Network.ARBITRUM_ONE]: [
@@ -1825,6 +1844,7 @@ export const networkConfig: NetworksConfig = {
           [Network.ARBITRUM_ONE]: [Provider.ACROSS, Provider.STARGATE],
           [Network.BASE]: [Provider.ACROSS, Provider.STARGATE],
           [Network.OP_MAINNET]: [Provider.ACROSS, Provider.STARGATE],
+          [Network.POLYGON_MAINNET]: [Provider.ACROSS, Provider.STARGATE],
         },
       },
       [LiquidityPoolUSDCV4]: {
@@ -1892,6 +1912,7 @@ export const networkConfig: NetworksConfig = {
           [Network.ARBITRUM_ONE]: [Provider.STARGATE],
           [Network.BASE]: [Provider.STARGATE],
           [Network.OP_MAINNET]: [Provider.STARGATE],
+          [Network.POLYGON_MAINNET]: [Provider.STARGATE],
         },
       },
       [LiquidityPoolUSDCStablecoinV4]: {

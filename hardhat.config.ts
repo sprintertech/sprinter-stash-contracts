@@ -214,6 +214,13 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
         domains: `${el.domains} (${SolidityDomain[Number(el.domains)]})`,
         providers: `${el.providers} (${SolidityProvider[Number(el.providers)]})`,
       })));
+      const allowTx = await target.setRoute.populateTransaction(
+        toAllowParams.map(el => el.pools),
+        toAllowParams.map(el => el.domains),
+        toAllowParams.map(el => el.providers),
+        true
+      );
+      console.log(`Raw data: ${allowTx.data}`);
     }
   } else {
     console.log("There are no missing routes to allow.");
@@ -245,6 +252,13 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
         domains: `${el.domains} (${SolidityDomain[Number(el.domains)]})`,
         providers: `${el.providers} (${SolidityProvider[Number(el.providers)]})`,
       })));
+      const denyTx = await target.setRoute.populateTransaction(
+        toDenyParams.map(el => el.pools),
+        toDenyParams.map(el => el.domains),
+        toDenyParams.map(el => el.providers),
+        false
+      );
+      console.log(`Raw data: ${denyTx.data}`);
     }
   } else {
     console.log("There are no excess routes to deny.");

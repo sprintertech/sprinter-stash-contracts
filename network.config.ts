@@ -1714,6 +1714,7 @@ export const networkConfig: NetworksConfig = {
           [Network.ARBITRUM_ONE]: [Provider.ACROSS, Provider.STARGATE],
           [Network.BASE]: [Provider.ACROSS, Provider.STARGATE],
           [Network.OP_MAINNET]: [Provider.ACROSS, Provider.STARGATE],
+          [Network.POLYGON_MAINNET]: [Provider.ACROSS, Provider.STARGATE],
         },
       },
       [LiquidityPoolUSDCV4]: {
@@ -1966,11 +1967,9 @@ export const networkConfig: NetworksConfig = {
             [Network.OP_MAINNET]: [Provider.STARGATE],
             [Network.BASE]: [Provider.STARGATE],
             [Network.POLYGON_MAINNET]: [
-
               Provider.STARGATE,
             ],
             [Network.ARBITRUM_ONE]: [
-
               Provider.STARGATE,
             ],
           },

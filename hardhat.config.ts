@@ -477,6 +477,7 @@ task("update-tokens-repayer", "Update input output tokens based on current netwo
   const targetAddress = await resolveProxyXAddress(args.repayer);
   const target = (await hre.ethers.getContractAt("Repayer", targetAddress, sender)) as Repayer;
   const filteredInputOutputTokens: Repayer.InputOutputTokenStruct[] = [];
+  const currentInputOutputTokens: Repayer.InputOutputTokenStruct[] = [];
   for (const entry of inputOutputTokens) {
     const outputTokenData = await Promise.all(entry.destinationTokens.map(async el => {
       if (args.check) {
@@ -485,6 +486,13 @@ task("update-tokens-repayer", "Update input output tokens based on current netwo
       }
       return {isAllowed: false, localDecimalsGreaterBy: 0};
     }));
+    const configuredDestTokens = entry.destinationTokens.filter((el, index) => {
+      return outputTokenData[index].isAllowed &&
+        outputTokenData[index].localDecimalsGreaterBy === el.localDecimalsGreaterBy;
+    });
+    if (configuredDestTokens.length > 0) {
+      currentInputOutputTokens.push({inputToken: entry.inputToken, destinationTokens: configuredDestTokens});
+    }
     entry.destinationTokens = entry.destinationTokens.filter((el, index) => {
       const alreadyConfigured =
         outputTokenData[index].isAllowed &&
@@ -496,10 +504,17 @@ task("update-tokens-repayer", "Update input output tokens based on current netwo
     }
   }
 
+  if (currentInputOutputTokens.length > 0) {
+    console.log(`Current input/output tokens on ${targetAddress}:`);
+    console.table(flattenInputOutputTokens(currentInputOutputTokens));
+  } else if (args.check) {
+    console.log("No input/output tokens are currently configured.");
+  }
+
   if (filteredInputOutputTokens.length > 0) {
     console.log(`Following tokens will be added to ${targetAddress}.`);
     console.table(flattenInputOutputTokens(filteredInputOutputTokens));
-    const hasRole = await target.hasRole(toBytes32("SET_TOKENS_ROLE"), sender);
+    const hasRole = sender && await target.hasRole(toBytes32("SET_TOKENS_ROLE"), sender);
     if (hasRole) {
       await (await target.setInputOutputTokens(filteredInputOutputTokens, true)).wait();
       console.log("Done.");
@@ -512,7 +527,10 @@ task("update-tokens-repayer", "Update input output tokens based on current netwo
       for (const entry of filteredInputOutputTokens) {
         console.log(`inputToken: ${entry.inputToken}`);
         console.log("destinationTokens:");
-        console.table(entry.destinationTokens);
+        console.table(entry.destinationTokens.map(el => ({
+          ...el,
+          destinationDomain: `${el.destinationDomain} (${SolidityDomain[Number(el.destinationDomain)]})`,
+        })));
       }
       const tx = await target.setInputOutputTokens.populateTransaction(filteredInputOutputTokens, true);
       console.log(`Raw data: ${tx.data}`);

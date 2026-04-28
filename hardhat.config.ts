@@ -803,7 +803,13 @@ const config: HardhatUserConfig = {
         url: isSet(process.env.DRY_RUN) || isSet(process.env.FORK_TEST)
           ? process.env[`${process.env.DRY_RUN || process.env.FORK_TEST}_RPC`]!
           : (process.env.FORK_PROVIDER || process.env.BASE_RPC || "https://base-mainnet.public.blastapi.io"),
-        blockNumber: process.env.FORK_BLOCK_NUMBER ? parseInt(process.env.FORK_BLOCK_NUMBER) : undefined,
+        // FORK_BLOCK_NUMBER only applies to the default Base fork, not to FORK_TEST or DRY_RUN
+        // because each chain has its own block-number space.
+        blockNumber: process.env.FORK_BLOCK_NUMBER
+          && !isSet(process.env.DRY_RUN)
+          && !isSet(process.env.FORK_TEST)
+          ? parseInt(process.env.FORK_BLOCK_NUMBER)
+          : undefined,
       },
       accounts: isSet(process.env.DRY_RUN)
         ? [{privateKey: process.env.PRIVATE_KEY!, balance: "100000000000000000000"}]

@@ -92,6 +92,7 @@ export async function main() {
   if (!config.GnosisUSDCTransmuter) config.GnosisUSDCTransmuter = ZERO_ADDRESS;
   if (!config.GnosisAMB) config.GnosisAMB = ZERO_ADDRESS;
   if (!config.USDT0OFT) config.USDT0OFT = ZERO_ADDRESS;
+  if (!config.WBTCOFT) config.WBTCOFT = ZERO_ADDRESS;
 
   const inputOutputTokens = getInputOutputTokens(network, config);
   const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
@@ -120,6 +121,7 @@ export async function main() {
       config.USDT0OFT,
       config.CCTPV2.TokenMessenger,
       config.CCTPV2.MessageTransmitter,
+      config.WBTCOFT,
     ],
     [
       config.Admin,

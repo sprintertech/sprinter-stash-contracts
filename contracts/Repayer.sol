@@ -18,6 +18,7 @@ import {SuperchainStandardBridgeAdapter} from "./utils/SuperchainStandardBridgeA
 import {ArbitrumGatewayAdapter} from "./utils/ArbitrumGatewayAdapter.sol";
 import {GnosisOmnibridgeAdapter} from "./utils/GnosisOmnibridgeAdapter.sol";
 import {USDT0Adapter} from "./utils/USDT0Adapter.sol";
+import {WBTCOFTAdapter} from "./utils/WBTCOFTAdapter.sol";
 import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 
 /// @title Performs repayment to Liquidity Pools on same/different chains.
@@ -35,7 +36,8 @@ contract Repayer is
     SuperchainStandardBridgeAdapter,
     ArbitrumGatewayAdapter,
     GnosisOmnibridgeAdapter,
-    USDT0Adapter
+    USDT0Adapter,
+    WBTCOFTAdapter
 {
     using SafeERC20 for IERC20;
     using BitMaps for BitMaps.BitMap;
@@ -116,7 +118,8 @@ contract Repayer is
         address ethereumAmb,
         address usdt0Oft,
         address cctpV2TokenMessenger,
-        address cctpV2MessageTransmitter
+        address cctpV2MessageTransmitter,
+        address wbtcOft
     )
         CCTPV2Adapter(
             cctpTokenMessenger,
@@ -138,6 +141,7 @@ contract Repayer is
             ethereumAmb
         )
         USDT0Adapter(usdt0Oft)
+        WBTCOFTAdapter(wbtcOft)
     {
         ERC7201Helper.validateStorageLocation(
             STORAGE_LOCATION,
@@ -282,6 +286,9 @@ contract Repayer is
         } else
         if (provider == Provider.USDT0) {
             initiateTransferUSDT0(token, amount, destinationPool, destinationDomain, DOMAIN, _msgSender());
+        } else
+        if (provider == Provider.WBTC_OFT) {
+            initiateTransferWBTCOFT(token, amount, destinationPool, destinationDomain, DOMAIN, _msgSender());
         } else {
             // Unreachable atm, but could become so when more providers are added to enum.
             revert UnsupportedProvider();

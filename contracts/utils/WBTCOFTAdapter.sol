@@ -6,32 +6,32 @@ import {SendParam, MessagingFee} from ".././interfaces/ILayerZero.sol";
 import {IOFT} from ".././interfaces/IOFT.sol";
 import {LayerZeroHelper} from "./LayerZeroHelper.sol";
 
-abstract contract USDT0Adapter is LayerZeroHelper {
+abstract contract WBTCOFTAdapter is LayerZeroHelper {
     using SafeERC20 for IERC20;
 
-    /// @notice The USDT0 OFT contract on the local chain.
-    /// On Ethereum this is an OAdapterUpgradeable (locks/unlocks native USDT via transferFrom).
-    /// On all other chains it is an OUpgradeable (burns/mints USDT0 directly — no approval needed).
-    IOFT immutable public USDT0_OFT;
+    /// @notice The WBTC OFT contract on the local chain.
+    /// On Ethereum this is a WBTCOFTAdapter (locks/unlocks canonical WBTC via transferFrom).
+    /// On all other supported chains it is an OFT that burns/mints WBTC directly — no approval needed.
+    IOFT immutable public WBTC_OFT;
 
-    event USDT0Transfer(address token, address receiver, uint32 dstEid, uint256 amount);
+    event WBTCOFTTransfer(address token, address receiver, uint32 dstEid, uint256 amount);
 
-    constructor(address usdt0Oft) {
-        // No check for address(0): allows deployment on chains where USDT0 is not available.
-        USDT0_OFT = IOFT(usdt0Oft);
+    constructor(address wbtcOft) {
+        // No check for address(0): allows deployment on chains where WBTC OFT is not available.
+        WBTC_OFT = IOFT(wbtcOft);
     }
 
-    /// @notice Initiates a cross-chain transfer of USDT0 via LayerZero.
+    /// @notice Initiates a cross-chain transfer of WBTC via the LayerZero OFT.
     /// @dev The caller must supply sufficient native currency (msg.value) to cover the LayerZero
     /// messaging fee. Any excess is refunded to `caller` by the OFT contract.
     /// amountLD and minAmountLD are set equal — no slippage is accepted.
-    /// @param token The ERC-20 token to bridge. Must match USDT0_OFT.token().
-    /// @param amount The amount to send in local decimals (6 for USDT0).
+    /// @param token The ERC-20 token to bridge. Must match WBTC_OFT.token().
+    /// @param amount The amount to send in local decimals (8 for WBTC).
     /// @param destinationPool The recipient address on the destination chain.
     /// @param destinationDomain The destination domain.
     /// @param localDomain The local domain; used to decide whether approval is needed.
     /// @param caller The address that initiated the call; used as the LayerZero fee refund address.
-    function initiateTransferUSDT0(
+    function initiateTransferWBTCOFT(
         IERC20 token,
         uint256 amount,
         address destinationPool,
@@ -39,12 +39,12 @@ abstract contract USDT0Adapter is LayerZeroHelper {
         Domain localDomain,
         address caller
     ) internal {
-        IOFT oft = USDT0_OFT;
+        IOFT oft = WBTC_OFT;
         require(address(oft) != address(0), ZeroAddress());
         require(address(token) == oft.token(), InvalidToken());
 
-        // On Ethereum the OFT is an OAdapterUpgradeable that pulls tokens via transferFrom.
-        // On other chains the OFT calls token.burn() directly — no approval needed.
+        // On Ethereum the OFT is a WBTCOFTAdapter that pulls tokens via transferFrom.
+        // On other chains the OFT burns from msg.sender directly — no approval needed.
         if (localDomain == Domain.ETHEREUM) {
             token.forceApprove(address(oft), amount);
         }
@@ -65,6 +65,6 @@ abstract contract USDT0Adapter is LayerZeroHelper {
         // solhint-disable-next-line check-send-result
         oft.send{value: msg.value}(sendParam, fee, caller);
 
-        emit USDT0Transfer(address(token), destinationPool, dstEid, amount);
+        emit WBTCOFTTransfer(address(token), destinationPool, dstEid, amount);
     }
 }

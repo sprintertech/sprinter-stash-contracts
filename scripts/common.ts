@@ -52,6 +52,7 @@ export const ProviderSolidity = {
   GNOSIS_OMNIBRIDGE: 7n,
   USDT0: 8n,
   CCTP_V2: 9n,
+  WBTC_OFT: 10n,
 };
 
 export const DomainSolidity = {
@@ -103,6 +104,7 @@ export const SolidityProvider: { [n: number]: Provider } = {
   7: Provider.GNOSIS_OMNIBRIDGE,
   8: Provider.USDT0,
   9: Provider.CCTP_V2,
+  10: Provider.WBTC_OFT,
 };
 
 export const CCTPDomain: { [n: number]: Network } = {

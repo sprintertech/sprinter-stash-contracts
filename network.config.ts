@@ -90,6 +90,7 @@ export enum Provider {
   GNOSIS_OMNIBRIDGE = "GNOSIS_OMNIBRIDGE",
   USDT0 = "USDT0",
   CCTP_V2 = "CCTP_V2",
+  WBTC_OFT = "WBTC_OFT",
 }
 
 export enum Token {
@@ -199,6 +200,7 @@ export interface NetworkConfig {
   GnosisUSDCxDAI?: string;
   GnosisUSDCTransmuter?: string;
   USDT0OFT?: string;
+  WBTCOFT?: string;
   Tokens: {
     [Token.USDC]: TokenInfo;
     [Token.USDT]?: TokenInfo;
@@ -257,6 +259,7 @@ export const networkConfig: NetworksConfig = {
     Omnibridge: "0x88ad09518695c6c3712AC10a214bE5109a655671",
     GnosisAMB: "0x4C36d2919e407f0Cc2Ee3c993ccF8ac26d9CE64e",
     USDT0OFT: "0x6C96dE32CEa08842dcc4058c14d3aaAD7Fa41dee",
+    WBTCOFT: "0x0555E30da8f98308EdB960aa94C0Db47230d2B9c",
     Tokens: {
       USDC: tokenInfo("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", 6),
       USDT: tokenInfo("0xdAC17F958D2ee523a2206206994597C13D831ec7", 6),
@@ -366,6 +369,7 @@ export const networkConfig: NetworksConfig = {
       Omnibridge: "0x88ad09518695c6c3712AC10a214bE5109a655671",
       GnosisAMB: "0x4C36d2919e407f0Cc2Ee3c993ccF8ac26d9CE64e",
       USDT0OFT: "0x6C96dE32CEa08842dcc4058c14d3aaAD7Fa41dee",
+      WBTCOFT: "0x0555E30da8f98308EdB960aa94C0Db47230d2B9c",
       Tokens: {
         USDC: tokenInfo("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", 6),
         USDT: tokenInfo("0xdAC17F958D2ee523a2206206994597C13D831ec7", 6),
@@ -590,6 +594,7 @@ export const networkConfig: NetworksConfig = {
     StargateTreasurer: "0x644abb1e17291b4403966119d15Ab081e4a487e9",
     EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
     OptimismStandardBridge: "0x4200000000000000000000000000000000000010",
+    WBTCOFT: "0xC3f854B2970f8727D28527ECE33176faC67FeF48",
     Tokens: {
       USDC: tokenInfo("0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85", 6),
       USDT: tokenInfo("0x94b008aA00579c1307B0EF2c499aD98a8ce58e58", 6),
@@ -684,6 +689,7 @@ export const networkConfig: NetworksConfig = {
       AcrossV3SpokePool: "0x6f26Bf09B1C792e3228e5467807a900A503c0281",
       StargateTreasurer: "0x644abb1e17291b4403966119d15Ab081e4a487e9",
       EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
+      WBTCOFT: "0xC3f854B2970f8727D28527ECE33176faC67FeF48",
       Tokens: {
         USDC: tokenInfo("0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85", 6),
         USDT: tokenInfo("0x94b008aA00579c1307B0EF2c499aD98a8ce58e58", 6),
@@ -1036,6 +1042,7 @@ export const networkConfig: NetworksConfig = {
     AcrossV3SpokePool: "0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64",
     StargateTreasurer: "0xd47b03ee6d86Cf251ee7860FB2ACf9f91B9fD4d7",
     EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
+    WBTCOFT: "0x0555E30da8f98308EdB960aa94C0Db47230d2B9c",
     Tokens: {
       USDC: tokenInfo("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", 6),
       USDT: tokenInfo("0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2", 6),
@@ -1138,6 +1145,7 @@ export const networkConfig: NetworksConfig = {
       AcrossV3SpokePool: "0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64",
       StargateTreasurer: "0xd47b03ee6d86Cf251ee7860FB2ACf9f91B9fD4d7",
       EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
+      WBTCOFT: "0x0555E30da8f98308EdB960aa94C0Db47230d2B9c",
       Tokens: {
         USDC: tokenInfo("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", 6),
         USDT: tokenInfo("0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2", 6),
@@ -1494,6 +1502,7 @@ export const networkConfig: NetworksConfig = {
     StargateTreasurer: "0x6D205337F45D6850c3c3006e28d5b52c8a432c35",
     EverclearFeeAdapter: "0x877Fd0A881B63eBE413124EeE6abbCD7E82cf10b",
     USDT0OFT: "0xc07bE8994D035631c36fb4a89C918CeFB2f03EC3",
+    WBTCOFT: "0x0555E30da8f98308EdB960aa94C0Db47230d2B9c",
     Tokens: {
       USDC: tokenInfo("0x078D782b760474a361dDA0AF3839290b0EF57AD6", 6),
       USDT: tokenInfo("0x9151434b16b9763660705744891fA906F660EcC5", 6),
@@ -1576,6 +1585,7 @@ export const networkConfig: NetworksConfig = {
       StargateTreasurer: "0x6D205337F45D6850c3c3006e28d5b52c8a432c35",
       EverclearFeeAdapter: "0x877Fd0A881B63eBE413124EeE6abbCD7E82cf10b",
       USDT0OFT: "0xc07bE8994D035631c36fb4a89C918CeFB2f03EC3",
+      WBTCOFT: "0x0555E30da8f98308EdB960aa94C0Db47230d2B9c",
       Tokens: {
         USDC: tokenInfo("0x078D782b760474a361dDA0AF3839290b0EF57AD6", 6),
         USDT: tokenInfo("0x9151434b16b9763660705744891fA906F660EcC5", 6),
@@ -1675,6 +1685,7 @@ export const networkConfig: NetworksConfig = {
     AcrossV3SpokePool: "0x4e8E101924eDE233C13e2D8622DC8aED2872d505",
     StargateTreasurer: "0x0a6A15964fEe494A881338D65940430797F0d97C",
     EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
+    WBTCOFT: "0x0555E30da8f98308EdB960aa94C0Db47230d2B9c",
     Tokens: {
       USDC: tokenInfo("0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", 18),
       WBTC: tokenInfo("0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c", 18),
@@ -1728,6 +1739,7 @@ export const networkConfig: NetworksConfig = {
       AcrossV3SpokePool: "0x4e8E101924eDE233C13e2D8622DC8aED2872d505",
       StargateTreasurer: "0x0a6A15964fEe494A881338D65940430797F0d97C",
       EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
+      WBTCOFT: "0x0555E30da8f98308EdB960aa94C0Db47230d2B9c",
       Tokens: {
         USDC: tokenInfo("0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", 18),
         WBTC: tokenInfo("0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c", 18),
@@ -2259,6 +2271,7 @@ export interface StandaloneRepayerConfig {
   GnosisUSDCTransmuter?: string;
   GnosisAMB?: string;
   USDT0OFT?: string;
+  WBTCOFT?: string;
   // Repayer tokens are used from the general network config.
   WrappedNativeToken: string;
   RepayerRoutes: RepayerRoutesConfig;

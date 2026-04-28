@@ -16,7 +16,7 @@ import {
 } from "../../typechain-types";
 import {networkConfig} from "../../network.config";
 
-describe("Repayer Gnosis Omnibridge (Ethereum fork)", function () {
+describe("Repayer WBTC OFT (Ethereum fork)", function () {
   const deployAll = async () => {
     const [deployer, admin, repayUser, setTokensUser] = await hre.ethers.getSigners();
     await setCode(repayUser.address, "0x00");
@@ -26,8 +26,17 @@ describe("Repayer Gnosis Omnibridge (Ethereum fork)", function () {
     const REPAYER_ROLE = hre.ethers.encodeBytes32String("REPAYER_ROLE");
     const DEPOSIT_PROFIT_ROLE = hre.ethers.encodeBytes32String("DEPOSIT_PROFIT_ROLE");
 
+    assertAddress(forkNetworkConfig.Tokens.WBTC?.Address, "WBTC address is missing from ETHEREUM config");
+    assertAddress(forkNetworkConfig.WBTCOFT, "WBTCOFT address is missing from ETHEREUM config");
+    assertAddress(forkNetworkConfig.Omnibridge, "ETHEREUM Omnibridge address is missing");
+    assertAddress(forkNetworkConfig.GnosisAMB, "ETHEREUM GnosisAMB address is missing");
+
     const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.USDC.Address);
+    const wbtc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.WBTC.Address);
     const weth = await hre.ethers.getContractAt("IWrappedNativeToken", forkNetworkConfig.WrappedNativeToken);
+
+    const wbtcOft = await hre.ethers.getContractAt("IOFT", forkNetworkConfig.WBTCOFT!);
+    expect(await wbtcOft.token()).to.equal(forkNetworkConfig.Tokens.WBTC.Address);
 
     const liquidityPool = (await deploy(
       "TestLiquidityPool",
@@ -38,20 +47,14 @@ describe("Repayer Gnosis Omnibridge (Ethereum fork)", function () {
       forkNetworkConfig.WrappedNativeToken
     )) as TestLiquidityPool;
 
-    assertAddress(forkNetworkConfig.Omnibridge, "ETHEREUM Omnibridge address is missing");
-    assertAddress(forkNetworkConfig.GnosisAMB, "ETHEREUM GnosisAMB address is missing");
-
-    const cctpTokenMessenger = forkNetworkConfig.CCTP!.TokenMessenger!;
-    const cctpMessageTransmitter = forkNetworkConfig.CCTP!.MessageTransmitter!;
-
-    const USDC_DEC = 10n ** (await usdc.decimals());
+    const WBTC_DEC = 10n ** (await wbtc.decimals());
 
     const repayerImpl = (
-      await deployX("Repayer", deployer, "RepayerEthereumGnosis", {},
+      await deployX("Repayer", deployer, "RepayerEthereumWBTCOFT", {},
         Domain.ETHEREUM,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
+        forkNetworkConfig.CCTP!.TokenMessenger!,
+        forkNetworkConfig.CCTP!.MessageTransmitter!,
         forkNetworkConfig.AcrossV3SpokePool!,
         forkNetworkConfig.EverclearFeeAdapter!,
         weth,
@@ -63,8 +66,8 @@ describe("Repayer Gnosis Omnibridge (Ethereum fork)", function () {
         ZERO_ADDRESS,
         ZERO_ADDRESS,
         forkNetworkConfig.GnosisAMB,
-        ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
-        ZERO_ADDRESS,
+        forkNetworkConfig.USDT0OFT!, ZERO_ADDRESS, ZERO_ADDRESS,
+        forkNetworkConfig.WBTCOFT!,
       )
     ) as Repayer;
 
@@ -73,14 +76,14 @@ describe("Repayer Gnosis Omnibridge (Ethereum fork)", function () {
       repayUser,
       setTokensUser,
       [liquidityPool],
-      [Domain.GNOSIS_CHAIN],
-      [Provider.GNOSIS_OMNIBRIDGE],
+      [Domain.BASE],
+      [Provider.WBTC_OFT],
       [true],
       [],
     )).data;
 
     const repayerProxy = (await deployX(
-      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyGnosis", {},
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyEthereumWBTCOFT", {},
       repayerImpl, admin, repayerInit
     )) as TransparentUpgradeableProxy;
     const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
@@ -90,48 +93,49 @@ describe("Repayer Gnosis Omnibridge (Ethereum fork)", function () {
     await liquidityPool.grantRole(DEPOSIT_PROFIT_ROLE, repayer);
 
     return {
-      deployer, admin, repayUser, usdc, setTokensUser, weth,
-      USDC_DEC, liquidityPool, repayer, repayerProxy, repayerAdmin,
+      deployer, admin, repayUser, usdc, wbtc, setTokensUser, weth,
+      WBTC_DEC, liquidityPool, repayer, repayerProxy, repayerAdmin,
       REPAYER_ROLE, DEFAULT_ADMIN_ROLE, forkNetworkConfig,
     };
   };
 
-  it("Should allow repayer to initiate Gnosis Omnibridge repay from Ethereum to Gnosis on fork", async function () {
-    const {repayer, USDC_DEC, usdc, repayUser, liquidityPool, forkNetworkConfig} = await loadFixture(deployAll);
+  it("Should allow repayer to bridge WBTC from Ethereum to Base via WBTC OFT on fork", async function () {
+    const {repayer, WBTC_DEC, wbtc, repayUser, liquidityPool, forkNetworkConfig} = await loadFixture(deployAll);
 
     assertAddress(
-      process.env.USDC_OWNER_ETH_ADDRESS,
-      "Env variables not configured (USDC_OWNER_ETH_ADDRESS missing)"
+      process.env.WBTC_OWNER_ETH_ADDRESS,
+      "Env variables not configured (WBTC_OWNER_ETH_ADDRESS missing)"
     );
-    const USDC_OWNER_ETH_ADDRESS = process.env.USDC_OWNER_ETH_ADDRESS;
-    const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ETH_ADDRESS);
-    await setBalance(USDC_OWNER_ETH_ADDRESS, 10n ** 18n);
+    const wbtcOwner = await hre.ethers.getImpersonatedSigner(process.env.WBTC_OWNER_ETH_ADDRESS!);
+    await setBalance(process.env.WBTC_OWNER_ETH_ADDRESS!, 10n ** 18n);
 
-    const amount = 4n * USDC_DEC;
-    await usdc.connect(usdcOwner).transfer(repayer, 10n * USDC_DEC);
+    const amount = 4n * WBTC_DEC;
+    await wbtc.connect(wbtcOwner).transfer(repayer, 10n * WBTC_DEC);
 
-    const ethereumOmnibridge = forkNetworkConfig.Omnibridge!;
-    const bridgeBalanceBefore = await usdc.balanceOf(ethereumOmnibridge);
+    const wbtcOftAddress = forkNetworkConfig.WBTCOFT!;
+    const wbtcBalanceBefore = await wbtc.balanceOf(repayer);
 
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc,
+      wbtc,
       amount,
       liquidityPool,
-      Domain.GNOSIS_CHAIN,
-      Provider.GNOSIS_OMNIBRIDGE,
-      "0x"
+      Domain.BASE,
+      Provider.WBTC_OFT,
+      "0x",
+      {value: hre.ethers.parseEther("0.1")}
     );
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")
-      .withArgs(usdc.target, amount, liquidityPool.target, Domain.GNOSIS_CHAIN, Provider.GNOSIS_OMNIBRIDGE);
+      .withArgs(wbtc.target, amount, liquidityPool.target, Domain.BASE, Provider.WBTC_OFT);
+    // OFTAdapter on Ethereum locks WBTC via transferFrom: WBTC moves from repayer to the OFT.
     await expect(tx)
-      .to.emit(repayer, "GnosisOmnibridgeTransferInitiated")
-      .withArgs(usdc.target, liquidityPool.target, amount);
-    await expect(tx)
-      .to.emit(usdc, "Transfer")
-      .withArgs(repayer.target, ethereumOmnibridge, amount);
+      .to.emit(wbtc, "Transfer")
+      .withArgs(repayer.target, wbtcOftAddress, amount);
 
-    expect(await usdc.balanceOf(repayer)).to.equal(6n * USDC_DEC);
-    expect(await usdc.balanceOf(ethereumOmnibridge)).to.equal(bridgeBalanceBefore + amount);
+    await expect(tx)
+      .to.emit(repayer, "WBTCOFTTransfer")
+      .withArgs(wbtc.target, liquidityPool.target, "30184", amount);
+
+    expect(await wbtc.balanceOf(repayer)).to.equal(wbtcBalanceBefore - amount);
   });
 });

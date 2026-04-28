@@ -22,7 +22,8 @@ contract TestRepayer is Repayer {
         address ethereumAmb,
         address usdt0Oft,
         address cctpV2TokenMessenger,
-        address cctpV2MessageTransmitter
+        address cctpV2MessageTransmitter,
+        address wbtcOft
     ) Repayer(
         localDomain,
         assets,
@@ -41,7 +42,8 @@ contract TestRepayer is Repayer {
         ethereumAmb,
         usdt0Oft,
         cctpV2TokenMessenger,
-        cctpV2MessageTransmitter
+        cctpV2MessageTransmitter,
+        wbtcOft
     ) {}
 
     function domainCCTP(Domain destinationDomain) public pure override returns (uint32) {

@@ -32,7 +32,8 @@ interface IRoute {
         ARBITRUM_GATEWAY,
         GNOSIS_OMNIBRIDGE,
         USDT0,
-        CCTP_V2
+        CCTP_V2,
+        WBTC_OFT
     }
 
     enum PoolType {
@@ -44,4 +45,5 @@ interface IRoute {
     error ProcessFailed();
     error UnsupportedDomain();
     error InvalidLength();
+    error InvalidToken();
 }

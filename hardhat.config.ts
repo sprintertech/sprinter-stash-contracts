@@ -209,7 +209,18 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
       console.log("Function: setRoute");
       console.log("Params:");
       console.log("isAllowed: true");
-      console.table(toAllowParams);
+      console.table(toAllowParams.map(el => ({
+        ...el,
+        domains: `${el.domains} (${SolidityDomain[Number(el.domains)]})`,
+        providers: `${el.providers} (${SolidityProvider[Number(el.providers)]})`,
+      })));
+      const allowTx = await target.setRoute.populateTransaction(
+        toAllowParams.map(el => el.pools),
+        toAllowParams.map(el => el.domains),
+        toAllowParams.map(el => el.providers),
+        true
+      );
+      console.log(`Raw data: ${allowTx.data}`);
     }
   } else {
     console.log("There are no missing routes to allow.");
@@ -236,7 +247,18 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
       console.log("Function: setRoute");
       console.log("Params:");
       console.log("isAllowed: false");
-      console.table(toDenyParams);
+      console.table(toDenyParams.map(el => ({
+        ...el,
+        domains: `${el.domains} (${SolidityDomain[Number(el.domains)]})`,
+        providers: `${el.providers} (${SolidityProvider[Number(el.providers)]})`,
+      })));
+      const denyTx = await target.setRoute.populateTransaction(
+        toDenyParams.map(el => el.pools),
+        toDenyParams.map(el => el.domains),
+        toDenyParams.map(el => el.providers),
+        false
+      );
+      console.log(`Raw data: ${denyTx.data}`);
     }
   } else {
     console.log("There are no excess routes to deny.");
@@ -373,7 +395,19 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
       console.log("Function: setRoute");
       console.log("Params:");
       console.log("isAllowed: false");
-      console.table(toDenyParams);
+      console.table(toDenyParams.map(el => ({
+        ...el,
+        domains: `${el.domains} (${SolidityDomain[Number(el.domains)]})`,
+        providers: `${el.providers} (${SolidityProvider[Number(el.providers)]})`,
+      })));
+      const denyTx = await target.setRoute.populateTransaction(
+        toDenyParams.map(el => el.pools),
+        toDenyParams.map(el => el.domains),
+        toDenyParams.map(el => el.providers),
+        toDenyParams.map(el => el.supportsAllTokens),
+        false
+      );
+      console.log(`Raw data: ${denyTx.data}`);
     }
   } else {
     console.log("There are no excess routes to deny.");
@@ -402,7 +436,19 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
       console.log("Function: setRoute");
       console.log("Params:");
       console.log("isAllowed: true");
-      console.table(toAllowParams);
+      console.table(toAllowParams.map(el => ({
+        ...el,
+        domains: `${el.domains} (${SolidityDomain[Number(el.domains)]})`,
+        providers: `${el.providers} (${SolidityProvider[Number(el.providers)]})`,
+      })));
+      const allowTx = await target.setRoute.populateTransaction(
+        toAllowParams.map(el => el.pools),
+        toAllowParams.map(el => el.domains),
+        toAllowParams.map(el => el.providers),
+        toAllowParams.map(el => el.supportsAllTokens),
+        true
+      );
+      console.log(`Raw data: ${allowTx.data}`);
     }
   } else {
     console.log("There are no missing routes to allow.");
@@ -431,6 +477,7 @@ task("update-tokens-repayer", "Update input output tokens based on current netwo
   const targetAddress = await resolveProxyXAddress(args.repayer);
   const target = (await hre.ethers.getContractAt("Repayer", targetAddress, sender)) as Repayer;
   const filteredInputOutputTokens: Repayer.InputOutputTokenStruct[] = [];
+  const currentInputOutputTokens: Repayer.InputOutputTokenStruct[] = [];
   for (const entry of inputOutputTokens) {
     const outputTokenData = await Promise.all(entry.destinationTokens.map(async el => {
       if (args.check) {
@@ -439,6 +486,13 @@ task("update-tokens-repayer", "Update input output tokens based on current netwo
       }
       return {isAllowed: false, localDecimalsGreaterBy: 0};
     }));
+    const configuredDestTokens = entry.destinationTokens.filter((el, index) => {
+      return outputTokenData[index].isAllowed &&
+        outputTokenData[index].localDecimalsGreaterBy === el.localDecimalsGreaterBy;
+    });
+    if (configuredDestTokens.length > 0) {
+      currentInputOutputTokens.push({inputToken: entry.inputToken, destinationTokens: configuredDestTokens});
+    }
     entry.destinationTokens = entry.destinationTokens.filter((el, index) => {
       const alreadyConfigured =
         outputTokenData[index].isAllowed &&
@@ -450,10 +504,17 @@ task("update-tokens-repayer", "Update input output tokens based on current netwo
     }
   }
 
+  if (currentInputOutputTokens.length > 0) {
+    console.log(`Current input/output tokens on ${targetAddress}:`);
+    console.table(flattenInputOutputTokens(currentInputOutputTokens));
+  } else if (args.check) {
+    console.log("No input/output tokens are currently configured.");
+  }
+
   if (filteredInputOutputTokens.length > 0) {
     console.log(`Following tokens will be added to ${targetAddress}.`);
     console.table(flattenInputOutputTokens(filteredInputOutputTokens));
-    const hasRole = await target.hasRole(toBytes32("SET_TOKENS_ROLE"), sender);
+    const hasRole = sender && await target.hasRole(toBytes32("SET_TOKENS_ROLE"), sender);
     if (hasRole) {
       await (await target.setInputOutputTokens(filteredInputOutputTokens, true)).wait();
       console.log("Done.");
@@ -466,7 +527,10 @@ task("update-tokens-repayer", "Update input output tokens based on current netwo
       for (const entry of filteredInputOutputTokens) {
         console.log(`inputToken: ${entry.inputToken}`);
         console.log("destinationTokens:");
-        console.table(entry.destinationTokens);
+        console.table(entry.destinationTokens.map(el => ({
+          ...el,
+          destinationDomain: `${el.destinationDomain} (${SolidityDomain[Number(el.destinationDomain)]})`,
+        })));
       }
       const tx = await target.setInputOutputTokens.populateTransaction(filteredInputOutputTokens, true);
       console.log(`Raw data: ${tx.data}`);
@@ -719,6 +783,7 @@ const config: HardhatUserConfig = {
       chainId: networkConfig.POLYGON_MAINNET.ChainId,
       url: process.env.POLYGON_MAINNET_RPC || "https://polygon-bor-rpc.publicnode.com",
       accounts,
+      gasMultiplier: 1.5,
     },
     [Network.UNICHAIN]: {
       chainId: networkConfig.UNICHAIN.ChainId,
@@ -758,7 +823,7 @@ const config: HardhatUserConfig = {
         ? {[networkConfig[
             `${process.env.DRY_RUN || process.env.FORK_TEST}` as Network
           ]!.ChainId]: {hardforkHistory: {cancun: 0}}}
-        : {[networkConfig.BASE.ChainId]: {hardforkHistory: {cancun: 0}}},
+        : {[networkConfig.BASE.ChainId]: {hardforkHistory: {cancun: 0,}}},
     },
   },
   sourcify: {

@@ -35,6 +35,12 @@ export async function main() {
       MessageTransmitter: ZERO_ADDRESS,
     };
   }
+  if (!config.CCTPV2) {
+    config.CCTPV2 = {
+      TokenMessenger: ZERO_ADDRESS,
+      MessageTransmitter: ZERO_ADDRESS,
+    };
+  }
   if (!config.Omnibridge) config.Omnibridge = ZERO_ADDRESS;
   if (!config.GnosisUSDCxDAI) config.GnosisUSDCxDAI = ZERO_ADDRESS;
   if (!config.GnosisUSDCTransmuter) config.GnosisUSDCTransmuter = ZERO_ADDRESS;
@@ -51,6 +57,7 @@ export async function main() {
     [
       DomainSolidity[network], config.Tokens.USDC.Address, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter,
       config.Omnibridge, config.GnosisUSDCxDAI, config.GnosisUSDCTransmuter, config.GnosisAMB,
+      config.CCTPV2.TokenMessenger, config.CCTPV2.MessageTransmitter,
     ],
     "Rebalancer",
   );

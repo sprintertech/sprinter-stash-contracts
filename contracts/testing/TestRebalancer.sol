@@ -12,10 +12,13 @@ contract TestRebalancer is Rebalancer {
         address omnibridge,
         address gnosisUsdcxdai,
         address gnosisUsdcTransmuter,
-        address ethereumAmb
+        address ethereumAmb,
+        address cctpV2TokenMessenger,
+        address cctpV2MessageTransmitter
     ) Rebalancer(
         localDomain, assets, cctpTokenMessenger, cctpMessageTransmitter,
-        omnibridge, gnosisUsdcxdai, gnosisUsdcTransmuter, ethereumAmb
+        omnibridge, gnosisUsdcxdai, gnosisUsdcTransmuter, ethereumAmb,
+        cctpV2TokenMessenger, cctpV2MessageTransmitter
     ) {}
 
     function domainCCTP(Domain destinationDomain) public pure override returns (uint32) {

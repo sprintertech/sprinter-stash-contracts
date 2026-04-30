@@ -10,7 +10,7 @@ import {IRepayer} from "./interfaces/IRepayer.sol";
 import {IWrappedNativeToken} from "./interfaces/IWrappedNativeToken.sol";
 
 import {InputOutputTokenData} from "./utils/AdapterHelper.sol";
-import {CCTPAdapter} from "./utils/CCTPAdapter.sol";
+import {CCTPV2Adapter} from "./utils/CCTPV2Adapter.sol";
 import {AcrossAdapter} from "./utils/AcrossAdapter.sol";
 import {StargateAdapter} from "./utils/StargateAdapter.sol";
 import {EverclearAdapter} from "./utils/EverclearAdapter.sol";
@@ -28,7 +28,7 @@ import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 contract Repayer is
     IRepayer,
     AccessControlUpgradeable,
-    CCTPAdapter,
+    CCTPV2Adapter,
     AcrossAdapter,
     StargateAdapter,
     EverclearAdapter,
@@ -114,9 +114,16 @@ contract Repayer is
         address gnosisUsdcxdai,
         address gnosisUsdceSwap,
         address ethereumAmb,
-        address usdt0Oft
+        address usdt0Oft,
+        address cctpV2TokenMessenger,
+        address cctpV2MessageTransmitter
     )
-        CCTPAdapter(cctpTokenMessenger, cctpMessageTransmitter)
+        CCTPV2Adapter(
+            cctpTokenMessenger,
+            cctpMessageTransmitter,
+            cctpV2TokenMessenger,
+            cctpV2MessageTransmitter
+        )
         AcrossAdapter(acrossSpokePool)
         StargateAdapter(stargateTreasurer)
         EverclearAdapter(everclearFeeAdapter)
@@ -221,6 +228,10 @@ contract Repayer is
             require(token == ASSETS, InvalidToken());
             initiateTransferCCTP(token, amount, destinationPool, destinationDomain);
         } else
+        if (provider == Provider.CCTP_V2) {
+            require(token == ASSETS, InvalidToken());
+            initiateTransferCCTPV2(token, amount, destinationPool, destinationDomain);
+        } else
         if (provider == Provider.ACROSS) {
             initiateTransferAcross(
                 token,
@@ -286,7 +297,10 @@ contract Repayer is
         IERC20 token = ASSETS;
         uint256 amount = 0;
         if (provider == Provider.CCTP) {
-            amount = processTransferCCTP(ASSETS, destinationPool, extraData);
+            amount = processTransferCCTP(address(CCTP_MESSAGE_TRANSMITTER), ASSETS, destinationPool, extraData);
+        } else
+        if (provider == Provider.CCTP_V2) {
+            amount = processTransferCCTPV2(ASSETS, destinationPool, extraData);
         } else
         if (provider == Provider.GNOSIS_OMNIBRIDGE) {
             (token, amount) = processTransferGnosisOmnibridge(destinationPool, extraData);

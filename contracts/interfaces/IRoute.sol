@@ -31,7 +31,8 @@ interface IRoute {
         SUPERCHAIN_STANDARD_BRIDGE,
         ARBITRUM_GATEWAY,
         GNOSIS_OMNIBRIDGE,
-        USDT0
+        USDT0,
+        CCTP_V2
     }
 
     enum PoolType {

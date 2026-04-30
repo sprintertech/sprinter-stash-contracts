@@ -51,6 +51,7 @@ export const ProviderSolidity = {
   ARBITRUM_GATEWAY: 6n,
   GNOSIS_OMNIBRIDGE: 7n,
   USDT0: 8n,
+  CCTP_V2: 9n,
 };
 
 export const DomainSolidity = {
@@ -101,6 +102,7 @@ export const SolidityProvider: { [n: number]: Provider } = {
   6: Provider.ARBITRUM_GATEWAY,
   7: Provider.GNOSIS_OMNIBRIDGE,
   8: Provider.USDT0,
+  9: Provider.CCTP_V2,
 };
 
 export const CCTPDomain: { [n: number]: Network } = {

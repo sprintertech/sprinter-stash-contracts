@@ -325,6 +325,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     }
 
     function setSignerAddress(address signerAddress_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(signerAddress_ != address(0), ZeroAddress());
         address oldSignerAddress = signerAddress;
         signerAddress = signerAddress_;
         emit SignerAddressSet(oldSignerAddress, signerAddress_);

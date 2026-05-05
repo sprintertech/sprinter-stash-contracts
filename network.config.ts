@@ -77,6 +77,9 @@ export enum Network {
   BSC = "BSC",
   LINEA = "LINEA",
   GNOSIS_CHAIN = "GNOSIS_CHAIN",
+  WORLD_CHAIN = "WORLD_CHAIN",
+  INK = "INK",
+  HYPER_EVM = "HYPER_EVM",
 }
 
 export enum Provider {
@@ -2031,6 +2034,173 @@ export const networkConfig: NetworksConfig = {
         },
       },
     }
+  },
+  WORLD_CHAIN: {
+    ChainId: 480,
+    CCTPV2: {
+      TokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+      MessageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
+    },
+    AcrossV3SpokePool: "0xE0B015E54d54fc84a6cB9B666099c46adE9335FF",
+    Tokens: {
+      USDC: tokenInfo("0x79A02482A880bCE3F13e09Da970dC34db4CD24d1", 6),
+      WETH: tokenInfo("0x4200000000000000000000000000000000000006", 18),
+      WBTC: tokenInfo("0x03C7054BCB39f7b2e5B2c7AcB37583e32D70Cfa3", 8),
+    },
+    WrappedNativeToken: "0x4200000000000000000000000000000000000006",
+    IsTest: false,
+    Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
+    WithdrawProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RepayerCaller: "0x9A5B33bd11329116A55F764c604a5152eE8Ca292",
+    SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
+    SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RepayerRoutes: {
+      [LiquidityPoolUSDCV4]: {
+        SupportsAllTokens: false,
+        Domains: {
+          [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.BASE]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.OP_MAINNET]: [Provider.CCTP_V2, Provider.ACROSS],
+        },
+      },
+      [LiquidityPoolAaveUSDCV4]: {
+        SupportsAllTokens: true,
+        Domains: {
+          [Network.ARBITRUM_ONE]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.BASE]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.OP_MAINNET]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.POLYGON_MAINNET]: [Provider.CCTP_V2, Provider.ACROSS],
+        },
+      },
+      [LiquidityPoolUSDCStablecoinV4]: {
+        SupportsAllTokens: true,
+        Domains: {
+          [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.UNICHAIN]: [Provider.CCTP_V2, Provider.ACROSS],
+        },
+      },
+      [LiquidityPoolAaveUSDCLongTermV3]: {
+        SupportsAllTokens: true,
+        Domains: {
+          [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS],
+        }
+      },
+    },
+  },
+  HYPER_EVM: {
+    ChainId: 999,
+    CCTPV2: {
+      TokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+      MessageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
+    },
+    AcrossV3SpokePool: "0x35E63eA3eb0fb7A3bc543C71FB66412e1F6B0E04",
+    Tokens: {
+      USDC: tokenInfo("0xb88339cb7199b77e23db6e890353e22632ba630f", 6),
+      USDT: tokenInfo("0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb", 6),
+    },
+    WrappedNativeToken: "0x0000000000000000000000000000000000000000",
+    IsTest: false,
+    Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
+    WithdrawProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RepayerCaller: "0x9A5B33bd11329116A55F764c604a5152eE8Ca292",
+    SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
+    SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RepayerRoutes: {
+      [LiquidityPoolUSDCV4]: {
+        SupportsAllTokens: false,
+        Domains: {
+          [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.BASE]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.OP_MAINNET]: [Provider.CCTP_V2, Provider.ACROSS],
+        },
+      },
+      [LiquidityPoolAaveUSDCV4]: {
+        SupportsAllTokens: true,
+        Domains: {
+          [Network.ARBITRUM_ONE]: [Provider.CCTP_V2, Provider.ACROSS, Provider.USDT0],
+          [Network.BASE]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.OP_MAINNET]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.POLYGON_MAINNET]: [Provider.CCTP_V2, Provider.ACROSS, Provider.USDT0],
+        },
+      },
+      [LiquidityPoolUSDCStablecoinV4]: {
+        SupportsAllTokens: true,
+        Domains: {
+          [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.UNICHAIN]: [Provider.CCTP_V2, Provider.ACROSS],
+        },
+      },
+      [LiquidityPoolAaveUSDCLongTermV3]: {
+        SupportsAllTokens: true,
+        Domains: {
+          [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS, Provider.USDT0],
+        }
+      },
+    },
+  },
+  INK: {
+    ChainId: 57073,
+    CCTPV2: {
+      TokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+      MessageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
+    },
+    AcrossV3SpokePool: "0xeF684C38F94F48775959ECf2012D7E864ffb9dd4",
+    Tokens: {
+      USDC: tokenInfo("0x2D270e6886d130D724215A266106e6832161EAEd", 6),
+      WETH: tokenInfo("0x4200000000000000000000000000000000000006", 18),
+      USDT: tokenInfo("0x0200C29006150606B650577BBE7B6248F58470c1", 6),
+    },
+    WrappedNativeToken: "0x4200000000000000000000000000000000000006",
+    IsTest: false,
+    Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
+    WithdrawProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RepayerCaller: "0x9A5B33bd11329116A55F764c604a5152eE8Ca292",
+    SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
+    SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RepayerRoutes: {
+      [LiquidityPoolUSDCV4]: {
+        SupportsAllTokens: false,
+        Domains: {
+          [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.BASE]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.OP_MAINNET]: [Provider.CCTP_V2, Provider.ACROSS],
+        },
+      },
+      [LiquidityPoolAaveUSDCV4]: {
+        SupportsAllTokens: true,
+        Domains: {
+          [Network.ARBITRUM_ONE]: [Provider.CCTP_V2, Provider.ACROSS, Provider.USDT0],
+          [Network.BASE]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.OP_MAINNET]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.POLYGON_MAINNET]: [Provider.CCTP_V2, Provider.ACROSS, Provider.USDT0],
+        },
+      },
+      [LiquidityPoolUSDCStablecoinV4]: {
+        SupportsAllTokens: true,
+        Domains: {
+          [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.UNICHAIN]: [Provider.CCTP_V2, Provider.ACROSS],
+        },
+      },
+      [LiquidityPoolAaveUSDCLongTermV3]: {
+        SupportsAllTokens: true,
+        Domains: {
+          [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS, Provider.USDT0],
+        }
+      },
+    },
   },
   ETHEREUM_SEPOLIA: {
     ChainId: 11155111,

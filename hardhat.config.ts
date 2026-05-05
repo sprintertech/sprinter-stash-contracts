@@ -795,6 +795,21 @@ const config: HardhatUserConfig = {
       url: process.env.GNOSIS_CHAIN_RPC || "https://public-gno-mainnet.fastnode.io",
       accounts,
     },
+    [Network.WORLD_CHAIN]: {
+      chainId: networkConfig.WORLD_CHAIN.ChainId,
+      url: process.env.WORLD_CHAIN_RPC || "https://worldchain-mainnet.g.alchemy.com/public",
+      accounts,
+    },
+    [Network.INK]: {
+      chainId: networkConfig.INK.ChainId,
+      url: process.env.INK_RPC || "https://rpc-qnd.inkonchain.com",
+      accounts,
+    },
+    [Network.HYPER_EVM]: {
+      chainId: networkConfig.HYPER_EVM.ChainId,
+      url: process.env.HYPER_EVM_RPC || "https://rpc.hyperliquid.xyz/evm",
+      accounts,
+    },
     hardhat: {
       chainId: isSet(process.env.DRY_RUN) || isSet(process.env.FORK_TEST)
         ? networkConfig[`${process.env.DRY_RUN || process.env.FORK_TEST}` as Network]!.ChainId

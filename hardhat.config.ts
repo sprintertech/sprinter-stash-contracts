@@ -834,6 +834,19 @@ const config: HardhatUserConfig = {
   sourcify: {
     enabled: false,
   },
+  blockscout: {
+    enabled: true,
+    customChains: [
+      {
+        network: "INK",
+        chainId: networkConfig.INK.ChainId,
+        urls: {
+          apiURL: "https://explorer.inkonchain.com/api",
+          browserURL: "https://explorer.inkonchain.com/",
+        },
+      },
+    ]
+  },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY || "",
     customChains: [
@@ -867,6 +880,22 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api.gnosisscan.io/api",
           browserURL: "https://gnosisscan.io"
+        },
+      },
+      {
+        network: "hyperevm",
+        chainId: networkConfig.HYPER_EVM.ChainId,
+        urls: {
+          apiURL: "https://api.hyperevmscan.io/api",
+          browserURL: "https://hyperevmscan.io"
+        },
+      },
+      {
+        network: "worldchain",
+        chainId: networkConfig.WORLD_CHAIN.ChainId,
+        urls: {
+          apiURL: "https://api.worldscan.org/api",
+          browserURL: "https://worldscan.org"
         },
       },
     ],

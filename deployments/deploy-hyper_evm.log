@@ -1,0 +1,64 @@
+Deployment ID: MVP
+Deploying Repayer
+Using config for: HYPER_EVM
+Deployer        : 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+DEPLOYER_ADDRESS: 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+Repayer: 0x36364Acc7B9c67692CA215af09A41CBd10439511
+RepayerProxyAdmin: 0x2B5D04eF6b3279bCdA4B219b02FAF627dA1664CB
+RepayerRoutes:
+┌─────────┬──────────────────────────────────────────────┬───────────────────┬───────────┬───────────────────┐
+│ (index) │ Pool                                         │ Domain            │ Provider  │ SupportsAllTokens │
+├─────────┼──────────────────────────────────────────────┼───────────────────┼───────────┼───────────────────┤
+│ 0       │ '0x0E16326e6921395edA2575740374E754b22810eb' │ 'ETHEREUM'        │ 'CCTP_V2' │ false             │
+│ 1       │ '0x0E16326e6921395edA2575740374E754b22810eb' │ 'ETHEREUM'        │ 'ACROSS'  │ false             │
+│ 2       │ '0x0E16326e6921395edA2575740374E754b22810eb' │ 'ARBITRUM_ONE'    │ 'CCTP_V2' │ false             │
+│ 3       │ '0x0E16326e6921395edA2575740374E754b22810eb' │ 'ARBITRUM_ONE'    │ 'ACROSS'  │ false             │
+│ 4       │ '0x0E16326e6921395edA2575740374E754b22810eb' │ 'BASE'            │ 'CCTP_V2' │ false             │
+│ 5       │ '0x0E16326e6921395edA2575740374E754b22810eb' │ 'BASE'            │ 'ACROSS'  │ false             │
+│ 6       │ '0x0E16326e6921395edA2575740374E754b22810eb' │ 'OP_MAINNET'      │ 'CCTP_V2' │ false             │
+│ 7       │ '0x0E16326e6921395edA2575740374E754b22810eb' │ 'OP_MAINNET'      │ 'ACROSS'  │ false             │
+│ 8       │ '0x2022a5600F854cc3218E636239f4DFce9e5357b5' │ 'ARBITRUM_ONE'    │ 'CCTP_V2' │ true              │
+│ 9       │ '0x2022a5600F854cc3218E636239f4DFce9e5357b5' │ 'ARBITRUM_ONE'    │ 'ACROSS'  │ true              │
+│ 10      │ '0x2022a5600F854cc3218E636239f4DFce9e5357b5' │ 'ARBITRUM_ONE'    │ 'USDT0'   │ true              │
+│ 11      │ '0x2022a5600F854cc3218E636239f4DFce9e5357b5' │ 'BASE'            │ 'CCTP_V2' │ true              │
+│ 12      │ '0x2022a5600F854cc3218E636239f4DFce9e5357b5' │ 'BASE'            │ 'ACROSS'  │ true              │
+│ 13      │ '0x2022a5600F854cc3218E636239f4DFce9e5357b5' │ 'OP_MAINNET'      │ 'CCTP_V2' │ true              │
+│ 14      │ '0x2022a5600F854cc3218E636239f4DFce9e5357b5' │ 'OP_MAINNET'      │ 'ACROSS'  │ true              │
+│ 15      │ '0x2022a5600F854cc3218E636239f4DFce9e5357b5' │ 'POLYGON_MAINNET' │ 'CCTP_V2' │ true              │
+│ 16      │ '0x2022a5600F854cc3218E636239f4DFce9e5357b5' │ 'POLYGON_MAINNET' │ 'ACROSS'  │ true              │
+│ 17      │ '0x2022a5600F854cc3218E636239f4DFce9e5357b5' │ 'POLYGON_MAINNET' │ 'USDT0'   │ true              │
+│ 18      │ '0xa8D2c9C9453E61E3Ca961512403D388DEe0A3672' │ 'ETHEREUM'        │ 'CCTP_V2' │ true              │
+│ 19      │ '0xa8D2c9C9453E61E3Ca961512403D388DEe0A3672' │ 'ETHEREUM'        │ 'ACROSS'  │ true              │
+│ 20      │ '0xa8D2c9C9453E61E3Ca961512403D388DEe0A3672' │ 'UNICHAIN'        │ 'CCTP_V2' │ true              │
+│ 21      │ '0xa8D2c9C9453E61E3Ca961512403D388DEe0A3672' │ 'UNICHAIN'        │ 'ACROSS'  │ true              │
+│ 22      │ '0x52D0EE7a870824FC683Ea19C714c7Bd110257788' │ 'ETHEREUM'        │ 'CCTP_V2' │ true              │
+│ 23      │ '0x52D0EE7a870824FC683Ea19C714c7Bd110257788' │ 'ETHEREUM'        │ 'ACROSS'  │ true              │
+│ 24      │ '0x52D0EE7a870824FC683Ea19C714c7Bd110257788' │ 'ETHEREUM'        │ 'USDT0'   │ true              │
+└─────────┴──────────────────────────────────────────────┴───────────────────┴───────────┴───────────────────┘
+InputOutputTokens:
+┌─────────┬──────────────────────────────────────────────┬───────────────────┬──────────────────────────────────────────────┬──────────────┐
+│ (index) │ InputToken                                   │ Domain            │ OutputToken                                  │ DecimalsDiff │
+├─────────┼──────────────────────────────────────────────┼───────────────────┼──────────────────────────────────────────────┼──────────────┤
+│ 0       │ '0xb88339cb7199b77e23db6e890353e22632ba630f' │ 'ETHEREUM'        │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ 0            │
+│ 1       │ '0xb88339cb7199b77e23db6e890353e22632ba630f' │ 'AVALANCHE'       │ '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E' │ 0            │
+│ 2       │ '0xb88339cb7199b77e23db6e890353e22632ba630f' │ 'OP_MAINNET'      │ '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85' │ 0            │
+│ 3       │ '0xb88339cb7199b77e23db6e890353e22632ba630f' │ 'ARBITRUM_ONE'    │ '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' │ 0            │
+│ 4       │ '0xb88339cb7199b77e23db6e890353e22632ba630f' │ 'BASE'            │ '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' │ 0            │
+│ 5       │ '0xb88339cb7199b77e23db6e890353e22632ba630f' │ 'POLYGON_MAINNET' │ '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359' │ 0            │
+│ 6       │ '0xb88339cb7199b77e23db6e890353e22632ba630f' │ 'UNICHAIN'        │ '0x078D782b760474a361dDA0AF3839290b0EF57AD6' │ 0            │
+│ 7       │ '0xb88339cb7199b77e23db6e890353e22632ba630f' │ 'BSC'             │ '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d' │ -12          │
+│ 8       │ '0xb88339cb7199b77e23db6e890353e22632ba630f' │ 'LINEA'           │ '0x176211869cA2b568f2A7D4EE941E073a821EE1ff' │ 0            │
+│ 9       │ '0xb88339cb7199b77e23db6e890353e22632ba630f' │ 'GNOSIS_CHAIN'    │ '0x2a22f9c3b484c3629090FeED35F17Ff8F88f76F0' │ 0            │
+│ 10      │ '0xb88339cb7199b77e23db6e890353e22632ba630f' │ 'WORLD_CHAIN'     │ '0x79A02482A880bCE3F13e09Da970dC34db4CD24d1' │ 0            │
+│ 11      │ '0xb88339cb7199b77e23db6e890353e22632ba630f' │ 'INK'             │ '0x2D270e6886d130D724215A266106e6832161EAEd' │ 0            │
+│ 12      │ '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb' │ 'ETHEREUM'        │ '0xdAC17F958D2ee523a2206206994597C13D831ec7' │ 0            │
+│ 13      │ '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb' │ 'OP_MAINNET'      │ '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58' │ 0            │
+│ 14      │ '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb' │ 'ARBITRUM_ONE'    │ '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9' │ 0            │
+│ 15      │ '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb' │ 'BASE'            │ '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2' │ 0            │
+│ 16      │ '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb' │ 'POLYGON_MAINNET' │ '0xc2132D05D31c914a87C6611C10748AEb04B58e8F' │ 0            │
+│ 17      │ '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb' │ 'UNICHAIN'        │ '0x9151434b16b9763660705744891fA906F660EcC5' │ 0            │
+│ 18      │ '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb' │ 'BSC'             │ '0x55d398326f99059fF775485246999027B3197955' │ -12          │
+│ 19      │ '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb' │ 'LINEA'           │ '0xA219439258ca9da29E9Cc4cE5596924745e12B93' │ 0            │
+│ 20      │ '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb' │ 'GNOSIS_CHAIN'    │ '0x4ECaBa5870353805a9F068101A40E0f32ed605C6' │ 0            │
+│ 21      │ '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb' │ 'INK'             │ '0x0200C29006150606B650577BBE7B6248F58470c1' │ 0            │
+└─────────┴──────────────────────────────────────────────┴───────────────────┴──────────────────────────────────────────────┴──────────────┘

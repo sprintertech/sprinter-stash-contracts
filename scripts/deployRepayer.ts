@@ -1,7 +1,7 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {NonceManager} from "ethers";
+import {isAddress, NonceManager} from "ethers";
 import {
   getVerifier, deployProxyX, getHardhatNetworkConfig, getNetworkConfig, addLocalPools,
   getInputOutputTokens, flattenInputOutputTokens,
@@ -17,11 +17,21 @@ import {
 } from "../network.config";
 
 export async function main() {
-  const [deployer] = await hre.ethers.getSigners();
+  let deployer;
+
+  const simulate = process.env.SIMULATE === "true" ? true : false;
+
+  if (simulate) {
+    console.log("Simulation mode enabled");
+    assert(isAddress(process.env.DEPLOYER_ADDRESS), "Deployer address must be set");
+    deployer = await hre.ethers.getImpersonatedSigner(process.env.DEPLOYER_ADDRESS!);
+  } else {
+    [deployer] = await hre.ethers.getSigners();
+  }
   const deployerWithNonce = new NonceManager(deployer);
+  console.log(`Deployer: ${deployer.address}`);
 
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
-  const verifier = getVerifier(process.env.DEPLOY_ID);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
   let id = "Repayer";
 
@@ -34,7 +44,11 @@ export async function main() {
     id += "-DeployTest";
   }
 
-  await logDeployers();
+  const verifier = await getVerifier(
+    deployerWithNonce, process.env.DEPLOY_ID, simulate, config.ChainId.toString()
+  );
+
+  await logDeployers(deployer, simulate);
 
   assertAddress(config.Tokens.USDC.Address, "USDC must be an address");
   assertAddress(config.Admin, "Admin must be an address");
@@ -146,6 +160,8 @@ export async function main() {
     console.table(flattenInputOutputTokens(inputOutputTokens));
   }
 
+  await verifier.performSimulation(config.ChainId.toString(), deployer);
+  await verifier.saveDeploymentTransactions();
   await verifier.verify(process.env.VERIFY === "true");
 }
 

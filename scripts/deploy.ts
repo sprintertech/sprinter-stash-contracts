@@ -1,7 +1,7 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {MaxUint256, NonceManager} from "ethers";
+import {MaxUint256, isAddress, NonceManager} from "ethers";
 import {toBytes32, resolveProxyXAddress, resolveXAddress, getContractAt, resolveXAddresses} from "../test/helpers";
 import {
   getVerifier, deployProxyX, getHardhatNetworkConfig, getNetworkConfig, percentsToBps,
@@ -28,8 +28,19 @@ import {
 } from "../network.config";
 
 export async function main() {
-  const [deployer] = await hre.ethers.getSigners();
+  let deployer;
+
+  const simulate = process.env.SIMULATE === "true" ? true : false;
+
+  if (simulate) {
+    console.log("Simulation mode enabled");
+    assert(isAddress(process.env.DEPLOYER_ADDRESS), "Deployer address must be set");
+    deployer = await hre.ethers.getImpersonatedSigner(process.env.DEPLOYER_ADDRESS!);
+  } else {
+    [deployer] = await hre.ethers.getSigners();
+  }
   const deployerWithNonce = new NonceManager(deployer);
+  console.log(`Deployer: ${deployer.address}`);
 
   const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
   const WITHDRAW_PROFIT_ROLE = toBytes32("WITHDRAW_PROFIT_ROLE");
@@ -39,7 +50,6 @@ export async function main() {
   const FEE_SETTER_ROLE = toBytes32("FEE_SETTER_ROLE");
 
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
-  const verifier = getVerifier(process.env.DEPLOY_ID);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
 
   let network: Network;
@@ -49,8 +59,12 @@ export async function main() {
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
   }
+  
+  const verifier = await getVerifier(
+    deployerWithNonce, process.env.DEPLOY_ID, simulate, config.ChainId.toString()
+  );
 
-  await logDeployers();
+  await logDeployers(deployer, simulate);
 
   assert(config.AavePool! || config.AavePoolLongTerm! || config.USDCPool! || config.USDCStablecoinPool!,
     "At least one pool should be present.");
@@ -150,7 +164,7 @@ export async function main() {
     const minHealthFactor = BigInt(config.AavePoolLongTerm.MinHealthFactor) * 10000n / 100n;
     const defaultLTV = BigInt(config.AavePoolLongTerm.DefaultLTV) * 10000n / 100n;
     console.log("Deploying AAVE Liquidity Pool Long Term");
-    aavePoolLongTerm = (await verifier.deployX(
+    aavePoolLongTerm = verifier.wrapContract((await verifier.deployX(
       "LiquidityPoolAaveLongTerm",
       deployerWithNonce,
       {},
@@ -165,7 +179,7 @@ export async function main() {
         config.SignerAddress,
       ],
       id,
-    )) as LiquidityPoolAaveLongTerm;
+    )) as LiquidityPoolAaveLongTerm);
 
     if (config.AavePoolLongTerm.TokenLTVs) {
       const tokens = Object.keys(config.AavePoolLongTerm.TokenLTVs);
@@ -195,7 +209,7 @@ export async function main() {
     const minHealthFactor = BigInt(config.AavePool.MinHealthFactor) * 10000n / 100n;
     const defaultLTV = BigInt(config.AavePool.DefaultLTV) * 10000n / 100n;
     console.log("Deploying AAVE Liquidity Pool");
-    aavePool = (await verifier.deployX(
+    aavePool = verifier.wrapContract((await verifier.deployX(
       "LiquidityPoolAave",
       deployerWithNonce,
       {},
@@ -210,7 +224,7 @@ export async function main() {
         config.SignerAddress,
       ],
       id,
-    )) as LiquidityPoolAave;
+    )) as LiquidityPoolAave);
 
     if (config.AavePool.TokenLTVs) {
       const tokens = Object.keys(config.AavePool.TokenLTVs);
@@ -240,13 +254,13 @@ export async function main() {
   if (config.USDCPool) {
     const id = LiquidityPoolUSDCVersions.at(-1);
     console.log("Deploying USDC Liquidity Pool");
-    usdcPool = (await verifier.deployX(
+    usdcPool = verifier.wrapContract((await verifier.deployX(
       "LiquidityPool",
       deployerWithNonce,
       {},
       [config.Tokens.USDC.Address, deployer, config.MpcAddress, config.WrappedNativeToken, config.SignerAddress],
       id,
-    )) as LiquidityPool;
+    )) as LiquidityPool);
     console.log(`${id}: ${usdcPool.target}`);
 
     rebalancerRoutes.Pools.push(await usdcPool.getAddress());
@@ -267,13 +281,13 @@ export async function main() {
   if (config.USDCStablecoinPool) {
     const id = LiquidityPoolUSDCStablecoinVersions.at(-1);
     console.log("Deploying USDC Stablecoin Liquidity Pool");
-    usdcStablecoinPool = (await verifier.deployX(
+    usdcStablecoinPool = verifier.wrapContract((await verifier.deployX(
       "LiquidityPoolStablecoin",
       deployerWithNonce,
       {},
       [config.Tokens.USDC.Address, deployer, config.MpcAddress, config.WrappedNativeToken, config.SignerAddress],
       id,
-    )) as LiquidityPool;
+    )) as LiquidityPoolStablecoin);
     console.log(`${id}: ${usdcStablecoinPool.target}`);
 
     rebalancerRoutes.Pools.push(await usdcStablecoinPool.getAddress());
@@ -295,7 +309,7 @@ export async function main() {
     assertAddress(config.USDCPublicPool.FeeSetter, "FeeSetter must be an address");
     const id = LiquidityPoolPublicUSDCVersions.at(-1);
     console.log("Deploying USDC Public Liquidity Pool");
-    usdcPublicPool = (await verifier.deployX(
+    usdcPublicPool = verifier.wrapContract((await verifier.deployX(
       "PublicLiquidityPool",
       deployerWithNonce,
       {},
@@ -310,7 +324,7 @@ export async function main() {
         config.USDCPublicPool.ProtocolFeeRate * 10000 / 100,
       ],
       id
-    )) as PublicLiquidityPool;
+    )) as PublicLiquidityPool);
     console.log(`${id}: ${usdcPublicPool.target}`);
   }
 
@@ -321,7 +335,7 @@ export async function main() {
     console.log(`Target Vault: ${targetVault}`);
 
     console.log("Deploying ERC4626 Adapter USDC");
-    erc4626AdapterUSDC = (await verifier.deployX(
+    erc4626AdapterUSDC = verifier.wrapContract((await verifier.deployX(
       "ERC4626Adapter",
       deployerWithNonce,
       {},
@@ -331,7 +345,7 @@ export async function main() {
         deployer,
       ],
       id
-    )) as ERC4626Adapter;
+    )) as ERC4626Adapter);
     console.log(`${id}: ${erc4626AdapterUSDC.target}`);
 
     rebalancerRoutes.Pools.push(await erc4626AdapterUSDC.getAddress());
@@ -456,6 +470,7 @@ export async function main() {
         inputOutputTokens,
       ],
       repayerId,
+      verifier,
     );
     repayer = result.target;
     repayerAdmin = result.targetAdmin;
@@ -599,7 +614,8 @@ export async function main() {
     console.log("InputOutputTokens:");
     console.table(flattenInputOutputTokens(inputOutputTokens));
   }
-
+  await verifier.performSimulation(config.ChainId.toString(), deployer);
+  await verifier.saveDeploymentTransactions();
   await verifier.verify(process.env.VERIFY === "true");
 }
 

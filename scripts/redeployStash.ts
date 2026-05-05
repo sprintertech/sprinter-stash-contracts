@@ -8,23 +8,38 @@ import {SprinterLiquidityMining} from "../typechain-types";
 import {Network, NetworkConfig} from "../network.config";
 
 export async function main() {
-  const [deployer] = await hre.ethers.getSigners();
+  let deployer;
+
+  const simulate = process.env.SIMULATE === "true" ? true : false;
+
+  if (simulate) {
+    console.log("Simulation mode enabled");
+    assert(isSet(process.env.DEPLOYER_ADDRESS), "Deployer address must be set");
+    deployer = await hre.ethers.getImpersonatedSigner(process.env.DEPLOYER_ADDRESS!);
+  } else {
+    [deployer] = await hre.ethers.getSigners();
+  }
+  console.log(`Deployer: ${deployer.address}`);
 
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
   assert(isSet(process.env.UPGRADE_ID), "UPGRADE_ID must be set");
-  const verifier = getVerifier(process.env.UPGRADE_ID);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
   console.log(`Redeployment ID: ${process.env.UPGRADE_ID}`);
 
   let network: Network;
   let config: NetworkConfig;
+  ({network, config} = await getNetworkConfig());
+  if (!network) {
+    ({network, config} = await getHardhatNetworkConfig());
+  }
+  const verifier = await getVerifier(deployer, process.env.UPGRADE_ID, simulate, config.ChainId.toString());
   console.log("Redeploying Stash");
   ({network, config} = await getNetworkConfig());
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
   }
 
-  await logDeployers();
+  await logDeployers(deployer, simulate);
 
   assert(config.Hub, "Must be a network with a hub");
 
@@ -43,6 +58,8 @@ export async function main() {
     return {seconds: Number(el.period), multiplier};
   }));
 
+  await verifier.performSimulation(config.ChainId.toString(), deployer);
+  await verifier.saveDeploymentTransactions();
   await verifier.verify(process.env.VERIFY === "true");
 }
 

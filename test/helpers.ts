@@ -2,12 +2,16 @@ import hre from "hardhat";
 import {
   AddressLike, resolveAddress, Signer, BaseContract, toUtf8Bytes, TypedDataDomain,
   keccak256, concat, dataSlice, AbiCoder, EventLog, encodeBytes32String, isAddress,
-  BigNumberish, BytesLike,
+  BigNumberish, BytesLike, ContractDeployTransaction,
 } from "ethers";
 import {assert, DEFAULT_PROXY_TYPE} from "../scripts/common";
 import {ICreateX} from "../typechain-types";
 import dotenv from "dotenv";
 dotenv.config();
+
+export interface DeployedContract extends BaseContract {
+  deployTxHash?: string;
+}
 
 async function resolveAddresses(input: AddressLike[]): Promise<string[]> {
   return await Promise.all(input.map(el => resolveAddress(el)));
@@ -110,11 +114,31 @@ export async function deploy(
   signer: Signer,
   txParams: object = {},
   ...params: any[]
-): Promise<BaseContract> {
+): Promise<DeployedContract> {
   const factory = await hre.ethers.getContractFactory(contractName, signer);
-  const instance = await factory.deploy(...params, txParams);
+  const instance = await factory.deploy(...params, txParams) as DeployedContract;
+  const deployTx = instance.deploymentTransaction();
+  const txHash = deployTx?.hash;
   await instance.waitForDeployment();
+  instance.deployTxHash = txHash;
   return instance;
+}
+
+export async function getDeployTx(
+  contractName: string,
+  signer: Signer,
+  nonce: number,
+  txParams: object = {},
+  ...params: any[]
+): Promise<{instance: BaseContract, transaction: ContractDeployTransaction}> {
+  const factory = await hre.ethers.getContractFactory(contractName, signer);
+  const transaction = await factory.getDeployTransaction(...params, txParams);
+  const contractAddress = await hre.ethers.getCreateAddress({
+    from: await resolveAddress(signer),
+    nonce,
+  });
+  const instance = await getContractAt(contractName, contractAddress, signer);
+  return {instance, transaction};
 }
 
 export async function deployX(
@@ -123,7 +147,7 @@ export async function deployX(
   id: string = contractName,
   txParams: object = {},
   ...params: any[]
-): Promise<BaseContract> {
+): Promise<DeployedContract> {
   const factory = await hre.ethers.getContractFactory(contractName, signer);
   const deployCode = (await factory.getDeployTransaction(...params)).data;
   const createX = await getCreateX(signer);
@@ -134,8 +158,30 @@ export async function deployX(
   ]);
   const deployTx = await (await createX["deployCreate3(bytes32,bytes)"](salt, deployCode, txParams)).wait();
   const deployedTo = (deployTx!.logs.filter(el => el.address == createX.target).pop() as EventLog).args[0];
-  const instance = await getContractAt(contractName, deployedTo, signer);
+  const instance = await getContractAt(contractName, deployedTo, signer) as DeployedContract;
+  instance.deployTxHash = deployTx?.hash;
   return instance;
+}
+
+export async function getDeployXTx(
+  contractName: string,
+  signer: Signer,
+  id: string = contractName,
+  txParams: object = {},
+  ...params: any[]
+): Promise<{instance: BaseContract, transaction: ContractDeployTransaction}> {
+  const factory = await hre.ethers.getContractFactory(contractName, signer);
+  const deployCode = (await factory.getDeployTransaction(...params)).data;
+  const createX = await getCreateX(signer);
+  const salt = concat([
+    await resolveAddress(signer),
+    "0x00",
+    dataSlice(keccak256(toUtf8Bytes(id)), 0, 11),
+  ]);
+  const transaction = await createX["deployCreate3(bytes32,bytes)"].populateTransaction(salt, deployCode, txParams);
+  const contractAddress = await getDeployXAddressBase(signer, id, false);
+  const instance = await getContractAt(contractName, contractAddress, signer);
+  return {instance, transaction};
 }
 
 export function toBytes32(str: string) {

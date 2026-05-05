@@ -2097,6 +2097,7 @@ export const networkConfig: NetworksConfig = {
       TokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
       MessageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
     },
+    USDT0OFT: "0x904861a24F30EC96ea7CFC3bE9EA4B476d237e98",
     AcrossV3SpokePool: "0x35E63eA3eb0fb7A3bc543C71FB66412e1F6B0E04",
     Tokens: {
       USDC: tokenInfo("0xb88339cb7199b77e23db6e890353e22632ba630f", 6),
@@ -2152,6 +2153,7 @@ export const networkConfig: NetworksConfig = {
       TokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
       MessageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
     },
+    USDT0OFT: "0x1cB6De532588fCA4a21B7209DE7C456AF8434A65",
     AcrossV3SpokePool: "0xeF684C38F94F48775959ECf2012D7E864ffb9dd4",
     Tokens: {
       USDC: tokenInfo("0x2D270e6886d130D724215A266106e6832161EAEd", 6),

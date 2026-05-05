@@ -65,3 +65,17 @@ InputOutputTokens:
 │ 26      │ '0x03C7054BCB39f7b2e5B2c7AcB37583e32D70Cfa3' │ 'BSC'             │ '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c' │ -10          │
 │ 27      │ '0x03C7054BCB39f7b2e5B2c7AcB37583e32D70Cfa3' │ 'LINEA'           │ '0x3aAB2285ddcDdaD8edf438C1bAB47e1a9D05a9b4' │ 0            │
 └─────────┴──────────────────────────────────────────────┴───────────────────┴──────────────────────────────────────────────┴──────────────┘
+
+Deployment ID: MVP
+Upgrade ID: MVP5
+Upgrading Repayer
+Using config for: WORLD_CHAIN
+Deployer        : 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+DEPLOYER_ADDRESS: 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+New Repayer implementation deployed to 0x97611394FFc80228D8422ddD19Cdf759A3D099Ab
+Simulating Repayer upgrade.
+Success.
+To finalize upgrade send the following transaction from ProxyAdmin owner: 0x4eA9E682BA79bC403523c9e8D98A05EaF3810636
+To: 0x2B5D04eF6b3279bCdA4B219b02FAF627dA1664CB
+Value: 0
+Data: 0x9623609d00000000000000000000000036364acc7b9c67692ca215af09a41cbd1043951100000000000000000000000097611394ffc80228d8422ddd19cdf759a3d099ab00000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000

@@ -795,6 +795,21 @@ const config: HardhatUserConfig = {
       url: process.env.GNOSIS_CHAIN_RPC || "https://public-gno-mainnet.fastnode.io",
       accounts,
     },
+    [Network.WORLD_CHAIN]: {
+      chainId: networkConfig.WORLD_CHAIN.ChainId,
+      url: process.env.WORLD_CHAIN_RPC || "https://worldchain-mainnet.g.alchemy.com/public",
+      accounts,
+    },
+    [Network.INK]: {
+      chainId: networkConfig.INK.ChainId,
+      url: process.env.INK_RPC || "https://rpc-qnd.inkonchain.com",
+      accounts,
+    },
+    [Network.HYPER_EVM]: {
+      chainId: networkConfig.HYPER_EVM.ChainId,
+      url: process.env.HYPER_EVM_RPC || "https://rpc.hyperliquid.xyz/evm",
+      accounts,
+    },
     hardhat: {
       chainId: isSet(process.env.DRY_RUN) || isSet(process.env.FORK_TEST)
         ? networkConfig[`${process.env.DRY_RUN || process.env.FORK_TEST}` as Network]!.ChainId
@@ -818,6 +833,19 @@ const config: HardhatUserConfig = {
   },
   sourcify: {
     enabled: false,
+  },
+  blockscout: {
+    enabled: true,
+    customChains: [
+      {
+        network: "INK",
+        chainId: networkConfig.INK.ChainId,
+        urls: {
+          apiURL: "https://explorer.inkonchain.com/api",
+          browserURL: "https://explorer.inkonchain.com/",
+        },
+      },
+    ]
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY || "",
@@ -852,6 +880,22 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api.gnosisscan.io/api",
           browserURL: "https://gnosisscan.io"
+        },
+      },
+      {
+        network: "hyperevm",
+        chainId: networkConfig.HYPER_EVM.ChainId,
+        urls: {
+          apiURL: "https://api.hyperevmscan.io/api",
+          browserURL: "https://hyperevmscan.io"
+        },
+      },
+      {
+        network: "worldchain",
+        chainId: networkConfig.WORLD_CHAIN.ChainId,
+        urls: {
+          apiURL: "https://api.worldscan.org/api",
+          browserURL: "https://worldscan.org"
         },
       },
     ],

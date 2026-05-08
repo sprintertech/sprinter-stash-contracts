@@ -461,7 +461,6 @@ export async function main() {
     repayerAdmin = result.targetAdmin;
   }
 
-
   if (config.Hub) {
     const tiers = config.Hub!.Tiers;
     const assetsLimit = BigInt(config.Hub!.AssetsLimit) * 10n ** 6n;

@@ -10,9 +10,9 @@ import {MulticallUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Mu
 import {IRoyco} from "./interfaces/IRoyco.sol";
 import {IERC7540} from "./interfaces/IERC7540.sol";
 
-/// @title Redeemer for unwinding vault tokens.
+/// @title Processor for unwinding vault tokens.
 /// @author Sprinter
-contract Redeemer is AccessControlUpgradeable, MulticallUpgradeable {
+contract Processor is AccessControlUpgradeable, MulticallUpgradeable {
     using SafeERC20 for IERC20;
 
     IERC20 public immutable TARGET_ASSET;

@@ -8,10 +8,10 @@ import {
   getNetworkConfig,
   getHardhatNetworkConfig,
 } from "./helpers";
-import { resolveXAddress } from "../test/helpers";
-import { isSet, assert, assertAddress } from "./common";
-import { Processor } from "../typechain-types";
-import { Network, NetworkConfig } from "../network.config";
+import {resolveXAddress} from "../test/helpers";
+import {isSet, assert, assertAddress} from "./common";
+import {Processor} from "../typechain-types";
+import {Network, NetworkConfig} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -23,12 +23,12 @@ export async function main() {
   let network: Network;
   let config: NetworkConfig;
   console.log("Deploying USDC Processor");
-  ({ network, config } = await getNetworkConfig());
+  ({network, config} = await getNetworkConfig());
   if (!network) {
-    ({ network, config } = await getHardhatNetworkConfig());
+    ({network, config} = await getHardhatNetworkConfig());
     id += "-DeployTest";
   }
-
+  
   await logDeployers();
 
   assertAddress(config.Tokens.USDC.Address, "USDC must be an address");

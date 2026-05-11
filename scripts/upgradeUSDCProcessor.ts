@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
-import { isAddress, NonceManager } from "ethers";
+import {isAddress, NonceManager} from "ethers";
 import {
   getVerifier,
   upgradeProxyX,
@@ -9,10 +9,10 @@ import {
   getNetworkConfig,
   logDeployers,
 } from "./helpers";
-import { getDeployProxyXAddress, resolveXAddress } from "../test/helpers";
-import { isSet, assert } from "./common";
-import { Repayer } from "../typechain-types";
-import { Network, NetworkConfig } from "../network.config";
+import {getDeployProxyXAddress, resolveXAddress} from "../test/helpers";
+import {isSet, assert} from "./common";
+import {Repayer} from "../typechain-types";
+import {Network, NetworkConfig} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -27,9 +27,9 @@ export async function main() {
   let network: Network;
   let config: NetworkConfig;
   console.log("Upgrading Processor");
-  ({ network, config } = await getNetworkConfig());
+  ({network, config} = await getNetworkConfig());
   if (!network) {
-    ({ network, config } = await getHardhatNetworkConfig());
+    ({network, config} = await getHardhatNetworkConfig());
   }
 
   await logDeployers(false);

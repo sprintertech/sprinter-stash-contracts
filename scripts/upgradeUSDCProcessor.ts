@@ -1,12 +1,18 @@
-import dotenv from "dotenv"; 
+import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
-import {isAddress, NonceManager} from "ethers";
-import {getVerifier, upgradeProxyX, getHardhatNetworkConfig, getNetworkConfig, logDeployers} from "./helpers";
-import {getDeployProxyXAddress, resolveXAddress} from "../test/helpers";
-import {isSet, assert} from "./common";
-import {Repayer} from "../typechain-types";
-import {Network, NetworkConfig} from "../network.config";
+import { isAddress, NonceManager } from "ethers";
+import {
+  getVerifier,
+  upgradeProxyX,
+  getHardhatNetworkConfig,
+  getNetworkConfig,
+  logDeployers,
+} from "./helpers";
+import { getDeployProxyXAddress, resolveXAddress } from "../test/helpers";
+import { isSet, assert } from "./common";
+import { Repayer } from "../typechain-types";
+import { Network, NetworkConfig } from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -21,28 +27,27 @@ export async function main() {
   let network: Network;
   let config: NetworkConfig;
   console.log("Upgrading Processor");
-  ({network, config} = await getNetworkConfig());
+  ({ network, config } = await getNetworkConfig());
   if (!network) {
-    ({network, config} = await getHardhatNetworkConfig());
+    ({ network, config } = await getHardhatNetworkConfig());
   }
 
   await logDeployers(false);
 
   assert(isAddress(config.Tokens.USDC.Address), "USDC must be an address");
 
-  const processorAddress = await getDeployProxyXAddress("Processor");
-  const processorVersion = config.IsTest ? "TestProcessor" : "Processor";
+  const processorAddress = await getDeployProxyXAddress("USDCProcessor");
+  const processorVersion = config.IsTest
+    ? "TestUSDCProcessor"
+    : "USDCProcessor";
 
   await upgradeProxyX<Repayer>(
     verifier.deployX,
     processorAddress,
     processorVersion,
     deployerWithNonce,
-    [
-        config.Tokens.USDC.Address,
-        await resolveXAddress("Repayer", false)
-    ],
-    "Processor",
+    [config.Tokens.USDC.Address, await resolveXAddress("Repayer", false)],
+    "USDCProcessor"
   );
 
   await verifier.verify(process.env.VERIFY === "true");

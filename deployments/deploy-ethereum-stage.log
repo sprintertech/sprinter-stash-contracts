@@ -174,3 +174,21 @@ Following tokens will be added to 0x697ECA1cae710FA0348e2173900e6C09b180C35b.
 │ 7       │ '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599' │ 'BSC'          │ '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c' │ -10          │
 └─────────┴──────────────────────────────────────────────┴────────────────┴──────────────────────────────────────────────┴──────────────┘
 Done.
+
+Deployment ID: MVP
+Deploying USDC Processor
+Using config for: stage, ETHEREUM
+Deployer        : 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+┌───────────────┬──────────────────────────────────────────────┐
+│ (index)       │ Values                                       │
+├───────────────┼──────────────────────────────────────────────┤
+│ Repayer       │ '0x71BB896f9a45a80D835268F8B69F8395321F4fd0' │
+│ Target        │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │
+│ RepayerCaller │ '0xc1d6EEa5ce163d7D9f1952Db220830Aae16Cb607' │
+└───────────────┴──────────────────────────────────────────────┘
+Processor: 0x804C106cF3e7cbda2D48e35124C045410dfeF67e
+ProcessorProxyAdmin: 0xCBD79ba7Ab7CEa07Ce1Bb292d70a511a2908e077
+Granting DEFAULT_ADMIN_ROLE to Admin: 0x2D5B6C193C39D2AECb4a99052074E6F325258a0f
+Granting DEFAULT_ADMIN_ROLE to Ops Admin: 0x2D5B6C193C39D2AECb4a99052074E6F325258a0f
+Renouncing DEFAULT_ADMIN_ROLE for deployer: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11

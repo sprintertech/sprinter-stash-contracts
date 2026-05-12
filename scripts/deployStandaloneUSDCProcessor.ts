@@ -51,7 +51,7 @@ export async function main() {
 
     await processor.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
     await processor.grantRole(DEFAULT_ADMIN_ROLE, config.SignerAddress);
-    await processor.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    await processor.renounceRole(DEFAULT_ADMIN_ROLE, deployer.address);
 
   await verifier.verify(process.env.VERIFY === "true");
 }

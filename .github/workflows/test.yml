@@ -26,9 +26,9 @@ jobs:
       - name: Compile contracts
         run: npm run compile
       - name: Hardhat Tests
-        run: npm run test
+        run: FORK_BLOCK_NUMBER=40729100 npm run test
       - name: Hardhat Fork Tests Ethereum
-        run: npm run test:ethereum
+        run: FORK_BLOCK_NUMBER=24540657 npm run test:ethereum
       - name: Hardhat Fork Tests Gnosis Chain
         run: npm run test:gnosis
       - name: Script Tests

@@ -9,7 +9,7 @@ import {
   getHardhatNetworkConfig,
 } from "./helpers";
 import {resolveXAddress} from "../test/helpers";
-import {isSet, assert, assertAddress} from "./common";
+import {isSet, assert, assertAddress, DEFAULT_ADMIN_ROLE} from "./common";
 import {Processor} from "../typechain-types";
 import {Network, NetworkConfig} from "../network.config";
 
@@ -38,7 +38,7 @@ export async function main() {
   const processorVersion = config.IsTest
     ? "TestUSDCProcessor"
     : "USDCProcessor";
-  await deployProxyX<Processor>(
+  const {target: processor} = await deployProxyX<Processor>(
     verifier.deployX,
     processorVersion,
     deployer,
@@ -48,6 +48,10 @@ export async function main() {
     id,
     verifier
   );
+
+    await processor.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
+    await processor.grantRole(DEFAULT_ADMIN_ROLE, config.SignerAddress);
+    await processor.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
 
   await verifier.verify(process.env.VERIFY === "true");
 }

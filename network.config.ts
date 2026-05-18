@@ -1974,7 +1974,6 @@ export const networkConfig: NetworksConfig = {
       TokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
       MessageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
     },
-    USDT0OFT: "0x6BA10300f0DC58B7a1e4c0e41f5daBb7D7829e13",
     Tokens: {
       USDC: tokenInfo("0x176211869cA2b568f2A7D4EE941E073a821EE1ff", 6),
       USDT: tokenInfo("0xA219439258ca9da29E9Cc4cE5596924745e12B93", 6),
@@ -2172,7 +2171,7 @@ export const networkConfig: NetworksConfig = {
       TokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
       MessageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
     },
-    AcrossV3SpokePool: "0xE0B015E54d54fc84a6cB9B666099c46adE9335FF",
+    AcrossV3SpokePool: "0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64",
     Tokens: {
       USDC: tokenInfo("0x79A02482A880bCE3F13e09Da970dC34db4CD24d1", 6),
       WETH: tokenInfo("0x4200000000000000000000000000000000000006", 18),
@@ -2234,7 +2233,7 @@ export const networkConfig: NetworksConfig = {
       USDC: tokenInfo("0xb88339cb7199b77e23db6e890353e22632ba630f", 6),
       USDT: tokenInfo("0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb", 6),
     },
-    WrappedNativeToken: "0x0000000000000000000000000000000000000000",
+    WrappedNativeToken: "0x5555555555555555555555555555555555555555",
     IsTest: false,
     Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
     WithdrawProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",

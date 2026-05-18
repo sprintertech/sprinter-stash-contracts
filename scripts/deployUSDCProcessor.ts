@@ -35,23 +35,37 @@ export async function main() {
   assertAddress(config.Admin, "Admin must be an address");
   assertAddress(config.RepayerCaller, "RepayerCaller must be an address");
 
+  const repayerAddress = await resolveXAddress("Repayer");
+  console.table({
+    Repayer: repayerAddress,
+    Target: config.Tokens.USDC.Address,
+    RepayerCaller: config.RepayerCaller,
+  })
+
   const processorVersion = config.IsTest
-    ? "TestUSDCProcessor"
-    : "USDCProcessor";
-  const {target: processor} = await deployProxyX<Processor>(
+    ? "TestProcessor"
+    : "Processor";
+
+  const {target: processor, targetAdmin: processorAdmin} = await deployProxyX<Processor>(
     verifier.deployX,
     processorVersion,
     deployer,
     config.Admin,
-    [config.Tokens.USDC.Address, await resolveXAddress("Repayer", false)],
+    [config.Tokens.USDC.Address, repayerAddress],
     [deployer.address, config.RepayerCaller],
     id,
     verifier
   );
 
-    await processor.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-    await processor.grantRole(DEFAULT_ADMIN_ROLE, config.SignerAddress);
-    await processor.renounceRole(DEFAULT_ADMIN_ROLE, deployer.address);
+  console.log(`Processor: ${processor.target}`);
+  console.log(`ProcessorProxyAdmin: ${processorAdmin.target}`);
+
+  console.log(`Granting DEFAULT_ADMIN_ROLE to Admin: ${config.Admin}`);
+  await processor.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
+  console.log(`Granting DEFAULT_ADMIN_ROLE to Ops Admin: ${config.SignerAddress}`);
+  await processor.grantRole(DEFAULT_ADMIN_ROLE, config.SignerAddress);
+  console.log(`Renouncing DEFAULT_ADMIN_ROLE for deployer: ${deployer.address}`);
+  await processor.renounceRole(DEFAULT_ADMIN_ROLE, deployer.address);
 
   await verifier.verify(process.env.VERIFY === "true");
 }

@@ -46,7 +46,7 @@ export async function main() {
     processorAddress,
     processorVersion,
     deployerWithNonce,
-    [config.Tokens.USDC.Address, await resolveXAddress("Repayer", false)],
+    [config.Tokens.USDC.Address, await resolveXAddress("Repayer")],
     "USDCProcessor"
   );
 

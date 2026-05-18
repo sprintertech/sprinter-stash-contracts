@@ -35,7 +35,7 @@ export async function main() {
   assertAddress(config.Admin, "Admin must be an address");
   assertAddress(config.RepayerCaller, "RepayerCaller must be an address");
 
-  const repayerAddress = await resolveXAddress("Repayer", false);
+  const repayerAddress = await resolveXAddress("Repayer");
   console.table({
     Repayer: repayerAddress,
     Target: config.Tokens.USDC.Address,

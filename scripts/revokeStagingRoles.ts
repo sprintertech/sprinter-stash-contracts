@@ -76,7 +76,7 @@ function getRoles(name: string): {roleName: string; role: string}[] {
 }
 
 export async function main() {
-  const dryRun = !!process.env.PREVIEW;
+  const forkSimulation = hre.network.name === "hardhat";
 
   const [signer] = await hre.ethers.getSigners();
   const oldAdmin = await signer.getAddress();
@@ -93,7 +93,7 @@ export async function main() {
 
   console.log(`\nNetwork: ${networkDeployments.name} (chainId: ${chainId})`);
   console.log(`Renounce from: ${oldAdmin}`);
-  if (dryRun) console.log("[DRY RUN] No transactions will be sent.\n");
+  if (forkSimulation) console.log("[FORK SIMULATION] Transactions execute on fork — no mainnet state will change.");
 
   const roleOps: {contractName: string; address: string; roleName: string; role: string}[] = [];
 
@@ -113,11 +113,6 @@ export async function main() {
     role:         op.roleName,
     renounceFrom: oldAdmin,
   })));
-
-  if (dryRun) {
-    console.log("\n[DRY RUN] No transactions sent.");
-    return;
-  }
 
   const signerWithNonce = new NonceManager(signer);
 

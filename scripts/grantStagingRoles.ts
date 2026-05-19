@@ -85,7 +85,7 @@ export async function main() {
   const newAdmin = process.env.NEW_ADMIN;
   assertAddress(newAdmin, "NEW_ADMIN env var must be set to a valid address");
 
-  const dryRun = !!process.env.PREVIEW;
+  const forkSimulation = hre.network.name === "hardhat";
 
   const yamlPath = join(__dirname, "..", "deployments", "deployments.staging.yml");
   const deployments = yaml.load(readFileSync(yamlPath, "utf8")) as Record<string, Record<string, string>>;
@@ -99,7 +99,7 @@ export async function main() {
 
   console.log(`\nNetwork: ${networkDeployments.name} (chainId: ${chainId})`);
   console.log(`Grant target: ${newAdmin}`);
-  if (dryRun) console.log("[DRY RUN] No transactions will be sent.\n");
+  if (forkSimulation) console.log("[FORK SIMULATION] Transactions execute on fork — no mainnet state will change.");
 
   const roleOps: {contractName: string; address: string; roleName: string; role: string}[] = [];
   const proxyAdminOps: {contractName: string; proxyAddress: string}[] = [];
@@ -131,11 +131,6 @@ export async function main() {
       proxy:                 op.proxyAddress,
       transferOwnershipTo:   newAdmin,
     })));
-  }
-
-  if (dryRun) {
-    console.log("\n[DRY RUN] No transactions sent.");
-    return;
   }
 
   const [signer] = await hre.ethers.getSigners();

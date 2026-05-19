@@ -4,7 +4,7 @@ import hre from "hardhat";
 import {NonceManager, isAddress} from "ethers";
 import {readFileSync} from "fs";
 import {join} from "path";
-import {assertAddress, DEFAULT_ADMIN_ROLE} from "./common";
+import {assertAddress, DEFAULT_ADMIN_ROLE, sameAddress} from "./common";
 import {toBytes32} from "../test/helpers";
 import {getProxyXAdmin} from "./helpers";
 
@@ -135,20 +135,43 @@ export async function main() {
 
   const [signer] = await hre.ethers.getSigners();
   const signerWithNonce = new NonceManager(signer);
-  console.log(`\nExecuting as: ${await signer.getAddress()}`);
+  const signerAddress = await signer.getAddress();
+  console.log(`\nExecuting as: ${signerAddress}`);
+
+  const skipped: string[] = [];
 
   for (const op of roleOps) {
     const contract = await hre.ethers.getContractAt("AccessControl", op.address, signerWithNonce);
-    const tx = await contract.grantRole(op.role, newAdmin!);
+    const adminRole = await contract.getRoleAdmin(op.role);
+    const canGrant = await contract.hasRole(adminRole, signerAddress);
+    if (!canGrant) {
+      console.warn(`  [SKIPPED] ${op.contractName}: not admin for ${op.roleName}`);
+      skipped.push(`${op.contractName}.${op.roleName}`);
+      continue;
+    }
+    const gasEstimate = await contract.grantRole.estimateGas(op.role, newAdmin!);
+    const tx = await contract.grantRole(op.role, newAdmin!, {gasLimit: gasEstimate * 150n / 100n});
     await tx.wait();
     console.log(`Granted ${op.roleName} to ${newAdmin} on ${op.contractName} (${op.address})`);
   }
 
   for (const op of proxyAdminOps) {
     const proxyAdmin = await getProxyXAdmin(op.proxyAddress, signerWithNonce);
-    const tx = await proxyAdmin.transferOwnership(newAdmin!);
+    const owner = await proxyAdmin.owner();
+    if (!sameAddress(owner, signerAddress)) {
+      console.warn(`  [SKIPPED] ${op.contractName} ProxyAdmin: not owner (owner is ${owner})`);
+      skipped.push(`${op.contractName}.ProxyAdmin`);
+      continue;
+    }
+    const gasEstimate = await proxyAdmin.transferOwnership.estimateGas(newAdmin!);
+    const tx = await proxyAdmin.transferOwnership(newAdmin!, {gasLimit: gasEstimate * 150n / 100n});
     await tx.wait();
     console.log(`Transferred ProxyAdmin ownership for ${op.contractName} (${op.proxyAddress}) to ${newAdmin}`);
+  }
+
+  if (skipped.length > 0) {
+    console.warn(`\n[WARNING] ${skipped.length} operation(s) skipped (signer lacked permission):`);
+    skipped.forEach(s => console.warn(`  - ${s}`));
   }
   console.log("\nAll role grants and ProxyAdmin transfers complete.");
 }

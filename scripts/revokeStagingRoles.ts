@@ -115,12 +115,25 @@ export async function main() {
   })));
 
   const signerWithNonce = new NonceManager(signer);
+  const skipped: string[] = [];
 
   for (const op of roleOps) {
     const contract = await hre.ethers.getContractAt("AccessControl", op.address, signerWithNonce);
-    const tx = await contract.renounceRole(op.role, oldAdmin);
+    const holdsRole = await contract.hasRole(op.role, oldAdmin);
+    if (!holdsRole) {
+      console.warn(`  [SKIPPED] ${op.contractName}: does not hold ${op.roleName}`);
+      skipped.push(`${op.contractName}.${op.roleName}`);
+      continue;
+    }
+    const gasEstimate = await contract.renounceRole.estimateGas(op.role, oldAdmin);
+    const tx = await contract.renounceRole(op.role, oldAdmin, {gasLimit: gasEstimate * 150n / 100n});
     await tx.wait();
     console.log(`Renounced ${op.roleName} from ${oldAdmin} on ${op.contractName} (${op.address})`);
+  }
+
+  if (skipped.length > 0) {
+    console.warn(`\n[WARNING] ${skipped.length} operation(s) skipped (signer lacked permission):`);
+    skipped.forEach(s => console.warn(`  - ${s}`));
   }
   console.log("\nAll role renouncements complete.");
 }

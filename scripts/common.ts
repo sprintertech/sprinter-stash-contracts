@@ -72,6 +72,9 @@ export const DomainSolidity = {
   BSC: 13n,
   LINEA: 14n,
   GNOSIS_CHAIN: 15n,
+  WORLD_CHAIN: 16n,
+  INK: 17n,
+  HYPER_EVM: 18n,
 };
 
 export const SolidityDomain: { [n: number]: Network } = {
@@ -91,6 +94,9 @@ export const SolidityDomain: { [n: number]: Network } = {
   13: Network.BSC,
   14: Network.LINEA,
   15: Network.GNOSIS_CHAIN,
+  16: Network.WORLD_CHAIN,
+  17: Network.INK,
+  18: Network.HYPER_EVM,
 };
 
 export const SolidityProvider: { [n: number]: Provider } = {
@@ -115,6 +121,10 @@ export const CCTPDomain: { [n: number]: Network } = {
   6: Network.BASE,
   7: Network.POLYGON_MAINNET,
   10: Network.UNICHAIN,
+  11: Network.LINEA,
+  14: Network.WORLD_CHAIN,
+  19: Network.HYPER_EVM,
+  21: Network.INK,
 };
 
 export const DEFAULT_PROXY_TYPE = "TransparentUpgradeableProxy";

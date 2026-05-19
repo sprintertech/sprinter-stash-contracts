@@ -19,7 +19,10 @@ interface IRoute {
         UNICHAIN,
         BSC,
         LINEA,
-        GNOSIS_CHAIN
+        GNOSIS_CHAIN,
+        WORLD_CHAIN,
+        INK,
+        HYPER_EVM
     }
 
     enum Provider {

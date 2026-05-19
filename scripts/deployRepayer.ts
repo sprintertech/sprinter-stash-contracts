@@ -35,7 +35,6 @@ export async function main() {
   }
 
   await logDeployers();
-
   assertAddress(config.Tokens.USDC.Address, "USDC must be an address");
   assertAddress(config.Admin, "Admin must be an address");
   assertAddress(config.RepayerCaller, "RepayerCaller must be an address");

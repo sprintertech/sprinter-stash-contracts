@@ -81,6 +81,9 @@ export enum Network {
   BSC = "BSC",
   LINEA = "LINEA",
   GNOSIS_CHAIN = "GNOSIS_CHAIN",
+  WORLD_CHAIN = "WORLD_CHAIN",
+  INK = "INK",
+  HYPER_EVM = "HYPER_EVM",
 }
 
 export enum Provider {
@@ -171,10 +174,10 @@ interface HubConfig {
   AssetsLimitSetter: string; // Address that can set assets limit.
   AssetsLimit: number; // Deposits to Liquidity Hub are only allowed till this limit is reached.
   Tiers: Tier[];
-  Pool?: (typeof LiquidityPoolUSDCVersions)[number] 
-    | (typeof LiquidityPoolAaveUSDCVersions)[number]
-    | (typeof LiquidityPoolUSDCStablecoinVersions)[number]
-    | (typeof LiquidityPoolAaveUSDCLongTermVersions)[number];
+  Pool?: (typeof LiquidityPoolUSDCVersions)[number]
+  | (typeof LiquidityPoolAaveUSDCVersions)[number]
+  | (typeof LiquidityPoolUSDCStablecoinVersions)[number]
+  | (typeof LiquidityPoolAaveUSDCLongTermVersions)[number];
 }
 
 export type TokenInfo = {
@@ -282,17 +285,18 @@ export const networkConfig: NetworksConfig = {
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RebalancerRoutes: {
       [LiquidityPoolAaveUSDCV4]: {
-        [Network.OP_MAINNET]: [Provider.CCTP],
-        [Network.ARBITRUM_ONE]: [Provider.CCTP],
-        [Network.BASE]: [Provider.CCTP],
+        [Network.OP_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.BASE]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.POLYGON_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
       },
       [LiquidityPoolUSDCV4]: {
-        [Network.OP_MAINNET]: [Provider.CCTP],
-        [Network.ARBITRUM_ONE]: [Provider.CCTP],
-        [Network.BASE]: [Provider.CCTP],
+        [Network.OP_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.BASE]: [Provider.CCTP, Provider.CCTP_V2],
       },
       [LiquidityPoolUSDCStablecoinV4]: {
-        [Network.UNICHAIN]: [Provider.CCTP],
+        [Network.UNICHAIN]: [Provider.CCTP, Provider.CCTP_V2],
       },
     },
     RepayerRoutes: {
@@ -302,24 +306,31 @@ export const networkConfig: NetworksConfig = {
           [Network.OP_MAINNET]: [
             Provider.CCTP,
             Provider.ACROSS,
-            Provider.EVERCLEAR,
             Provider.SUPERCHAIN_STANDARD_BRIDGE,
             Provider.STARGATE,
+            Provider.CCTP_V2,
           ],
           [Network.ARBITRUM_ONE]: [
             Provider.CCTP,
             Provider.ACROSS,
-            Provider.EVERCLEAR,
             Provider.STARGATE,
             Provider.ARBITRUM_GATEWAY,
             Provider.USDT0,
+            Provider.CCTP_V2,
           ],
           [Network.BASE]: [
             Provider.CCTP,
             Provider.ACROSS,
-            Provider.EVERCLEAR,
             Provider.SUPERCHAIN_STANDARD_BRIDGE,
-            Provider.STARGATE
+            Provider.STARGATE,
+            Provider.CCTP_V2,
+          ],
+          [Network.POLYGON_MAINNET]: [
+            Provider.CCTP,
+            Provider.ACROSS,
+            Provider.STARGATE,
+            Provider.CCTP_V2,
+            Provider.USDT0,
           ],
         },
       },
@@ -329,17 +340,33 @@ export const networkConfig: NetworksConfig = {
           [Network.OP_MAINNET]: [
             Provider.CCTP,
             Provider.ACROSS,
-            Provider.EVERCLEAR,
+            Provider.CCTP_V2,
             Provider.SUPERCHAIN_STANDARD_BRIDGE
           ],
-          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.ARBITRUM_GATEWAY],
-          [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.SUPERCHAIN_STANDARD_BRIDGE],
+          [Network.ARBITRUM_ONE]: [
+            Provider.CCTP,
+            Provider.ACROSS,
+            Provider.ARBITRUM_GATEWAY,
+            Provider.CCTP_V2,
+          ],
+          [Network.BASE]: [
+            Provider.CCTP,
+            Provider.ACROSS,
+            Provider.SUPERCHAIN_STANDARD_BRIDGE,
+            Provider.CCTP_V2,
+          ],
         },
       },
       [LiquidityPoolUSDCStablecoinV4]: {
         SupportsAllTokens: true,
         Domains: {
-          [Network.UNICHAIN]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE, Provider.USDT0],
+          [Network.UNICHAIN]: [
+            Provider.CCTP,
+            Provider.ACROSS,
+            Provider.STARGATE,
+            Provider.USDT0,
+            Provider.CCTP_V2,
+          ],
         },
       },
     },
@@ -362,6 +389,10 @@ export const networkConfig: NetworksConfig = {
       CCTP: {
         TokenMessenger: "0xbd3fa81b58ba92a82136038b25adec7066af3155",
         MessageTransmitter: "0x0a992d191deec32afe36203ad87d7d289a738f81",
+      },
+      CCTPV2: {
+        TokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+        MessageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
       },
       AcrossV3SpokePool: "0x5c7BCd6E7De5423a257D81B442095A1a6ced35C5",
       StargateTreasurer: "0x1041D127b2d4BC700F0F563883bC689502606918",
@@ -391,25 +422,25 @@ export const networkConfig: NetworksConfig = {
       SignerAddress: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
       RebalancerRoutes: {
         [LiquidityPoolAaveUSDCV4]: {
-          [Network.BASE]: [Provider.CCTP],
-          [Network.ARBITRUM_ONE]: [Provider.CCTP],
-          [Network.OP_MAINNET]: [Provider.CCTP],
-          [Network.POLYGON_MAINNET]: [Provider.CCTP],
+          [Network.BASE]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.OP_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.POLYGON_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
           [Network.GNOSIS_CHAIN]: [Provider.GNOSIS_OMNIBRIDGE],
         },
         [LiquidityPoolUSDCV4]: {
-          [Network.BASE]: [Provider.CCTP],
-          [Network.ARBITRUM_ONE]: [Provider.CCTP],
-          [Network.OP_MAINNET]: [Provider.CCTP],
+          [Network.BASE]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.OP_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
         },
         [LiquidityPoolAaveUSDCLongTermV3]: {
-          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
         },
         [ERC4626AdapterUSDCV2]: {
-          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
         },
         [LiquidityPoolUSDCStablecoinV4]: {
-          [Network.UNICHAIN]: [Provider.CCTP],
+          [Network.UNICHAIN]: [Provider.CCTP, Provider.CCTP_V2],
         },
       },
       RepayerRoutes: {
@@ -419,34 +450,36 @@ export const networkConfig: NetworksConfig = {
             [Network.ARBITRUM_ONE]: [
               Provider.CCTP,
               Provider.ACROSS,
-              Provider.EVERCLEAR,
+
               Provider.ARBITRUM_GATEWAY,
               Provider.STARGATE,
               Provider.USDT0,
+              Provider.CCTP_V2,
             ],
             [Network.BASE]: [
               Provider.CCTP,
               Provider.ACROSS,
-              Provider.EVERCLEAR,
               Provider.SUPERCHAIN_STANDARD_BRIDGE,
               Provider.STARGATE,
+              Provider.CCTP_V2,
             ],
             [Network.OP_MAINNET]: [
               Provider.CCTP,
               Provider.ACROSS,
-              Provider.EVERCLEAR,
               Provider.SUPERCHAIN_STANDARD_BRIDGE,
+              Provider.CCTP_V2,
             ],
             [Network.POLYGON_MAINNET]: [
               Provider.CCTP,
               Provider.ACROSS,
-              Provider.EVERCLEAR,
+
               Provider.STARGATE,
               Provider.USDT0,
+              Provider.CCTP_V2,
             ],
             [Network.GNOSIS_CHAIN]: [
               Provider.GNOSIS_OMNIBRIDGE,
-              Provider.EVERCLEAR,
+
               Provider.STARGATE,
             ],
           },
@@ -457,26 +490,33 @@ export const networkConfig: NetworksConfig = {
             [Network.BASE]: [
               Provider.CCTP,
               Provider.ACROSS,
-              Provider.EVERCLEAR,
+
               Provider.SUPERCHAIN_STANDARD_BRIDGE,
+              Provider.CCTP_V2,
             ],
           },
         },
         [LiquidityPoolUSDCV4]: {
           SupportsAllTokens: false,
           Domains: {
-            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.ARBITRUM_GATEWAY],
+            [Network.ARBITRUM_ONE]: [
+              Provider.CCTP,
+              Provider.ACROSS,
+              Provider.ARBITRUM_GATEWAY,
+              Provider.CCTP_V2,
+            ],
             [Network.BASE]: [
               Provider.CCTP,
               Provider.ACROSS,
-              Provider.EVERCLEAR,
               Provider.SUPERCHAIN_STANDARD_BRIDGE,
+              Provider.CCTP_V2,
             ],
             [Network.OP_MAINNET]: [
               Provider.CCTP,
               Provider.ACROSS,
-              Provider.EVERCLEAR,
+
               Provider.SUPERCHAIN_STANDARD_BRIDGE,
+              Provider.CCTP_V2,
             ],
           },
         },
@@ -486,17 +526,25 @@ export const networkConfig: NetworksConfig = {
             [Network.ARBITRUM_ONE]: [
               Provider.CCTP,
               Provider.ACROSS,
-              Provider.EVERCLEAR,
+
               Provider.ARBITRUM_GATEWAY,
               Provider.STARGATE,
               Provider.USDT0,
+              Provider.CCTP_V2,
             ],
           },
         },
         [LiquidityPoolUSDCStablecoinV4]: {
           SupportsAllTokens: true,
           Domains: {
-            [Network.UNICHAIN]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE, Provider.USDT0],
+            [Network.UNICHAIN]: [
+              Provider.CCTP,
+              Provider.ACROSS,
+
+              Provider.STARGATE,
+              Provider.USDT0,
+              Provider.CCTP_V2,
+            ],
           },
         },
       },
@@ -532,31 +580,48 @@ export const networkConfig: NetworksConfig = {
       [LiquidityPoolAaveUSDCV4]: {
         SupportsAllTokens: true,
         Domains: {
-          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.EVERCLEAR, Provider.STARGATE],
-          [Network.BASE]: [Provider.CCTP, Provider.EVERCLEAR, Provider.STARGATE],
-          [Network.OP_MAINNET]: [Provider.CCTP, Provider.EVERCLEAR, Provider.STARGATE],
+          [Network.ARBITRUM_ONE]: [
+            Provider.CCTP,
+            Provider.STARGATE,
+            Provider.CCTP_V2,
+          ],
+          [Network.BASE]: [
+            Provider.CCTP,
+            Provider.STARGATE,
+            Provider.CCTP_V2,
+          ],
+          [Network.OP_MAINNET]: [
+            Provider.CCTP,
+            Provider.STARGATE,
+            Provider.CCTP_V2,
+          ],
+          [Network.POLYGON_MAINNET]: [
+            Provider.CCTP,
+            Provider.STARGATE,
+            Provider.CCTP_V2,
+          ],
         },
       },
       [LiquidityPoolUSDCV4]: {
         SupportsAllTokens: false,
         Domains: {
-          [Network.ARBITRUM_ONE]: [Provider.CCTP],
-          [Network.BASE]: [Provider.CCTP],
-          [Network.ETHEREUM]: [Provider.CCTP],
-          [Network.OP_MAINNET]: [Provider.CCTP],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.BASE]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.OP_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
         },
       },
       [LiquidityPoolUSDCStablecoinV4]: {
         SupportsAllTokens: true,
         Domains: {
-          [Network.ETHEREUM]: [Provider.CCTP, Provider.EVERCLEAR, Provider.STARGATE],
-          [Network.UNICHAIN]: [Provider.CCTP, Provider.EVERCLEAR, Provider.STARGATE],
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.STARGATE, Provider.CCTP_V2],
+          [Network.UNICHAIN]: [Provider.CCTP, Provider.STARGATE, Provider.CCTP_V2],
         },
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
         SupportsAllTokens: true,
         Domains: {
-          [Network.ETHEREUM]: [Provider.CCTP, Provider.EVERCLEAR, Provider.STARGATE],
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.STARGATE, Provider.CCTP_V2],
         },
       },
     },
@@ -594,49 +659,96 @@ export const networkConfig: NetworksConfig = {
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RebalancerRoutes: {
       [LiquidityPoolAaveUSDCV4]: {
-        [Network.BASE]: [Provider.CCTP],
-        [Network.ARBITRUM_ONE]: [Provider.CCTP],
+        [Network.BASE]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.POLYGON_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
       },
       [LiquidityPoolUSDCV4]: {
-        [Network.BASE]: [Provider.CCTP],
-        [Network.ARBITRUM_ONE]: [Provider.CCTP],
-        [Network.ETHEREUM]: [Provider.CCTP],
+        [Network.BASE]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
       },
       [LiquidityPoolUSDCStablecoinV4]: {
-        [Network.ETHEREUM]: [Provider.CCTP],
-        [Network.UNICHAIN]: [Provider.CCTP],
+        [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.UNICHAIN]: [Provider.CCTP, Provider.CCTP_V2],
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
-        [Network.ETHEREUM]: [Provider.CCTP],
+        [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
       },
     },
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCV4]: {
         SupportsAllTokens: true,
         Domains: {
-          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
-          [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+          [Network.ARBITRUM_ONE]: [
+            Provider.CCTP,
+            Provider.ACROSS,
+            Provider.STARGATE,
+            Provider.CCTP_V2,
+          ],
+          [Network.BASE]: [
+            Provider.CCTP,
+            Provider.ACROSS,
+            Provider.STARGATE,
+            Provider.CCTP_V2,
+          ],
+          [Network.POLYGON_MAINNET]: [
+            Provider.CCTP,
+            Provider.ACROSS,
+            Provider.STARGATE,
+            Provider.CCTP_V2,
+          ],
         },
       },
       [LiquidityPoolUSDCV4]: {
         SupportsAllTokens: false,
         Domains: {
-          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-          [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          [Network.ARBITRUM_ONE]: [
+            Provider.CCTP,
+            Provider.ACROSS,
+            Provider.CCTP_V2,
+          ],
+          [Network.BASE]: [
+            Provider.CCTP,
+            Provider.ACROSS,
+            Provider.CCTP_V2,
+          ],
+          [Network.ETHEREUM]: [
+            Provider.CCTP,
+            Provider.ACROSS,
+            Provider.CCTP_V2,
+          ],
         },
       },
       [LiquidityPoolUSDCStablecoinV4]: {
         SupportsAllTokens: true,
         Domains: {
-          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
-          [Network.UNICHAIN]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+          [Network.ETHEREUM]: [
+            Provider.CCTP,
+            Provider.ACROSS,
+            Provider.STARGATE,
+            Provider.CCTP_V2,
+            Provider.USDT0,
+          ],
+          [Network.UNICHAIN]: [
+            Provider.CCTP,
+            Provider.ACROSS,
+            Provider.STARGATE,
+            Provider.CCTP_V2,
+            Provider.USDT0,
+          ],
         },
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
         SupportsAllTokens: true,
         Domains: {
-          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+          [Network.ETHEREUM]: [
+            Provider.CCTP,
+            Provider.ACROSS,
+            Provider.STARGATE,
+            Provider.CCTP_V2,
+            Provider.USDT0,
+          ],
         }
       },
     },
@@ -666,6 +778,10 @@ export const networkConfig: NetworksConfig = {
         TokenMessenger: "0x2B4069517957735bE00ceE0fadAE88a26365528f",
         MessageTransmitter: "0x4d41f22c5a0e5c74090899e5a8fb597a8842b3e8",
       },
+      CCTPV2: {
+        TokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+        MessageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
+      },
       AcrossV3SpokePool: "0x6f26Bf09B1C792e3228e5467807a900A503c0281",
       StargateTreasurer: "0x644abb1e17291b4403966119d15Ab081e4a487e9",
       EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
@@ -688,39 +804,40 @@ export const networkConfig: NetworksConfig = {
       SignerAddress: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
       RebalancerRoutes: {
         [LiquidityPoolAaveUSDCV4]: {
-          [Network.BASE]: [Provider.CCTP],
-          [Network.ARBITRUM_ONE]: [Provider.CCTP],
-          [Network.POLYGON_MAINNET]: [Provider.CCTP],
+          [Network.BASE]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.POLYGON_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
         },
         [LiquidityPoolUSDCV4]: {
-          [Network.BASE]: [Provider.CCTP],
-          [Network.ARBITRUM_ONE]: [Provider.CCTP],
-          [Network.ETHEREUM]: [Provider.CCTP],
+          [Network.BASE]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
         },
         [LiquidityPoolAaveUSDCLongTermV3]: {
-          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
         },
         [ERC4626AdapterUSDCV2]: {
-          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
         },
         [LiquidityPoolUSDCStablecoinV4]: {
-          [Network.UNICHAIN]: [Provider.CCTP],
+          [Network.UNICHAIN]: [Provider.CCTP, Provider.CCTP_V2],
         },
       },
       RepayerRoutes: {
         [LiquidityPoolAaveUSDCV4]: {
           SupportsAllTokens: true,
           Domains: {
-            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
-            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+            [Network.ARBITRUM_ONE]: [
+              Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2
+            ],
+            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
             [Network.POLYGON_MAINNET]: [
               Provider.CCTP,
               Provider.ACROSS,
-              Provider.EVERCLEAR,
               Provider.STARGATE,
+              Provider.CCTP_V2,
             ],
             [Network.GNOSIS_CHAIN]: [
-              Provider.EVERCLEAR,
               Provider.STARGATE,
             ],
           },
@@ -728,27 +845,29 @@ export const networkConfig: NetworksConfig = {
         [LiquidityPoolUSDCV3]: {
           SupportsAllTokens: false,
           Domains: {
-            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
           },
         },
         [LiquidityPoolUSDCV4]: {
           SupportsAllTokens: false,
           Domains: {
-            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-            [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
+            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
+            [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
           },
         },
         [LiquidityPoolAaveUSDCLongTermV3]: {
           SupportsAllTokens: true,
           Domains: {
-            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
           },
         },
         [LiquidityPoolUSDCStablecoinV4]: {
           SupportsAllTokens: true,
           Domains: {
-            [Network.UNICHAIN]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+            [Network.UNICHAIN]: [
+              Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2
+            ],
           },
         },
       },
@@ -807,49 +926,98 @@ export const networkConfig: NetworksConfig = {
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RebalancerRoutes: {
       [LiquidityPoolAaveUSDCV4]: {
-        [Network.BASE]: [Provider.CCTP],
-        [Network.OP_MAINNET]: [Provider.CCTP],
+        [Network.BASE]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.OP_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.POLYGON_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
       },
       [LiquidityPoolUSDCV4]: {
-        [Network.BASE]: [Provider.CCTP],
-        [Network.OP_MAINNET]: [Provider.CCTP],
-        [Network.ETHEREUM]: [Provider.CCTP],
+        [Network.BASE]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.OP_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
       },
       [LiquidityPoolUSDCStablecoinV4]: {
-        [Network.ETHEREUM]: [Provider.CCTP],
-        [Network.UNICHAIN]: [Provider.CCTP],
+        [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.UNICHAIN]: [Provider.CCTP, Provider.CCTP_V2],
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
-        [Network.ETHEREUM]: [Provider.CCTP],
+        [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
       },
     },
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCV4]: {
         SupportsAllTokens: true,
         Domains: {
-          [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
-          [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+          [Network.OP_MAINNET]: [
+            Provider.CCTP,
+            Provider.CCTP_V2,
+            Provider.ACROSS,
+            Provider.STARGATE,
+          ],
+          [Network.BASE]: [
+            Provider.CCTP, 
+            Provider.CCTP_V2,
+            Provider.ACROSS,
+            Provider.STARGATE,
+          ],
+          [Network.POLYGON_MAINNET]: [
+            Provider.CCTP,
+            Provider.CCTP_V2,
+            Provider.ACROSS,
+            Provider.STARGATE,
+            Provider.USDT0,
+          ],
         },
       },
       [LiquidityPoolUSDCV4]: {
         SupportsAllTokens: false,
         Domains: {
-          [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-          [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          [Network.OP_MAINNET]: [
+            Provider.CCTP,
+            Provider.ACROSS,
+            Provider.CCTP_V2,
+          ],
+          [Network.BASE]: [
+            Provider.CCTP,
+            Provider.ACROSS,
+            Provider.CCTP_V2,
+          ],
+          [Network.ETHEREUM]: [
+            Provider.CCTP,
+            Provider.ACROSS,
+            Provider.CCTP_V2,
+            Provider.USDT0,
+          ],
         },
       },
       [LiquidityPoolUSDCStablecoinV4]: {
         SupportsAllTokens: true,
         Domains: {
-          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE, Provider.USDT0],
-          [Network.UNICHAIN]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE, Provider.USDT0],
+          [Network.ETHEREUM]: [
+            Provider.CCTP,
+            Provider.ACROSS,
+            Provider.STARGATE,
+            Provider.USDT0,
+            Provider.CCTP_V2
+          ],
+          [Network.UNICHAIN]: [
+            Provider.CCTP,
+            Provider.ACROSS,
+            Provider.STARGATE,
+            Provider.USDT0,
+            Provider.CCTP_V2
+          ],
         },
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
         SupportsAllTokens: true,
         Domains: {
-          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE, Provider.USDT0],
+          [Network.ETHEREUM]: [
+            Provider.CCTP,
+            Provider.ACROSS,
+            Provider.STARGATE,
+            Provider.USDT0,
+            Provider.CCTP_V2
+          ],
         }
       },
     },
@@ -881,6 +1049,10 @@ export const networkConfig: NetworksConfig = {
         TokenMessenger: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
         MessageTransmitter: "0xC30362313FBBA5cf9163F0bb16a0e01f01A896ca",
       },
+      CCTPV2: {
+        TokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+        MessageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
+      },
       AcrossV3SpokePool: "0xe35e9842fceaCA96570B734083f4a58e8F7C5f2A",
       StargateTreasurer: "0x146c8e409C113ED87C6183f4d25c50251DFfbb3a",
       EverclearFeeAdapter: "0xd0185bfb8107c5b2336bC73cE3fdd9Bfb504540e",
@@ -904,34 +1076,35 @@ export const networkConfig: NetworksConfig = {
       SignerAddress: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
       RebalancerRoutes: {
         [LiquidityPoolAaveUSDCV4]: {
-          [Network.BASE]: [Provider.CCTP],
-          [Network.OP_MAINNET]: [Provider.CCTP],
-          [Network.POLYGON_MAINNET]: [Provider.CCTP],
+          [Network.BASE]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.OP_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.POLYGON_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
         },
         [LiquidityPoolUSDCV4]: {
-          [Network.BASE]: [Provider.CCTP],
-          [Network.OP_MAINNET]: [Provider.CCTP],
-          [Network.ETHEREUM]: [Provider.CCTP],
+          [Network.BASE]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.OP_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
         },
         [LiquidityPoolUSDCStablecoinV4]: {
-          [Network.UNICHAIN]: [Provider.CCTP],
+          [Network.UNICHAIN]: [Provider.CCTP, Provider.CCTP_V2],
         },
       },
       RepayerRoutes: {
         [LiquidityPoolAaveUSDCV4]: {
           SupportsAllTokens: true,
           Domains: {
-            [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
-            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+            [Network.OP_MAINNET]: [
+              Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2
+            ],
+            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
             [Network.POLYGON_MAINNET]: [
               Provider.CCTP,
               Provider.ACROSS,
-              Provider.EVERCLEAR,
               Provider.STARGATE,
               Provider.USDT0,
+              Provider.CCTP_V2,
             ],
             [Network.GNOSIS_CHAIN]: [
-              Provider.EVERCLEAR,
               Provider.STARGATE,
             ],
           },
@@ -939,21 +1112,23 @@ export const networkConfig: NetworksConfig = {
         [LiquidityPoolUSDCV3]: {
           SupportsAllTokens: false,
           Domains: {
-            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
           },
         },
         [LiquidityPoolUSDCV4]: {
           SupportsAllTokens: false,
           Domains: {
-            [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-            [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
+            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
+            [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
           },
         },
         [LiquidityPoolUSDCStablecoinV4]: {
           SupportsAllTokens: true,
           Domains: {
-            [Network.UNICHAIN]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE, Provider.USDT0],
+            [Network.UNICHAIN]: [
+              Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.USDT0, Provider.CCTP_V2
+            ],
           },
         },
       },
@@ -1041,49 +1216,66 @@ export const networkConfig: NetworksConfig = {
     },
     RebalancerRoutes: {
       [LiquidityPoolAaveUSDCV4]: {
-        [Network.OP_MAINNET]: [Provider.CCTP],
-        [Network.ARBITRUM_ONE]: [Provider.CCTP],
+        [Network.OP_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.POLYGON_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
       },
       [LiquidityPoolUSDCV4]: {
-        [Network.OP_MAINNET]: [Provider.CCTP],
-        [Network.ETHEREUM]: [Provider.CCTP],
-        [Network.ARBITRUM_ONE]: [Provider.CCTP],
+        [Network.OP_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
       },
       [LiquidityPoolUSDCStablecoinV4]: {
-        [Network.ETHEREUM]: [Provider.CCTP],
-        [Network.UNICHAIN]: [Provider.CCTP],
+        [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.UNICHAIN]: [Provider.CCTP, Provider.CCTP_V2],
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
-        [Network.ETHEREUM]: [Provider.CCTP],
+        [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
       },
     },
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCV4]: {
         SupportsAllTokens: true,
         Domains: {
-          [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
-          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+          [Network.OP_MAINNET]: [
+            Provider.CCTP,
+            Provider.CCTP_V2,
+            Provider.ACROSS,
+            Provider.STARGATE,
+          ],
+          [Network.ARBITRUM_ONE]: [
+            Provider.CCTP,
+            Provider.CCTP_V2,
+            Provider.ACROSS,
+            Provider.STARGATE
+          ],
+          [Network.POLYGON_MAINNET]: [
+            Provider.CCTP,
+            Provider.CCTP_V2,
+            Provider.ACROSS,
+            Provider.STARGATE
+          ],
         },
       },
       [LiquidityPoolUSDCV4]: {
         SupportsAllTokens: false,
         Domains: {
-          [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
         },
       },
       [LiquidityPoolUSDCStablecoinV4]: {
         SupportsAllTokens: true,
         Domains: {
-          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
-          [Network.UNICHAIN]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
+          [Network.UNICHAIN]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
         },
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
         SupportsAllTokens: true,
         Domains: {
-          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
         }
       },
     },
@@ -1109,6 +1301,10 @@ export const networkConfig: NetworksConfig = {
       CCTP: {
         TokenMessenger: "0x1682Ae6375C4E4A97e4B583BC394c861A46D8962",
         MessageTransmitter: "0xAD09780d193884d503182aD4588450C416D6F9D4",
+      },
+      CCTPV2: {
+        TokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+        MessageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
       },
       AcrossV3SpokePool: "0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64",
       StargateTreasurer: "0xd47b03ee6d86Cf251ee7860FB2ACf9f91B9fD4d7",
@@ -1143,39 +1339,43 @@ export const networkConfig: NetworksConfig = {
       },
       RebalancerRoutes: {
         [LiquidityPoolAaveUSDCV4]: {
-          [Network.OP_MAINNET]: [Provider.CCTP],
-          [Network.ARBITRUM_ONE]: [Provider.CCTP],
-          [Network.POLYGON_MAINNET]: [Provider.CCTP],
+          [Network.OP_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.POLYGON_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
         },
         [LiquidityPoolUSDCV4]: {
-          [Network.OP_MAINNET]: [Provider.CCTP],
-          [Network.ARBITRUM_ONE]: [Provider.CCTP],
-          [Network.ETHEREUM]: [Provider.CCTP],
+          [Network.OP_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
         },
         [LiquidityPoolAaveUSDCLongTermV3]: {
-          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
         },
         [ERC4626AdapterUSDCV2]: {
-          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
         },
         [LiquidityPoolUSDCStablecoinV4]: {
-          [Network.UNICHAIN]: [Provider.CCTP],
+          [Network.UNICHAIN]: [Provider.CCTP, Provider.CCTP_V2],
         },
       },
       RepayerRoutes: {
         [LiquidityPoolAaveUSDCV4]: {
           SupportsAllTokens: true,
           Domains: {
-            [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
-            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+            [Network.OP_MAINNET]: [
+              Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2
+            ],
+            [Network.ARBITRUM_ONE]: [
+              Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2
+            ],
             [Network.POLYGON_MAINNET]: [
               Provider.CCTP,
               Provider.ACROSS,
-              Provider.EVERCLEAR,
               Provider.STARGATE,
+              Provider.USDT0,
+              Provider.CCTP_V2,
             ],
             [Network.GNOSIS_CHAIN]: [
-              Provider.EVERCLEAR,
               Provider.STARGATE,
             ],
           },
@@ -1183,21 +1383,25 @@ export const networkConfig: NetworksConfig = {
         [LiquidityPoolUSDCV4]: {
           SupportsAllTokens: false,
           Domains: {
-            [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-            [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
+            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
+            [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
           },
         },
         [LiquidityPoolAaveUSDCLongTermV3]: {
           SupportsAllTokens: true,
           Domains: {
-            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+            [Network.ARBITRUM_ONE]: [
+              Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2
+            ],
           },
         },
         [LiquidityPoolUSDCStablecoinV4]: {
           SupportsAllTokens: true,
           Domains: {
-            [Network.UNICHAIN]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+            [Network.UNICHAIN]: [
+              Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2
+            ],
           },
         },
       },
@@ -1256,20 +1460,23 @@ export const networkConfig: NetworksConfig = {
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RebalancerRoutes: {
       [LiquidityPoolAaveUSDCV4]: {
-        [Network.OP_MAINNET]: [Provider.CCTP],
-        [Network.ARBITRUM_ONE]: [Provider.CCTP],
+        [Network.OP_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.BASE]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
       },
       [LiquidityPoolUSDCV4]: {
-        [Network.OP_MAINNET]: [Provider.CCTP],
-        [Network.ETHEREUM]: [Provider.CCTP],
-        [Network.ARBITRUM_ONE]: [Provider.CCTP],
+        [Network.OP_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.BASE]: [Provider.CCTP, Provider.CCTP_V2],
       },
       [LiquidityPoolUSDCStablecoinV4]: {
-        [Network.ETHEREUM]: [Provider.CCTP],
-        [Network.UNICHAIN]: [Provider.CCTP],
+        [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.UNICHAIN]: [Provider.CCTP, Provider.CCTP_V2],
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
-        [Network.ETHEREUM]: [Provider.CCTP],
+        [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
       },
     },
     RepayerRoutes: {
@@ -1279,34 +1486,34 @@ export const networkConfig: NetworksConfig = {
           [Network.ARBITRUM_ONE]: [
             Provider.CCTP,
             Provider.ACROSS,
-            Provider.EVERCLEAR,
             Provider.STARGATE,
             Provider.USDT0,
+            Provider.CCTP_V2,
           ],
-          [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
-          [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+          [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
+          [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
         },
       },
       [LiquidityPoolUSDCV4]: {
         SupportsAllTokens: false,
         Domains: {
-          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-          [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-          [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
+          [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
+          [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
         },
       },
       [LiquidityPoolUSDCStablecoinV4]: {
         SupportsAllTokens: true,
         Domains: {
-          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE, Provider.USDT0],
-          [Network.UNICHAIN]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE, Provider.USDT0],
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.USDT0, Provider.CCTP_V2],
+          [Network.UNICHAIN]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.USDT0, Provider.CCTP_V2],
         },
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
         SupportsAllTokens: true,
         Domains: {
-          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE, Provider.USDT0],
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.USDT0, Provider.CCTP_V2],
         }
       },
     },
@@ -1327,6 +1534,10 @@ export const networkConfig: NetworksConfig = {
       CCTP: {
         TokenMessenger: "0x9daF8c91AEFAE50b9c0E69629D3F6Ca40cA3B3FE",
         MessageTransmitter: "0xF3be9355363857F3e001be68856A2f96b4C39Ba9",
+      },
+      CCTPV2: {
+        TokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+        MessageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
       },
       AcrossV3SpokePool: "0x9295ee1d8C5b022Be115A2AD3c30C72E34e7F096",
       StargateTreasurer: "0x36ed193dc7160D3858EC250e69D12B03Ca087D08",
@@ -1351,38 +1562,41 @@ export const networkConfig: NetworksConfig = {
       SignerAddress: "0x2D5B6C193C39D2AECb4a99052074E6F325258a0f",
       RebalancerRoutes: {
         [LiquidityPoolAaveUSDCV4]: {
-          [Network.BASE]: [Provider.CCTP],
-          [Network.OP_MAINNET]: [Provider.CCTP],
-          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+          [Network.BASE]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.OP_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
         },
         [LiquidityPoolAaveUSDCLongTermV3]: {
-          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
         },
         [LiquidityPoolUSDCV4]: {
-          [Network.BASE]: [Provider.CCTP],
-          [Network.OP_MAINNET]: [Provider.CCTP],
-          [Network.ETHEREUM]: [Provider.CCTP],
-          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+          [Network.BASE]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.OP_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
         },
         [LiquidityPoolUSDCStablecoinV4]: {
-          [Network.UNICHAIN]: [Provider.CCTP],
+          [Network.UNICHAIN]: [Provider.CCTP, Provider.CCTP_V2],
         },
       },
       RepayerRoutes: {
         [LiquidityPoolAaveUSDCV4]: {
           SupportsAllTokens: true,
           Domains: {
-            [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
-            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+            [Network.OP_MAINNET]: [
+              Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2
+            ],
+            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
             [Network.ARBITRUM_ONE]: [
               Provider.CCTP,
               Provider.ACROSS,
-              Provider.EVERCLEAR,
+
               Provider.STARGATE,
-              Provider.USDT0
+              Provider.USDT0,
+              Provider.CCTP_V2,
             ],
             [Network.GNOSIS_CHAIN]: [
-              Provider.EVERCLEAR,
+
               Provider.STARGATE,
             ],
           },
@@ -1393,31 +1607,33 @@ export const networkConfig: NetworksConfig = {
             [Network.ARBITRUM_ONE]: [
               Provider.CCTP,
               Provider.ACROSS,
-              Provider.EVERCLEAR,
               Provider.STARGATE,
-              Provider.USDT0
+              Provider.USDT0,
+              Provider.CCTP_V2,
             ],
           },
         },
         [LiquidityPoolUSDCV3]: {
           SupportsAllTokens: false,
           Domains: {
-            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
           },
         },
         [LiquidityPoolUSDCV4]: {
           SupportsAllTokens: false,
           Domains: {
-            [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-            [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
+            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
+            [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
+            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
           },
         },
         [LiquidityPoolUSDCStablecoinV4]: {
           SupportsAllTokens: true,
           Domains: {
-            [Network.UNICHAIN]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE, Provider.USDT0],
+            [Network.UNICHAIN]: [
+              Provider.CCTP, Provider.CCTP_V2, Provider.ACROSS, Provider.STARGATE, Provider.USDT0
+            ],
           },
         },
       },
@@ -1466,21 +1682,22 @@ export const networkConfig: NetworksConfig = {
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RebalancerRoutes: {
       [LiquidityPoolAaveUSDCV4]: {
-        [Network.OP_MAINNET]: [Provider.CCTP],
-        [Network.ARBITRUM_ONE]: [Provider.CCTP],
-        [Network.BASE]: [Provider.CCTP],
+        [Network.OP_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.BASE]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.POLYGON_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
       },
       [LiquidityPoolUSDCV4]: {
-        [Network.OP_MAINNET]: [Provider.CCTP],
-        [Network.ARBITRUM_ONE]: [Provider.CCTP],
-        [Network.BASE]: [Provider.CCTP],
-        [Network.ETHEREUM]: [Provider.CCTP],
+        [Network.OP_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.BASE]: [Provider.CCTP, Provider.CCTP_V2],
+        [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
       },
       [LiquidityPoolUSDCStablecoinV4]: {
-        [Network.ETHEREUM]: [Provider.CCTP],
+        [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
-        [Network.ETHEREUM]: [Provider.CCTP],
+        [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
       },
     },
     RepayerRoutes: {
@@ -1490,33 +1707,34 @@ export const networkConfig: NetworksConfig = {
           [Network.ARBITRUM_ONE]: [
             Provider.CCTP,
             Provider.ACROSS,
-            Provider.EVERCLEAR,
             Provider.STARGATE,
             Provider.USDT0,
+            Provider.CCTP_V2,
           ],
-          [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
-          [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+          [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
+          [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
+          [Network.POLYGON_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
         },
       },
       [LiquidityPoolUSDCV4]: {
         SupportsAllTokens: false,
         Domains: {
-          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-          [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-          [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
+          [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
+          [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
         },
       },
       [LiquidityPoolUSDCStablecoinV4]: {
         SupportsAllTokens: true,
         Domains: {
-          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE, Provider.USDT0],
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.USDT0, Provider.CCTP_V2],
         },
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
         SupportsAllTokens: true,
         Domains: {
-          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE, Provider.USDT0],
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.USDT0, Provider.CCTP_V2],
         }
       },
     },
@@ -1526,6 +1744,10 @@ export const networkConfig: NetworksConfig = {
       CCTP: {
         TokenMessenger: "0x4e744b28E787c3aD0e810eD65A24461D4ac5a762",
         MessageTransmitter: "0x353bE9E2E38AB1D19104534e4edC21c643Df86f4",
+      },
+      CCTPV2: {
+        TokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+        MessageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
       },
       AcrossV3SpokePool: "0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64",
       StargateTreasurer: "0x6D205337F45D6850c3c3006e28d5b52c8a432c35",
@@ -1548,43 +1770,45 @@ export const networkConfig: NetworksConfig = {
       SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
       RebalancerRoutes: {
         [LiquidityPoolAaveUSDCV4]: {
-          [Network.BASE]: [Provider.CCTP],
-          [Network.OP_MAINNET]: [Provider.CCTP],
-          [Network.POLYGON_MAINNET]: [Provider.CCTP],
-          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+          [Network.BASE]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.OP_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.POLYGON_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
         },
         [LiquidityPoolAaveUSDCLongTermV3]: {
-          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
         },
         [LiquidityPoolUSDCV4]: {
-          [Network.BASE]: [Provider.CCTP],
-          [Network.OP_MAINNET]: [Provider.CCTP],
-          [Network.ETHEREUM]: [Provider.CCTP],
-          [Network.ARBITRUM_ONE]: [Provider.CCTP],
+          [Network.BASE]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.OP_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
         },
       },
       RepayerRoutes: {
         [LiquidityPoolAaveUSDCV4]: {
           SupportsAllTokens: true,
           Domains: {
-            [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
-            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+            [Network.OP_MAINNET]: [
+              Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2
+            ],
+            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
             [Network.POLYGON_MAINNET]: [
               Provider.CCTP,
               Provider.ACROSS,
-              Provider.EVERCLEAR,
               Provider.STARGATE,
               Provider.USDT0,
+              Provider.CCTP_V2,
             ],
             [Network.ARBITRUM_ONE]: [
               Provider.CCTP,
               Provider.ACROSS,
-              Provider.EVERCLEAR,
               Provider.STARGATE,
               Provider.USDT0,
+              Provider.CCTP_V2,
             ],
             [Network.GNOSIS_CHAIN]: [
-              Provider.EVERCLEAR,
+
               Provider.STARGATE,
             ],
           },
@@ -1595,25 +1819,25 @@ export const networkConfig: NetworksConfig = {
             [Network.ARBITRUM_ONE]: [
               Provider.CCTP,
               Provider.ACROSS,
-              Provider.EVERCLEAR,
               Provider.STARGATE,
-              Provider.USDT0
+              Provider.USDT0,
+              Provider.CCTP_V2
             ],
           },
         },
         [LiquidityPoolUSDCV3]: {
           SupportsAllTokens: false,
           Domains: {
-            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
           },
         },
         [LiquidityPoolUSDCV4]: {
           SupportsAllTokens: false,
           Domains: {
-            [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-            [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
-            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.EVERCLEAR],
+            [Network.OP_MAINNET]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
+            [Network.BASE]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
+            [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
+            [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
           },
         },
       },
@@ -1645,31 +1869,32 @@ export const networkConfig: NetworksConfig = {
       [LiquidityPoolAaveUSDCV4]: {
         SupportsAllTokens: true,
         Domains: {
-          [Network.ARBITRUM_ONE]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
-          [Network.BASE]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
-          [Network.OP_MAINNET]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+          [Network.ARBITRUM_ONE]: [Provider.ACROSS, Provider.STARGATE],
+          [Network.BASE]: [Provider.ACROSS, Provider.STARGATE],
+          [Network.OP_MAINNET]: [Provider.ACROSS, Provider.STARGATE],
+          [Network.POLYGON_MAINNET]: [Provider.ACROSS, Provider.STARGATE],
         },
       },
       [LiquidityPoolUSDCV4]: {
         SupportsAllTokens: false,
         Domains: {
-          [Network.ARBITRUM_ONE]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
-          [Network.BASE]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
-          [Network.ETHEREUM]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
-          [Network.OP_MAINNET]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+          [Network.ARBITRUM_ONE]: [Provider.ACROSS, Provider.STARGATE],
+          [Network.BASE]: [Provider.ACROSS, Provider.STARGATE],
+          [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE],
+          [Network.OP_MAINNET]: [Provider.ACROSS, Provider.STARGATE],
         },
       },
       [LiquidityPoolUSDCStablecoinV4]: {
         SupportsAllTokens: true,
         Domains: {
-          [Network.ETHEREUM]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
-          [Network.UNICHAIN]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+          [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE],
+          [Network.UNICHAIN]: [Provider.ACROSS, Provider.STARGATE],
         },
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
         SupportsAllTokens: true,
         Domains: {
-          [Network.ETHEREUM]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+          [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE],
         },
       },
     },
@@ -1698,20 +1923,17 @@ export const networkConfig: NetworksConfig = {
         [LiquidityPoolAaveUSDCV4]: {
           SupportsAllTokens: true,
           Domains: {
-            [Network.OP_MAINNET]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
-            [Network.BASE]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+            [Network.OP_MAINNET]: [Provider.ACROSS, Provider.STARGATE],
+            [Network.BASE]: [Provider.ACROSS, Provider.STARGATE],
             [Network.POLYGON_MAINNET]: [
               Provider.ACROSS,
-              Provider.EVERCLEAR,
               Provider.STARGATE,
             ],
             [Network.ARBITRUM_ONE]: [
               Provider.ACROSS,
-              Provider.EVERCLEAR,
               Provider.STARGATE,
             ],
             [Network.GNOSIS_CHAIN]: [
-              Provider.EVERCLEAR,
               Provider.STARGATE,
             ],
           },
@@ -1721,7 +1943,6 @@ export const networkConfig: NetworksConfig = {
           Domains: {
             [Network.ARBITRUM_ONE]: [
               Provider.ACROSS,
-              Provider.EVERCLEAR,
               Provider.STARGATE,
             ],
           },
@@ -1744,7 +1965,7 @@ export const networkConfig: NetworksConfig = {
         [LiquidityPoolUSDCStablecoinV4]: {
           SupportsAllTokens: true,
           Domains: {
-            [Network.UNICHAIN]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+            [Network.UNICHAIN]: [Provider.ACROSS, Provider.STARGATE],
           },
         },
       },
@@ -1755,6 +1976,10 @@ export const networkConfig: NetworksConfig = {
     AcrossV3SpokePool: "0x7E63A5f1a8F0B4d0934B2f2327DAED3F6bb2ee75",
     StargateTreasurer: "0xf5F74d2508e97A3a7CCA2ccb75c8325D66b46152",
     EverclearFeeAdapter: "0xAa7ee09f745a3c5De329EB0CD67878Ba87B70Ffe",
+    CCTPV2: {
+      TokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+      MessageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
+    },
     Tokens: {
       USDC: tokenInfo("0x176211869cA2b568f2A7D4EE941E073a821EE1ff", 6),
       USDT: tokenInfo("0xA219439258ca9da29E9Cc4cE5596924745e12B93", 6),
@@ -1776,31 +2001,32 @@ export const networkConfig: NetworksConfig = {
       [LiquidityPoolAaveUSDCV4]: {
         SupportsAllTokens: true,
         Domains: {
-          [Network.ARBITRUM_ONE]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
-          [Network.BASE]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
-          [Network.OP_MAINNET]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+          [Network.ARBITRUM_ONE]: [Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
+          [Network.BASE]: [Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
+          [Network.OP_MAINNET]: [Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
+          [Network.POLYGON_MAINNET]: [Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
         },
       },
       [LiquidityPoolUSDCV4]: {
         SupportsAllTokens: false,
         Domains: {
-          [Network.ARBITRUM_ONE]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
-          [Network.BASE]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
-          [Network.ETHEREUM]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
-          [Network.OP_MAINNET]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+          [Network.ARBITRUM_ONE]: [Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
+          [Network.BASE]: [Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
+          [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
+          [Network.OP_MAINNET]: [Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
         },
       },
       [LiquidityPoolUSDCStablecoinV4]: {
         SupportsAllTokens: true,
         Domains: {
-          [Network.ETHEREUM]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
-          [Network.UNICHAIN]: [Provider.ACROSS, Provider.EVERCLEAR, Provider.STARGATE],
+          [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
+          [Network.UNICHAIN]: [Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
         },
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
         SupportsAllTokens: true,
         Domains: {
-          [Network.ETHEREUM]: [Provider.EVERCLEAR, Provider.STARGATE],
+          [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
         },
       },
     },
@@ -1847,6 +2073,7 @@ export const networkConfig: NetworksConfig = {
           [Network.ARBITRUM_ONE]: [Provider.STARGATE],
           [Network.BASE]: [Provider.STARGATE],
           [Network.OP_MAINNET]: [Provider.STARGATE],
+          [Network.POLYGON_MAINNET]: [Provider.STARGATE],
         },
       },
       [LiquidityPoolUSDCStablecoinV4]: {
@@ -1898,14 +2125,12 @@ export const networkConfig: NetworksConfig = {
         [LiquidityPoolAaveUSDCV4]: {
           SupportsAllTokens: true,
           Domains: {
-            [Network.OP_MAINNET]: [Provider.EVERCLEAR, Provider.STARGATE],
-            [Network.BASE]: [Provider.EVERCLEAR, Provider.STARGATE],
+            [Network.OP_MAINNET]: [Provider.STARGATE],
+            [Network.BASE]: [Provider.STARGATE],
             [Network.POLYGON_MAINNET]: [
-              Provider.EVERCLEAR,
               Provider.STARGATE,
             ],
             [Network.ARBITRUM_ONE]: [
-              Provider.EVERCLEAR,
               Provider.STARGATE,
             ],
           },
@@ -1914,7 +2139,7 @@ export const networkConfig: NetworksConfig = {
           SupportsAllTokens: true,
           Domains: {
             [Network.ARBITRUM_ONE]: [
-              Provider.EVERCLEAR,
+
               Provider.STARGATE,
             ],
           },
@@ -1922,16 +2147,16 @@ export const networkConfig: NetworksConfig = {
         [LiquidityPoolUSDCV3]: {
           SupportsAllTokens: false,
           Domains: {
-            [Network.BASE]: [Provider.EVERCLEAR, Provider.STARGATE],
+            [Network.BASE]: [Provider.STARGATE],
           },
         },
         [LiquidityPoolUSDCV4]: {
           SupportsAllTokens: false,
           Domains: {
-            [Network.OP_MAINNET]: [Provider.EVERCLEAR, Provider.STARGATE],
-            [Network.BASE]: [Provider.EVERCLEAR, Provider.STARGATE],
-            [Network.ETHEREUM]: [Provider.EVERCLEAR, Provider.STARGATE, Provider.GNOSIS_OMNIBRIDGE],
-            [Network.ARBITRUM_ONE]: [Provider.EVERCLEAR, Provider.STARGATE],
+            [Network.OP_MAINNET]: [Provider.STARGATE],
+            [Network.BASE]: [Provider.STARGATE],
+            [Network.ETHEREUM]: [Provider.STARGATE, Provider.GNOSIS_OMNIBRIDGE],
+            [Network.ARBITRUM_ONE]: [Provider.STARGATE],
           },
         },
       },
@@ -1947,6 +2172,175 @@ export const networkConfig: NetworksConfig = {
         },
       },
     }
+  },
+  WORLD_CHAIN: {
+    ChainId: 480,
+    CCTPV2: {
+      TokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+      MessageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
+    },
+    AcrossV3SpokePool: "0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64",
+    Tokens: {
+      USDC: tokenInfo("0x79A02482A880bCE3F13e09Da970dC34db4CD24d1", 6),
+      WETH: tokenInfo("0x4200000000000000000000000000000000000006", 18),
+      WBTC: tokenInfo("0x03C7054BCB39f7b2e5B2c7AcB37583e32D70Cfa3", 8),
+    },
+    WrappedNativeToken: "0x4200000000000000000000000000000000000006",
+    IsTest: false,
+    Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
+    WithdrawProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RepayerCaller: "0x9A5B33bd11329116A55F764c604a5152eE8Ca292",
+    SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
+    SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RepayerRoutes: {
+      [LiquidityPoolUSDCV4]: {
+        SupportsAllTokens: false,
+        Domains: {
+          [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.BASE]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.OP_MAINNET]: [Provider.CCTP_V2, Provider.ACROSS],
+        },
+      },
+      [LiquidityPoolAaveUSDCV4]: {
+        SupportsAllTokens: true,
+        Domains: {
+          [Network.ARBITRUM_ONE]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.BASE]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.OP_MAINNET]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.POLYGON_MAINNET]: [Provider.CCTP_V2, Provider.ACROSS],
+        },
+      },
+      [LiquidityPoolUSDCStablecoinV4]: {
+        SupportsAllTokens: true,
+        Domains: {
+          [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.UNICHAIN]: [Provider.CCTP_V2, Provider.ACROSS],
+        },
+      },
+      [LiquidityPoolAaveUSDCLongTermV3]: {
+        SupportsAllTokens: true,
+        Domains: {
+          [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS],
+        }
+      },
+    },
+  },
+  HYPER_EVM: {
+    ChainId: 999,
+    CCTPV2: {
+      TokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+      MessageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
+    },
+    USDT0OFT: "0x904861a24F30EC96ea7CFC3bE9EA4B476d237e98",
+    AcrossV3SpokePool: "0x35E63eA3eb0fb7A3bc543C71FB66412e1F6B0E04",
+    Tokens: {
+      USDC: tokenInfo("0xb88339cb7199b77e23db6e890353e22632ba630f", 6),
+      USDT: tokenInfo("0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb", 6),
+    },
+    WrappedNativeToken: "0x5555555555555555555555555555555555555555",
+    IsTest: false,
+    Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
+    WithdrawProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RepayerCaller: "0x9A5B33bd11329116A55F764c604a5152eE8Ca292",
+    SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
+    SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RepayerRoutes: {
+      [LiquidityPoolUSDCV4]: {
+        SupportsAllTokens: false,
+        Domains: {
+          [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.BASE]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.OP_MAINNET]: [Provider.CCTP_V2, Provider.ACROSS],
+        },
+      },
+      [LiquidityPoolAaveUSDCV4]: {
+        SupportsAllTokens: true,
+        Domains: {
+          [Network.ARBITRUM_ONE]: [Provider.CCTP_V2, Provider.ACROSS, Provider.USDT0],
+          [Network.BASE]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.OP_MAINNET]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.POLYGON_MAINNET]: [Provider.CCTP_V2, Provider.ACROSS, Provider.USDT0],
+        },
+      },
+      [LiquidityPoolUSDCStablecoinV4]: {
+        SupportsAllTokens: true,
+        Domains: {
+          [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.UNICHAIN]: [Provider.CCTP_V2, Provider.ACROSS],
+        },
+      },
+      [LiquidityPoolAaveUSDCLongTermV3]: {
+        SupportsAllTokens: true,
+        Domains: {
+          [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS, Provider.USDT0],
+        }
+      },
+    },
+  },
+  INK: {
+    ChainId: 57073,
+    CCTPV2: {
+      TokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+      MessageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
+    },
+    USDT0OFT: "0x1cB6De532588fCA4a21B7209DE7C456AF8434A65",
+    AcrossV3SpokePool: "0xeF684C38F94F48775959ECf2012D7E864ffb9dd4",
+    Tokens: {
+      USDC: tokenInfo("0x2D270e6886d130D724215A266106e6832161EAEd", 6),
+      WETH: tokenInfo("0x4200000000000000000000000000000000000006", 18),
+      USDT: tokenInfo("0x0200C29006150606B650577BBE7B6248F58470c1", 6),
+    },
+    WrappedNativeToken: "0x4200000000000000000000000000000000000006",
+    IsTest: false,
+    Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
+    WithdrawProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RepayerCaller: "0x9A5B33bd11329116A55F764c604a5152eE8Ca292",
+    SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
+    SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RepayerRoutes: {
+      [LiquidityPoolUSDCV4]: {
+        SupportsAllTokens: false,
+        Domains: {
+          [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.ARBITRUM_ONE]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.BASE]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.OP_MAINNET]: [Provider.CCTP_V2, Provider.ACROSS],
+        },
+      },
+      [LiquidityPoolAaveUSDCV4]: {
+        SupportsAllTokens: true,
+        Domains: {
+          [Network.ARBITRUM_ONE]: [Provider.CCTP_V2, Provider.ACROSS, Provider.USDT0],
+          [Network.BASE]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.OP_MAINNET]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.POLYGON_MAINNET]: [Provider.CCTP_V2, Provider.ACROSS, Provider.USDT0],
+        },
+      },
+      [LiquidityPoolUSDCStablecoinV4]: {
+        SupportsAllTokens: true,
+        Domains: {
+          [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS],
+          [Network.UNICHAIN]: [Provider.CCTP_V2, Provider.ACROSS],
+        },
+      },
+      [LiquidityPoolAaveUSDCLongTermV3]: {
+        SupportsAllTokens: true,
+        Domains: {
+          [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS, Provider.USDT0],
+        }
+      },
+    },
   },
   ETHEREUM_SEPOLIA: {
     ChainId: 11155111,

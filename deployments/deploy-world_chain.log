@@ -1,0 +1,81 @@
+Deployment ID: MVP
+Deploying Repayer
+Using config for: WORLD_CHAIN
+Deployer        : 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+DEPLOYER_ADDRESS: 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+Repayer: 0x36364Acc7B9c67692CA215af09A41CBd10439511
+RepayerProxyAdmin: 0x2B5D04eF6b3279bCdA4B219b02FAF627dA1664CB
+RepayerRoutes:
+┌─────────┬──────────────────────────────────────────────┬───────────────────┬───────────┬───────────────────┐
+│ (index) │ Pool                                         │ Domain            │ Provider  │ SupportsAllTokens │
+├─────────┼──────────────────────────────────────────────┼───────────────────┼───────────┼───────────────────┤
+│ 0       │ '0x0E16326e6921395edA2575740374E754b22810eb' │ 'ETHEREUM'        │ 'CCTP_V2' │ false             │
+│ 1       │ '0x0E16326e6921395edA2575740374E754b22810eb' │ 'ETHEREUM'        │ 'ACROSS'  │ false             │
+│ 2       │ '0x0E16326e6921395edA2575740374E754b22810eb' │ 'ARBITRUM_ONE'    │ 'CCTP_V2' │ false             │
+│ 3       │ '0x0E16326e6921395edA2575740374E754b22810eb' │ 'ARBITRUM_ONE'    │ 'ACROSS'  │ false             │
+│ 4       │ '0x0E16326e6921395edA2575740374E754b22810eb' │ 'BASE'            │ 'CCTP_V2' │ false             │
+│ 5       │ '0x0E16326e6921395edA2575740374E754b22810eb' │ 'BASE'            │ 'ACROSS'  │ false             │
+│ 6       │ '0x0E16326e6921395edA2575740374E754b22810eb' │ 'OP_MAINNET'      │ 'CCTP_V2' │ false             │
+│ 7       │ '0x0E16326e6921395edA2575740374E754b22810eb' │ 'OP_MAINNET'      │ 'ACROSS'  │ false             │
+│ 8       │ '0x2022a5600F854cc3218E636239f4DFce9e5357b5' │ 'ARBITRUM_ONE'    │ 'CCTP_V2' │ true              │
+│ 9       │ '0x2022a5600F854cc3218E636239f4DFce9e5357b5' │ 'ARBITRUM_ONE'    │ 'ACROSS'  │ true              │
+│ 10      │ '0x2022a5600F854cc3218E636239f4DFce9e5357b5' │ 'BASE'            │ 'CCTP_V2' │ true              │
+│ 11      │ '0x2022a5600F854cc3218E636239f4DFce9e5357b5' │ 'BASE'            │ 'ACROSS'  │ true              │
+│ 12      │ '0x2022a5600F854cc3218E636239f4DFce9e5357b5' │ 'OP_MAINNET'      │ 'CCTP_V2' │ true              │
+│ 13      │ '0x2022a5600F854cc3218E636239f4DFce9e5357b5' │ 'OP_MAINNET'      │ 'ACROSS'  │ true              │
+│ 14      │ '0x2022a5600F854cc3218E636239f4DFce9e5357b5' │ 'POLYGON_MAINNET' │ 'CCTP_V2' │ true              │
+│ 15      │ '0x2022a5600F854cc3218E636239f4DFce9e5357b5' │ 'POLYGON_MAINNET' │ 'ACROSS'  │ true              │
+│ 16      │ '0xa8D2c9C9453E61E3Ca961512403D388DEe0A3672' │ 'ETHEREUM'        │ 'CCTP_V2' │ true              │
+│ 17      │ '0xa8D2c9C9453E61E3Ca961512403D388DEe0A3672' │ 'ETHEREUM'        │ 'ACROSS'  │ true              │
+│ 18      │ '0xa8D2c9C9453E61E3Ca961512403D388DEe0A3672' │ 'UNICHAIN'        │ 'CCTP_V2' │ true              │
+│ 19      │ '0xa8D2c9C9453E61E3Ca961512403D388DEe0A3672' │ 'UNICHAIN'        │ 'ACROSS'  │ true              │
+│ 20      │ '0x52D0EE7a870824FC683Ea19C714c7Bd110257788' │ 'ETHEREUM'        │ 'CCTP_V2' │ true              │
+│ 21      │ '0x52D0EE7a870824FC683Ea19C714c7Bd110257788' │ 'ETHEREUM'        │ 'ACROSS'  │ true              │
+└─────────┴──────────────────────────────────────────────┴───────────────────┴───────────┴───────────────────┘
+InputOutputTokens:
+┌─────────┬──────────────────────────────────────────────┬───────────────────┬──────────────────────────────────────────────┬──────────────┐
+│ (index) │ InputToken                                   │ Domain            │ OutputToken                                  │ DecimalsDiff │
+├─────────┼──────────────────────────────────────────────┼───────────────────┼──────────────────────────────────────────────┼──────────────┤
+│ 0       │ '0x79A02482A880bCE3F13e09Da970dC34db4CD24d1' │ 'ETHEREUM'        │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ 0            │
+│ 1       │ '0x79A02482A880bCE3F13e09Da970dC34db4CD24d1' │ 'AVALANCHE'       │ '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E' │ 0            │
+│ 2       │ '0x79A02482A880bCE3F13e09Da970dC34db4CD24d1' │ 'OP_MAINNET'      │ '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85' │ 0            │
+│ 3       │ '0x79A02482A880bCE3F13e09Da970dC34db4CD24d1' │ 'ARBITRUM_ONE'    │ '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' │ 0            │
+│ 4       │ '0x79A02482A880bCE3F13e09Da970dC34db4CD24d1' │ 'BASE'            │ '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' │ 0            │
+│ 5       │ '0x79A02482A880bCE3F13e09Da970dC34db4CD24d1' │ 'POLYGON_MAINNET' │ '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359' │ 0            │
+│ 6       │ '0x79A02482A880bCE3F13e09Da970dC34db4CD24d1' │ 'UNICHAIN'        │ '0x078D782b760474a361dDA0AF3839290b0EF57AD6' │ 0            │
+│ 7       │ '0x79A02482A880bCE3F13e09Da970dC34db4CD24d1' │ 'BSC'             │ '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d' │ -12          │
+│ 8       │ '0x79A02482A880bCE3F13e09Da970dC34db4CD24d1' │ 'LINEA'           │ '0x176211869cA2b568f2A7D4EE941E073a821EE1ff' │ 0            │
+│ 9       │ '0x79A02482A880bCE3F13e09Da970dC34db4CD24d1' │ 'GNOSIS_CHAIN'    │ '0x2a22f9c3b484c3629090FeED35F17Ff8F88f76F0' │ 0            │
+│ 10      │ '0x79A02482A880bCE3F13e09Da970dC34db4CD24d1' │ 'INK'             │ '0x2D270e6886d130D724215A266106e6832161EAEd' │ 0            │
+│ 11      │ '0x79A02482A880bCE3F13e09Da970dC34db4CD24d1' │ 'HYPER_EVM'       │ '0xb88339CB7199b77E23DB6E890353E22632Ba630f' │ 0            │
+│ 12      │ '0x4200000000000000000000000000000000000006' │ 'ETHEREUM'        │ '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2' │ 0            │
+│ 13      │ '0x4200000000000000000000000000000000000006' │ 'OP_MAINNET'      │ '0x4200000000000000000000000000000000000006' │ 0            │
+│ 14      │ '0x4200000000000000000000000000000000000006' │ 'ARBITRUM_ONE'    │ '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1' │ 0            │
+│ 15      │ '0x4200000000000000000000000000000000000006' │ 'BASE'            │ '0x4200000000000000000000000000000000000006' │ 0            │
+│ 16      │ '0x4200000000000000000000000000000000000006' │ 'POLYGON_MAINNET' │ '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619' │ 0            │
+│ 17      │ '0x4200000000000000000000000000000000000006' │ 'UNICHAIN'        │ '0x4200000000000000000000000000000000000006' │ 0            │
+│ 18      │ '0x4200000000000000000000000000000000000006' │ 'BSC'             │ '0x2170Ed0880ac9A755fd29B2688956BD959F933F8' │ 0            │
+│ 19      │ '0x4200000000000000000000000000000000000006' │ 'LINEA'           │ '0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f' │ 0            │
+│ 20      │ '0x4200000000000000000000000000000000000006' │ 'GNOSIS_CHAIN'    │ '0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1' │ 0            │
+│ 21      │ '0x4200000000000000000000000000000000000006' │ 'INK'             │ '0x4200000000000000000000000000000000000006' │ 0            │
+│ 22      │ '0x03C7054BCB39f7b2e5B2c7AcB37583e32D70Cfa3' │ 'ETHEREUM'        │ '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599' │ 0            │
+│ 23      │ '0x03C7054BCB39f7b2e5B2c7AcB37583e32D70Cfa3' │ 'OP_MAINNET'      │ '0x68f180fcCe6836688e9084f035309E29Bf0A2095' │ 0            │
+│ 24      │ '0x03C7054BCB39f7b2e5B2c7AcB37583e32D70Cfa3' │ 'ARBITRUM_ONE'    │ '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f' │ 0            │
+│ 25      │ '0x03C7054BCB39f7b2e5B2c7AcB37583e32D70Cfa3' │ 'POLYGON_MAINNET' │ '0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6' │ 0            │
+│ 26      │ '0x03C7054BCB39f7b2e5B2c7AcB37583e32D70Cfa3' │ 'BSC'             │ '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c' │ -10          │
+│ 27      │ '0x03C7054BCB39f7b2e5B2c7AcB37583e32D70Cfa3' │ 'LINEA'           │ '0x3aAB2285ddcDdaD8edf438C1bAB47e1a9D05a9b4' │ 0            │
+└─────────┴──────────────────────────────────────────────┴───────────────────┴──────────────────────────────────────────────┴──────────────┘
+
+Deployment ID: MVP
+Upgrade ID: WORLD_REPAYER
+Upgrading Repayer
+Using config for: WORLD_CHAIN
+Deployer        : 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+DEPLOYER_ADDRESS: 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+New Repayer implementation deployed to 0xe838Df23C366a1dB2FA21aFf04d6AF3a6D96a521
+Simulating Repayer upgrade.
+Success.
+To finalize upgrade send the following transaction from ProxyAdmin owner: 0x4eA9E682BA79bC403523c9e8D98A05EaF3810636
+To: 0x2B5D04eF6b3279bCdA4B219b02FAF627dA1664CB
+Value: 0
+Data: 0x9623609d00000000000000000000000036364acc7b9c67692ca215af09a41cbd10439511000000000000000000000000e838df23c366a1db2fa21aff04d6af3a6d96a52100000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000

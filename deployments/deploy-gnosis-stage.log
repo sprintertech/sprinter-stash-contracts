@@ -86,3 +86,11 @@ InputOutputTokens:
 │ 29      │ '0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d' │ 'POLYGON_MAINNET' │ '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063' │ 0            │
 │ 30      │ '0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d' │ 'LINEA'           │ '0x4AF15ec2A0BD43Db75dd04E62FAA3B8EF36b00d5' │ 0            │
 └─────────┴──────────────────────────────────────────────┴───────────────────┴──────────────────────────────────────────────┴──────────────┘
+
+Deployment ID: LiquidityPoolEURev2
+Deploying EURe Pool
+Using config for: stage, GNOSIS_CHAIN
+Deployer        : 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+Deploying EURe Liquidity Pool
+LiquidityPoolEURe: 0xdA7ba9eA9fc37D66F56D8Ec078263D9889cC8A11

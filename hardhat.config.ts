@@ -3,7 +3,7 @@ import "@nomicfoundation/hardhat-toolbox";
 import {
   networkConfig, Network, Provider,
 } from "./network.config";
-import {TypedDataDomain, AbiCoder, toNumber, dataSlice, getAddress, parseEther, NonceManager} from "ethers";
+import {TypedDataDomain, AbiCoder, toNumber, dataSlice, getAddress, parseEther} from "ethers";
 import {
   LiquidityPoolAave, Rebalancer, Repayer
 } from "./typechain-types";
@@ -13,6 +13,7 @@ import {
 } from "./scripts/common";
 import "hardhat-ignore-warnings";
 import "solidity-coverage";
+import {createSender} from "./scripts/safe";
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -36,8 +37,9 @@ task("grant-role", "Grant some role on some AccessControl")
 .addParam("actor", "Wallet address that should get the role")
 .setAction(async ({contract, role, actor}: {contract: string, role: string, actor: string}, hre) => {
   const [admin] = await hre.ethers.getSigners();
+  const sender = await createSender(hre, admin);
 
-  const target = await hre.ethers.getContractAt("AccessControl", contract, admin);
+  const target = await hre.ethers.getContractAt("AccessControl", contract, sender);
 
   await target.grantRole(hre.ethers.encodeBytes32String(role), actor);
   console.log(`Role ${role} granted to ${actor} on ${contract}.`);
@@ -49,9 +51,10 @@ task("set-default-ltv", "Update Liquidity Pool config")
 .setAction(async ({pool, ltv}: {pool: string, ltv: bigint}, hre) => {
   const {resolveXAddress} = await loadTestHelpers();
   const [admin] = await hre.ethers.getSigners();
+  const sender = await createSender(hre, admin);
 
   const targetAddress = await resolveXAddress(pool);
-  const target = (await hre.ethers.getContractAt("LiquidityPoolAave", targetAddress, admin)) as LiquidityPoolAave;
+  const target = (await hre.ethers.getContractAt("LiquidityPoolAave", targetAddress, sender)) as LiquidityPoolAave;
 
   await target.setDefaultLTV(ltv);
   console.log(`Default LTV set to ${ltv} on ${targetAddress}.`);
@@ -64,9 +67,10 @@ task("set-token-ltvs", "Update Liquidity Pool config")
 .setAction(async (args: {tokens: string, ltvs: string, pool: string}, hre) => {
   const {resolveXAddress} = await loadTestHelpers();
   const [admin] = await hre.ethers.getSigners();
+  const sender = await createSender(hre, admin);
 
   const targetAddress = await resolveXAddress(args.pool);
-  const target = (await hre.ethers.getContractAt("LiquidityPoolAave", targetAddress, admin)) as LiquidityPoolAave;
+  const target = (await hre.ethers.getContractAt("LiquidityPoolAave", targetAddress, sender)) as LiquidityPoolAave;
 
   const tokens = args.tokens && args.tokens.split(",") || [];
   const ltvs = args.ltvs && args.ltvs.split(",") || [];
@@ -82,9 +86,10 @@ task("set-min-health-factor", "Update Liquidity Pool config")
 .setAction(async ({pool, healthfactor}: {pool: string, healthfactor: bigint}, hre) => {
   const {resolveXAddress} = await loadTestHelpers();
   const [admin] = await hre.ethers.getSigners();
+  const sender = await createSender(hre, admin);
 
   const targetAddress = await resolveXAddress(pool);
-  const target = (await hre.ethers.getContractAt("LiquidityPoolAave", targetAddress, admin)) as LiquidityPoolAave;
+  const target = (await hre.ethers.getContractAt("LiquidityPoolAave", targetAddress, sender)) as LiquidityPoolAave;
 
   await target.setMinHealthFactor(healthfactor);
   console.log(`Min health factor set to ${healthfactor} on ${targetAddress}.`);
@@ -106,9 +111,10 @@ task("set-routes-rebalancer", "Update Rebalancer config")
   const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
 
   const [admin] = await hre.ethers.getSigners();
+  const sender = await createSender(hre, admin);
 
   const targetAddress = await resolveProxyXAddress(args.rebalancer);
-  const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, admin)) as Rebalancer;
+  const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, sender)) as Rebalancer;
 
   const targetPools = args.pools?.split(",") || [];
   const pools = await Promise.all(targetPools.map(el => resolveXAddress(el, false)));
@@ -140,11 +146,11 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
   const {network, config} = await getNetworkConfig();
 
   const [admin] = await hre.ethers.getSigners();
-  const adminWithNonce = new NonceManager(admin);
+  const sender = await createSender(hre, admin);
 
   assert(["allow", "deny", "both"].includes(args.action), "Invalid action");
   const targetAddress = await resolveProxyXAddress(args.rebalancer);
-  const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, adminWithNonce)) as Rebalancer;
+  const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, sender)) as Rebalancer;
   const onchainRoutes = await target.getAllRoutes();
   const onchainConfig: {Pool: string, Domain: Network, Provider: Provider}[] = [];
   for (let i = 0; i < onchainRoutes.pools.length; i++) {
@@ -186,7 +192,7 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
     el2.Provider === el.Provider
   ));
 
-  const hasRole = await target.hasRole(DEFAULT_ADMIN_ROLE, admin);
+  const hasRole = await target.hasRole(DEFAULT_ADMIN_ROLE, sender);
 
   if (toAllow.length > 0) {
     const toAllowParams = toAllow.map(el => ({
@@ -283,9 +289,10 @@ task("set-routes-repayer", "Update Repayer config")
   const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
 
   const [admin] = await hre.ethers.getSigners();
+  const sender = await createSender(hre, admin);
 
   const targetAddress = await resolveProxyXAddress(args.repayer);
-  const target = (await hre.ethers.getContractAt("Repayer", targetAddress, admin)) as Repayer;
+  const target = (await hre.ethers.getContractAt("Repayer", targetAddress, sender)) as Repayer;
 
   const targetPools = args.pools?.split(",") || [];
   const pools = await Promise.all(targetPools.map(el => resolveXAddress(el, false)));
@@ -319,11 +326,11 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
   const {network, config} = await getNetworkConfig();
 
   const [admin] = await hre.ethers.getSigners();
-  const adminWithNonce = new NonceManager(admin);
+  const sender = await createSender(hre, admin);
 
   assert(["allow", "deny", "both"].includes(args.action), "Invalid action");
   const targetAddress = await resolveProxyXAddress(args.repayer);
-  const target = (await hre.ethers.getContractAt("Repayer", targetAddress, adminWithNonce)) as Repayer;
+  const target = (await hre.ethers.getContractAt("Repayer", targetAddress, sender)) as Repayer;
   const onchainRoutes = await target.getAllRoutes();
   const onchainConfig: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens: boolean}[] = [];
   for (let i = 0; i < onchainRoutes.pools.length; i++) {
@@ -369,7 +376,7 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
     el2.SupportsAllTokens === el.SupportsAllTokens
   ));
 
-  const hasRole = await target.hasRole(DEFAULT_ADMIN_ROLE, admin);
+  const hasRole = await target.hasRole(DEFAULT_ADMIN_ROLE, sender);
 
   // Calling deny first so that allow overrides incorrect SupportsAllTokens flag.
   if (toDeny.length > 0) {

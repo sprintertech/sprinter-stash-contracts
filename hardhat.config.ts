@@ -36,10 +36,10 @@ task("grant-role", "Grant some role on some AccessControl")
 .addParam("role", "Human readable role to be converted to bytes32")
 .addParam("actor", "Wallet address that should get the role")
 .setAction(async ({contract, role, actor}: {contract: string, role: string, actor: string}, hre) => {
-  const [admin] = await hre.ethers.getSigners();
-  const sender = await createSender(hre, admin);
+  const [sender] = await hre.ethers.getSigners();
+  const admin = await createSender(hre, sender);
 
-  const target = await hre.ethers.getContractAt("AccessControl", contract, sender);
+  const target = await hre.ethers.getContractAt("AccessControl", contract, admin);
 
   await target.grantRole(hre.ethers.encodeBytes32String(role), actor);
   console.log(`Role ${role} granted to ${actor} on ${contract}.`);
@@ -50,11 +50,11 @@ task("set-default-ltv", "Update Liquidity Pool config")
 .addOptionalParam("ltv", "New default LTV value, where 10000 is 100%", 2000n, types.bigint)
 .setAction(async ({pool, ltv}: {pool: string, ltv: bigint}, hre) => {
   const {resolveXAddress} = await loadTestHelpers();
-  const [admin] = await hre.ethers.getSigners();
-  const sender = await createSender(hre, admin);
+  const [sender] = await hre.ethers.getSigners();
+  const admin = await createSender(hre, sender);
 
   const targetAddress = await resolveXAddress(pool);
-  const target = (await hre.ethers.getContractAt("LiquidityPoolAave", targetAddress, sender)) as LiquidityPoolAave;
+  const target = (await hre.ethers.getContractAt("LiquidityPoolAave", targetAddress, admin)) as LiquidityPoolAave;
 
   await target.setDefaultLTV(ltv);
   console.log(`Default LTV set to ${ltv} on ${targetAddress}.`);
@@ -66,11 +66,11 @@ task("set-token-ltvs", "Update Liquidity Pool config")
 .addOptionalParam("pool", "Liquidity Pool proxy address or id", "LiquidityPoolAaveUSDC", types.string)
 .setAction(async (args: {tokens: string, ltvs: string, pool: string}, hre) => {
   const {resolveXAddress} = await loadTestHelpers();
-  const [admin] = await hre.ethers.getSigners();
-  const sender = await createSender(hre, admin);
+  const [sender] = await hre.ethers.getSigners();
+  const admin = await createSender(hre, sender);
 
   const targetAddress = await resolveXAddress(args.pool);
-  const target = (await hre.ethers.getContractAt("LiquidityPoolAave", targetAddress, sender)) as LiquidityPoolAave;
+  const target = (await hre.ethers.getContractAt("LiquidityPoolAave", targetAddress, admin)) as LiquidityPoolAave;
 
   const tokens = args.tokens && args.tokens.split(",") || [];
   const ltvs = args.ltvs && args.ltvs.split(",") || [];
@@ -85,11 +85,11 @@ task("set-min-health-factor", "Update Liquidity Pool config")
 .addOptionalParam("healthfactor", "New min health factor value, where 10000 is 1", 50000n, types.bigint)
 .setAction(async ({pool, healthfactor}: {pool: string, healthfactor: bigint}, hre) => {
   const {resolveXAddress} = await loadTestHelpers();
-  const [admin] = await hre.ethers.getSigners();
-  const sender = await createSender(hre, admin);
+  const [sender] = await hre.ethers.getSigners();
+  const admin = await createSender(hre, sender);
 
   const targetAddress = await resolveXAddress(pool);
-  const target = (await hre.ethers.getContractAt("LiquidityPoolAave", targetAddress, sender)) as LiquidityPoolAave;
+  const target = (await hre.ethers.getContractAt("LiquidityPoolAave", targetAddress, admin)) as LiquidityPoolAave;
 
   await target.setMinHealthFactor(healthfactor);
   console.log(`Min health factor set to ${healthfactor} on ${targetAddress}.`);
@@ -110,11 +110,11 @@ task("set-routes-rebalancer", "Update Rebalancer config")
 }, hre) => {
   const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
 
-  const [admin] = await hre.ethers.getSigners();
-  const sender = await createSender(hre, admin);
+  const [sender] = await hre.ethers.getSigners();
+  const admin = await createSender(hre, sender);
 
   const targetAddress = await resolveProxyXAddress(args.rebalancer);
-  const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, sender)) as Rebalancer;
+  const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, admin)) as Rebalancer;
 
   const targetPools = args.pools?.split(",") || [];
   const pools = await Promise.all(targetPools.map(el => resolveXAddress(el, false)));
@@ -145,12 +145,12 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
   const {getNetworkConfig, addLocalPools} = await loadScriptHelpers();
   const {network, config} = await getNetworkConfig();
 
-  const [admin] = await hre.ethers.getSigners();
-  const sender = await createSender(hre, admin);
+  const [sender] = await hre.ethers.getSigners();
+  const admin = await createSender(hre, sender);
 
   assert(["allow", "deny", "both"].includes(args.action), "Invalid action");
   const targetAddress = await resolveProxyXAddress(args.rebalancer);
-  const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, sender)) as Rebalancer;
+  const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, admin)) as Rebalancer;
   const onchainRoutes = await target.getAllRoutes();
   const onchainConfig: {Pool: string, Domain: Network, Provider: Provider}[] = [];
   for (let i = 0; i < onchainRoutes.pools.length; i++) {
@@ -192,7 +192,7 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
     el2.Provider === el.Provider
   ));
 
-  const hasRole = await target.hasRole(DEFAULT_ADMIN_ROLE, sender);
+  const hasRole = await target.hasRole(DEFAULT_ADMIN_ROLE, admin);
 
   if (toAllow.length > 0) {
     const toAllowParams = toAllow.map(el => ({
@@ -288,11 +288,11 @@ task("set-routes-repayer", "Update Repayer config")
 }, hre) => {
   const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
 
-  const [admin] = await hre.ethers.getSigners();
-  const sender = await createSender(hre, admin);
+  const [sender] = await hre.ethers.getSigners();
+  const admin = await createSender(hre, sender);
 
   const targetAddress = await resolveProxyXAddress(args.repayer);
-  const target = (await hre.ethers.getContractAt("Repayer", targetAddress, sender)) as Repayer;
+  const target = (await hre.ethers.getContractAt("Repayer", targetAddress, admin)) as Repayer;
 
   const targetPools = args.pools?.split(",") || [];
   const pools = await Promise.all(targetPools.map(el => resolveXAddress(el, false)));
@@ -325,12 +325,12 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
   const {getNetworkConfig, addLocalPools} = await loadScriptHelpers();
   const {network, config} = await getNetworkConfig();
 
-  const [admin] = await hre.ethers.getSigners();
-  const sender = await createSender(hre, admin);
+  const [sender] = await hre.ethers.getSigners();
+  const admin = await createSender(hre, sender);
 
   assert(["allow", "deny", "both"].includes(args.action), "Invalid action");
   const targetAddress = await resolveProxyXAddress(args.repayer);
-  const target = (await hre.ethers.getContractAt("Repayer", targetAddress, sender)) as Repayer;
+  const target = (await hre.ethers.getContractAt("Repayer", targetAddress, admin)) as Repayer;
   const onchainRoutes = await target.getAllRoutes();
   const onchainConfig: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens: boolean}[] = [];
   for (let i = 0; i < onchainRoutes.pools.length; i++) {
@@ -376,7 +376,7 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
     el2.SupportsAllTokens === el.SupportsAllTokens
   ));
 
-  const hasRole = await target.hasRole(DEFAULT_ADMIN_ROLE, sender);
+  const hasRole = await target.hasRole(DEFAULT_ADMIN_ROLE, admin);
 
   // Calling deny first so that allow overrides incorrect SupportsAllTokens flag.
   if (toDeny.length > 0) {
@@ -480,9 +480,10 @@ task("update-tokens-repayer", "Update input output tokens based on current netwo
   const inputOutputTokens = getInputOutputTokens(network, config);
 
   const [sender] = await hre.ethers.getSigners();
+  const admin = await createSender(hre, sender);
 
   const targetAddress = await resolveProxyXAddress(args.repayer);
-  const target = (await hre.ethers.getContractAt("Repayer", targetAddress, sender)) as Repayer;
+  const target = (await hre.ethers.getContractAt("Repayer", targetAddress, admin)) as Repayer;
   const filteredInputOutputTokens: Repayer.InputOutputTokenStruct[] = [];
   const currentInputOutputTokens: Repayer.InputOutputTokenStruct[] = [];
   for (const entry of inputOutputTokens) {
@@ -521,7 +522,7 @@ task("update-tokens-repayer", "Update input output tokens based on current netwo
   if (filteredInputOutputTokens.length > 0) {
     console.log(`Following tokens will be added to ${targetAddress}.`);
     console.table(flattenInputOutputTokens(filteredInputOutputTokens));
-    const hasRole = sender && await target.hasRole(toBytes32("SET_TOKENS_ROLE"), sender);
+    const hasRole = admin && await target.hasRole(toBytes32("SET_TOKENS_ROLE"), admin);
     if (hasRole) {
       await (await target.setInputOutputTokens(filteredInputOutputTokens, true)).wait();
       console.log("Done.");

@@ -1,12 +1,12 @@
-import Safe from '@safe-global/protocol-kit';
-import SafeApiKit from '@safe-global/api-kit';
+import Safe from "@safe-global/protocol-kit";
+import SafeApiKit from "@safe-global/api-kit";
 import {
   AbstractSigner, NonceManager, Provider, Signer,
   TransactionReceipt, TransactionRequest, TransactionResponse,
   TypedDataDomain, TypedDataField, getAddress, resolveAddress,
-} from 'ethers';
-import {HardhatNetworkConfig, HardhatRuntimeEnvironment} from 'hardhat/types';
-import {assert, assertAddress, CREATE_X_ADDRESS, sameAddress} from './common';
+} from "ethers";
+import {HardhatNetworkConfig, HardhatRuntimeEnvironment, HttpNetworkConfig} from "hardhat/types";
+import {assert, assertAddress, CREATE_X_ADDRESS, sameAddress, retry} from "./common";
 
 export class SafeSigner extends AbstractSigner {
   private readonly protocolKit: Safe;
@@ -37,8 +37,14 @@ export class SafeSigner extends AbstractSigner {
     this.hre = hre;
   }
 
-  static async create(rpcUrl: string, safeAddress: string, eoa: Signer, chainId: bigint, hre: HardhatRuntimeEnvironment): Promise<SafeSigner> {
-    assert(process.env.PRIVATE_KEY, 'PRIVATE_KEY env var is required to use Safe');
+  static async create(
+    rpcUrl: string,
+    safeAddress: string,
+    eoa: Signer,
+    chainId: bigint,
+    hre: HardhatRuntimeEnvironment,
+  ): Promise<SafeSigner> {
+    assert(process.env.PRIVATE_KEY, "PRIVATE_KEY env var is required to use Safe");
 
     const protocolKit = await Safe.init({
       provider: rpcUrl,
@@ -53,10 +59,19 @@ export class SafeSigner extends AbstractSigner {
     );
     console.log(`Safe ${safeAddress}: verified ${signerAddress} as owner.`);
 
-    assert(eoa.provider, 'Signer must be connected to a provider to use Safe');
+    assert(eoa.provider, "Signer must be connected to a provider to use Safe");
     const threshold = await protocolKit.getThreshold();
     const apiKit = new SafeApiKit({chainId, apiKey: process.env.SAFE_API_KEY});
-    return new SafeSigner(protocolKit, apiKit, getAddress(safeAddress), signerAddress, eoa, eoa.provider, threshold, hre);
+    return new SafeSigner(
+      protocolKit,
+      apiKit,
+      getAddress(safeAddress),
+      signerAddress,
+      eoa,
+      eoa.provider,
+      threshold,
+      hre,
+    );
   }
 
   async getAddress(): Promise<string> {
@@ -64,7 +79,7 @@ export class SafeSigner extends AbstractSigner {
   }
 
   connect(provider: Provider | null): SafeSigner {
-    assert(provider, 'SafeSigner requires a non-null provider');
+    assert(provider, "SafeSigner requires a non-null provider");
     return new SafeSigner(
       this.protocolKit,
       this.apiKit,
@@ -101,13 +116,14 @@ export class SafeSigner extends AbstractSigner {
     if (this.hre.network.name === "hardhat") {
       const impersonatedSafe = await this.hre.ethers.getImpersonatedSigner(this.safeAddress);
       // Send a dummy transaction to itself to update the nonce.
+      // Because in reality EOA would be sending a tx to the Safe.
       await this.eoa.sendTransaction({to: this.signerAddress});
       return impersonatedSafe.sendTransaction(tx);
     }
 
     const to = tx.to ? await resolveAddress(tx.to) : undefined;
-    assert(to, 'Transaction must have a recipient');
-    const data = typeof tx.data === 'string' ? tx.data : '0x';
+    assert(to, "Transaction must have a recipient");
+    const data = tx.data ?? "0x";
     const value = (tx.value ?? 0n).toString();
 
     const safeTransaction = await this.protocolKit.createTransaction({
@@ -116,7 +132,7 @@ export class SafeSigner extends AbstractSigner {
     const safeTxHash = await this.protocolKit.getTransactionHash(safeTransaction);
     const signedTx = await this.protocolKit.signTransaction(safeTransaction);
     const sig = signedTx.signatures.get(this.signerAddress.toLowerCase());
-    assert(sig, 'Failed to sign Safe transaction');
+    assert(sig, "Failed to sign Safe transaction");
 
     await this.apiKit.proposeTransaction({
       safeAddress: this.safeAddress,
@@ -132,10 +148,10 @@ export class SafeSigner extends AbstractSigner {
 
     if (confirmations >= this.threshold) {
       console.log(`Threshold met (${confirmations}/${this.threshold}). Executing on-chain...`);
-      const execResult = await this.protocolKit.executeTransaction(signedTx);
+      const execResult = await retry(() => this.protocolKit.executeTransaction(signedTx), 3000);
       const txHash = execResult.hash;
       console.log(`Executed. On-chain TX hash: ${txHash}`);
-      const response = await this.provider!.getTransaction(txHash);
+      const response = await retry(() => this.provider!.getTransaction(txHash), 5000);
       assert(response, `Could not fetch transaction ${txHash}`);
       return response;
     }
@@ -145,22 +161,23 @@ export class SafeSigner extends AbstractSigner {
     return {
       provider: this.provider,
       hash: safeTxHash,
-      wait: async (): Promise<TransactionReceipt | null> => null,
+      wait: async () => null,
     } as TransactionResponse;
   }
 }
 
 // Returns a SafeSigner when SAFE env var is set, otherwise a NonceManager-wrapped signer.
-export async function createSender(hre: HardhatRuntimeEnvironment, admin: Signer): Promise<Signer> {
+export async function createSender(hre: HardhatRuntimeEnvironment, sender: Signer): Promise<Signer> {
+  const senderWithNonce = new NonceManager(sender);
   const safeAddress = process.env.SAFE;
   if (safeAddress) {
     assertAddress(safeAddress, "SAFE must be a valid address");
-    let rpcUrl = (hre.network.config as {url?: string}).url;
+    let rpcUrl: string | undefined = (hre.network.config as HttpNetworkConfig).url;
     if (hre.network.name === "hardhat") {
       rpcUrl = (hre.network.config as HardhatNetworkConfig).forking?.url;
     }
-    assert(rpcUrl, 'Network RPC URL is required for Safe transactions');
-    return SafeSigner.create(rpcUrl, safeAddress, admin, BigInt(hre.network.config.chainId!), hre);
+    assert(rpcUrl, "Network RPC URL is required for Safe transactions");
+    return SafeSigner.create(rpcUrl, safeAddress, senderWithNonce, BigInt(hre.network.config.chainId!), hre);
   }
-  return new NonceManager(admin);
+  return senderWithNonce;
 }

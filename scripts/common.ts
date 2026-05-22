@@ -1,6 +1,17 @@
 import {isAddress, getAddress, zeroPadValue, stripZerosLeft} from "ethers";
 import {Network, Provider} from "../network.config";
 
+export async function retry<T>(fn: () => Promise<T>, sleepMs: number = 1000, maxRetries: number = 3): Promise<T> {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch {
+      await sleep(sleepMs);
+    }
+  }
+  return fn();
+}
+
 export function assert(condition: any, message: string): asserts condition {
   if (!condition) {
     throw new Error(message);

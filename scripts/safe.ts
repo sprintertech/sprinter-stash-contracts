@@ -118,6 +118,7 @@ export class SafeSigner extends AbstractSigner {
       // Send a dummy transaction to itself to update the nonce.
       // Because in reality EOA would be sending a tx to the Safe.
       await this.eoa.sendTransaction({to: this.signerAddress});
+      console.log("Sending impersonated transaction from Safe");
       return impersonatedSafe.sendTransaction(tx);
     }
 

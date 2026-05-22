@@ -2,7 +2,7 @@ import Safe from "@safe-global/protocol-kit";
 import SafeApiKit from "@safe-global/api-kit";
 import {
   AbstractSigner, NonceManager, Provider, Signer,
-  TransactionReceipt, TransactionRequest, TransactionResponse,
+  TransactionRequest, TransactionResponse,
   TypedDataDomain, TypedDataField, getAddress, resolveAddress,
 } from "ethers";
 import {HardhatNetworkConfig, HardhatRuntimeEnvironment, HttpNetworkConfig} from "hardhat/types";

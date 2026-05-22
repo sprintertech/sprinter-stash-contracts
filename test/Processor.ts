@@ -30,7 +30,7 @@ describe("Processor", function () {
       caller
     )).data;
     const reedemerProxy = (await deployX(
-      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRebalancer", {},
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRedeemer", {},
       processorImpl, admin, processorInit
     )) as TransparentUpgradeableProxy;
     const processor = (await getContractAt("Processor", reedemerProxy, deployer)) as Processor;

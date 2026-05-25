@@ -570,8 +570,9 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         uint256 totalBalance = token.balanceOf(address(this));
         if (token == ASSETS) {
             uint256 deposited = _totalDeposited;
-            if (totalBalance < deposited) return 0;
-            return totalBalance - deposited;
+            uint256 direct = directDebt[address(ASSETS)];
+            if (totalBalance + direct < deposited) return 0;
+            return Math.min(totalBalance, totalBalance + direct - deposited);
         }
         return totalBalance;
     }
@@ -600,13 +601,13 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         uint256 debt = directDebt[address(ASSETS)];
         if (debt == 0) revert NothingToRepay();
         
-        uint256 repayAmount = (maxAmounts[0] > debt) ? debt : maxAmounts[0];
+        uint256 repayAmount = Math.min(debt, maxAmounts[0]);
+        directDebt[address(ASSETS)] = debt - repayAmount;
 
         // Repay the amount and decrease direct debt.
         // Note that extensions of this pool will need to take care
         // of direct debt if they support direct borrowing.
         ASSETS.safeTransferFrom(_msgSender(), address(this), repayAmount);
-        directDebt[address(ASSETS)] -= repayAmount;
 
         emit RepaidDirect(address(ASSETS), repayAmount);
     }

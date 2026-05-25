@@ -6,6 +6,7 @@ import hre from "hardhat";
 import {AbiCoder} from "ethers";
 import {
   getCreateAddress, getContractAt, deploy, deployX, toBytes32,
+  setupTests,
 } from "./helpers";
 import {
   ProviderSolidity as Provider, DomainSolidity as Domain, ZERO_ADDRESS,
@@ -23,6 +24,8 @@ const ALLOWED = true;
 const DISALLOWED = false;
 
 describe("Rebalancer", function () {
+  setupTests();
+
   const deployAll = async () => {
     const [deployer, admin, rebalanceUser, user] = await hre.ethers.getSigners();
 

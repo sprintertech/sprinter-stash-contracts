@@ -4,8 +4,11 @@ import {
 import {expect} from "chai";
 import hre from "hardhat";
 import {ZERO_ADDRESS} from "../scripts/common";
+import {setupTests} from "./helpers";
 
 describe("SprinterUSDCLPShare", function () {
+  setupTests();
+
   const deployLPToken = async () => {
     const [manager, user, user2] = await hre.ethers.getSigners();
 

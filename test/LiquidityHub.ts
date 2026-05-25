@@ -6,7 +6,7 @@ import hre from "hardhat";
 import {Signature, resolveAddress, MaxUint256, getBigInt} from "ethers";
 import {
   getCreateAddress, getDeployXAddressBase, getContractAt, deploy, deployX,
-  toBytes32,
+  toBytes32, setupTests,
 } from "./helpers";
 import {ZERO_ADDRESS} from "../scripts/common";
 import {
@@ -19,6 +19,8 @@ const INCREASE = true;
 const DECREASE = false;
 
 describe("LiquidityHub", function () {
+  setupTests();
+
   const deployAll = async () => {
     const [deployer, admin, user, user2, user3] = await hre.ethers.getSigners();
 

@@ -4,7 +4,7 @@ import {
 import {expect} from "chai";
 import hre from "hardhat";
 import {
-  deploy, signBorrow,
+  deploy, signBorrow, setupTests,
 } from "./helpers";
 import {ETH, ZERO_ADDRESS, DEFAULT_ADMIN_ROLE} from "../scripts/common";
 import {encodeBytes32String, AbiCoder, concat} from "ethers";
@@ -27,6 +27,8 @@ function addAmountToReceive(callData: string, amountToReceive: bigint) {
 const ERC4626Deposit = "deposit(uint256,address)";
 
 describe("ERC4626Adapter", function () {
+  setupTests();
+
   const deployAll = async () => {
     const [
       deployer, admin, user, user2, mpc_signer, liquidityAdmin, withdrawProfit, pauser, lp,

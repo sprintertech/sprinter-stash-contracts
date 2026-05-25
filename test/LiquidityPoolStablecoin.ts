@@ -4,7 +4,7 @@ import {
 import {expect} from "chai";
 import hre from "hardhat";
 import {
-  deploy, signBorrow, signBorrowMany, getBalance
+  deploy, signBorrow, signBorrowMany, getBalance, setupTests,
 } from "./helpers";
 import {ZERO_ADDRESS, NATIVE_TOKEN, ETH} from "../scripts/common";
 import {encodeBytes32String, AbiCoder, Interface, Contract, solidityPacked, hashMessage, Wallet} from "ethers";
@@ -19,6 +19,8 @@ async function now() {
 }
 
 describe("LiquidityPoolStablecoin", function () {
+  setupTests();
+
   const deployAll = async () => {
     const [
       deployer, admin, user, user2, mpc_signer, liquidityAdmin, withdrawProfit, pauser

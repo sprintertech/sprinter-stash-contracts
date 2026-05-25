@@ -7,7 +7,7 @@ import {AbiCoder, hexlify, toUtf8Bytes, AddressLike, BigNumberish, BytesLike} fr
 import {anyValue} from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import {
   getCreateAddress, getContractAt, deploy, deployX, toBytes32, getBalance,
-  destinationToken,
+  destinationToken, setupTests,
 } from "./helpers";
 import {
   ProviderSolidity as Provider, DomainSolidity as Domain, ZERO_ADDRESS,
@@ -33,6 +33,8 @@ async function now() {
 }
 
 describe("Repayer", function () {
+  setupTests();
+
   const isOutputTokenAllowed = async (
     repayer: Repayer,
     inputToken: AddressLike,

@@ -5,6 +5,7 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {
   deploy, signBorrow, getBalance, signBorrowMany,
+  setupTests,
 } from "./helpers";
 import {ZERO_ADDRESS, ETH, NATIVE_TOKEN} from "../scripts/common";
 import {encodeBytes32String, AbiCoder, hashMessage, Wallet} from "ethers";
@@ -24,6 +25,8 @@ function expectAlmostEqual(a: bigint, b: bigint, maxDiff: bigint = 2n): void {
 }
 
 describe("LiquidityPoolAaveLongTerm", function () {
+  setupTests();
+
   const deployAll = async () => {
     const [
       deployer, admin, user, user2, mpc_signer, liquidityAdmin, withdrawProfit, pauser,

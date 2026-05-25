@@ -5,6 +5,7 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {
   deploy, getBalance, signBorrow, signBorrowMany,
+  setupTests,
 } from "./helpers";
 import {ZERO_ADDRESS, NATIVE_TOKEN, ETH} from "../scripts/common";
 import {encodeBytes32String, AbiCoder, hashMessage, Wallet} from "ethers";
@@ -18,6 +19,8 @@ async function now() {
 }
 
 describe("WETHLiquidityPool", function () {
+  setupTests();
+
   const deployAll = async () => {
     const [
       deployer, admin, user, user2, mpc_signer, liquidityAdmin, withdrawProfit, pauser

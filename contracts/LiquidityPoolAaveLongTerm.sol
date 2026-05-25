@@ -102,31 +102,6 @@ contract LiquidityPoolAaveLongTerm is LiquidityPoolAave, ILiquidityPoolLongTerm 
         }
     }
 
-    function _withdrawProfitLogic(IERC20 token) internal override returns (uint256) {
-        // Check that not aToken
-        require(token != ATOKEN, CannotWithdrawAToken());
-        uint256 totalBalance = token.balanceOf(address(this));
-        if (token == ASSETS) {
-            // Calculate accrued interest from deposits.
-            uint256 interest = ATOKEN.balanceOf(address(this)) - _totalDeposited;
-            if (interest > 0) {
-                _withdrawLogic(address(this), interest);
-                totalBalance += interest;
-            }
-        }
-        // If there is debt, subtract it from profit
-        address variableDebtTokenAddress = AAVE_POOL.getReserveData(address(token)).variableDebtTokenAddress;
-        if (variableDebtTokenAddress != address(0)) {
-            uint256 debt = IERC20(variableDebtTokenAddress).balanceOf(address(this));
-            if (totalBalance > debt) {
-                totalBalance -= debt;
-            } else {
-                totalBalance = 0;
-            }
-        }
-        return totalBalance;
-    }
-
     function _balance(IERC20 token) internal view override returns (uint256) {
         return super._balance(token) + token.balanceOf(address(this));
     }

@@ -2,6 +2,7 @@ import hre from "hardhat";
 import {expect} from "chai";
 import {
   getCreateAddress, getContractAt, deploy, deployX, toBytes32,
+  setupTests,
 } from "./helpers";
 import {
   TestUSDC, TransparentUpgradeableProxy, ProxyAdmin, Processor,
@@ -13,6 +14,8 @@ import {loadFixture} from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {DEFAULT_ADMIN_ROLE} from "../scripts/common";
 
 describe("Processor", function () {
+  setupTests();
+
   const deployAll = async () => {
     const [deployer, admin, caller, user, receiver] = await hre.ethers.getSigners();
 

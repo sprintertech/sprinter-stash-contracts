@@ -5,6 +5,7 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {
   deploy, signBorrow, signBorrowMany, getBalance,
+  setupTests,
 } from "./helpers";
 import {ZERO_ADDRESS, NATIVE_TOKEN, ETH} from "../scripts/common";
 import {encodeBytes32String, AbiCoder, hashMessage, concat, resolveAddress, Signature} from "ethers";
@@ -33,6 +34,8 @@ function addAmountToReceive(callData: string, amountToReceive: bigint) {
 }
 
 describe("PublicLiquidityPool", function () {
+  setupTests();
+
   const deployAll = async () => {
     const [
       deployer, admin, user, user2, mpc_signer, feeSetter, withdrawProfit, pauser, lp,

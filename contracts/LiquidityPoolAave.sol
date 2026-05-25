@@ -181,25 +181,27 @@ contract LiquidityPoolAave is LiquidityPool {
     function _withdrawProfitLogic(IERC20 token) internal virtual override returns (uint256) {
         // Check that not aToken
         require(token != ATOKEN, CannotWithdrawAToken());
+        uint256 totalBalance = token.balanceOf(address(this));
 
         // Check that the token doesn't have debt
-        address vdt = AAVE_POOL.getReserveData(address(token)).variableDebtTokenAddress;
-        if (vdt != address(0)) {
-            uint256 debt = 
-              IERC20(vdt).balanceOf(address(this)) - directDebt[address(token)]; 
-            if (debt > 0) return 0;
+        address vdToken = AAVE_POOL.getReserveData(address(token)).variableDebtTokenAddress;
+        uint256 outstandingDebt = 0;
+        if (vdToken != address(0)) {
+            outstandingDebt = IERC20(vdToken).balanceOf(address(this)); 
         }
-
-        uint256 totalBalance = token.balanceOf(address(this));
+        uint256 interest = 0;
         if (token == ASSETS) {
             // Calculate accrued interest from deposits.
-            uint256 interest = ATOKEN.balanceOf(address(this)) - _totalDeposited;
-            if (interest > 0) {
-                _withdrawLogic(address(this), interest);
-                totalBalance += interest;
-            }
+            interest = ATOKEN.balanceOf(address(this)) - _totalDeposited;
+            totalBalance += interest;
         }
-        return totalBalance;
+
+        uint256 virtualBalance = totalBalance + directDebt[address(token)];
+        if (virtualBalance < outstandingDebt) return 0;
+        if (interest > 0) {
+            _withdrawLogic(address(this), interest);
+        }
+        return Math.min(totalBalance, virtualBalance - outstandingDebt);
     } 
     
     function _repay(address[] calldata borrowTokens) internal override {
@@ -214,27 +216,22 @@ contract LiquidityPoolAave is LiquidityPool {
 
     function _repayToken(address borrowToken, uint256 maxRepayAmount) internal returns(bool success) {
         _wrapIfNative(IERC20(borrowToken));
-        
+
         address vdToken = AAVE_POOL.getReserveData(borrowToken).variableDebtTokenAddress;
         if (vdToken == address(0)) return false;
 
-        uint256 outstandingDebt = 
-            IERC20(vdToken).balanceOf(address(this)) - directDebt[borrowToken];
+        uint256 outstandingDebt = IERC20(vdToken).balanceOf(address(this));
         if (outstandingDebt == 0) return false;
-        
+
         uint256 balance = IERC20(borrowToken).balanceOf(address(this));
         if (balance == 0) return false;
 
-        uint256 repayAmount = Math.min(
-            Math.min(IERC20(borrowToken).balanceOf(address(this)), maxRepayAmount),
-            outstandingDebt
-        );
+        uint256 repayAmount = Math.min(Math.min(balance, maxRepayAmount), outstandingDebt);
         if (repayAmount == 0) return false;
     
         uint256 repaidAmount = _executeRepay(borrowToken, repayAmount);
 
         emit Repaid(borrowToken, repaidAmount);
-
         return true;
     }
     
@@ -259,14 +256,13 @@ contract LiquidityPoolAave is LiquidityPool {
         
         uint256 outstandingDebt = directDebt[borrowToken];
         uint256 repayAmount = Math.min(outstandingDebt, maxRepayAmount);
-        if (repayAmount == 0) return false; 
+        if (repayAmount == 0) return false;
         
+        unchecked { directDebt[borrowToken] = outstandingDebt - repayAmount; }
         IERC20(borrowToken).safeTransferFrom(_msgSender(), address(this), repayAmount);        
-        uint256 repaidAmount = _executeRepay(borrowToken, repayAmount);
+        _executeRepay(borrowToken, repayAmount);
 
-        unchecked { directDebt[borrowToken] -= repaidAmount; }
-
-        emit RepaidDirect(borrowToken, repaidAmount);
+        emit RepaidDirect(borrowToken, repayAmount);
         return true;
     }
     

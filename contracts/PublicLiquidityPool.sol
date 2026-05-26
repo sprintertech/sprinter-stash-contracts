@@ -178,6 +178,8 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
         return totalBalance;
     }
 
+    /// @dev Direct borrowing is not supported in the public pool for now, as it is not clear if this pool is going
+    /// to be used at all. In case of direct borrowing, targetCallData is empty so this function will revert.
     function _processBorrowAmount(uint256 amount, bytes calldata targetCallData)
         internal override returns (uint256)
     {

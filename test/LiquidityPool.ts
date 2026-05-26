@@ -87,7 +87,7 @@ describe("LiquidityPool", function () {
 
     const PAUSER_ROLE = encodeBytes32String("PAUSER_ROLE");
     await liquidityPool.connect(admin).grantRole(PAUSER_ROLE, pauser);
-    
+
     const DIRECT_BORROWER_ROLE = encodeBytes32String("DIRECT_BORROW_ROLE");
     await liquidityPool.connect(admin).grantRole(DIRECT_BORROWER_ROLE, directBorrower);
 
@@ -702,17 +702,17 @@ describe("LiquidityPool", function () {
 
     it("Should withdraw profit for multiple tokens from the pool", async function () {
       const {
-        liquidityPool, eurc, gho, EURC_DEC, eurcOwner, ghoOwner, withdrawProfit, user
+        liquidityPool, eurc, gho, EURC_DEC, GHO_DEC, eurcOwner, ghoOwner, withdrawProfit, user
       } = await loadFixture(deployAll);
-      const amountUni = 1n * EURC_DEC;
-      const amountRpl = 1n * EURC_DEC;
-      await eurc.connect(eurcOwner).transfer(liquidityPool, amountUni);
-      await gho.connect(ghoOwner).transfer(liquidityPool, amountRpl);
+      const amountEurc = 1n * EURC_DEC;
+      const amountGho = 1n * GHO_DEC;
+      await eurc.connect(eurcOwner).transfer(liquidityPool, amountEurc);
+      await gho.connect(ghoOwner).transfer(liquidityPool, amountGho);
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([eurc, gho], user))
-        .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(eurc.target, user.address, amountUni)
-        .and.to.emit(liquidityPool, "ProfitWithdrawn").withArgs(gho.target, user.address, amountRpl);
-      expect(await eurc.balanceOf(user)).to.eq(amountUni);
-      expect(await gho.balanceOf(user)).to.eq(amountRpl);
+        .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(eurc.target, user.address, amountEurc)
+        .and.to.emit(liquidityPool, "ProfitWithdrawn").withArgs(gho.target, user.address, amountGho);
+      expect(await eurc.balanceOf(user)).to.eq(amountEurc);
+      expect(await gho.balanceOf(user)).to.eq(amountGho);
     });
 
     it("Should withdraw liquidity as profit from the pool", async function () {
@@ -1690,6 +1690,109 @@ describe("LiquidityPool", function () {
         .to.be.revertedWithCustomError(liquidityPool, "NoProfit()");
     });
 
+    it("Should revert during withdrawing profit if balance is less than total deposited", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, usdcOwner, user, liquidityAdmin, withdrawProfit, mockTarget, mpc_signer,
+      } = await loadFixture(deployAll);
+
+      const amountLiquidity = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountLiquidity);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity);
+      // totalDeposited = 1000, balance = 1000
+
+      const amountToBorrow = 100n * USDC_DEC;
+      const callData = await mockTarget.fulfill.populateTransaction(usdc, amountToBorrow, "0x");
+      const signature = await signBorrow(
+        mpc_signer, liquidityPool, user, usdc, amountToBorrow, mockTarget, callData.data
+      );
+      await liquidityPool.connect(user).borrow(
+        usdc, amountToBorrow, mockTarget, callData.data, 0n, 2000000000n, signature
+      );
+      // balance = 900, directDebt = 0, virtualBalance = 900 < 1000 = totalDeposited
+
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
+        .to.be.revertedWithCustomError(liquidityPool, "NoProfit()");
+    });
+
+    it("Should revert withdrawing profit if balance plus direct debt < total deposited", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, usdcOwner, user, liquidityAdmin, withdrawProfit,
+        directBorrower, mockTarget, mpc_signer,
+      } = await loadFixture(deployAll);
+
+      const amountLiquidity = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountLiquidity);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity);
+      // totalDeposited = 1000, balance = 1000
+
+      const directDebtAmount = 300n * USDC_DEC;
+      await liquidityPool.connect(directBorrower).borrowDirect(usdc, directDebtAmount);
+      await usdc.connect(directBorrower).transferFrom(liquidityPool, directBorrower, directDebtAmount);
+      // balance = 700, directDebt = 300, virtualBalance = 1000
+
+      const additionalBorrow = 100n * USDC_DEC;
+      const callData = await mockTarget.fulfill.populateTransaction(usdc, additionalBorrow, "0x");
+      const signature = await signBorrow(
+        mpc_signer, liquidityPool, user, usdc, additionalBorrow, mockTarget, callData.data
+      );
+      await liquidityPool.connect(user).borrow(
+        usdc, additionalBorrow, mockTarget, callData.data, 0n, 2000000000n, signature
+      );
+      // balance = 600, directDebt = 300, virtualBalance = 900 < 1000 = totalDeposited
+
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
+        .to.be.revertedWithCustomError(liquidityPool, "NoProfit()");
+    });
+
+    it("Should withdraw profit if balance plus direct debt is greater than total deposited", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, usdcOwner, user, liquidityAdmin, withdrawProfit, directBorrower,
+      } = await loadFixture(deployAll);
+
+      const amountLiquidity = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountLiquidity);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity);
+      // totalDeposited = 1000, balance = 1000
+
+      const directDebtAmount = 300n * USDC_DEC;
+      await liquidityPool.connect(directBorrower).borrowDirect(usdc, directDebtAmount);
+      await usdc.connect(directBorrower).transferFrom(liquidityPool, directBorrower, directDebtAmount);
+      // balance = 700, directDebt = 300, virtualBalance = 1000
+
+      const extraProfit = 100n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, extraProfit);
+      // balance = 800, virtualBalance = 1100 > 1000, profit = Math.min(800, 100) = 100
+
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
+        .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(usdc.target, user.address, extraProfit);
+      expect(await usdc.balanceOf(user)).to.eq(extraProfit);
+    });
+
+    it("Should withdraw profit if direct debt is greater than total deposited", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, usdcOwner, user, liquidityAdmin, withdrawProfit, directBorrower,
+      } = await loadFixture(deployAll);
+
+      // Transfer extra USDC (untracked) and deposit a smaller amount
+      const depositAmount = 100n * USDC_DEC;
+      const extraAmount = 400n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, depositAmount + extraAmount);
+      await liquidityPool.connect(liquidityAdmin).deposit(depositAmount);
+      // balance = 500, totalDeposited = 100
+
+      // directDebt (200) > totalDeposited (100)
+      const directDebtAmount = 200n * USDC_DEC;
+      await liquidityPool.connect(directBorrower).borrowDirect(usdc, directDebtAmount);
+      await usdc.connect(directBorrower).transferFrom(liquidityPool, directBorrower, directDebtAmount);
+      // balance = 300, directDebt = 200, virtualBalance = 500 > 100
+      // profit = Math.min(300, 500 - 100) = Math.min(300, 400) = 300
+
+      const profitAmount = 300n * USDC_DEC;
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
+        .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(usdc.target, user.address, profitAmount);
+      expect(await usdc.balanceOf(user)).to.eq(profitAmount);
+    });
+
     it("Should allow DIRECT_BORROW_ROLE to borrow direct", async function () {
       const {
         liquidityPool, usdc, USDC_DEC, usdcOwner, liquidityAdmin, directBorrower
@@ -1704,7 +1807,7 @@ describe("LiquidityPool", function () {
       await expect(liquidityPool.connect(directBorrower).borrowDirect(usdc, amountToBorrow))
         .to.emit(liquidityPool, "BorrowDirect").withArgs(directBorrower, usdc, amountToBorrow);
       await usdc.connect(directBorrower).transferFrom(liquidityPool, directBorrower, amountToBorrow);
-      
+
       expect(await usdc.balanceOf(liquidityPool)).to.eq(amountLiquidity - amountToBorrow);
       expect(await liquidityPool.totalDeposited()).to.eq(amountLiquidity);
       expect(await usdc.balanceOf(directBorrower)).to.eq(amountToBorrow);
@@ -1714,7 +1817,7 @@ describe("LiquidityPool", function () {
 
     it("Should NOT allow to borrow direct if NOT DIRECT_BORROW_ROLE", async function () {
       const {
-        liquidityPool, usdc, user, USDC_DEC, usdcOwner, liquidityAdmin 
+        liquidityPool, usdc, user, USDC_DEC, usdcOwner, liquidityAdmin
       } = await loadFixture(deployAll);
       const amountLiquidity = 1000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, amountLiquidity);
@@ -1743,7 +1846,7 @@ describe("LiquidityPool", function () {
       await expect(liquidityPool.connect(directBorrower).borrowDirect(usdc, amountToBorrow))
         .to.be.revertedWithCustomError(liquidityPool, "EnforcedPause");
     });
-    
+
     it("Should NOT allow to borrow direct if borrow paused", async function () {
       const {
         liquidityPool, usdc, USDC_DEC, withdrawProfit, usdcOwner, liquidityAdmin, directBorrower
@@ -1773,18 +1876,74 @@ describe("LiquidityPool", function () {
       const amountToBorrow = 300n * USDC_DEC;
 
       await expect(liquidityPool.connect(directBorrower).borrowDirect(usdc, amountToBorrow))
-        .to.emit(liquidityPool, "BorrowDirect").withArgs(directBorrower, usdc, amountToBorrow); 
+        .to.emit(liquidityPool, "BorrowDirect").withArgs(directBorrower, usdc, amountToBorrow);
       await usdc.connect(directBorrower).transferFrom(liquidityPool, directBorrower, amountToBorrow);
       expect(await liquidityPool.directDebt(usdc)).to.be.eq(amountToBorrow);
-      
+
       await usdc.connect(directBorrower).approve(liquidityPool, amountToBorrow);
       await expect(liquidityPool.connect(directBorrower).repayDirect([usdc], [amountToBorrow]))
         .to.emit(liquidityPool, "RepaidDirect").withArgs(usdc, amountToBorrow);
 
       expect(await liquidityPool.directDebt(usdc)).to.be.eq(0);
+      expect(await usdc.balanceOf(directBorrower)).to.be.eq(0);
+      expect(await usdc.balanceOf(liquidityPool)).to.be.eq(amountLiquidity);
     });
-    
-    it("Should NOT allow repay if not DIRECT_BORROW_ROLE", async function () {
+
+    it("Should partially reduce direct debt if repaid less than debt", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, usdcOwner, liquidityAdmin, directBorrower
+      } = await loadFixture(deployAll);
+      const amountLiquidity = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountLiquidity);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+        .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
+
+      const amountToBorrow = 300n * USDC_DEC;
+
+      await expect(liquidityPool.connect(directBorrower).borrowDirect(usdc, amountToBorrow))
+        .to.emit(liquidityPool, "BorrowDirect").withArgs(directBorrower, usdc, amountToBorrow);
+      await usdc.connect(directBorrower).transferFrom(liquidityPool, directBorrower, amountToBorrow);
+      expect(await liquidityPool.directDebt(usdc)).to.be.eq(amountToBorrow);
+
+      const remainingDebt = 100n * USDC_DEC;
+      await usdc.connect(directBorrower).approve(liquidityPool, amountToBorrow);
+      await expect(liquidityPool.connect(directBorrower).repayDirect([usdc], [amountToBorrow - remainingDebt]))
+        .to.emit(liquidityPool, "RepaidDirect").withArgs(usdc, amountToBorrow - remainingDebt);
+
+      expect(await liquidityPool.directDebt(usdc)).to.be.eq(remainingDebt);
+      expect(await usdc.balanceOf(directBorrower)).to.be.eq(remainingDebt);
+      expect(await usdc.balanceOf(liquidityPool)).to.be.eq(amountLiquidity - remainingDebt);
+    });
+
+    it("Should fully reduce direct debt if repaid more than debt", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, usdcOwner, liquidityAdmin, directBorrower
+      } = await loadFixture(deployAll);
+      const amountLiquidity = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountLiquidity);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+        .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
+
+      const amountToBorrow = 300n * USDC_DEC;
+
+      await expect(liquidityPool.connect(directBorrower).borrowDirect(usdc, amountToBorrow))
+        .to.emit(liquidityPool, "BorrowDirect").withArgs(directBorrower, usdc, amountToBorrow);
+      await usdc.connect(directBorrower).transferFrom(liquidityPool, directBorrower, amountToBorrow);
+      expect(await liquidityPool.directDebt(usdc)).to.be.eq(amountToBorrow);
+
+      const extraRepayment = 100n * USDC_DEC;
+
+      await usdc.connect(usdcOwner).transfer(directBorrower, extraRepayment);
+      await usdc.connect(directBorrower).approve(liquidityPool, amountToBorrow + extraRepayment);
+      await expect(liquidityPool.connect(directBorrower).repayDirect([usdc], [amountToBorrow + extraRepayment]))
+        .to.emit(liquidityPool, "RepaidDirect").withArgs(usdc, amountToBorrow);
+
+      expect(await liquidityPool.directDebt(usdc)).to.be.eq(0);
+      expect(await usdc.balanceOf(directBorrower)).to.be.eq(extraRepayment);
+      expect(await usdc.balanceOf(liquidityPool)).to.be.eq(amountLiquidity);
+    });
+
+    it("Should NOT allow repay direct if not DIRECT_BORROW_ROLE", async function () {
       const {
         liquidityPool, usdc, USDC_DEC, user, usdcOwner, liquidityAdmin, directBorrower
       } = await loadFixture(deployAll);
@@ -1796,17 +1955,16 @@ describe("LiquidityPool", function () {
       const amountToBorrow = 300n * USDC_DEC;
 
       await expect(liquidityPool.connect(directBorrower).borrowDirect(usdc, amountToBorrow))
-        .to.emit(liquidityPool, "BorrowDirect").withArgs(directBorrower, usdc, amountToBorrow); 
+        .to.emit(liquidityPool, "BorrowDirect").withArgs(directBorrower, usdc, amountToBorrow);
       await usdc.connect(directBorrower).transferFrom(liquidityPool, directBorrower, amountToBorrow);
       expect(await liquidityPool.directDebt(usdc)).to.be.eq(amountToBorrow);
-      
+
       await usdc.connect(directBorrower).approve(liquidityPool, amountToBorrow);
       await expect(liquidityPool.connect(user).repayDirect([usdc], [amountToBorrow]))
         .to.be.revertedWithCustomError(liquidityPool, "NotDirectBorrower");
     });
 
-
-    it("Can't repay debt if token is not ASSETS", async function () {
+    it("Can't repay direct debt if token is not ASSETS", async function () {
       const {
         liquidityPool, usdc, USDC_DEC, eurc, usdcOwner, liquidityAdmin, directBorrower
       } = await loadFixture(deployAll);
@@ -1818,16 +1976,16 @@ describe("LiquidityPool", function () {
       const amountToBorrow = 300n * USDC_DEC;
 
       await expect(liquidityPool.connect(directBorrower).borrowDirect(usdc, amountToBorrow))
-        .to.emit(liquidityPool, "BorrowDirect").withArgs(directBorrower, usdc, amountToBorrow); 
+        .to.emit(liquidityPool, "BorrowDirect").withArgs(directBorrower, usdc, amountToBorrow);
       await usdc.connect(directBorrower).transferFrom(liquidityPool, directBorrower, amountToBorrow);
       expect(await liquidityPool.directDebt(usdc)).to.be.eq(amountToBorrow);
-      
+
       await usdc.connect(directBorrower).approve(liquidityPool, amountToBorrow);
       await expect(liquidityPool.connect(directBorrower).repayDirect([eurc], [amountToBorrow]))
         .to.be.revertedWithCustomError(liquidityPool, "InvalidAsset");
     });
-    
-    it("Can't repay debt if input is more than two tokens", async function () {
+
+    it("Can't repay direct debt if input is more than one token", async function () {
       const {
         liquidityPool, usdc, USDC_DEC, eurc, usdcOwner, liquidityAdmin, directBorrower
       } = await loadFixture(deployAll);
@@ -1839,15 +1997,16 @@ describe("LiquidityPool", function () {
       const amountToBorrow = 300n * USDC_DEC;
 
       await expect(liquidityPool.connect(directBorrower).borrowDirect(usdc, amountToBorrow))
-        .to.emit(liquidityPool, "BorrowDirect").withArgs(directBorrower, usdc, amountToBorrow); 
+        .to.emit(liquidityPool, "BorrowDirect").withArgs(directBorrower, usdc, amountToBorrow);
       await usdc.connect(directBorrower).transferFrom(liquidityPool, directBorrower, amountToBorrow);
       expect(await liquidityPool.directDebt(usdc)).to.be.eq(amountToBorrow);
-      
+
       await usdc.connect(directBorrower).approve(liquidityPool, amountToBorrow);
       await expect(liquidityPool.connect(directBorrower).repayDirect([usdc, eurc], [amountToBorrow, amountToBorrow]))
         .to.be.revertedWithCustomError(liquidityPool, "InvalidAsset");
     });
-    it("Can't repay debt if nothing to repay", async function () {
+
+    it("Can't repay direct debt if nothing to repay", async function () {
       const {
         liquidityPool, usdc, USDC_DEC, usdcOwner, liquidityAdmin, directBorrower
       } = await loadFixture(deployAll);
@@ -1859,8 +2018,8 @@ describe("LiquidityPool", function () {
       await expect(liquidityPool.connect(directBorrower).repayDirect([usdc], [amountLiquidity]))
         .to.be.revertedWithCustomError(liquidityPool, "NothingToRepay");
     });
-    
-    it("Can't repay debt if input is not same length", async function () {
+
+    it("Can't repay direct debt if input is not same length", async function () {
       const {
         liquidityPool, usdc, USDC_DEC, usdcOwner, liquidityAdmin, directBorrower
       } = await loadFixture(deployAll);
@@ -1872,10 +2031,10 @@ describe("LiquidityPool", function () {
       const amountToBorrow = 300n * USDC_DEC;
 
       await expect(liquidityPool.connect(directBorrower).borrowDirect(usdc, amountToBorrow))
-        .to.emit(liquidityPool, "BorrowDirect").withArgs(directBorrower, usdc, amountToBorrow); 
+        .to.emit(liquidityPool, "BorrowDirect").withArgs(directBorrower, usdc, amountToBorrow);
       await usdc.connect(directBorrower).transferFrom(liquidityPool, directBorrower, amountToBorrow);
       expect(await liquidityPool.directDebt(usdc)).to.be.eq(amountToBorrow);
-      
+
       await usdc.connect(directBorrower).approve(liquidityPool, amountToBorrow);
       await expect(liquidityPool.connect(directBorrower).repayDirect([usdc], [amountToBorrow, amountToBorrow]))
         .to.be.revertedWithCustomError(liquidityPool, "InvalidLength");

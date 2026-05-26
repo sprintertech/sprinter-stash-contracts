@@ -183,7 +183,6 @@ contract LiquidityPoolAave is LiquidityPool {
         require(token != ATOKEN, CannotWithdrawAToken());
         uint256 totalBalance = token.balanceOf(address(this));
 
-        // Check that the token doesn't have debt
         address vdToken = AAVE_POOL.getReserveData(address(token)).variableDebtTokenAddress;
         uint256 outstandingDebt = 0;
         if (vdToken != address(0)) {

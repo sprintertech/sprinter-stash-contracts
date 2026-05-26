@@ -129,7 +129,7 @@ describe("LiquidityPoolAave", function () {
       deployer, admin, user, user2, mpc_signer, usdc, usdcOwner, gho, ghoOwner, eurc, eurcOwner,
       liquidityPool, mockTarget, mockBorrowSwap, USDC_DEC, GHO_DEC, EURC_DEC, AAVE_POOL_PROVIDER,
       healthFactor, defaultLtv, aavePool, aToken, ghoDebtToken, eurcDebtToken, usdcDebtToken,
-      nonSupportedToken, nonSupportedTokenOwner, liquidityAdmin, withdrawProfit, pauser,  directBorrower, 
+      nonSupportedToken, nonSupportedTokenOwner, liquidityAdmin, withdrawProfit, pauser,  directBorrower,
       weth, wethOwner, WETH_DEC, mockSignerTrue, mockSignerFalse
     };
   };
@@ -1157,7 +1157,7 @@ describe("LiquidityPoolAave", function () {
         .to.emit(liquidityPool, "Paused");
 
       await eurc.connect(eurcOwner).transfer(liquidityPool, amountToBorrow);
-     
+
       await time.increase(3600);
       await expect(liquidityPool.connect(user).repay([eurc]))
       .to.emit(liquidityPool, "Repaid");
@@ -2639,10 +2639,11 @@ describe("LiquidityPoolAave", function () {
         .to.revertedWithCustomError(liquidityPool, "CannotWithdrawAToken");
     });
 
-    it("Should NOT withdraw profit if the token has debt", async function () {
+    it("Should NOT withdraw profit if the token debt greater than balance", async function () {
       const {
         liquidityPool, usdc, usdcOwner, USDC_DEC, gho, GHO_DEC, mpc_signer,
         liquidityAdmin, withdrawProfit, user, user2, ghoDebtToken, eurc, EURC_DEC, eurcOwner,
+        ghoOwner,
       } = await loadFixture(deployAll);
       const amount = 1000n * USDC_DEC; // $1000
       const amountEURC = 1n * EURC_DEC;
@@ -2673,6 +2674,9 @@ describe("LiquidityPoolAave", function () {
       expect(await ghoDebtToken.balanceOf(liquidityPool)).to.be.greaterThan(0);
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([gho], user))
         .to.be.revertedWithCustomError(liquidityPool, "NoProfit()");
+      await gho.connect(ghoOwner).transfer(liquidityPool, 1n);
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([gho], user))
+        .to.be.revertedWithCustomError(liquidityPool, "NoProfit()");
       await eurc.connect(eurcOwner).transfer(liquidityPool, amountEURC);
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([eurc, gho], user))
         .to.emit(liquidityPool, "ProfitWithdrawn");
@@ -2680,10 +2684,228 @@ describe("LiquidityPoolAave", function () {
       expect(await eurc.balanceOf(user)).to.eq(amountEURC);
     });
 
+    it("Should withdraw profit if the token debt is less than balance", async function () {
+      const {
+        liquidityPool, usdc, usdcOwner, USDC_DEC, gho, GHO_DEC, mpc_signer,
+        liquidityAdmin, withdrawProfit, user, user2, ghoDebtToken,
+        ghoOwner,
+      } = await loadFixture(deployAll);
+      const amount = 1000n * USDC_DEC; // $1000
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amount);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amount))
+        .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
+      const amountToBorrow = 2n * GHO_DEC;
+
+      const signature1 = await signBorrow(
+        mpc_signer,
+        liquidityPool,
+        user,
+        gho,
+        amountToBorrow,
+        user2,
+        "0x",
+      );
+
+      await liquidityPool.connect(user).borrow(
+        gho,
+        amountToBorrow,
+        user2,
+        "0x",
+        0n,
+        2000000000n,
+        signature1);
+      const amountRepaidExtra = 1n * GHO_DEC;
+      expect(await gho.balanceOf(liquidityPool)).to.eq(amountToBorrow);
+      expect(await ghoDebtToken.balanceOf(liquidityPool)).to.be.greaterThan(0);
+      await gho.connect(ghoOwner).transfer(liquidityPool, amountRepaidExtra);
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([gho], user))
+        .to.emit(liquidityPool, "ProfitWithdrawn");
+      expect(await gho.balanceOf(user)).to.eq(
+        amountToBorrow + amountRepaidExtra - await ghoDebtToken.balanceOf(liquidityPool)
+      );
+    });
+
     it("Should NOT withdraw profit by unauthorized user", async function () {
       const {liquidityPool, eurc, user} = await loadFixture(deployAll);
       await expect(liquidityPool.connect(user).withdrawProfit([eurc], user))
         .to.be.revertedWithCustomError(liquidityPool, "AccessControlUnauthorizedAccount");
+    });
+
+    it("Should revert withdrawing other token profit if balance + direct debt < aave debt", async function () {
+      const {
+        liquidityPool, usdc, gho, USDC_DEC, GHO_DEC, usdcOwner, liquidityAdmin,
+        withdrawProfit, user, ghoOwner, directBorrower, mockTarget, mpc_signer,
+      } = await loadFixture(deployAll);
+
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
+
+      // Regular borrow: GHO goes to mockTarget (fulfil pulls it), creating aave debt with 0 pool balance
+      const regularBorrowAmount = 2n * GHO_DEC;
+      const callData = await mockTarget.fulfill.populateTransaction(gho, regularBorrowAmount, "0x");
+      const signature = await signBorrow(
+        mpc_signer, liquidityPool, user, gho, regularBorrowAmount, mockTarget, callData.data
+      );
+      await liquidityPool.connect(user).borrow(
+        gho, regularBorrowAmount, mockTarget, callData.data, 0n, 2000000000n, signature
+      );
+      // gho.balanceOf(pool) = 0, ghoDebtToken = 2
+
+      // Direct borrow: adds directDebt but directBorrower pulls the GHO
+      const directBorrowAmount = 1n * GHO_DEC;
+      await liquidityPool.connect(directBorrower).borrowDirect(gho, directBorrowAmount);
+      await gho.connect(directBorrower).transferFrom(liquidityPool, directBorrower, directBorrowAmount);
+      await gho.connect(ghoOwner).transfer(liquidityPool, directBorrowAmount);
+      // gho.balanceOf(pool) = 1, directDebt[gho] = 1, ghoDebtToken = 3
+      // virtualBalance = 1 + 1 = 2 < 3 = ghoDebtToken -> NoProfit
+
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([gho], user))
+        .to.be.revertedWithCustomError(liquidityPool, "NoProfit()");
+    });
+
+    it("Should revert withdrawing asset profit if balance + direct debt + interest < aave debt", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, usdcOwner, liquidityAdmin,
+        withdrawProfit, user, directBorrower, mockTarget, mpc_signer,
+      } = await loadFixture(deployAll);
+
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
+
+      // Regular borrow USDC: mockTarget pulls it, creating aave debt with 0 pool balance
+      const regularBorrowAmount = 2n * USDC_DEC;
+      const callData = await mockTarget.fulfill.populateTransaction(usdc, regularBorrowAmount, "0x");
+      const signature = await signBorrow(
+        mpc_signer, liquidityPool, user, usdc, regularBorrowAmount, mockTarget, callData.data
+      );
+      await liquidityPool.connect(user).borrow(
+        usdc, regularBorrowAmount, mockTarget, callData.data, 0n, 2000000000n, signature
+      );
+      // usdc.balanceOf(pool) ≈ 0, usdcDebtToken = 2
+
+      // Direct borrow USDC: directBorrower pulls it
+      const directBorrowAmount = 1n * USDC_DEC;
+      await liquidityPool.connect(directBorrower).borrowDirect(usdc, directBorrowAmount);
+      await usdc.connect(directBorrower).transferFrom(liquidityPool, directBorrower, directBorrowAmount);
+      await usdc.connect(usdcOwner).transfer(liquidityPool, directBorrowAmount);
+      // usdc.balanceOf(pool) ≈ 0, directDebt[usdc] = 1, usdcDebtToken = 3
+      // totalBalance = 0 + interest(≈0), virtualBalance = 0 + 1 = 1 < 3 = usdcDebtToken -> NoProfit
+
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
+        .to.be.revertedWithCustomError(liquidityPool, "NoProfit()");
+    });
+
+    it("Should withdraw other token profit if balance plus direct debt is greater than aave debt", async function () {
+      const {
+        liquidityPool, usdc, gho, USDC_DEC, GHO_DEC, usdcOwner, liquidityAdmin,
+        withdrawProfit, user, directBorrower,
+      } = await loadFixture(deployAll);
+
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
+
+      // borrowDirect: pool gets 2 GHO from Aave, directBorrower pulls only 1
+      const directBorrowAmount = 2n * GHO_DEC;
+      await liquidityPool.connect(directBorrower).borrowDirect(gho, directBorrowAmount);
+      await gho.connect(directBorrower).transferFrom(liquidityPool, directBorrower, 1n * GHO_DEC);
+      // gho.balanceOf(pool) = 1, directDebt[gho] = 2, ghoDebtToken = 2
+      // virtualBalance = 1 + 2 = 3 > 2, profit ≈ Math.min(1, 1) ≈ 1 GHO
+
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([gho], user))
+        .to.emit(liquidityPool, "ProfitWithdrawn");
+      // GHO debt accrues interest so the exact profit may differ by a small amount from 1 GHO
+      expectAlmostEqual(await gho.balanceOf(user), 1n * GHO_DEC, GHO_DEC / 100n);
+    });
+
+    it("Should withdraw other token profit if direct debt is greater than aave debt", async function () {
+      const {
+        liquidityPool, usdc, gho, USDC_DEC, GHO_DEC, usdcOwner, ghoOwner, liquidityAdmin,
+        withdrawProfit, user, directBorrower,
+      } = await loadFixture(deployAll);
+
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
+
+      // borrowDirect 2 GHO, directBorrower pulls all
+      const directBorrowAmount = 2n * GHO_DEC;
+      await liquidityPool.connect(directBorrower).borrowDirect(gho, directBorrowAmount);
+      await gho.connect(directBorrower).transferFrom(liquidityPool, directBorrower, directBorrowAmount);
+      // gho.balanceOf(pool) = 0, directDebt[gho] = 2, ghoDebtToken = 2
+
+      // Send GHO to pool and repay Aave debt (reduces ghoDebtToken but not directDebt)
+      await gho.connect(ghoOwner).transfer(liquidityPool, 2n * GHO_DEC);
+      await liquidityPool.repay([gho]);
+      await gho.connect(ghoOwner).transfer(liquidityPool, 1n * GHO_DEC);
+      // gho.balanceOf(pool) ≈ 1, ghoDebtToken ≈ 0, directDebt[gho] = 2 > 0+ = ghoDebtToken
+      // virtualBalance ≈ 3 > 0+, profit ≈ 1 GHO (pool balance after repay)
+
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([gho], user))
+        .to.emit(liquidityPool, "ProfitWithdrawn");
+      // GHO debt accrues interest so profit ≈ 1 GHO but could differ by a small amount
+      expectAlmostEqual(await gho.balanceOf(user), 1n * GHO_DEC, GHO_DEC / 100n);
+    });
+
+    it("Should withdraw asset token profit if direct debt is greater than aave debt", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, usdcOwner, liquidityAdmin,
+        withdrawProfit, user, directBorrower,
+      } = await loadFixture(deployAll);
+
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
+
+      // borrowDirect 2 USDC, directBorrower pulls all
+      const directBorrowAmount = 2n * USDC_DEC;
+      await liquidityPool.connect(directBorrower).borrowDirect(usdc, directBorrowAmount);
+      await usdc.connect(directBorrower).transferFrom(liquidityPool, directBorrower, directBorrowAmount);
+      // usdc.balanceOf(pool) ≈ 0, directDebt[usdc] = 2, usdcDebtToken = 2
+
+      // Send USDC to pool and repay Aave debt (reduces usdcDebtToken but not directDebt)
+      await usdc.connect(usdcOwner).transfer(liquidityPool, 1n * USDC_DEC);
+      await liquidityPool.repay([usdc]);
+      await usdc.connect(usdcOwner).transfer(liquidityPool, 1n * USDC_DEC);
+      // usdc.balanceOf(pool) = 1, usdcDebtToken ≈ 1, directDebt[usdc] = 2 > 1 = usdcDebtToken
+      // totalBalance ≈ 1 USDC + aToken interest, virtualBalance ≈ 3 > 1+, profit ≈ 1 USDC
+
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
+        .to.emit(liquidityPool, "ProfitWithdrawn");
+      // USDC aToken interest may add a small amount to profit
+      expectAlmostEqual(await usdc.balanceOf(user), 1n * USDC_DEC, 100n);
+    });
+
+    it("Should withdraw asset token profit if interest plus direct debt is greater than aave debt", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, usdcOwner, liquidityAdmin,
+        withdrawProfit, user, directBorrower, usdcDebtToken,
+      } = await loadFixture(deployAll);
+
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
+
+      // borrowDirect 2 USDC, directBorrower pulls all
+      const directBorrowAmount = 2n * USDC_DEC;
+      await liquidityPool.connect(directBorrower).borrowDirect(usdc, directBorrowAmount);
+      await usdc.connect(directBorrower).transferFrom(liquidityPool, directBorrower, directBorrowAmount);
+      // usdc.balanceOf(pool) ≈ 0, directDebt[usdc] = 2, usdcDebtToken = 2
+
+      // Assuming atleast 1% APY
+      await time.increase(3600 * 24 * 365);
+      // usdc.balanceOf(pool) = 0, usdcDebtToken ≈ 2.3, directDebt[usdc] = 2
+      // totalBalance = 0 USDC + aToken interest (>10), virtualBalance ≈ 12 > 2.3, profit ≈ 9+ USDC
+
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
+        .to.emit(liquidityPool, "ProfitWithdrawn");
+      expect(await usdc.balanceOf(user)).to.be.greaterThan(9n * USDC_DEC);
+      expectAlmostEqual(
+        await usdc.balanceOf(liquidityPool) + directBorrowAmount,
+        await usdcDebtToken.balanceOf(liquidityPool), 10n
+      );
     });
 
     it("Should NOT set token LTVs if array lengths don't match", async function () {
@@ -2983,7 +3205,7 @@ describe("LiquidityPoolAave", function () {
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 2n * GHO_DEC;
-      
+
       await liquidityPool.connect(directBorrower).borrowDirect(gho, amountToBorrow);
       expect(await gho.balanceOf(liquidityPool)).to.eq(amountToBorrow);
       await gho.connect(directBorrower).transferFrom(liquidityPool, directBorrower, amountToBorrow);
@@ -3003,13 +3225,13 @@ describe("LiquidityPoolAave", function () {
 
       const availableBefore = await liquidityPool.balance(eurc);
       const amountToBorrow = 3n * EURC_DEC;
-      
+
       await liquidityPool.connect(directBorrower).borrowDirect(eurc, amountToBorrow);
       expect(await eurc.balanceOf(liquidityPool)).to.eq(amountToBorrow);
       await eurc.connect(directBorrower).transferFrom(liquidityPool, directBorrower, amountToBorrow);
 
       await time.increase(3600);
-      
+
       await eurc.connect(directBorrower).approve(liquidityPool, amountToBorrow);
       await expect(liquidityPool.connect(directBorrower).repayDirect([eurc], [amountToBorrow]))
         .to.emit(liquidityPool, "RepaidDirect").withArgs(eurc, amountToBorrow);
@@ -3019,7 +3241,7 @@ describe("LiquidityPoolAave", function () {
       expect(await eurc.balanceOf(directBorrower)).to.be.eq(0);
       expect(await liquidityPool.directDebt(eurc)).to.be.eq(0);
       expect(await liquidityPool.balance(eurc)).to.be.lessThan(availableBefore + 1n * EURC_DEC);
-      expect(await liquidityPool.balance(eurc)).to.be.greaterThan(availableBefore - 1n * EURC_DEC); 
+      expect(await liquidityPool.balance(eurc)).to.be.greaterThan(availableBefore - 1n * EURC_DEC);
     });
 
     it("Should validate input for repay direct", async function() {
@@ -3032,13 +3254,13 @@ describe("LiquidityPoolAave", function () {
         .to.emit(liquidityPool, "SuppliedToAave");
 
       const amountToBorrow = 3n * EURC_DEC;
-      
+
       await liquidityPool.connect(directBorrower).borrowDirect(eurc, amountToBorrow);
       expect(await eurc.balanceOf(liquidityPool)).to.eq(amountToBorrow);
       await eurc.connect(directBorrower).transferFrom(liquidityPool, directBorrower, amountToBorrow);
 
       await time.increase(3600);
-      
+
       await eurc.connect(directBorrower).approve(liquidityPool, amountToBorrow);
       await expect(liquidityPool.connect(directBorrower).repayDirect([eurc], [amountToBorrow, amountToBorrow]))
         .to.be.revertedWithCustomError(liquidityPool, "InvalidLength");
@@ -3053,13 +3275,13 @@ describe("LiquidityPoolAave", function () {
       await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
         .to.emit(liquidityPool, "SuppliedToAave");
 
-      const amountToBorrow = 3n * EURC_DEC; 
-            
+      const amountToBorrow = 3n * EURC_DEC;
+
       await eurc.connect(directBorrower).approve(liquidityPool, amountToBorrow);
       await expect(liquidityPool.connect(directBorrower).repayDirect([eurc], [amountToBorrow]))
         .to.be.revertedWithCustomError(liquidityPool, "NothingToRepay");
       });
-    
+
     it("Should withdraw accrued interest from aave with direct debt", async function () {
       const {
         liquidityPool, eurc, usdc, usdcOwner, USDC_DEC, aToken, user,
@@ -3071,7 +3293,7 @@ describe("LiquidityPoolAave", function () {
         .to.emit(liquidityPool, "SuppliedToAave").withArgs(amount);
       expect(await aToken.balanceOf(liquidityPool)).to.be.greaterThanOrEqual(amount - 2n);
       expect(await liquidityPool.totalDeposited()).to.eq(amount);
-      
+
       // we borrow a small amount to not hit the token LTV
       const amountToBorrow = 3n * USDC_DEC;
       await liquidityPool.connect(directBorrower).borrowDirect(eurc, amountToBorrow);

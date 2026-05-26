@@ -209,11 +209,11 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
       uint256 amount
     ) external override whenNotPaused() whenBorrowNotPaused() onlyDirectBorrower() {
         amount = _processBorrowAmount(amount, msg.data[0:0]);
-        directDebt[borrowToken] += amount;
 
         (, address actualBorrowToken, bytes memory context) =
             _borrow(borrowToken, amount, _msgSender(), false, "");
-        
+
+        directDebt[actualBorrowToken] += amount;
         _afterBorrowLogic(actualBorrowToken, context);
         
         emit BorrowDirect(_msgSender(), borrowToken, amount);
@@ -570,9 +570,9 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         uint256 totalBalance = token.balanceOf(address(this));
         if (token == ASSETS) {
             uint256 deposited = _totalDeposited;
-            uint256 direct = directDebt[address(ASSETS)];
-            if (totalBalance + direct < deposited) return 0;
-            return Math.min(totalBalance, totalBalance + direct - deposited);
+            uint256 virtualBalance = totalBalance + directDebt[address(ASSETS)];
+            if (virtualBalance < deposited) return 0;
+            return Math.min(totalBalance, virtualBalance - deposited);
         }
         return totalBalance;
     }

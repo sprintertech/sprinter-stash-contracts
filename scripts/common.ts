@@ -1,6 +1,17 @@
 import {isAddress, getAddress, zeroPadValue, stripZerosLeft} from "ethers";
 import {Network, Provider} from "../network.config";
 
+export async function retry<T>(fn: () => Promise<T>, sleepMs: number = 1000, maxRetries: number = 3): Promise<T> {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch {
+      await sleep(sleepMs);
+    }
+  }
+  return fn();
+}
+
 export function assert(condition: any, message: string): asserts condition {
   if (!condition) {
     throw new Error(message);
@@ -127,6 +138,7 @@ export const CCTPDomain: { [n: number]: Network } = {
 
 export const DEFAULT_PROXY_TYPE = "TransparentUpgradeableProxy";
 
+export const CREATE_X_ADDRESS = "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed";
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 export const ZERO_BYTES32 = "0x0000000000000000000000000000000000000000000000000000000000000000";
 export const DEFAULT_ADMIN_ROLE = ZERO_BYTES32;

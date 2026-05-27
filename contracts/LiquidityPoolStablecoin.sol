@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {LiquidityPool} from "./LiquidityPool.sol";
 
 /// @title A version of the liquidity pool contract that supports multiple assets for borrowing.
@@ -32,8 +33,11 @@ contract LiquidityPoolStablecoin is LiquidityPool {
     function _withdrawProfitLogic(IERC20 token) internal view override returns (uint256) {
         uint256 assetBalance = ASSETS.balanceOf(address(this));
         uint256 deposited = _totalDeposited;
-        require(assetBalance >= deposited, WithdrawProfitDenied());
-        if (token == ASSETS) return assetBalance - deposited;
+        uint256 virtualBalance = assetBalance + directDebt[address(ASSETS)];
+        require(virtualBalance >= deposited, WithdrawProfitDenied());
+        if (token == ASSETS) {
+            return Math.min(assetBalance, virtualBalance - deposited);
+        }
         return token.balanceOf(address(this));
     }
 

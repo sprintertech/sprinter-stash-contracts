@@ -5,12 +5,15 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {
   deploy, getBalance,
+  setupTests,
 } from "./helpers";
 import {
   MockTarget,
 } from "../typechain-types";
 
 describe("PushNativeToken", function () {
+  setupTests();
+
   const deployAll = async () => {
     const [deployer] = await hre.ethers.getSigners();
 

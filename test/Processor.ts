@@ -2,17 +2,20 @@ import hre from "hardhat";
 import {expect} from "chai";
 import {
   getCreateAddress, getContractAt, deploy, deployX, toBytes32,
+  setupTests,
 } from "./helpers";
 import {
   TestUSDC, TransparentUpgradeableProxy, ProxyAdmin, Processor,
   Test4626,
   Test7540,
-  TestRoyco, 
+  TestRoyco,
 } from "../typechain-types";
 import {loadFixture} from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {DEFAULT_ADMIN_ROLE} from "../scripts/common";
 
 describe("Processor", function () {
+  setupTests();
+
   const deployAll = async () => {
     const [deployer, admin, caller, user, receiver] = await hre.ethers.getSigners();
 
@@ -41,24 +44,24 @@ describe("Processor", function () {
       "Test4626",
       deployer,
       {},
-      await usdc.getAddress(), 
-      "Test4626 USDC", 
+      await usdc.getAddress(),
+      "Test4626 USDC",
       "tUSDC"
     )) as Test4626;
     const test7540 = (await deploy(
       "Test7540",
       deployer,
       {},
-      await usdc.getAddress(), 
-      "Test7540 USDC", 
+      await usdc.getAddress(),
+      "Test7540 USDC",
       "t7540USDC",
     )) as Test7540;
     const testRoyco = (await deploy(
       "TestRoyco",
       deployer,
       {},
-      await usdc.getAddress(), 
-      "TestRoyco USDC", 
+      await usdc.getAddress(),
+      "TestRoyco USDC",
       "tRoycoUSDC",
     )) as TestRoyco;
     return {
@@ -66,7 +69,7 @@ describe("Processor", function () {
       processor, processorAdmin, CALLER_ROLE, DEFAULT_ADMIN_ROLE
     };
   };
-  
+
   it("Should revert when Redeemer initialize is called (disabled initializer)", async function () {
     const {
         processor, admin, caller
@@ -90,7 +93,7 @@ describe("Processor", function () {
     expect(await processor.TARGET_ASSET()).to.be.equal(await usdc.getAddress())
     expect(await processor.RECEIVER()).to.be.equal(receiver.address)
   });
-  
+
   it("Should revert when redeem7540 is called not by CALLER_ROLE", async function () {
     const {
         processor, user, test7540
@@ -111,7 +114,7 @@ describe("Processor", function () {
 
   it("Should revert when redeem4626 is called not by CALLER_ROLE", async function () {
     const {
-        processor, user, test4626 
+        processor, user, test4626
     } = await loadFixture(deployAll);
 
     await expect(processor.connect(user).redeem4626(test4626))
@@ -120,7 +123,7 @@ describe("Processor", function () {
 
   it("Should revert when withdraw4626 is called not by CALLER_ROLE", async function () {
     const {
-        processor, user, test4626 
+        processor, user, test4626
     } = await loadFixture(deployAll);
 
     await expect(processor.connect(user).withdraw4626(test4626))
@@ -129,7 +132,7 @@ describe("Processor", function () {
 
   it("Should revert when claimRoyco is called not by CALLER_ROLE", async function () {
     const {
-        processor, user, test4626 
+        processor, user, test4626
     } = await loadFixture(deployAll);
 
     await expect(processor.connect(user).claimRoyco(test4626, []))
@@ -140,7 +143,7 @@ describe("Processor", function () {
     const {
         processor, receiver, caller, deployer, test7540, usdc
     } = await loadFixture(deployAll);
-    
+
     const sharesAmount = 100_000000n;
     await usdc.mint(deployer, 1000_000000n);
     await usdc.connect(deployer).approve(test7540, sharesAmount);
@@ -159,7 +162,7 @@ describe("Processor", function () {
     const {
         processor, receiver, caller, deployer, test4626, usdc
     } = await loadFixture(deployAll);
-    
+
     const sharesAmount = 100_000000n;
     await usdc.mint(deployer, 1000_000000n);
     await usdc.connect(deployer).approve(test4626, sharesAmount);
@@ -176,7 +179,7 @@ describe("Processor", function () {
     const {
         processor, receiver, caller, deployer, test4626, usdc
     } = await loadFixture(deployAll);
-    
+
     const sharesAmount = 100_000000n;
     await usdc.mint(deployer, 1000_000000n);
     await usdc.connect(deployer).approve(test4626, sharesAmount);
@@ -193,7 +196,7 @@ describe("Processor", function () {
     const {
         processor, receiver, caller, deployer, testRoyco, usdc
     } = await loadFixture(deployAll);
-    
+
     const sharesAmount = 100_000000n;
     await usdc.mint(deployer, 1000_000000n);
     await usdc.connect(deployer).approve(testRoyco, sharesAmount);

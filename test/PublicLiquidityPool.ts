@@ -5,6 +5,7 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {
   deploy, signBorrow, signBorrowMany, getBalance,
+  setupTests,
 } from "./helpers";
 import {ZERO_ADDRESS, NATIVE_TOKEN, ETH} from "../scripts/common";
 import {encodeBytes32String, AbiCoder, hashMessage, concat, resolveAddress, Signature} from "ethers";
@@ -33,9 +34,11 @@ function addAmountToReceive(callData: string, amountToReceive: bigint) {
 }
 
 describe("PublicLiquidityPool", function () {
+  setupTests();
+
   const deployAll = async () => {
     const [
-      deployer, admin, user, user2, mpc_signer, feeSetter, withdrawProfit, pauser, lp,
+      deployer, admin, user, user2, mpc_signer, feeSetter, withdrawProfit, pauser, lp, directBorrower,
     ] = await hre.ethers.getSigners();
     await setCode(user2.address, "0x00");
 
@@ -103,9 +106,12 @@ describe("PublicLiquidityPool", function () {
     const PAUSER_ROLE = encodeBytes32String("PAUSER_ROLE");
     await liquidityPool.connect(admin).grantRole(PAUSER_ROLE, pauser);
 
+    const DIRECT_BORROWER_ROLE = encodeBytes32String("DIRECT_BORROW_ROLE");
+    await liquidityPool.connect(admin).grantRole(DIRECT_BORROWER_ROLE, directBorrower);
+
     return {deployer, admin, user, user2, mpc_signer, usdc, usdcOwner, gho, ghoOwner, eurc, eurcOwner,
       liquidityPool, mockTarget, mockBorrowSwap, USDC_DEC, GHO_DEC, EURC_DEC, WETH_DEC, weth, wethOwner,
-      feeSetter, withdrawProfit, pauser, mockSignerTrue, mockSignerFalse, lp};
+      feeSetter, withdrawProfit, pauser, mockSignerTrue, mockSignerFalse, lp, directBorrower};
   };
 
   describe("Initialization", function () {
@@ -745,6 +751,16 @@ describe("PublicLiquidityPool", function () {
         .to.be.reverted;
     });
 
+    it("Should NOT borrow direct", async function() {
+      const {liquidityPool, usdc, USDC_DEC, directBorrower, lp} = await loadFixture(deployAll);
+      const amountLiquidity = 1000n * USDC_DEC;
+      await usdc.connect(lp).approve(liquidityPool, amountLiquidity);
+      await liquidityPool.connect(lp)[ERC4626Deposit](amountLiquidity, lp);
+
+      await expect(liquidityPool.connect(directBorrower).borrowDirect(usdc, 1n * USDC_DEC))
+        .to.be.revertedWithCustomError(liquidityPool, "TargetCallDataTooShort");
+    });
+
     it("Should deposit when the contract is paused", async function () {
       const {liquidityPool, pauser, usdc, usdcOwner, USDC_DEC, lp} = await loadFixture(deployAll);
       await expect(liquidityPool.connect(pauser).pause())
@@ -1167,7 +1183,7 @@ describe("PublicLiquidityPool", function () {
 
     it("Should NOT borrow if borrowing is paused", async function () {
       const {liquidityPool, user, user2, withdrawProfit, mpc_signer, usdc, USDC_DEC, lp} = await loadFixture(deployAll);
-      
+
       const amountLiquidity = 1000n * USDC_DEC;
       await usdc.connect(lp).approve(liquidityPool, amountLiquidity);
       await liquidityPool.connect(lp)[ERC4626Deposit](amountLiquidity, lp);

@@ -6,6 +6,7 @@ import hre from "hardhat";
 import {Signature, resolveAddress, MaxUint256, getBigInt} from "ethers";
 import {
   getCreateAddress, getDeployXAddressBase, getContractAt, deploy, deployX, toBytes32,
+  setupTests,
 } from "./helpers";
 import {ZERO_ADDRESS} from "../scripts/common";
 import {
@@ -22,6 +23,8 @@ async function now() {
 }
 
 describe("SprinterLiquidityMining", function () {
+  setupTests();
+
   const deployAll = async () => {
     const [deployer, admin, user, user2, user3] = await hre.ethers.getSigners();
 

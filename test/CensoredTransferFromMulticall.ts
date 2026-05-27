@@ -6,12 +6,15 @@ import hre from "hardhat";
 import {Signature, resolveAddress} from "ethers";
 import {
   deploy,
+  setupTests,
 } from "./helpers";
 import {
   TestUSDC, CensoredTransferFromMulticall, MockTarget,
 } from "../typechain-types";
 
 describe("CensoredTransferFromMulticall", function () {
+  setupTests();
+
   const deployAll = async () => {
     const [deployer] = await hre.ethers.getSigners();
 

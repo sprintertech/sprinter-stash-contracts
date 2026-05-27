@@ -9,6 +9,16 @@ import {ICreateX} from "../typechain-types";
 import dotenv from "dotenv";
 dotenv.config();
 
+export async function setupTests(): Promise<void> {
+  let snapshot: any;
+  before(async function () {
+    snapshot = await hre.ethers.provider.send("evm_snapshot", []);
+  });
+  after(async function () {
+    await hre.ethers.provider.send("evm_revert", [snapshot]);
+  });
+}
+
 async function resolveAddresses(input: AddressLike[]): Promise<string[]> {
   return await Promise.all(input.map(el => resolveAddress(el)));
 }

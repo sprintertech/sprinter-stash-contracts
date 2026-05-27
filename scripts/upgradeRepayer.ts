@@ -1,8 +1,9 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {isAddress, NonceManager} from "ethers";
+import {isAddress} from "ethers";
 import {getVerifier, upgradeProxyX, getHardhatNetworkConfig, getNetworkConfig, logDeployers} from "./helpers";
+import {createSender} from "./safe";
 import {getDeployProxyXAddress} from "../test/helpers";
 import {isSet, assert, DomainSolidity, ZERO_ADDRESS} from "./common";
 import {Repayer} from "../typechain-types";
@@ -10,7 +11,7 @@ import {Network, NetworkConfig} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
-  const deployerWithNonce = new NonceManager(deployer);
+  const sender = await createSender(hre, deployer);
 
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
   assert(isSet(process.env.UPGRADE_ID), "UPGRADE_ID must be set");
@@ -73,7 +74,7 @@ export async function main() {
     verifier.deployX,
     repayerAddress,
     repayerVersion,
-    deployerWithNonce,
+    sender,
     [
       DomainSolidity[network],
       config.Tokens.USDC.Address,

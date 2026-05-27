@@ -4,7 +4,7 @@ import {
   keccak256, concat, dataSlice, AbiCoder, EventLog, encodeBytes32String, isAddress,
   BigNumberish, BytesLike,
 } from "ethers";
-import {assert, DEFAULT_PROXY_TYPE} from "../scripts/common";
+import {assert, DEFAULT_PROXY_TYPE, CREATE_X_ADDRESS} from "../scripts/common";
 import {ICreateX} from "../typechain-types";
 import dotenv from "dotenv";
 dotenv.config();
@@ -28,7 +28,7 @@ export async function getCreateAddress(from: AddressLike, nonce: number): Promis
 }
 
 export async function getCreateX(deployer?: Signer): Promise<ICreateX> {
-  const createX = await getContractAt("ICreateX", "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed", deployer) as ICreateX;
+  const createX = await getContractAt("ICreateX", CREATE_X_ADDRESS, deployer) as ICreateX;
   const expectedBytecodeHash = "0xbd8a7ea8cfca7b4e5f5041d7d4b17bc317c5ce42cfbc42066a00cf26b43eb53f";
   const actualBytecode = await hre.ethers.provider.getCode(createX);
   const actualBytecodeHash = keccak256(actualBytecode);

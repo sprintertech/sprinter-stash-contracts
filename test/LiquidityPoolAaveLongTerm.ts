@@ -3825,6 +3825,27 @@ describe("LiquidityPoolAaveLongTerm", function () {
       expectAlmostEqual(await usdc.balanceOf(user), 1n * USDC_DEC, 100n);
     });
 
+    it("Should allow to borrow direct if borrow paused", async function () {
+      const {
+        liquidityPool, usdc, gho, USDC_DEC, GHO_DEC,
+        admin, usdcOwner, liquidityAdmin, withdrawProfit, borrowAdmin,
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountCollateral))
+        .to.emit(liquidityPool, "SuppliedToAave");
+      await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())
+        .to.emit(liquidityPool, "BorrowPaused");
+
+      const DIRECT_BORROW_ROLE = encodeBytes32String("DIRECT_BORROW_ROLE");
+      await liquidityPool.connect(admin).grantRole(DIRECT_BORROW_ROLE, borrowAdmin);
+
+      const amountToBorrow = 2n * GHO_DEC;
+      await expect(liquidityPool.connect(borrowAdmin).borrowDirect(gho, amountToBorrow))
+        .to.emit(liquidityPool, "BorrowDirect")
+        .withArgs(borrowAdmin, gho, amountToBorrow);
+    });
+
     it("Should NOT set token LTVs if array lengths don't match", async function () {
       const {liquidityPool, admin, eurc} = await loadFixture(deployAll);
       const eurc_ltv = 1000;

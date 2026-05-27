@@ -1611,6 +1611,26 @@ describe("LiquidityPoolStablecoin", function () {
       expect(await usdc.balanceOf(user)).to.eq(userBalanceBefore + directDebtAmount);
     });
 
+    it("Should allow to borrow direct if borrow paused", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, usdcOwner,
+        admin, user, liquidityAdmin, withdrawProfit,
+      } = await loadFixture(deployAll);
+      const amountLiquidity = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountLiquidity);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+        .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
+      await expect(liquidityPool.connect(withdrawProfit).pauseBorrow())
+        .to.emit(liquidityPool, "BorrowPaused");
+
+      const DIRECT_BORROW_ROLE = encodeBytes32String("DIRECT_BORROW_ROLE");
+      await liquidityPool.connect(admin).grantRole(DIRECT_BORROW_ROLE, user);
+
+      const amountToBorrow = 3n * USDC_DEC;
+      await expect(liquidityPool.connect(user).borrowDirect(usdc, amountToBorrow))
+        .to.emit(liquidityPool, "BorrowDirect").withArgs(user, usdc, amountToBorrow);
+    });
+
     it("Should borrow a token with swap and native fill", async function () {
       // USDC is borrowed and swapped to ETH
       const {

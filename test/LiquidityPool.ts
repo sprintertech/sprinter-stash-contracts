@@ -1847,7 +1847,7 @@ describe("LiquidityPool", function () {
         .to.be.revertedWithCustomError(liquidityPool, "EnforcedPause");
     });
 
-    it("Should NOT allow to borrow direct if borrow paused", async function () {
+    it("Should allow to borrow direct if borrow paused", async function () {
       const {
         liquidityPool, usdc, USDC_DEC, withdrawProfit, usdcOwner, liquidityAdmin, directBorrower
       } = await loadFixture(deployAll);
@@ -1861,7 +1861,7 @@ describe("LiquidityPool", function () {
       const amountToBorrow = 3n * USDC_DEC;
 
       await expect(liquidityPool.connect(directBorrower).borrowDirect(usdc, amountToBorrow))
-        .to.be.revertedWithCustomError(liquidityPool, "BorrowingIsPaused");
+        .to.emit(liquidityPool, "BorrowDirect").withArgs(directBorrower, usdc, amountToBorrow);
     });
 
     it("Should reduce direct debt if repaid", async function () {

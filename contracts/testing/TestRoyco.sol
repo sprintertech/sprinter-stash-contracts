@@ -36,6 +36,9 @@ contract TestRoyco is Test4626 {
         return 0;
     }
 
+    // solhint-disable-next-line no-empty-blocks
+    function cancelRequest(uint256 /*epochID*/) external {}
+
     function withdraw(uint256 assets, address receiver, address owner) public override returns (uint256 shares) {
         shares = super.previewWithdraw(assets);
         totalClaimable += assets;

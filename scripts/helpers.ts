@@ -180,6 +180,7 @@ export async function deployProxyX<ContractType extends Initializable>(
   initArgs: any[] = [],
   id: string = contractName,
   verifier?: Verifier,
+  contractsDeployedInInit: number = 0,
 ): Promise<{target: ContractType; targetAdmin: ProxyAdmin;}> {
   const targetImpl = (
     await deployFunc(contractName, deployer, {}, contructorArgs, id)
@@ -191,7 +192,7 @@ export async function deployProxyX<ContractType extends Initializable>(
     DEFAULT_PROXY_TYPE + id,
   )) as TransparentUpgradeableProxy;
   const target = (await getContractAt(contractName, targetProxy, deployer)) as ContractType;
-  const targetProxyAdminAddress = await getCreateAddress(targetProxy, 1);
+  const targetProxyAdminAddress = await getCreateAddress(targetProxy, contractsDeployedInInit + 1);
   const targetAdmin = (await getContractAt("ProxyAdmin", targetProxyAdminAddress)) as ProxyAdmin;
   await verifier?.addContractForVerification(targetProxyAdminAddress, [upgradeAdmin]);
   return {target, targetAdmin};

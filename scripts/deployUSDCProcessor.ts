@@ -48,11 +48,15 @@ export async function main() {
     [config.Tokens.USDC.Address, repayerAddress],
     [config.Admin, config.RepayerCaller, config.SignerAddress],
     "Processor",
-    verifier
+    verifier,
+    1,
   );
-
+  const subProcessor = await processor.subProcessor();
   console.log(`Processor: ${processor.target}`);
   console.log(`ProcessorProxyAdmin: ${processorAdmin.target}`);
+  console.log(`SubProcessor: ${subProcessor}`);
+
+  await verifier.addContractForVerification(subProcessor, [config.Tokens.USDC.Address]);
 
   await verifier.verify(process.env.VERIFY === "true");
 }

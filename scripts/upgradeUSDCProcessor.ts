@@ -94,6 +94,10 @@ export async function main() {
       console.log(`grantRole tx: ${tx.hash}`);
       await tx2.wait();
       console.log(`CONFIG_ROLE granted to ${config.SignerAddress}`);
+
+      const subProcessor = await processor.subProcessor();
+      console.log(`SubProcessor: ${subProcessor}`);
+      await verifier.addContractForVerification(subProcessor, [config.Tokens.USDC.Address]);
     }
   }
 

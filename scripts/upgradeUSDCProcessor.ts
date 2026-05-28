@@ -91,7 +91,7 @@ export async function main() {
       // CONFIG_ROLE for SignerAddress
       console.log(`Granting CONFIG_ROLE to ${config.SignerAddress}...`);
       const tx2 = await processor.grantRole(CONFIG_ROLE, config.SignerAddress);
-      console.log(`grantRole tx: ${tx.hash}`);
+      console.log(`grantRole tx: ${tx2.hash}`);
       await tx2.wait();
       console.log(`CONFIG_ROLE granted to ${config.SignerAddress}`);
 

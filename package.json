@@ -209,6 +209,7 @@
     "dry:deploy-spark-stage-repayer-base": "DRY_RUN=BASE STANDALONE_REPAYER_ENV=SparkStage VERIFY=false ts-node --files ./scripts/deployStandaloneRepayer.ts",
     "dry:deploy-spark-stage-repayer-arbitrumone": "DRY_RUN=ARBITRUM_ONE STANDALONE_REPAYER_ENV=SparkStage VERIFY=false ts-node --files ./scripts/deployStandaloneRepayer.ts",
     "dry:deploy-spark-stage-repayer-opmainnet": "DRY_RUN=OP_MAINNET STANDALONE_REPAYER_ENV=SparkStage VERIFY=false ts-node --files ./scripts/deployStandaloneRepayer.ts",
+    "dry:deploy-usdc-processor-ethereum": "DRY_RUN=ETHEREUM VERIFY=false hardhat run ./scripts/deployUSDCProcessor.ts",
     "dry:deploy-usdc-processor-ethereum-stage": "DRY_RUN=ETHEREUM VERIFY=false DEPLOY_TYPE=STAGE hardhat run ./scripts/deployUSDCProcessor.ts",
     "dry:upgrade-liquidityhub-basesepolia": "DRY_RUN=BASE_SEPOLIA VERIFY=false ts-node --files ./scripts/upgradeLiquidityHub.ts",
     "dry:upgrade-liquidityhub-base": "DRY_RUN=BASE VERIFY=false ts-node --files ./scripts/upgradeLiquidityHub.ts",

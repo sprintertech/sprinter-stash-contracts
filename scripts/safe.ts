@@ -6,7 +6,8 @@ import {
   TypedDataDomain, TypedDataField, getAddress, resolveAddress,
 } from "ethers";
 import {HardhatNetworkConfig, HardhatRuntimeEnvironment, HttpNetworkConfig} from "hardhat/types";
-import {assert, assertAddress, CREATE_X_ADDRESS, sameAddress, retry} from "./common";
+import {assert, assertAddress, CREATE_X_ADDRESS, sameAddress, retry, ETH} from "./common";
+import {setBalance} from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
 export class SafeSigner extends AbstractSigner {
   private readonly protocolKit: Safe;
@@ -114,6 +115,7 @@ export class SafeSigner extends AbstractSigner {
       return this.eoa.sendTransaction(tx);
     }
     if (this.hre.network.name === "hardhat") {
+      await setBalance(this.safeAddress, 100n * ETH);
       const impersonatedSafe = await this.hre.ethers.getImpersonatedSigner(this.safeAddress);
       // Send a dummy transaction to itself to update the nonce.
       // Because in reality EOA would be sending a tx to the Safe.

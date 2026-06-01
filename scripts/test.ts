@@ -15,6 +15,8 @@ import {main as deployUSDCPoolAaveLongTerm} from "./deployUSDCPoolAaveLongTerm";
 import {main as deployStandaloneRepayer} from "./deployStandaloneRepayer";
 import {main as deployUSDCPublicPool} from "./deployUSDCPublicPool";
 import {main as deployERC4626Adapter} from "./deployERC4626Adapter";
+import {main as deployUSDCProcessor} from "./deployUSDCProcessor";
+import {main as upgradeUSDCProcessor} from "./upgradeUSDCProcessor";
 
 async function main() {
   console.log("Test deploy.");
@@ -41,6 +43,10 @@ async function main() {
   await deployERC4626Adapter();
   console.log("Test deployRepayer.");
   await deployRepayer();
+  console.log("Test deployUSDCProcessor.");
+  await deployUSDCProcessor();
+  console.log("Test upgradeUSDCProcessor.");
+  await upgradeUSDCProcessor();
   console.log("Test deployStandaloneRepayer.");
   process.env.STANDALONE_REPAYER_ENV = "SparkStage";
   await deployStandaloneRepayer();

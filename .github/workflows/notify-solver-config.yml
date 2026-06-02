@@ -15,6 +15,7 @@ on:
 jobs:
   trigger-refresh:
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - name: Trigger solver-config hash refresh
         env:

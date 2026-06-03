@@ -59,20 +59,20 @@ contract LiquidityPoolAaveLongTerm is LiquidityPoolAave, ILiquidityPoolLongTerm 
         external override whenNotPaused() onlyRole(BORROW_LONG_TERM_ROLE)
     {
         require(borrowToken != address(ASSETS), CollateralLongTermBorrowNotAllowed());
-        bytes memory context = super._borrowLogic(borrowToken, amount, "");
+        bytes memory context = super._borrowLogic(borrowToken, amount, 0, "");
         super._afterBorrowLogic(borrowToken, context);
 
         emit BorrowLongTerm(borrowToken, amount);
     }
     
     /// @dev borrowMany() might fail if trying to borrow duplicate tokens.
-    function _borrowLogic(address borrowToken, uint256 amount, bytes memory context)
+    function _borrowLogic(address borrowToken, uint256 amount, uint256 profit, bytes memory context)
         internal override returns (bytes memory)
     {
         uint256 availableBalance = IERC20(borrowToken).balanceOf(address(this));
         uint8 borrowFlag = 0;
         if (availableBalance < amount) {
-            super._borrowLogic(borrowToken, amount - availableBalance, context);
+            super._borrowLogic(borrowToken, amount - availableBalance, profit, context);
             borrowFlag = 1;
         }
         return abi.encodePacked(context, borrowFlag);

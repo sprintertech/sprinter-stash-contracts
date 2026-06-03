@@ -178,21 +178,15 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
         return totalBalance;
     }
 
-    /// @dev Direct borrowing is not supported in the public pool for now, as it is not clear if this pool is going
-    /// to be used at all. In case of direct borrowing, targetCallData is empty so this function will revert.
-    function _processBorrowAmount(uint256 amount, bytes calldata targetCallData)
-        internal override returns (uint256)
+    function _borrowLogic(address borrowToken, uint256 amount, uint256 totalFee, bytes memory context)
+        internal override returns (bytes memory)
     {
-        require(targetCallData.length >= 32, TargetCallDataTooShort());
-        uint256 amountToReceive = abi.decode(targetCallData[targetCallData.length - 32:], (uint256));
-        require(amountToReceive <= amount, InvalidFillAmount());
-        uint256 totalFee = amount - amountToReceive;
         if (totalFee > 0) {
             uint256 protocolFeeIncrease = totalFee.mulDiv(protocolFeeRate, RATE_DENOMINATOR, Math.Rounding.Ceil);
             protocolFee = (uint256(protocolFee) + protocolFeeIncrease).toUint112();
             _virtualBalance = (uint256(_virtualBalance) + totalFee).toUint128();
         }
-        return amountToReceive;
+        return super._borrowLogic(borrowToken, amount, totalFee, context);
     }
 
     /// @dev Borrow many is not supported for this pool because only a single asset can be borrowed.

@@ -2,8 +2,6 @@
 pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {LiquidityPool} from "./LiquidityPool.sol";
 
 /// @title A version of the liquidity pool contract that supports multiple assets for borrowing.
@@ -11,10 +9,6 @@ import {LiquidityPool} from "./LiquidityPool.sol";
 /// It's possible to borrow any tokens that are present in the pool.
 /// @author Tanya Bushenyova <tanya@chainsafe.io>
 contract LiquidityPoolStablecoin is LiquidityPool {
-    using SafeERC20 for IERC20;
-
-    error WithdrawProfitDenied();
-
     constructor(
         address liquidityToken,
         address admin,
@@ -24,21 +18,10 @@ contract LiquidityPoolStablecoin is LiquidityPool {
     ) LiquidityPool(liquidityToken, admin, mpcAddress_, wrappedNativeToken, signerAddress_) {
     }
 
-    function _borrowLogic(address /*borrowToken*/, uint256 /*amount*/, bytes memory context)
+    function _borrowLogic(address /*borrowToken*/, uint256 /*amount*/, uint256 /*profit*/, bytes memory context)
         internal pure override returns (bytes memory)
     {
         return context;
-    }
-
-    function _withdrawProfitLogic(IERC20 token) internal view override returns (uint256) {
-        uint256 assetBalance = ASSETS.balanceOf(address(this));
-        uint256 deposited = _totalDeposited;
-        uint256 virtualBalance = assetBalance + directDebt[address(ASSETS)];
-        require(virtualBalance >= deposited, WithdrawProfitDenied());
-        if (token == ASSETS) {
-            return Math.min(assetBalance, virtualBalance - deposited);
-        }
-        return token.balanceOf(address(this));
     }
 
     function _balance(IERC20 token) internal view override returns (uint256) {

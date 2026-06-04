@@ -7,21 +7,15 @@ import {
   deploy, signBorrow, setupTests,
 } from "./helpers";
 import {ETH, ZERO_ADDRESS, DEFAULT_ADMIN_ROLE} from "../scripts/common";
-import {encodeBytes32String, AbiCoder, concat} from "ethers";
+import {encodeBytes32String} from "ethers";
 import {
   MockTarget, MockBorrowSwap, PublicLiquidityPool, MockSignerTrue, MockSignerFalse,
   ERC4626Adapter
 } from "../typechain-types";
 import {networkConfig} from "../network.config";
 
-function addAmountToReceive(callData: string, amountToReceive: bigint) {
-  return concat([
-    callData,
-    AbiCoder.defaultAbiCoder().encode(
-      ["uint256"],
-      [amountToReceive]
-    )
-  ]);
+function packProfit(profit: bigint, amount: bigint) {
+  return (profit << 128n) | amount;
 }
 
 const ERC4626Deposit = "deposit(uint256,address)";
@@ -92,29 +86,29 @@ describe("ERC4626Adapter", function () {
     await adapter.connect(admin).grantRole(PAUSER_ROLE, pauser);
 
     const generateProfit = async (amount: bigint, nonce: bigint = 0n, transferProfit: boolean = true) => {
-      const amountToBorrow = amount;
+      const profit = amount;
       const amountToReceive = 0n;
 
-      const callData = await mockTarget.fulfillSkip.populateTransaction();
-      const callDataWithAmountToReceive = addAmountToReceive(callData.data, amountToReceive);
+      const callData = (await mockTarget.fulfillSkip.populateTransaction()).data;
+      const packedAmount = packProfit(profit, amountToReceive);
 
       const signature = await signBorrow(
         mpc_signer,
         liquidityPool,
         user,
         usdc,
-        amountToBorrow,
+        packedAmount,
         mockTarget,
-        callDataWithAmountToReceive,
+        callData,
         undefined,
         nonce
       );
 
       await liquidityPool.connect(user).borrow(
         usdc,
-        amountToBorrow,
+        packedAmount,
         mockTarget,
-        callDataWithAmountToReceive,
+        callData,
         nonce,
         2000000000n,
         signature);

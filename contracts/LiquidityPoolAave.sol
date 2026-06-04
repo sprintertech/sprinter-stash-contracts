@@ -146,13 +146,6 @@ contract LiquidityPoolAave is LiquidityPool {
     function _borrowLogic(address borrowToken, uint256 amount, uint256 /*profit*/, bytes memory context)
         internal virtual override returns (bytes memory)
     {
-        address vdToken = AAVE_POOL.getReserveData(borrowToken).variableDebtTokenAddress;
-        uint256 currentDebt = IERC20(vdToken).balanceOf(address(this));
-        uint256 snapshot = debtSnapshot[borrowToken];
-        if (currentDebt > snapshot) {
-            uint256 accruedDebt = currentDebt - snapshot;
-            accruedProfit[borrowToken] -= int256(accruedDebt);
-        }
         AAVE_POOL.borrow(
             borrowToken,
             amount,
@@ -160,7 +153,14 @@ contract LiquidityPoolAave is LiquidityPool {
             NO_REFERRAL,
             address(this)
         );
-        debtSnapshot[borrowToken] = IERC20(vdToken).balanceOf(address(this));
+        address vdToken = AAVE_POOL.getReserveData(borrowToken).variableDebtTokenAddress;
+        uint256 currentDebt = IERC20(vdToken).balanceOf(address(this));
+        uint256 snapshot = debtSnapshot[borrowToken] + amount;
+        if (currentDebt > snapshot) {
+            uint256 accruedDebt = currentDebt - snapshot;
+            accruedProfit[borrowToken] -= int256(accruedDebt);
+        }
+        debtSnapshot[borrowToken] = currentDebt;
         return context;
     }
 
@@ -189,22 +189,25 @@ contract LiquidityPoolAave is LiquidityPool {
 
     function _withdrawProfitLogic(IERC20 token) internal virtual override returns (uint256) {
         require(token != ATOKEN, CannotWithdrawAToken());
-        uint256 balance = token.balanceOf(address(this));
-        address vdToken = AAVE_POOL.getReserveData(address(token)).variableDebtTokenAddress;
-        // Withdrawing a token that cannot be borrowed.
-        if (vdToken == address(0)) {
-            return balance;
-        }
 
         int256 profit = accruedProfit[address(token)];
         if (token == ASSETS) {
             // Profit from collateral yield: aToken appreciation above deposited principal.
             uint256 aTokenBalance = ATOKEN.balanceOf(address(this));
-            uint256 interest = aTokenBalance > _totalDeposited ? aTokenBalance - _totalDeposited : 0;
-            if (interest > 0) {
+            uint256 deposited = _totalDeposited;
+            if (aTokenBalance > deposited) {
+                uint256 interest = aTokenBalance - deposited;
                 _withdrawLogic(address(this), interest);
                 profit += int256(interest);
             }
+        }
+
+        // Doing it here so that balance from earlier withdrawal is accounted for.
+        uint256 balance = token.balanceOf(address(this));
+        address vdToken = AAVE_POOL.getReserveData(address(token)).variableDebtTokenAddress;
+        // Withdrawing a token that cannot be borrowed.
+        if (vdToken == address(0)) {
+            return balance;
         }
 
         uint256 outstandingDebt = IERC20(vdToken).balanceOf(address(this));
@@ -227,9 +230,10 @@ contract LiquidityPoolAave is LiquidityPool {
             uint256 shortfall = uint256(profit) - balance;
             AAVE_POOL.borrow(address(token), shortfall, INTEREST_RATE_MODE_VARIABLE, NO_REFERRAL, address(this));
             _checkHealthFactor();
+            outstandingDebt += shortfall;
         }
 
-        debtSnapshot[address(token)] = IERC20(vdToken).balanceOf(address(this));
+        debtSnapshot[address(token)] = outstandingDebt;
         if (profit > 0) {
             accruedProfit[address(token)] = 0;
             return uint256(profit);

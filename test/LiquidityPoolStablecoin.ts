@@ -1474,9 +1474,9 @@ describe("LiquidityPoolStablecoin", function () {
 
       await expect(liquidityPool.connect(withdrawProfit)
         .withdrawProfit([eurc, gho], user))
-        .to.be.revertedWithCustomError(liquidityPool, "WithdrawProfitDenied");
+        .to.be.revertedWithCustomError(liquidityPool, "NoProfit");
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
-        .to.be.revertedWithCustomError(liquidityPool, "WithdrawProfitDenied");
+        .to.be.revertedWithCustomError(liquidityPool, "NoProfit");
     });
 
     it("Should NOT withdraw liquidity if the contract is paused", async function () {
@@ -1514,7 +1514,7 @@ describe("LiquidityPoolStablecoin", function () {
         .to.be.revertedWithCustomError(liquidityPool, "NoProfit()");
     });
 
-    it("Should revert other token profit if asset balance + direct debt < total deposited", async function () {
+    it("Should revert other token surplus profit if asset balance + direct debt < total deposited", async function () {
       const {
         liquidityPool, eurc, usdc, EURC_DEC, USDC_DEC, eurcOwner, usdcOwner,
         admin, user, liquidityAdmin, withdrawProfit, mockTarget, mpc_signer,
@@ -1546,7 +1546,7 @@ describe("LiquidityPoolStablecoin", function () {
       // assetBalance = 600, directDebt = 300, virtualBalance = 900 < 1000 = totalDeposited
 
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([eurc], user))
-        .to.be.revertedWithCustomError(liquidityPool, "WithdrawProfitDenied");
+        .to.be.revertedWithCustomError(liquidityPool, "NoProfit");
     });
 
     it("Should revert asset token profit if balance + direct debt < total deposited", async function () {
@@ -1579,7 +1579,7 @@ describe("LiquidityPoolStablecoin", function () {
       // assetBalance = 600, directDebt = 300, virtualBalance = 900 < 1000 = totalDeposited
 
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
-        .to.be.revertedWithCustomError(liquidityPool, "WithdrawProfitDenied");
+        .to.be.revertedWithCustomError(liquidityPool, "NoProfit");
     });
 
     it("Should withdraw asset token profit if direct debt is greater than total deposited", async function () {

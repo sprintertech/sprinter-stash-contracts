@@ -19,6 +19,8 @@ export async function setupTests(): Promise<void> {
   });
 }
 
+export const BLOCK_TAG = {blockTag: "pending" as const};
+
 async function resolveAddresses(input: AddressLike[]): Promise<string[]> {
   return await Promise.all(input.map(el => resolveAddress(el)));
 }

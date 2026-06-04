@@ -230,7 +230,9 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         bytes calldata signature
     ) external override whenNotPaused() whenBorrowNotPaused() {
         // - Validate MPC signature
-        _validateMPCSignatureWithCaller(borrowTokens, packedAmounts, target, targetCallData, nonce, deadline, signature);
+        _validateMPCSignatureWithCaller(
+            borrowTokens, packedAmounts, target, targetCallData, nonce, deadline, signature
+        );
         (uint256 nativeValue, address[] memory actualBorrowTokens,, bytes memory context) = _borrowMany(
             borrowTokens, packedAmounts, target, NATIVE_ALLOWED
         );
@@ -302,9 +304,13 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         uint256 deadline,
         bytes calldata signature
     ) external override whenNotPaused()  whenBorrowNotPaused() {
-        _validateMPCSignatureWithCaller(borrowTokens, packedAmounts, target, targetCallData, nonce, deadline, signature);
+        _validateMPCSignatureWithCaller(
+            borrowTokens, packedAmounts, target, targetCallData, nonce, deadline, signature
+        );
         // Native borrowing is denied because swapMany() is not payable.
-        (,, uint256[] memory amounts, bytes memory context) = _borrowMany(borrowTokens, packedAmounts, _msgSender(), NATIVE_DENIED);
+        (,, uint256[] memory amounts, bytes memory context) = _borrowMany(
+            borrowTokens, packedAmounts, _msgSender(), NATIVE_DENIED
+        );
         _afterBorrowManyLogic(borrowTokens, context);
         uint256 nativeBalanceBefore = _prepareNativeFill(swap.fillToken);
         // Call the swap function on caller
@@ -575,8 +581,11 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
                 // In case there are extra funds in the pool, withdraw them.
                 withdrawableSurplus = Math.min(virtualBalance - _totalDeposited, currentBalance);
             }
+        } else {
+            withdrawableSurplus = currentBalance;
         }
         int256 profit = accruedProfit[address(token)];
+        // Cannot be negative but can be zero.
         if (profit <= 0) return withdrawableSurplus;
         uint256 toWithdraw = Math.min(currentBalance, uint256(profit));
         accruedProfit[address(token)] = profit - int256(toWithdraw);

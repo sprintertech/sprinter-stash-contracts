@@ -585,7 +585,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
             withdrawableSurplus = currentBalance;
         }
         int256 profit = accruedProfit[address(token)];
-        // Cannot be negative but can be zero.
+        // Cannot be negative (in this contract, but can be in children) but can be zero.
         if (profit <= 0) return withdrawableSurplus;
         uint256 toWithdraw = Math.min(currentBalance, uint256(profit));
         accruedProfit[address(token)] = profit - int256(toWithdraw);

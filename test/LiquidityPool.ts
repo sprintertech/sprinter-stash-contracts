@@ -2118,6 +2118,12 @@ describe("LiquidityPool", function () {
         .to.eq(user.address);
     });
 
+    it("Should NOT allow admin to set signer address to 0", async function () {
+      const {liquidityPool, admin} = await loadFixture(deployAll);
+      await expect(liquidityPool.connect(admin).setSignerAddress(ZERO_ADDRESS))
+        .to.be.revertedWithCustomError(liquidityPool, "ZeroAddress()");
+    });
+
     it("Should NOT allow others to set signer address", async function () {
       const {liquidityPool, user} = await loadFixture(deployAll);
       await expect(liquidityPool.connect(user).setSignerAddress(user))

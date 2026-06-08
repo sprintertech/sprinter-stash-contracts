@@ -1,0 +1,27 @@
+name: Notify solver-config of deployments change
+
+# When the deployment manifests that solver-config hashes change on main, trigger
+# solver-config's refresh-deployment-hashes workflow so it can regenerate the hash
+# manifest and open a PR. Uses a token scoped to Actions:write only on solver-config,
+# so this repo can trigger that workflow but cannot read or write its contents.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'deployments/deployments.yml'
+      - 'deployments/deployments.staging.yml'
+
+jobs:
+  trigger-refresh:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Trigger solver-config hash refresh
+        env:
+          GH_TOKEN: ${{ secrets.SOLVER_CONFIG_DISPATCH_TOKEN }}
+        run: |
+          gh workflow run refresh-deployment-hashes.yml \
+            --repo sprintertech/solver-config \
+            --ref main \
+            -f source_sha="${{ github.sha }}"

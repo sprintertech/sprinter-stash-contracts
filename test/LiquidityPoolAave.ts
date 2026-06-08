@@ -25,7 +25,7 @@ function expectAlmostEqual(a: bigint, b: bigint, maxDiff: bigint = 2n): void {
 }
 
 describe("LiquidityPoolAave", function () {
-  // Enables USDC to be borrowed against USDC collateral in Aave.
+  // Remove pool internal LTV and HF limits.
   async function enableUSDCBorrowing(fixture: Awaited<ReturnType<typeof deployAll>>) {
     const {liquidityPool, admin, usdc} = fixture;
     await liquidityPool.connect(admin).setBorrowTokenLTVs([usdc], [10000n]);
@@ -2790,7 +2790,7 @@ describe("LiquidityPoolAave", function () {
     it("Should revert withdrawing other token profit if balance + direct debt < aave debt", async function () {
       const {
         liquidityPool, usdc, gho, USDC_DEC, GHO_DEC, usdcOwner, liquidityAdmin,
-        withdrawProfit, user, ghoOwner, directBorrower, mockTarget, mpc_signer,
+        withdrawProfit, user, directBorrower, mockTarget, mpc_signer,
       } = await loadFixture(deployAll);
 
       const amountCollateral = 1000n * USDC_DEC;
@@ -2811,8 +2811,6 @@ describe("LiquidityPoolAave", function () {
       // Direct borrow: adds directDebt but directBorrower pulls the GHO
       const directBorrowAmount = 1n * GHO_DEC;
       await liquidityPool.connect(directBorrower).borrowDirect(gho, directBorrowAmount);
-      await gho.connect(directBorrower).transferFrom(liquidityPool, directBorrower, directBorrowAmount);
-      await gho.connect(ghoOwner).transfer(liquidityPool, directBorrowAmount);
       // gho.balanceOf(pool) = 1, directDebt[gho] = 1, ghoDebtToken = 3
       // virtualBalance = 1 + 1 = 2 < 3 = ghoDebtToken -> NoProfit
 
@@ -2955,7 +2953,7 @@ describe("LiquidityPoolAave", function () {
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([gho], user))
         .to.emit(liquidityPool, "ProfitWithdrawn");
       // GHO debt accrues interest so profit ≈ 3 GHO but could differ by a small amount
-      expectAlmostEqual(await gho.balanceOf(user), 3n * GHO_DEC, GHO_DEC / 100n);
+      expectAlmostEqualDown(await gho.balanceOf(user), 3n * GHO_DEC, GHO_DEC / 100n);
       expectAlmostEqual(await ghoDebtToken.balanceOf(liquidityPool), 2n * GHO_DEC);
     });
 
@@ -3761,7 +3759,7 @@ describe("LiquidityPoolAave", function () {
         liquidityPool, usdc, usdcOwner, USDC_DEC, liquidityAdmin, withdrawProfit, user,
       } = await loadFixture(deployAll);
 
-      const deposit = 100n * USDC_DEC;
+      const deposit = 10n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, deposit);
       await liquidityPool.connect(liquidityAdmin).deposit(deposit);
 
@@ -3788,6 +3786,7 @@ describe("LiquidityPoolAave", function () {
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
         .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(usdc.target, user.address, interest);
       expect(await usdc.balanceOf(user)).to.eq(interest);
+      expect(await usdc.balanceOf(liquidityPool)).to.eq(0n);
       expect(await liquidityPool.accruedProfit(usdc)).to.eq(0n);
 
       // aToken reset to ~deposit; debtSnapshot=0; second call finds no yield
@@ -3819,6 +3818,7 @@ describe("LiquidityPoolAave", function () {
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
         .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(usdc.target, user.address, interest2);
       expect(await usdc.balanceOf(user)).to.eq(interest1 + interest2);
+      expect(await usdc.balanceOf(liquidityPool)).to.eq(0n);
       expect(await liquidityPool.accruedProfit(usdc)).to.eq(0n);
 
       // Third call: aToken reset again, no new yield yet
@@ -3841,7 +3841,7 @@ describe("LiquidityPoolAave", function () {
       const profit = 5n * USDC_DEC;
       await borrowUSDCFromAave(fixture, borrowAmount, profit);
       // accruedProfit=5, debtSnapshot=100, pool USDC=0 (mockTarget took it)
-      // Aave applies the variable rate index immediately; accruedProfit may be 1 unit short.
+      // Aave deposit interest might increase profit slightly.
       expectAlmostEqual(await liquidityPool.accruedProfit(usdc), profit, 2n);
 
       // Simulate repayment: borrower returns USDC, pool repays Aave
@@ -3859,6 +3859,7 @@ describe("LiquidityPoolAave", function () {
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
         .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(usdc.target, user.address, expectedWithdraw);
       expect(await usdc.balanceOf(user)).to.eq(expectedWithdraw);
+      expect(await usdc.balanceOf(liquidityPool)).to.eq(0n);
       expect(await liquidityPool.accruedProfit(usdc)).to.eq(0n);
       // Note: a second immediate call may still succeed due to aToken accrual in new Hardhat blocks.
     });
@@ -3961,6 +3962,7 @@ describe("LiquidityPoolAave", function () {
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
         .to.emit(liquidityPool, "ProfitWithdrawn");
       expect(await usdc.balanceOf(user)).to.be.greaterThan(0n); // USDC recovered
+      expect(await usdc.balanceOf(liquidityPool)).to.eq(0n);
       expect(await liquidityPool.accruedProfit(usdc)).to.eq(0n); // fully cleared
     });
 
@@ -3986,11 +3988,9 @@ describe("LiquidityPoolAave", function () {
       // Donation: 10 extra USDC pushes surplus floor 10 above explicit profit
       const donated = 10n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, donated);
-      // pool USDC = 10; directDebt=105; Aave debt=10; accruedProfit=5
+      // pool USDC = 10; directDebt=15; Aave debt=10; accruedProfit=5
 
       expect(await liquidityPool.directDebt(usdc)).to.eq(borrowAmount + profit);
-      // Aave applies variable rate index to newly-minted debt immediately; accruedProfit may
-      // be reduced by 1 unit relative to the packed profit if the index advanced during setup.
       expectAlmostEqual(await liquidityPool.accruedProfit(usdc), profit, 2n);
 
       await time.increase(3600);
@@ -4004,6 +4004,7 @@ describe("LiquidityPoolAave", function () {
       // User receives the surplus floor (~15 USDC), not just explicit profit (~5 USDC)
       expect(userBalance).to.be.greaterThan(profit);
       expectAlmostEqual(userBalance, donated + profit, USDC_DEC);
+      expect(await usdc.balanceOf(liquidityPool)).to.eq(0n);
       expect(await liquidityPool.accruedProfit(usdc)).to.eq(0n);
 
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
@@ -4072,6 +4073,7 @@ describe("LiquidityPoolAave", function () {
       expectAlmostEqualDown(await eurc.balanceOf(user), profit, 2n);
       expect(await liquidityPool.accruedProfit(eurc)).to.eq(0n);
       expect(await eurc.balanceOf(user)).to.eq(storedProfit);
+      expect(await eurc.balanceOf(liquidityPool)).to.eq(0n);
 
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([eurc], user))
         .to.be.revertedWithCustomError(liquidityPool, "NoProfit");
@@ -4099,6 +4101,7 @@ describe("LiquidityPoolAave", function () {
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([eurc], user))
         .to.emit(liquidityPool, "ProfitWithdrawn");
       expectAlmostEqualDown(await eurc.balanceOf(user), profit, 10n);
+      expect(await eurc.balanceOf(liquidityPool)).to.eq(0n);
       expect(await liquidityPool.accruedProfit(eurc)).to.eq(0n);
       // debtSnapshot[eurc] updated to include shortfall debt
 
@@ -4170,6 +4173,7 @@ describe("LiquidityPoolAave", function () {
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([eurc], user))
         .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(eurc.target, user.address, donated);
       expect(await eurc.balanceOf(user)).to.eq(donated); // full donation recovered
+      expect(await eurc.balanceOf(liquidityPool)).to.eq(0n);
       expect(await usdc.balanceOf(user)).to.eq(usdcInterest); // from first period
       expect(await liquidityPool.accruedProfit(eurc)).to.eq(0n);
 
@@ -4212,6 +4216,7 @@ describe("LiquidityPoolAave", function () {
       const userBalance = await eurc.balanceOf(user);
       expect(userBalance).to.be.greaterThan(profit);
       expectAlmostEqualDown(userBalance, donated + profit, EURC_DEC / 10n);
+      expect(await eurc.balanceOf(liquidityPool)).to.eq(0n);
       expect(await liquidityPool.accruedProfit(eurc)).to.eq(0n);
 
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([eurc], user))

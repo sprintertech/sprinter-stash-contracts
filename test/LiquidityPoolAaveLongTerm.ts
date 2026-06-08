@@ -25,6 +25,7 @@ function expectAlmostEqual(a: bigint, b: bigint, maxDiff: bigint = 2n): void {
 }
 
 describe("LiquidityPoolAaveLongTerm", function () {
+  // Remove pool internal LTV and HF limits.
   async function enableUSDCBorrowing(fixture: Awaited<ReturnType<typeof deployAll>>) {
     const {liquidityPool, admin, usdc} = fixture;
     await liquidityPool.connect(admin).setBorrowTokenLTVs([usdc], [10000n]);
@@ -3905,7 +3906,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([gho], user))
         .to.emit(liquidityPool, "ProfitWithdrawn");
       // GHO debt accrues interest so profit ≈ 3 GHO but could differ by a small amount
-      expectAlmostEqual(await gho.balanceOf(user), 3n * GHO_DEC, GHO_DEC / 100n);
+      expectAlmostEqualDown(await gho.balanceOf(user), 3n * GHO_DEC, GHO_DEC / 100n);
     });
 
     it("Should withdraw asset token profit if direct debt is greater than aave debt", async function () {
@@ -4728,7 +4729,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
         liquidityPool, usdc, usdcOwner, USDC_DEC, liquidityAdmin, withdrawProfit, user,
       } = await loadFixture(deployAll);
 
-      const deposit = 1000n * USDC_DEC;
+      const deposit = 10n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, deposit);
       await liquidityPool.connect(liquidityAdmin).deposit(deposit);
 
@@ -4754,6 +4755,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
         .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(usdc.target, user.address, interest);
       expect(await usdc.balanceOf(user)).to.eq(interest);
+      expect(await usdc.balanceOf(liquidityPool)).to.eq(0n);
       expect(await liquidityPool.accruedProfit(usdc)).to.eq(0n);
 
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
@@ -4776,13 +4778,13 @@ describe("LiquidityPoolAaveLongTerm", function () {
       expect(await liquidityPool.accruedProfit(usdc)).to.eq(0n);
 
       await time.setNextBlockTimestamp(await time.latest() + 3600);
-      const aTokenBal2 = await aToken.balanceOf(liquidityPool, BLOCK_TAG);
-      const interest2 = aTokenBal2 > deposit ? aTokenBal2 - deposit : 0n;
+      const interest2 = await aToken.balanceOf(liquidityPool, BLOCK_TAG) - deposit;
       expect(interest2).to.be.greaterThan(0n);
 
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
         .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(usdc.target, user.address, interest2);
       expect(await usdc.balanceOf(user)).to.eq(interest1 + interest2);
+      expect(await usdc.balanceOf(liquidityPool)).to.eq(0n);
       expect(await liquidityPool.accruedProfit(usdc)).to.eq(0n);
 
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
@@ -4813,6 +4815,8 @@ describe("LiquidityPoolAaveLongTerm", function () {
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
         .to.emit(liquidityPool, "ProfitWithdrawn");
       expectAlmostEqualDown(await usdc.balanceOf(user), profit + interest, USDC_DEC / 100n);
+      // Repayment funds (borrowAmount) remain in pool; only profit+interest was withdrawn.
+      expectAlmostEqual(await usdc.balanceOf(liquidityPool), borrowAmount, USDC_DEC / 100n);
       expect(await liquidityPool.accruedProfit(usdc)).to.eq(0n);
     });
 
@@ -4912,6 +4916,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
       const userBalance = await usdc.balanceOf(user);
       expect(userBalance).to.be.greaterThan(profit);
       expectAlmostEqualDown(userBalance, donated + profit, USDC_DEC);
+      expect(await usdc.balanceOf(liquidityPool)).to.eq(0n);
       expect(await liquidityPool.accruedProfit(usdc)).to.eq(0n);
 
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
@@ -4972,6 +4977,8 @@ describe("LiquidityPoolAaveLongTerm", function () {
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([eurc], user))
         .to.emit(liquidityPool, "ProfitWithdrawn");
       expectAlmostEqualDown(await eurc.balanceOf(user), profit, 2n);
+      // Repayment funds (borrowAmount) remain in pool; only profit was withdrawn.
+      expectAlmostEqual(await eurc.balanceOf(liquidityPool), borrowAmount, 2n);
       expect(await liquidityPool.accruedProfit(eurc)).to.eq(0n);
 
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([eurc], user))
@@ -4998,6 +5005,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([eurc], user))
         .to.emit(liquidityPool, "ProfitWithdrawn");
       expectAlmostEqualDown(await eurc.balanceOf(user), profit, 10n);
+      expect(await eurc.balanceOf(liquidityPool)).to.eq(0n);
       expect(await liquidityPool.accruedProfit(eurc)).to.eq(0n);
 
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([eurc], user))
@@ -5060,6 +5068,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([eurc], user))
         .to.emit(liquidityPool, "ProfitWithdrawn");
       expect(await eurc.balanceOf(user)).to.be.greaterThan(0n); // recovered via shortfall
+      expect(await eurc.balanceOf(liquidityPool)).to.be.greaterThan(0n); // repayment funds remain
       expect(await usdc.balanceOf(user)).to.eq(usdcInterest); // from first period
       expect(await liquidityPool.accruedProfit(eurc)).to.eq(0n);
     });
@@ -5085,7 +5094,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
       await eurc.connect(eurcOwner).transfer(liquidityPool, donated);
 
       expect(await liquidityPool.directDebt(eurc)).to.eq(borrowAmount + profit);
-      expectAlmostEqual(await liquidityPool.accruedProfit(eurc), profit, 2n);
+      expectAlmostEqualDown(await liquidityPool.accruedProfit(eurc), profit, 2n);
 
       await time.increase(3600);
 
@@ -5094,6 +5103,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
       const userBalance = await eurc.balanceOf(user);
       expect(userBalance).to.be.greaterThan(profit);
       expectAlmostEqualDown(userBalance, donated + profit, EURC_DEC / 10n);
+      expect(await eurc.balanceOf(liquidityPool)).to.eq(0n);
       expect(await liquidityPool.accruedProfit(eurc)).to.eq(0n);
 
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([eurc], user))

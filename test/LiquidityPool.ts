@@ -2247,6 +2247,7 @@ describe("LiquidityPool", function () {
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([eurc], user))
         .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(eurc.target, user.address, donated);
       expect(await eurc.balanceOf(user)).to.eq(donated);
+      expect(await eurc.balanceOf(liquidityPool)).to.eq(0n);
       expect(await liquidityPool.accruedProfit(eurc)).to.eq(0n);
 
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([eurc], user))
@@ -2270,6 +2271,8 @@ describe("LiquidityPool", function () {
         .and.to.emit(liquidityPool, "ProfitWithdrawn").withArgs(gho.target, user.address, donatedGho);
       expect(await eurc.balanceOf(user)).to.eq(donatedEurc);
       expect(await gho.balanceOf(user)).to.eq(donatedGho);
+      expect(await eurc.balanceOf(liquidityPool)).to.eq(0n);
+      expect(await gho.balanceOf(liquidityPool)).to.eq(0n);
       expect(await liquidityPool.accruedProfit(eurc)).to.eq(0n);
       expect(await liquidityPool.accruedProfit(gho)).to.eq(0n);
 
@@ -2284,7 +2287,7 @@ describe("LiquidityPool", function () {
       fixture: Awaited<ReturnType<typeof deployAll>>,
       borrowAmount: bigint,
       profit: bigint,
-      nonce: bigint,
+      nonce: bigint = 0n,
     ) {
       const {liquidityPool, usdc, user, mpc_signer, mockTarget} = fixture;
       const packed = packAmount(profit, borrowAmount);
@@ -2330,6 +2333,7 @@ describe("LiquidityPool", function () {
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
         .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(usdc.target, user.address, donated);
       expect(await usdc.balanceOf(user)).to.eq(donated);
+      expect(await usdc.balanceOf(liquidityPool)).to.eq(deposit);
       expect(await liquidityPool.accruedProfit(usdc)).to.eq(0n);
 
       // balance now 1000=deposited, no surplus left
@@ -2348,7 +2352,7 @@ describe("LiquidityPool", function () {
 
         const borrowAmount = 100n * USDC_DEC;
         const profit = 5n * USDC_DEC;
-        await borrowWithProfit(fixture, borrowAmount, profit, 0n);
+        await borrowWithProfit(fixture, borrowAmount, profit);
         // Repay: principal + profit sent back to pool
         await usdc.connect(usdcOwner).transfer(liquidityPool, borrowAmount + profit);
         // accruedProfit=5, balance=1005, surplus=min(5,1005)=5, toWithdraw=5, max(5,5)=5
@@ -2357,6 +2361,7 @@ describe("LiquidityPool", function () {
         await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
           .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(usdc.target, user.address, profit);
         expect(await usdc.balanceOf(user)).to.eq(profit);
+        expect(await usdc.balanceOf(liquidityPool)).to.eq(deposit);
         expect(await liquidityPool.accruedProfit(usdc)).to.eq(0n);
 
         // balance now 1000=deposited, accruedProfit=0
@@ -2375,7 +2380,7 @@ describe("LiquidityPool", function () {
 
         const borrowAmount = 100n * USDC_DEC;
         const profit = 5n * USDC_DEC;
-        await borrowWithProfit(fixture, borrowAmount, profit, 0n);
+        await borrowWithProfit(fixture, borrowAmount, profit);
         // Overpay: principal + profit + 15 extra → surplus=20 > profit=5
         const repay = borrowAmount + profit + 15n * USDC_DEC;
         await usdc.connect(usdcOwner).transfer(liquidityPool, repay);
@@ -2386,6 +2391,7 @@ describe("LiquidityPool", function () {
         await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
           .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(usdc.target, user.address, expectedWithdraw);
         expect(await usdc.balanceOf(user)).to.eq(expectedWithdraw);
+        expect(await usdc.balanceOf(liquidityPool)).to.eq(deposit);
         expect(await liquidityPool.accruedProfit(usdc)).to.eq(0n);
 
         // balance now 1000=deposited, accruedProfit=0
@@ -2404,7 +2410,7 @@ describe("LiquidityPool", function () {
 
         const borrowAmount = 100n * USDC_DEC;
         const profit = 15n * USDC_DEC;
-        await borrowWithProfit(fixture, borrowAmount, profit, 0n);
+        await borrowWithProfit(fixture, borrowAmount, profit);
         // Underpay: repay principal + 8 only → surplus=8 < profit=15
         await usdc.connect(usdcOwner).transfer(liquidityPool, borrowAmount + 8n * USDC_DEC);
         // accruedProfit=15, balance=1008, surplus=8, toWithdraw=15, max(15,8)=15
@@ -2413,6 +2419,7 @@ describe("LiquidityPool", function () {
         await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
           .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(usdc.target, user.address, profit);
         expect(await usdc.balanceOf(user)).to.eq(profit);
+        expect(await usdc.balanceOf(liquidityPool)).to.eq(993n * USDC_DEC);
         expect(await liquidityPool.accruedProfit(usdc)).to.eq(0n);
 
         // balance=993 < 1000=deposited, no surplus, accruedProfit=0
@@ -2431,7 +2438,7 @@ describe("LiquidityPool", function () {
 
         const borrowAmount = 998n * USDC_DEC;
         const profit = 10n * USDC_DEC;
-        await borrowWithProfit(fixture, borrowAmount, profit, 0n);
+        await borrowWithProfit(fixture, borrowAmount, profit);
         // Partial repay: only 5 returned → balance=1000-998+5=7
         await usdc.connect(usdcOwner).transfer(liquidityPool, 5n * USDC_DEC);
         // accruedProfit=10, balance=7, virtualBalance=7<1000, surplus=0
@@ -2443,6 +2450,7 @@ describe("LiquidityPool", function () {
         await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
           .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(usdc.target, user.address, availableBalance);
         expect(await usdc.balanceOf(user)).to.eq(availableBalance);
+        expect(await usdc.balanceOf(liquidityPool)).to.eq(0n);
         expect(await liquidityPool.accruedProfit(usdc)).to.eq(remainingProfit);
 
         // balance now 0, toWithdraw=min(0,3)=0, no surplus → reverts
@@ -2460,9 +2468,10 @@ describe("LiquidityPool", function () {
         await liquidityPool.connect(liquidityAdmin).deposit(deposit);
 
         const profit = 5n * USDC_DEC;
-        await borrowWithProfit(fixture, deposit, profit, 0n);
+        await borrowWithProfit(fixture, deposit, profit);
         // accruedProfit=5, balance=0, toWithdraw=min(0,5)=0, surplus=0
 
+        expect(await usdc.balanceOf(liquidityPool)).to.eq(0n);
         expect(await liquidityPool.accruedProfit(usdc)).to.eq(profit);
         await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
           .to.be.revertedWithCustomError(liquidityPool, "NoProfit");
@@ -2493,6 +2502,7 @@ describe("LiquidityPool", function () {
         await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
           .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(usdc.target, user.address, profit);
         expect(await usdc.balanceOf(user)).to.eq(profit);
+        expect(await usdc.balanceOf(liquidityPool)).to.eq(deposit - borrowAmount - profit);
         expect(await liquidityPool.accruedProfit(usdc)).to.eq(0n);
 
         // balance=895, virtualBalance=895+105=1000=deposited, no surplus, accruedProfit=0
@@ -2516,6 +2526,7 @@ describe("LiquidityPool", function () {
         // balance=900, directDebt=100, virtualBalance=1000=deposited, surplus=0, accruedProfit=0
 
         expect(await liquidityPool.directDebt(usdc)).to.eq(borrowAmount);
+        expect(await usdc.balanceOf(liquidityPool)).to.eq(deposit - borrowAmount);
         expect(await liquidityPool.accruedProfit(usdc)).to.eq(0n);
         await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
           .to.be.revertedWithCustomError(liquidityPool, "NoProfit");
@@ -2532,7 +2543,7 @@ describe("LiquidityPool", function () {
 
         const borrow1 = 100n * USDC_DEC;
         const profit1 = 5n * USDC_DEC;
-        await borrowWithProfit(fixture, borrow1, profit1, 0n);
+        await borrowWithProfit(fixture, borrow1, profit1);
         await usdc.connect(usdcOwner).transfer(liquidityPool, borrow1 + profit1);
 
         const borrow2 = 50n * USDC_DEC;
@@ -2546,6 +2557,7 @@ describe("LiquidityPool", function () {
         await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([usdc], user))
           .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(usdc.target, user.address, totalProfit);
         expect(await usdc.balanceOf(user)).to.eq(totalProfit);
+        expect(await usdc.balanceOf(liquidityPool)).to.eq(deposit);
         expect(await liquidityPool.accruedProfit(usdc)).to.eq(0n);
 
         // balance now 1000=deposited, accruedProfit=0

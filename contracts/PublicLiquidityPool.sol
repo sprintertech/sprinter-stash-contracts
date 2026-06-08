@@ -6,6 +6,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {ERC4626, ERC20, Math} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {LiquidityPool} from "./LiquidityPool.sol";
+import {HelperLib} from "./utils/HelperLib.sol";
 
 /// @title A version of the liquidity pool contract that supports direct liquidity provision for third parties.
 /// Borrowing is managed in the same way as in the base contract, though profits are accounted for differently.
@@ -102,7 +103,7 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
         if (paused) {
             return 0;
         }
-        return Math.min(super.maxWithdraw(owner), ASSETS.balanceOf(address(this)));
+        return Math.min(super.maxWithdraw(owner), HelperLib.balanceOfThis(ASSETS));
     }
 
     function maxRedeem(address owner) public view override returns (uint256) {
@@ -111,7 +112,7 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
         }
         return Math.min(
             super.maxRedeem(owner),
-            _convertToShares(ASSETS.balanceOf(address(this)), Math.Rounding.Floor)
+            _convertToShares(HelperLib.balanceOfThis(ASSETS), Math.Rounding.Floor)
         );
     }
 
@@ -163,7 +164,7 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
     }
 
     function _withdrawProfitLogic(IERC20 token) internal override returns (uint256) {
-        uint256 totalBalance = token.balanceOf(address(this));
+        uint256 totalBalance = HelperLib.balanceOfThis(token);
         if (token == ASSETS) {
             uint256 profit = protocolFee;
             uint256 virtualBalance = _virtualBalance;
@@ -178,21 +179,15 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
         return totalBalance;
     }
 
-    /// @dev Direct borrowing is not supported in the public pool for now, as it is not clear if this pool is going
-    /// to be used at all. In case of direct borrowing, targetCallData is empty so this function will revert.
-    function _processBorrowAmount(uint256 amount, bytes calldata targetCallData)
-        internal override returns (uint256)
+    function _borrowLogic(address borrowToken, uint256 amount, uint256 totalFee, bytes memory context)
+        internal override returns (bytes memory)
     {
-        require(targetCallData.length >= 32, TargetCallDataTooShort());
-        uint256 amountToReceive = abi.decode(targetCallData[targetCallData.length - 32:], (uint256));
-        require(amountToReceive <= amount, InvalidFillAmount());
-        uint256 totalFee = amount - amountToReceive;
         if (totalFee > 0) {
             uint256 protocolFeeIncrease = totalFee.mulDiv(protocolFeeRate, RATE_DENOMINATOR, Math.Rounding.Ceil);
             protocolFee = (uint256(protocolFee) + protocolFeeIncrease).toUint112();
             _virtualBalance = (uint256(_virtualBalance) + totalFee).toUint128();
         }
-        return amountToReceive;
+        return super._borrowLogic(borrowToken, amount, totalFee, context);
     }
 
     /// @dev Borrow many is not supported for this pool because only a single asset can be borrowed.

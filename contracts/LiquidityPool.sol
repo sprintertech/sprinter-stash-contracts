@@ -69,6 +69,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     address public mpcAddress;
     address public signerAddress;
     mapping(address => uint256) public directDebt;
+    mapping(address => int256) public accruedProfit;
 
     bytes32 private constant LIQUIDITY_ADMIN_ROLE = "LIQUIDITY_ADMIN_ROLE";
     bytes32 private constant WITHDRAW_PROFIT_ROLE = "WITHDRAW_PROFIT_ROLE";
@@ -157,7 +158,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     /// Supplying amount greater than the actual increase will result in the future profits treated as deposit.
     function deposit(uint256 amount) external virtual override onlyRole(LIQUIDITY_ADMIN_ROLE) {
         // called after receiving deposit in USDC
-        uint256 newBalance = ASSETS.balanceOf(address(this));
+        uint256 newBalance = HelperLib.balanceOfThis(ASSETS);
         require(newBalance >= amount, NotEnoughToDeposit());
         _deposit(_msgSender(), amount);
     }
@@ -180,7 +181,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     /// borrow wrapped native token, then unwrap it and include the native value in the target call.
     function borrow(
         address borrowToken,
-        uint256 amount,
+        uint256 packedAmount,
         address target,
         bytes calldata targetCallData,
         uint256 nonce,
@@ -188,10 +189,9 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         bytes calldata signature
     ) external override whenNotPaused() whenBorrowNotPaused() {
         // - Validate MPC signature
-        _validateMPCSignatureWithCaller(borrowToken, amount, target, targetCallData, nonce, deadline, signature);
-        amount = _processBorrowAmount(amount, targetCallData);
-        (uint256 nativeValue, address actualBorrowToken, bytes memory context) =
-            _borrow(borrowToken, amount, target, NATIVE_ALLOWED, "");
+        _validateMPCSignatureWithCaller(borrowToken, packedAmount, target, targetCallData, nonce, deadline, signature);
+        (uint256 nativeValue, address actualBorrowToken,,, bytes memory context) =
+            _borrow(borrowToken, packedAmount, target, NATIVE_ALLOWED, "");
         _afterBorrowLogic(actualBorrowToken, context);
         _unwrapNative(nativeValue);
         _finalizeBorrow(target, nativeValue, targetCallData);
@@ -205,25 +205,24 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     /// @param borrowToken can be specified as native token address which is 0x0. In this case, the function will
     /// borrow wrapped native token, then unwrap it and include the native value in the target call.
     function borrowDirect(
-      address borrowToken, 
-      uint256 amount
+      address borrowToken,
+      uint256 packedAmount
     ) external override whenNotPaused() onlyDirectBorrower() {
-        amount = _processBorrowAmount(amount, msg.data[0:0]);
+        (, address actualBorrowToken, uint256 amount, uint256 profit, bytes memory context) =
+            _borrow(borrowToken, packedAmount, _msgSender(), false, "");
 
-        (, address actualBorrowToken, bytes memory context) =
-            _borrow(borrowToken, amount, _msgSender(), false, "");
-
-        directDebt[actualBorrowToken] += amount;
+        uint256 totalObligation = amount + profit;
+        directDebt[actualBorrowToken] += totalObligation;
         _afterBorrowLogic(actualBorrowToken, context);
-        
-        emit BorrowDirect(_msgSender(), borrowToken, amount);
-    } 
+
+        emit BorrowDirect(_msgSender(), borrowToken, totalObligation);
+    }
 
     /// @param borrowTokens can include a native token address which is 0x0. In this case, the function will
     /// borrow wrapped native token, then unwrap it and include the native value in the target call.
     function borrowMany(
         address[] calldata borrowTokens,
-        uint256[] calldata amounts,
+        uint256[] calldata packedAmounts,
         address target,
         bytes calldata targetCallData,
         uint256 nonce,
@@ -231,9 +230,11 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         bytes calldata signature
     ) external override whenNotPaused() whenBorrowNotPaused() {
         // - Validate MPC signature
-        _validateMPCSignatureWithCaller(borrowTokens, amounts, target, targetCallData, nonce, deadline, signature);
-        (uint256 nativeValue, address[] memory actualBorrowTokens, bytes memory context) = _borrowMany(
-            borrowTokens, amounts, target, NATIVE_ALLOWED
+        _validateMPCSignatureWithCaller(
+            borrowTokens, packedAmounts, target, targetCallData, nonce, deadline, signature
+        );
+        (uint256 nativeValue, address[] memory actualBorrowTokens,, bytes memory context) = _borrowMany(
+            borrowTokens, packedAmounts, target, NATIVE_ALLOWED
         );
         _afterBorrowManyLogic(actualBorrowTokens, context);
         _unwrapNative(nativeValue);
@@ -269,7 +270,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     /// The fillAmount will then be included in the target call.
     function borrowAndSwap(
         address borrowToken,
-        uint256 amount,
+        uint256 packedAmount,
         SwapParams calldata swap,
         address target,
         bytes calldata targetCallData,
@@ -277,11 +278,11 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         uint256 deadline,
         bytes calldata signature
     ) external override whenNotPaused() whenBorrowNotPaused() {
-        _validateMPCSignatureWithCaller(borrowToken, amount, target, targetCallData, nonce, deadline, signature);
-        amount = _processBorrowAmount(amount, targetCallData);
+        _validateMPCSignatureWithCaller(borrowToken, packedAmount, target, targetCallData, nonce, deadline, signature);
         // Native borrowing is denied because swap() is not payable.
-        (,, bytes memory context) = _borrow(borrowToken, amount, _msgSender(), NATIVE_DENIED, "");
-        _afterBorrowLogic(borrowToken, context);
+        (, address actualBorrowToken, uint256 amount,, bytes memory context) =
+            _borrow(borrowToken, packedAmount, _msgSender(), NATIVE_DENIED, "");
+        _afterBorrowLogic(actualBorrowToken, context);
         uint256 nativeBalanceBefore = _prepareNativeFill(swap.fillToken);
         // Call the swap function on caller
         IBorrower(_msgSender()).swap(borrowToken, amount, swap.fillToken, swap.fillAmount, swap.swapData);
@@ -295,7 +296,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     /// The fillAmount will then be included in the target call.
     function borrowAndSwapMany(
         address[] calldata borrowTokens,
-        uint256[] calldata amounts,
+        uint256[] calldata packedAmounts,
         SwapParams calldata swap,
         address target,
         bytes calldata targetCallData,
@@ -303,9 +304,13 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         uint256 deadline,
         bytes calldata signature
     ) external override whenNotPaused()  whenBorrowNotPaused() {
-        _validateMPCSignatureWithCaller(borrowTokens, amounts, target, targetCallData, nonce, deadline, signature);
+        _validateMPCSignatureWithCaller(
+            borrowTokens, packedAmounts, target, targetCallData, nonce, deadline, signature
+        );
         // Native borrowing is denied because swapMany() is not payable.
-        (,, bytes memory context) = _borrowMany(borrowTokens, amounts, _msgSender(), NATIVE_DENIED);
+        (,, uint256[] memory amounts, bytes memory context) = _borrowMany(
+            borrowTokens, packedAmounts, _msgSender(), NATIVE_DENIED
+        );
         _afterBorrowManyLogic(borrowTokens, context);
         uint256 nativeBalanceBefore = _prepareNativeFill(swap.fillToken);
         // Call the swap function on caller
@@ -417,20 +422,21 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
 
     function _borrowMany(
         address[] calldata tokens,
-        uint256[] calldata amounts,
+        uint256[] calldata packedAmounts,
         address target,
         bool nativeAllowed
-    ) private returns (uint256, address[] memory, bytes memory context) {
+    ) private returns (uint256, address[] memory, uint256[] memory, bytes memory context) {
         uint256 totalNativeValue = 0;
         address[] memory actualBorrowTokens = new address[](tokens.length);
-        uint256 length = HelperLib.validatePositiveLength(tokens.length, amounts.length);
+        uint256[] memory amounts = new uint256[](tokens.length);
+        uint256 length = HelperLib.validatePositiveLength(tokens.length, packedAmounts.length);
         for (uint256 i = 0; i < length; ++i) {
             uint256 nativeValue = 0;
-            (nativeValue, actualBorrowTokens[i], context) =
-                _borrow(tokens[i], amounts[i], target, nativeAllowed, context);
+            (nativeValue, actualBorrowTokens[i], amounts[i],, context) =
+                _borrow(tokens[i], packedAmounts[i], target, nativeAllowed, context);
             totalNativeValue += nativeValue;
         }
-        return (totalNativeValue, actualBorrowTokens, context);
+        return (totalNativeValue, actualBorrowTokens, amounts, context);
     }
 
     function _finalizeSwap(
@@ -511,22 +517,24 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
 
     function _borrow(
         address borrowToken,
-        uint256 amount,
+        uint256 packedAmount,
         address target,
         bool nativeAllowed,
         bytes memory context
-    ) private returns (uint256 nativeAmount, address actualBorrowToken, bytes memory) {
+    ) private returns (uint256 nativeAmount, address actualBorrowToken, uint256 amount, uint256 profit, bytes memory) {
+        (profit, amount) = _unpackAmount(packedAmount);
         bool isNative = borrowToken == address(NATIVE_TOKEN);
         actualBorrowToken = isNative ? address(WRAPPED_NATIVE_TOKEN) : borrowToken;
         _wrapIfNative(IERC20(actualBorrowToken));
-        context = _borrowLogic(actualBorrowToken, amount, context);
+        context = _borrowLogic(actualBorrowToken, amount, profit, context);
         if (isNative) {
             require(nativeAllowed, NativeBorrowDenied());
             nativeAmount = amount;
         } else {
             IERC20(borrowToken).forceApprove(target, amount);
         }
-        return (nativeAmount, actualBorrowToken, context);
+        if (profit > 0) accruedProfit[actualBorrowToken] += int256(profit);
+        return (nativeAmount, actualBorrowToken, amount, profit, context);
     }
 
     function _wrapIfNative(IERC20 token) internal {
@@ -535,22 +543,20 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         }
     }
 
+    function _unpackAmount(uint256 packedAmount) private pure returns (uint128 profit, uint128 amount) {
+        profit = uint128(packedAmount >> 128);
+        amount = uint128(packedAmount);
+    }
+
     function _depositLogic(uint256 /*amount*/) internal virtual {
         return;
     }
 
-    function _borrowLogic(address borrowToken, uint256 /*amount*/, bytes memory context)
+    function _borrowLogic(address borrowToken, uint256 /*amount*/, uint256 /*profit*/, bytes memory context)
         internal virtual returns (bytes memory)
     {
         require(borrowToken == address(ASSETS), InvalidBorrowToken());
         return context;
-    }
-
-    function _processBorrowAmount(
-        uint256 amount,
-        bytes calldata /*targetCallData*/
-    ) internal virtual returns (uint256) {
-        return amount;
     }
 
     function _afterBorrowLogic(address /*borrowToken*/, bytes memory /*context*/) internal virtual {
@@ -562,19 +568,29 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     }
 
     function _withdrawLogic(address to, uint256 amount) internal virtual {
-        require(ASSETS.balanceOf(address(this)) >= amount, InsufficientLiquidity());
+        require(HelperLib.balanceOfThis(ASSETS) >= amount, InsufficientLiquidity());
         ASSETS.safeTransfer(to, amount);
     }
 
     function _withdrawProfitLogic(IERC20 token) internal virtual returns (uint256) {
-        uint256 totalBalance = token.balanceOf(address(this));
+        uint256 currentBalance = HelperLib.balanceOfThis(token);
+        uint256 withdrawableSurplus = 0;
         if (token == ASSETS) {
             uint256 deposited = _totalDeposited;
-            uint256 virtualBalance = totalBalance + directDebt[address(ASSETS)];
-            if (virtualBalance < deposited) return 0;
-            return Math.min(totalBalance, virtualBalance - deposited);
+            uint256 virtualBalance = currentBalance + directDebt[address(token)];
+            if (virtualBalance > deposited) {
+                // In case there are extra funds in the pool, withdraw them.
+                withdrawableSurplus = Math.min(virtualBalance - deposited, currentBalance);
+            }
+        } else {
+            withdrawableSurplus = currentBalance;
         }
-        return totalBalance;
+        int256 profit = accruedProfit[address(token)];
+        // Cannot be negative (in this contract, but can be in children) but can be zero.
+        if (profit <= 0) return withdrawableSurplus;
+        uint256 toWithdraw = Math.min(currentBalance, uint256(profit));
+        accruedProfit[address(token)] = profit - int256(toWithdraw);
+        return Math.max(toWithdraw, withdrawableSurplus);
     }
     
     function _repay(address[] calldata) internal virtual {
@@ -615,7 +631,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
 
     function _balance(IERC20 token) internal view virtual returns (uint256) {
         if (token != ASSETS) return 0;
-        uint256 result = token.balanceOf(address(this));
+        uint256 result = HelperLib.balanceOfThis(token);
         if (token == WRAPPED_NATIVE_TOKEN) {
             result += address(this).balance;
         }

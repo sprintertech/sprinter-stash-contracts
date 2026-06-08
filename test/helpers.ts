@@ -6,6 +6,7 @@ import {
 } from "ethers";
 import {assert, DEFAULT_PROXY_TYPE, CREATE_X_ADDRESS} from "../scripts/common";
 import {ICreateX} from "../typechain-types";
+import {expect} from "chai";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -18,6 +19,8 @@ export async function setupTests(): Promise<void> {
     await hre.ethers.provider.send("evm_revert", [snapshot]);
   });
 }
+
+export const BLOCK_TAG = {blockTag: "pending" as const};
 
 async function resolveAddresses(input: AddressLike[]): Promise<string[]> {
   return await Promise.all(input.map(el => resolveAddress(el)));
@@ -257,6 +260,13 @@ export async function getBalance(addr: AddressLike): Promise<bigint> {
   return hre.ethers.provider.getBalance(addr);
 }
 
+export function packAmount(profit: bigint, borrowAmount: bigint): bigint {
+  const MAX_UINT128 = 2n ** 128n - 1n;
+  assert(profit <= MAX_UINT128, "Profit too high");
+  assert(borrowAmount <= MAX_UINT128, "Borrow amount too high");
+  return (profit << 128n) | borrowAmount;
+}
+
 export const destinationToken = (
   destinationDomain: BigNumberish,
   outputToken: BytesLike,
@@ -264,3 +274,9 @@ export const destinationToken = (
 ) => {
   return {destinationDomain, outputToken, localDecimalsGreaterBy};
 };
+
+export function expectAlmostEqualDown(a: bigint, b: bigint, maxDiff: bigint = 2n): void {
+  const msg = `Expected ${a} to almost equal ${b} down`;
+  expect(a).to.be.lessThanOrEqual(b, msg);
+  expect(a).to.be.greaterThanOrEqual(b - maxDiff, msg);
+}

@@ -2844,7 +2844,7 @@ describe("LiquidityPoolAave", function () {
       const directBorrowAmount = 500n * USDC_DEC;
       await liquidityPool.connect(directBorrower).borrowDirect(usdc, directBorrowAmount);
 
-      await time.increase(3600 * 24 * 30);
+      await time.increase(3600 * 24 * 365);
       const interest = await aToken.balanceOf(liquidityPool) - amountCollateral;
       const accruedDebt = await usdcDebtToken.balanceOf(liquidityPool) - regularBorrowAmount - directBorrowAmount;
       expect(interest).to.be.lessThan(accruedDebt);
@@ -2879,7 +2879,7 @@ describe("LiquidityPoolAave", function () {
       await liquidityPool.connect(directBorrower).borrowDirect(usdc, directBorrowAmount);
       await eurc.connect(eurcOwner).transfer(liquidityPool, 1n * EURC_DEC);
 
-      await time.setNextBlockTimestamp(await time.latest() + (3600 * 24 * 30));
+      await time.setNextBlockTimestamp(await time.latest() + (3600 * 24 * 365));
       let interest = await aToken.balanceOf(liquidityPool, BLOCK_TAG) - amountCollateral;
       let accruedDebt = await usdcDebtToken.balanceOf(liquidityPool, BLOCK_TAG)
         - regularBorrowAmount - directBorrowAmount;
@@ -3893,7 +3893,7 @@ describe("LiquidityPoolAave", function () {
       const eurcDonation = 1n * EURC_DEC;
       await eurc.connect(eurcOwner).transfer(liquidityPool, eurcDonation);
 
-      await time.setNextBlockTimestamp(await time.latest() + (3600 * 24 * 30));
+      await time.setNextBlockTimestamp(await time.latest() + (3600 * 24 * 365));
       const interest = await aToken.balanceOf(liquidityPool, BLOCK_TAG) - deposit;
       const fees = await usdcDebtToken.balanceOf(liquidityPool, BLOCK_TAG)
         - regularBorrowAmount - directBorrowAmount;
@@ -3936,7 +3936,7 @@ describe("LiquidityPoolAave", function () {
       await eurc.connect(eurcOwner).transfer(liquidityPool, eurcDonation);
 
       // First period: fees > interest → accruedProfit[usdc] goes negative; I1 USDC stuck in pool
-      await time.setNextBlockTimestamp(await time.latest() + (3600 * 24 * 30));
+      await time.setNextBlockTimestamp(await time.latest() + (3600 * 24 * 365));
       await liquidityPool.connect(withdrawProfit).withdrawProfit([usdc, eurc], user);
       const negativeProfit = await liquidityPool.accruedProfit(usdc);
       expect(negativeProfit).to.be.lessThan(0n);

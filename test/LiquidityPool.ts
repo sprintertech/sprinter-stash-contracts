@@ -2553,4 +2553,106 @@ describe("LiquidityPool", function () {
           .to.be.revertedWithCustomError(liquidityPool, "NoProfit");
       });
   });
+
+  describe("Profit accumulation - borrowMany, borrowAndSwap, borrowAndSwapMany", function () {
+    it("borrowMany: profits from each packed amount accumulate in accruedProfit", async function () {
+      const {
+        liquidityPool, usdc, usdcOwner, USDC_DEC, liquidityAdmin,
+        user, mpc_signer, mockTarget,
+      } = await loadFixture(deployAll);
+
+      const deposit = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, deposit);
+      await liquidityPool.connect(liquidityAdmin).deposit(deposit);
+
+      const profit1 = 2n * USDC_DEC;
+      const profit2 = 3n * USDC_DEC;
+      const borrow1 = 5n * USDC_DEC;
+      const borrow2 = 4n * USDC_DEC;
+      const packed1 = packAmount(profit1, borrow1);
+      const packed2 = packAmount(profit2, borrow2);
+
+      // Both tokens are USDC (base pool only allows ASSET). The second approval
+      // overwrites the first, so mockTarget pulls borrow2 via transferFrom.
+      const callData = await mockTarget.fulfill.populateTransaction(usdc, borrow2, "0x");
+      const sig = await signBorrowMany(
+        mpc_signer, liquidityPool, user, [usdc, usdc], [packed1, packed2], mockTarget, callData.data,
+      );
+      await liquidityPool.connect(user).borrowMany(
+        [usdc, usdc], [packed1, packed2], mockTarget, callData.data, 0n, 2000000000n, sig,
+      );
+
+      // Each packed amount contributes its profit independently
+      expect(await liquidityPool.accruedProfit(usdc)).to.eq(profit1 + profit2);
+    });
+
+    it("borrowAndSwap: profit in packed amount credited to accruedProfit for the borrowed token", async function () {
+      const {
+        liquidityPool, usdc, usdcOwner, USDC_DEC, liquidityAdmin,
+        eurc, eurcOwner, EURC_DEC, mockTarget, mockBorrowSwap, mpc_signer, user,
+      } = await loadFixture(deployAll);
+
+      const deposit = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, deposit);
+      await liquidityPool.connect(liquidityAdmin).deposit(deposit);
+
+      const profit = 5n * USDC_DEC;
+      const borrowAmount = 3n * USDC_DEC;
+      const packed = packAmount(profit, borrowAmount);
+
+      const fillAmount = 2n * EURC_DEC;
+      await eurc.connect(eurcOwner).approve(mockBorrowSwap, fillAmount);
+      const swapData = AbiCoder.defaultAbiCoder().encode(["address"], [eurcOwner.address]);
+      const callData = await mockTarget.fulfill.populateTransaction(eurc, fillAmount, "0x");
+
+      // Caller is mockBorrowSwap; MPC signs the full packed amount
+      const sig = await signBorrow(
+        mpc_signer, liquidityPool, mockBorrowSwap, usdc, packed, mockTarget, callData.data,
+      );
+      const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
+        usdc, packed, {fillToken: eurc, fillAmount, swapData}, mockTarget, callData.data, 0n, 2000000000n, sig,
+      );
+      await mockBorrowSwap.connect(user).callBorrow(liquidityPool, borrowCalldata.data);
+
+      expect(await liquidityPool.accruedProfit(usdc)).to.eq(profit);
+    });
+
+    it("borrowAndSwapMany: profits across packed amounts accumulate in accruedProfit", async function () {
+      const {
+        liquidityPool, usdc, usdcOwner, USDC_DEC, liquidityAdmin,
+        eurc, eurcOwner, EURC_DEC, mockTarget, mockBorrowSwap, mpc_signer, user,
+      } = await loadFixture(deployAll);
+
+      const deposit = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, deposit);
+      await liquidityPool.connect(liquidityAdmin).deposit(deposit);
+
+      const profit1 = 2n * USDC_DEC;
+      const profit2 = 3n * USDC_DEC;
+      // borrow1 must be 0 because swapMany pulls each amount via safeTransferFrom; with two
+      // USDC entries the second forceApprove overwrites the first, so the first pull would
+      // fail if borrow1 > 0. A zero borrow amount is a valid no-op transfer in ERC20 and
+      // still accumulates profit1, mirroring the borrowMany pattern where approval overwrites.
+      const borrow1 = 0n;
+      const borrow2 = 4n * USDC_DEC;
+      const packed1 = packAmount(profit1, borrow1);
+      const packed2 = packAmount(profit2, borrow2);
+
+      const fillAmount = 2n * EURC_DEC;
+      await eurc.connect(eurcOwner).approve(mockBorrowSwap, fillAmount);
+      const swapData = AbiCoder.defaultAbiCoder().encode(["address"], [eurcOwner.address]);
+      const callData = await mockTarget.fulfill.populateTransaction(eurc, fillAmount, "0x");
+
+      const sig = await signBorrowMany(
+        mpc_signer, liquidityPool, mockBorrowSwap, [usdc, usdc], [packed1, packed2], mockTarget, callData.data,
+      );
+      const borrowCalldata = await liquidityPool.borrowAndSwapMany.populateTransaction(
+        [usdc, usdc], [packed1, packed2], {fillToken: eurc, fillAmount, swapData},
+        mockTarget, callData.data, 0n, 2000000000n, sig,
+      );
+      await mockBorrowSwap.connect(user).callBorrow(liquidityPool, borrowCalldata.data);
+
+      expect(await liquidityPool.accruedProfit(usdc)).to.eq(profit1 + profit2);
+    });
+  });
 });

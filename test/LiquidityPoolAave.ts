@@ -25,6 +25,13 @@ function expectAlmostEqual(a: bigint, b: bigint, maxDiff: bigint = 2n): void {
 }
 
 describe("LiquidityPoolAave", function () {
+  // Enables USDC to be borrowed against USDC collateral in Aave.
+  async function enableUSDCBorrowing(fixture: Awaited<ReturnType<typeof deployAll>>) {
+    const {liquidityPool, admin, usdc} = fixture;
+    await liquidityPool.connect(admin).setBorrowTokenLTVs([usdc], [10000n]);
+    await liquidityPool.connect(admin).setMinHealthFactor(10000n);
+  }
+
   setupTests();
 
   const deployAll = async () => {
@@ -2814,18 +2821,17 @@ describe("LiquidityPoolAave", function () {
     });
 
     it("Should revert withdrawing asset profit if interest < accrued debt", async function () {
+      const fixture = await loadFixture(deployAll);
       const {
         liquidityPool, usdc, USDC_DEC, usdcOwner, liquidityAdmin,
-        withdrawProfit, user, directBorrower, mockTarget, mpc_signer, admin,
+        withdrawProfit, user, directBorrower, mockTarget, mpc_signer,
         usdcDebtToken, aToken,
-      } = await loadFixture(deployAll);
+      } = fixture;
+      await enableUSDCBorrowing(fixture);
 
       const amountCollateral = 10000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
       await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
-
-      await liquidityPool.connect(admin).setBorrowTokenLTVs([usdc], [10000n]);
-      await liquidityPool.connect(admin).setMinHealthFactor(10000n);
 
       // Regular borrow USDC: mockTarget pulls it, creating aave debt with 0 pool balance
       const regularBorrowAmount = 7000n * USDC_DEC;
@@ -2839,10 +2845,8 @@ describe("LiquidityPoolAave", function () {
 
       const directBorrowAmount = 500n * USDC_DEC;
       await liquidityPool.connect(directBorrower).borrowDirect(usdc, directBorrowAmount);
-      await usdc.connect(directBorrower).transferFrom(liquidityPool, directBorrower, directBorrowAmount);
-      await usdc.connect(usdcOwner).transfer(liquidityPool, directBorrowAmount);
 
-      await time.increase(3600);
+      await time.increase(3600 * 24 * 30);
       const interest = await aToken.balanceOf(liquidityPool) - amountCollateral;
       const accruedDebt = await usdcDebtToken.balanceOf(liquidityPool) - regularBorrowAmount - directBorrowAmount;
       expect(interest).to.be.lessThan(accruedDebt);
@@ -2851,18 +2855,17 @@ describe("LiquidityPoolAave", function () {
     });
 
     it("Should record negative profit if interest < accrued debt", async function () {
+      const fixture = await loadFixture(deployAll);
       const {
         liquidityPool, usdc, USDC_DEC, usdcOwner, liquidityAdmin,
-        withdrawProfit, user, directBorrower, mockTarget, mpc_signer, admin,
+        withdrawProfit, user, directBorrower, mockTarget, mpc_signer,
         usdcDebtToken, aToken, eurc, eurcOwner, EURC_DEC,
-      } = await loadFixture(deployAll);
+      } = fixture;
+      await enableUSDCBorrowing(fixture);
 
       const amountCollateral = 10000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
       await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
-
-      await liquidityPool.connect(admin).setBorrowTokenLTVs([usdc], [10000n]);
-      await liquidityPool.connect(admin).setMinHealthFactor(10000n);
 
       // Regular borrow USDC: mockTarget pulls it, creating aave debt with 0 pool balance
       const regularBorrowAmount = 7000n * USDC_DEC;
@@ -2876,11 +2879,9 @@ describe("LiquidityPoolAave", function () {
 
       const directBorrowAmount = 500n * USDC_DEC;
       await liquidityPool.connect(directBorrower).borrowDirect(usdc, directBorrowAmount);
-      await usdc.connect(directBorrower).transferFrom(liquidityPool, directBorrower, directBorrowAmount);
-      await usdc.connect(usdcOwner).transfer(liquidityPool, directBorrowAmount);
       await eurc.connect(eurcOwner).transfer(liquidityPool, 1n * EURC_DEC);
 
-      await time.setNextBlockTimestamp(await time.latest() + 3600);
+      await time.setNextBlockTimestamp(await time.latest() + (3600 * 24 * 30));
       let interest = await aToken.balanceOf(liquidityPool, BLOCK_TAG) - amountCollateral;
       let accruedDebt = await usdcDebtToken.balanceOf(liquidityPool, BLOCK_TAG)
         - regularBorrowAmount - directBorrowAmount;
@@ -3729,13 +3730,6 @@ describe("LiquidityPoolAave", function () {
   });
 
   describe("withdrawProfit - ASSET token (USDC) accrued profit", function () {
-    // Enables USDC to be borrowed against USDC collateral in Aave.
-    async function enableUSDCBorrowing(fixture: Awaited<ReturnType<typeof deployAll>>) {
-      const {liquidityPool, admin, usdc} = fixture;
-      await liquidityPool.connect(admin).setBorrowTokenLTVs([usdc], [10000n]);
-      await liquidityPool.connect(admin).setMinHealthFactor(10000n);
-    }
-
     // Signs and executes a signed borrow of USDC from Aave via the pool.
     async function borrowUSDCFromAave(
       fixture: Awaited<ReturnType<typeof deployAll>>,
@@ -3781,7 +3775,7 @@ describe("LiquidityPoolAave", function () {
         liquidityPool, usdc, usdcOwner, USDC_DEC, aToken, liquidityAdmin, withdrawProfit, user,
       } = await loadFixture(deployAll);
 
-      const deposit = 100n * USDC_DEC;
+      const deposit = 10n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, deposit);
       await liquidityPool.connect(liquidityAdmin).deposit(deposit);
 
@@ -3806,7 +3800,7 @@ describe("LiquidityPoolAave", function () {
         liquidityPool, usdc, usdcOwner, USDC_DEC, aToken, liquidityAdmin, withdrawProfit, user,
       } = await loadFixture(deployAll);
 
-      const deposit = 100n * USDC_DEC;
+      const deposit = 10n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, deposit);
       await liquidityPool.connect(liquidityAdmin).deposit(deposit);
 
@@ -3837,11 +3831,11 @@ describe("LiquidityPoolAave", function () {
       const {
         liquidityPool, usdc, usdcOwner, USDC_DEC, aToken, liquidityAdmin, withdrawProfit, user,
       } = fixture;
+      await enableUSDCBorrowing(fixture);
 
       const deposit = 10000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, deposit);
       await liquidityPool.connect(liquidityAdmin).deposit(deposit);
-      await enableUSDCBorrowing(fixture);
 
       const borrowAmount = 100n * USDC_DEC;
       const profit = 5n * USDC_DEC;
@@ -3875,11 +3869,11 @@ describe("LiquidityPoolAave", function () {
         liquidityPool, usdc, usdcOwner, USDC_DEC, aToken, usdcDebtToken,
         eurc, eurcOwner, EURC_DEC, liquidityAdmin, withdrawProfit, user, directBorrower,
       } = fixture;
+      await enableUSDCBorrowing(fixture);
 
       const deposit = 10000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, deposit);
       await liquidityPool.connect(liquidityAdmin).deposit(deposit);
-      await enableUSDCBorrowing(fixture);
 
       // 7000 regular borrow + 500 direct borrow = 7500 USDC Aave debt.
       // Borrow fees on 7500 USDC exceed supply yield on 10000 USDC collateral (confirmed by
@@ -3898,7 +3892,7 @@ describe("LiquidityPoolAave", function () {
       const eurcDonation = 1n * EURC_DEC;
       await eurc.connect(eurcOwner).transfer(liquidityPool, eurcDonation);
 
-      await time.setNextBlockTimestamp(await time.latest() + 3600);
+      await time.setNextBlockTimestamp(await time.latest() + (3600 * 24 * 30));
       const interest = await aToken.balanceOf(liquidityPool, BLOCK_TAG) - deposit;
       const fees = await usdcDebtToken.balanceOf(liquidityPool, BLOCK_TAG)
         - regularBorrowAmount - directBorrowAmount;
@@ -3921,11 +3915,11 @@ describe("LiquidityPoolAave", function () {
         liquidityPool, usdc, usdcOwner, USDC_DEC, usdcDebtToken,
         eurc, eurcOwner, EURC_DEC, liquidityAdmin, withdrawProfit, user, directBorrower,
       } = fixture;
+      await enableUSDCBorrowing(fixture);
 
       const deposit = 10000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, deposit);
       await liquidityPool.connect(liquidityAdmin).deposit(deposit);
-      await enableUSDCBorrowing(fixture);
 
       // Same borrow setup as test 6: 7500 total USDC Aave debt → fees > interest
       const regularBorrowAmount = 7000n * USDC_DEC;
@@ -3941,7 +3935,7 @@ describe("LiquidityPoolAave", function () {
       await eurc.connect(eurcOwner).transfer(liquidityPool, eurcDonation);
 
       // First period: fees > interest → accruedProfit[usdc] goes negative; I1 USDC stuck in pool
-      await time.setNextBlockTimestamp(await time.latest() + 3600);
+      await time.setNextBlockTimestamp(await time.latest() + (3600 * 24 * 30));
       await liquidityPool.connect(withdrawProfit).withdrawProfit([usdc, eurc], user);
       const negativeProfit = await liquidityPool.accruedProfit(usdc);
       expect(negativeProfit).to.be.lessThan(0n);
@@ -3976,11 +3970,11 @@ describe("LiquidityPoolAave", function () {
         liquidityPool, usdc, usdcOwner, USDC_DEC,
         liquidityAdmin, withdrawProfit, user, directBorrower,
       } = fixture;
+      await enableUSDCBorrowing(fixture);
 
       const deposit = 100n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, deposit);
       await liquidityPool.connect(liquidityAdmin).deposit(deposit);
-      await enableUSDCBorrowing(fixture);
 
       const borrowAmount = 10n * USDC_DEC;
       const profit = 5n * USDC_DEC;

@@ -6,6 +6,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {ERC4626, ERC20, Math} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {LiquidityPool} from "./LiquidityPool.sol";
+import {HelperLib} from "./utils/HelperLib.sol";
 
 /// @title A version of the liquidity pool contract that supports direct liquidity provision for third parties.
 /// Borrowing is managed in the same way as in the base contract, though profits are accounted for differently.
@@ -102,7 +103,7 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
         if (paused) {
             return 0;
         }
-        return Math.min(super.maxWithdraw(owner), ASSETS.balanceOf(address(this)));
+        return Math.min(super.maxWithdraw(owner), HelperLib.balanceOfThis(ASSETS));
     }
 
     function maxRedeem(address owner) public view override returns (uint256) {
@@ -111,7 +112,7 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
         }
         return Math.min(
             super.maxRedeem(owner),
-            _convertToShares(ASSETS.balanceOf(address(this)), Math.Rounding.Floor)
+            _convertToShares(HelperLib.balanceOfThis(ASSETS), Math.Rounding.Floor)
         );
     }
 
@@ -163,7 +164,7 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
     }
 
     function _withdrawProfitLogic(IERC20 token) internal override returns (uint256) {
-        uint256 totalBalance = token.balanceOf(address(this));
+        uint256 totalBalance = HelperLib.balanceOfThis(token);
         if (token == ASSETS) {
             uint256 profit = protocolFee;
             uint256 virtualBalance = _virtualBalance;

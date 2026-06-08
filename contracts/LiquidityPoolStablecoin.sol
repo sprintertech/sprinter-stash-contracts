@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {LiquidityPool} from "./LiquidityPool.sol";
+import {HelperLib} from "./utils/HelperLib.sol";
 
 /// @title A version of the liquidity pool contract that supports multiple assets for borrowing.
 /// The idea is that pool has to allow repayments with any token equivalent to the liquidity token.
@@ -26,11 +27,11 @@ contract LiquidityPoolStablecoin is LiquidityPool {
     }
 
     function _withdrawProfitLogic(IERC20 token) internal override returns (uint256) {
-        uint256 assetBalance = ASSETS.balanceOf(address(this));
+        uint256 assetBalance = HelperLib.balanceOfThis(ASSETS);
         uint256 deposited = _totalDeposited;
         uint256 virtualAssets = assetBalance + directDebt[address(ASSETS)];
         bool surplusAllowed = virtualAssets >= deposited;
-        uint256 currentBalance = token.balanceOf(address(this));
+        uint256 currentBalance = HelperLib.balanceOfThis(token);
         uint256 withdrawableSurplus = 0;
         if (surplusAllowed) {
             if (token == ASSETS) {
@@ -48,7 +49,7 @@ contract LiquidityPoolStablecoin is LiquidityPool {
     }
 
     function _balance(IERC20 token) internal view override returns (uint256) {
-        uint256 result = token.balanceOf(address(this));
+        uint256 result = HelperLib.balanceOfThis(token);
         if (token == WRAPPED_NATIVE_TOKEN) {
             result += address(this).balance;
         }

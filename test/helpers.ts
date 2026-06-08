@@ -261,6 +261,9 @@ export async function getBalance(addr: AddressLike): Promise<bigint> {
 }
 
 export function packAmount(profit: bigint, borrowAmount: bigint): bigint {
+  const MAX_UINT128 = 2n ** 128n - 1n;
+  assert(profit <= MAX_UINT128, "Profit too high");
+  assert(borrowAmount <= MAX_UINT128, "Borrow amount too high");
   return (profit << 128n) | borrowAmount;
 }
 

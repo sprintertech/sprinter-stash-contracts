@@ -158,7 +158,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     /// Supplying amount greater than the actual increase will result in the future profits treated as deposit.
     function deposit(uint256 amount) external virtual override onlyRole(LIQUIDITY_ADMIN_ROLE) {
         // called after receiving deposit in USDC
-        uint256 newBalance = ASSETS.balanceOf(address(this));
+        uint256 newBalance = HelperLib.balanceOfThis(ASSETS);
         require(newBalance >= amount, NotEnoughToDeposit());
         _deposit(_msgSender(), amount);
     }
@@ -568,18 +568,19 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     }
 
     function _withdrawLogic(address to, uint256 amount) internal virtual {
-        require(ASSETS.balanceOf(address(this)) >= amount, InsufficientLiquidity());
+        require(HelperLib.balanceOfThis(ASSETS) >= amount, InsufficientLiquidity());
         ASSETS.safeTransfer(to, amount);
     }
 
     function _withdrawProfitLogic(IERC20 token) internal virtual returns (uint256) {
-        uint256 currentBalance = token.balanceOf(address(this));
+        uint256 currentBalance = HelperLib.balanceOfThis(token);
         uint256 withdrawableSurplus = 0;
         if (token == ASSETS) {
+            uint256 deposited = _totalDeposited;
             uint256 virtualBalance = currentBalance + directDebt[address(token)];
-            if (virtualBalance > _totalDeposited) {
+            if (virtualBalance > deposited) {
                 // In case there are extra funds in the pool, withdraw them.
-                withdrawableSurplus = Math.min(virtualBalance - _totalDeposited, currentBalance);
+                withdrawableSurplus = Math.min(virtualBalance - deposited, currentBalance);
             }
         } else {
             withdrawableSurplus = currentBalance;
@@ -630,7 +631,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
 
     function _balance(IERC20 token) internal view virtual returns (uint256) {
         if (token != ASSETS) return 0;
-        uint256 result = token.balanceOf(address(this));
+        uint256 result = HelperLib.balanceOfThis(token);
         if (token == WRAPPED_NATIVE_TOKEN) {
             result += address(this).balance;
         }

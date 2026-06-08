@@ -4,7 +4,7 @@ import {
 import {expect} from "chai";
 import hre from "hardhat";
 import {
-  deploy, signBorrow, setupTests,
+  deploy, signBorrow, setupTests, packAmount,
 } from "./helpers";
 import {ETH, ZERO_ADDRESS, DEFAULT_ADMIN_ROLE} from "../scripts/common";
 import {encodeBytes32String} from "ethers";
@@ -13,10 +13,6 @@ import {
   ERC4626Adapter
 } from "../typechain-types";
 import {networkConfig} from "../network.config";
-
-function packProfit(profit: bigint, amount: bigint) {
-  return (profit << 128n) | amount;
-}
 
 const ERC4626Deposit = "deposit(uint256,address)";
 
@@ -90,7 +86,7 @@ describe("ERC4626Adapter", function () {
       const amountToReceive = 0n;
 
       const callData = (await mockTarget.fulfillSkip.populateTransaction()).data;
-      const packedAmount = packProfit(profit, amountToReceive);
+      const packedAmount = packAmount(profit, amountToReceive);
 
       const signature = await signBorrow(
         mpc_signer,

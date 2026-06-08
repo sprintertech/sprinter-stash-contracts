@@ -69,7 +69,7 @@ contract LiquidityPoolAaveLongTerm is LiquidityPoolAave, ILiquidityPoolLongTerm 
     function _borrowLogic(address borrowToken, uint256 amount, uint256 profit, bytes memory context)
         internal override returns (bytes memory)
     {
-        uint256 availableBalance = IERC20(borrowToken).balanceOf(address(this));
+        uint256 availableBalance = HelperLib.balanceOfThis(borrowToken);
         uint8 borrowFlag = 0;
         if (availableBalance < amount) {
             super._borrowLogic(borrowToken, amount - availableBalance, profit, context);
@@ -103,6 +103,6 @@ contract LiquidityPoolAaveLongTerm is LiquidityPoolAave, ILiquidityPoolLongTerm 
     }
 
     function _balance(IERC20 token) internal view override returns (uint256) {
-        return super._balance(token) + token.balanceOf(address(this));
+        return super._balance(token) + HelperLib.balanceOfThis(token);
     }
 }

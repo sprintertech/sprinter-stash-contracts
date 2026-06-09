@@ -4,9 +4,11 @@ pragma solidity 0.8.28;
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
-import {ERC4626, ERC20, Math} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import {LiquidityPool} from "./LiquidityPool.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {ERC4626Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
+import {LiquidityPoolBase} from "./LiquidityPoolBase.sol";
 import {HelperLib} from "./utils/HelperLib.sol";
+import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 
 /// @title A version of the liquidity pool contract that supports direct liquidity provision for third parties.
 /// Borrowing is managed in the same way as in the base contract, though profits are accounted for differently.
@@ -15,18 +17,23 @@ import {HelperLib} from "./utils/HelperLib.sol";
 /// gives the fee. Before fee is distributed to the depositors, the protocol fee is taken based on the rate.
 /// The total assets counter cannot be increased by a donation, making inflation by users impossible.
 /// Borrow many is not supported for this pool because only a single asset can be borrowed.
+/// @notice Upgradeable.
 /// @author Oleksii Matiiasevych <oleksii@sprinter.tech>
-contract PublicLiquidityPool is LiquidityPool, ERC4626 {
+contract PublicLiquidityPool is LiquidityPoolBase, ERC4626Upgradeable {
     using Math for uint256;
     using SafeCast for uint256;
 
     uint256 private constant RATE_DENOMINATOR = 10000;
     bytes32 private constant FEE_SETTER_ROLE = "FEE_SETTER_ROLE";
 
-    // Balance of the assets in the pool with fees, after all repayments will be done.
-    uint128 private _virtualBalance;
-    uint112 public protocolFee;
-    uint16 public protocolFeeRate;
+    /// @custom:storage-location erc7201:sprinter.storage.PublicLiquidityPool
+    struct PublicLiquidityPoolStorage {
+        uint128 virtualBalance;
+        uint112 protocolFee;
+        uint16 protocolFeeRate;
+    }
+
+    bytes32 private constant STORAGE_LOCATION = 0xfc6e0eb16ec00fbf03b840cc31ff1058d469948c6d2311253353d02420e68f00;
 
     event ProtocolFeeRateSet(uint16 protocolFeeRate);
 
@@ -36,19 +43,33 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
 
     constructor(
         address liquidityToken,
+        address wrappedNativeToken
+    ) LiquidityPoolBase(liquidityToken, wrappedNativeToken) {
+        ERC7201Helper.validateStorageLocation(STORAGE_LOCATION, "sprinter.storage.PublicLiquidityPool");
+    }
+
+    function initialize(
         address admin,
         address mpcAddress_,
-        address wrappedNativeToken,
         address signerAddress_,
         string memory name_,
         string memory symbol_,
         uint16 protocolFeeRate_
-    )
-        LiquidityPool(liquidityToken, admin, mpcAddress_, wrappedNativeToken, signerAddress_)
-        ERC4626(IERC20(liquidityToken))
-        ERC20(name_, symbol_)
-    {
+    ) external initializer {
+        _initializeBase(admin, mpcAddress_, signerAddress_);
+        __ERC4626_init(ASSETS);
+        __ERC20_init(name_, symbol_);
         _setProtocolFeeRate(protocolFeeRate_);
+    }
+
+    // Public getters for storage variables
+
+    function protocolFee() public view returns (uint112) {
+        return _getStorage().protocolFee;
+    }
+
+    function protocolFeeRate() public view returns (uint16) {
+        return _getStorage().protocolFeeRate;
     }
 
     function setProtocolFeeRate(uint16 protocolFeeRate_) external onlyRole(FEE_SETTER_ROLE) {
@@ -79,35 +100,36 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
         deposit(assets, receiver);
     }
 
-    function deposit(uint256) external pure override(LiquidityPool) {
+    function deposit(uint256) external pure override(LiquidityPoolBase) {
         revert NotImplemented();
     }
 
-    function depositWithPull(uint256) external pure override(LiquidityPool) {
+    function depositWithPull(uint256) external pure override(LiquidityPoolBase) {
         revert NotImplemented();
     }
 
-    function withdraw(address, uint256) external pure override(LiquidityPool) {
+    function withdraw(address, uint256) external pure override(LiquidityPoolBase) {
         revert NotImplemented();
     }
 
     function totalDeposited() external view virtual override returns (uint256) {
-        return _virtualBalance;
+        return _getStorage().virtualBalance;
     }
 
     function totalAssets() public view virtual override returns (uint256) {
-        return _virtualBalance - protocolFee;
+        PublicLiquidityPoolStorage storage $ = _getStorage();
+        return $.virtualBalance - $.protocolFee;
     }
 
     function maxWithdraw(address owner) public view override returns (uint256) {
-        if (paused) {
+        if (_getStorageBase().paused) {
             return 0;
         }
         return Math.min(super.maxWithdraw(owner), HelperLib.balanceOfThis(ASSETS));
     }
 
     function maxRedeem(address owner) public view override returns (uint256) {
-        if (paused) {
+        if (_getStorageBase().paused) {
             return 0;
         }
         return Math.min(
@@ -118,7 +140,7 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
 
     function _setProtocolFeeRate(uint16 protocolFeeRate_) internal {
         require(protocolFeeRate_ <= RATE_DENOMINATOR, InvalidProtocolFeeRate());
-        protocolFeeRate = protocolFeeRate_;
+        _getStorage().protocolFeeRate = protocolFeeRate_;
 
         emit ProtocolFeeRateSet(protocolFeeRate_);
     }
@@ -148,7 +170,8 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal override {
         require(receiver != address(0), ZeroAddress());
         super._deposit(caller, receiver, assets, shares);
-        _virtualBalance = (uint256(_virtualBalance) + assets).toUint128();
+        _getStorage().virtualBalance =
+            (uint256(_getStorage().virtualBalance) + assets).toUint128();
     }
 
     function _withdraw(
@@ -159,17 +182,19 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
         uint256 shares
     ) internal override whenNotPaused() {
         require(receiver != address(0), ZeroAddress());
-        _virtualBalance = (uint256(_virtualBalance) - assets).toUint128();
+        _getStorage().virtualBalance =
+            (uint256(_getStorage().virtualBalance) - assets).toUint128();
         super._withdraw(caller, receiver, owner, assets, shares);
     }
 
     function _withdrawProfitLogic(IERC20 token) internal override returns (uint256) {
         uint256 totalBalance = HelperLib.balanceOfThis(token);
         if (token == ASSETS) {
-            uint256 profit = protocolFee;
-            uint256 virtualBalance = _virtualBalance;
-            protocolFee = 0;
-            _virtualBalance = (virtualBalance - profit).toUint128();
+            PublicLiquidityPoolStorage storage $ = _getStorage();
+            uint256 profit = $.protocolFee;
+            uint256 virtualBalance = $.virtualBalance;
+            $.protocolFee = 0;
+            $.virtualBalance = (virtualBalance - profit).toUint128();
             if (totalBalance > virtualBalance) {
                 // In case there are donations sent to the pool.
                 profit += totalBalance - virtualBalance;
@@ -183,9 +208,10 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
         internal override returns (bytes memory)
     {
         if (totalFee > 0) {
-            uint256 protocolFeeIncrease = totalFee.mulDiv(protocolFeeRate, RATE_DENOMINATOR, Math.Rounding.Ceil);
-            protocolFee = (uint256(protocolFee) + protocolFeeIncrease).toUint112();
-            _virtualBalance = (uint256(_virtualBalance) + totalFee).toUint128();
+            PublicLiquidityPoolStorage storage $ = _getStorage();
+            uint256 protocolFeeIncrease = totalFee.mulDiv($.protocolFeeRate, RATE_DENOMINATOR, Math.Rounding.Ceil);
+            $.protocolFee = (uint256($.protocolFee) + protocolFeeIncrease).toUint112();
+            $.virtualBalance = (uint256($.virtualBalance) + totalFee).toUint128();
         }
         return super._borrowLogic(borrowToken, amount, totalFee, context);
     }
@@ -198,6 +224,12 @@ contract PublicLiquidityPool is LiquidityPool, ERC4626 {
         // Condition is needed to avoid Unreachable code warning in the LiquidityPool.
         if (true) {
             revert NotImplemented();
+        }
+    }
+
+    function _getStorage() internal pure returns (PublicLiquidityPoolStorage storage $) {
+        assembly {
+            $.slot := STORAGE_LOCATION
         }
     }
 }

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity 0.8.28;
 
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {PropertiesAsserts} from "@crytic/properties/contracts/util/PropertiesHelper.sol";
 import {PublicLiquidityPool} from "../PublicLiquidityPool.sol";
 import {TestUSDC} from "../testing/TestUSDC.sol";
@@ -25,16 +26,19 @@ contract EchidnaPublicLiquidityPool is PropertiesAsserts {
         // Mint plenty of tokens to this contract (Echidna sender)
         liquidityToken.mint(address(this), type(uint128).max);
 
-        pool = new PublicLiquidityPool(
-            address(liquidityToken),
-            address(this),      // admin
-            0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65,      // mpcAddress
-            address(weth),
-            address(this),
-            "Test Pool",
-            "TPOOL",
-            1000 // 10% protocol fee
+        PublicLiquidityPool impl = new PublicLiquidityPool(address(liquidityToken), address(weth));
+        bytes memory initData = abi.encodeCall(
+            PublicLiquidityPool.initialize,
+            (
+                address(this),
+                0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65,
+                address(this),
+                "Test Pool",
+                "TPOOL",
+                1000
+            )
         );
+        pool = PublicLiquidityPool(payable(new ERC1967Proxy(address(impl), initData)));
 
         // Grant needed roles
         pool.grantRole(LIQUIDITY_ADMIN_ROLE, address(this));

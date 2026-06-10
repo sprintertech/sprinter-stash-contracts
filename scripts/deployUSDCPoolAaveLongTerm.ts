@@ -1,11 +1,13 @@
-import dotenv from "dotenv"; 
+import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {NonceManager} from "ethers";
-import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, percentsToBps, logDeployers} from "./helpers";
+import {
+  getVerifier, getHardhatNetworkConfig, getNetworkConfig, percentsToBps, logDeployers, deployProxyX,
+} from "./helpers";
 import {resolveProxyXAddress, toBytes32} from "../test/helpers";
 import {isSet, assert, assertAddress, DEFAULT_ADMIN_ROLE, sameAddress} from "./common";
-import {LiquidityPoolAaveLongTerm} from "../typechain-types";
+import {LiquidityPoolAaveLongTerm, ProxyAdmin} from "../typechain-types";
 import {Network, NetworkConfig, LiquidityPoolAaveUSDCLongTermVersions} from "../network.config";
 
 export async function main() {
@@ -52,22 +54,19 @@ export async function main() {
   console.log("Deploying Aave USDC Long Term Liquidity Pool");
   const minHealthFactor = BigInt(config.AavePoolLongTerm.MinHealthFactor) * 10000n / 100n;
   const defaultLTV = BigInt(config.AavePoolLongTerm.DefaultLTV) * 10000n / 100n;
-  const aavePoolLongTerm = (await verifier.deployX(
-    "LiquidityPoolAaveLongTerm",
-    deployerWithNonce,
-    {},
-    [
-      config.Tokens.USDC.Address,
-      config.AavePoolLongTerm.AaveAddressesProvider,
-      deployer,
-      config.MpcAddress,
-      minHealthFactor,
-      defaultLTV,
-      config.WrappedNativeToken,
-      config.SignerAddress,
-    ],
-    id,
-  )) as LiquidityPoolAaveLongTerm;
+  const {
+    target: aavePoolLongTerm, targetAdmin: aavePoolLongTermAdmin,
+  }: {target: LiquidityPoolAaveLongTerm; targetAdmin: ProxyAdmin} =
+    await deployProxyX<LiquidityPoolAaveLongTerm>(
+      verifier.deployX,
+      "LiquidityPoolAaveLongTerm",
+      deployerWithNonce,
+      config.Admin,
+      [config.Tokens.USDC.Address, config.AavePoolLongTerm.AaveAddressesProvider, config.WrappedNativeToken],
+      [deployer, config.MpcAddress, config.SignerAddress, minHealthFactor, defaultLTV],
+      id,
+      verifier,
+    );
 
   if (config.AavePoolLongTerm.TokenLTVs) {
     const tokens = Object.keys(config.AavePoolLongTerm.TokenLTVs);
@@ -78,6 +77,7 @@ export async function main() {
     );
   }
   console.log(`${id}: ${aavePoolLongTerm.target}`);
+  console.log(`${id}ProxyAdmin: ${aavePoolLongTermAdmin.target}`);
 
   await aavePoolLongTerm.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
   await aavePoolLongTerm.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);

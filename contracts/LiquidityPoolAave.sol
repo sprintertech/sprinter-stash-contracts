@@ -338,12 +338,12 @@ contract LiquidityPoolAave is LiquidityPoolBase {
         address vdToken = AAVE_POOL.getReserveData(borrowToken).variableDebtTokenAddress;
         if (vdToken == address(0)) return false;
 
-        LiquidityPoolStorage storage $lp = _getStorageBase();
-        uint256 outstandingDebt = $lp.directDebt[borrowToken];
+        LiquidityPoolBaseStorage storage $ = _getStorageBase();
+        uint256 outstandingDebt = $.directDebt[borrowToken];
         uint256 repayAmount = Math.min(outstandingDebt, maxRepayAmount);
         if (repayAmount == 0) return false;
 
-        unchecked { $lp.directDebt[borrowToken] = outstandingDebt - repayAmount; }
+        unchecked { $.directDebt[borrowToken] = outstandingDebt - repayAmount; }
         IERC20(borrowToken).safeTransferFrom(_msgSender(), address(this), repayAmount);
         _executeRepay(borrowToken, repayAmount);
 

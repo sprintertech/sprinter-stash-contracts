@@ -706,12 +706,22 @@ const config: HardhatUserConfig = {
       },
     }],
     overrides: {
+      "contracts/LiquidityPoolAave.sol": {
+        version: "0.8.28",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 1000,
+          },
+          viaIR: true,
+        },
+      },
       "contracts/LiquidityPoolAaveLongTerm.sol": {
         version: "0.8.28",
         settings: {
           optimizer: {
             enabled: true,
-            runs: 10000,
+            runs: 1000,
           },
           viaIR: true,
         },

@@ -73,7 +73,7 @@ abstract contract LiquidityPoolBase is ILiquidityPool, AccessControlUpgradeable,
     bytes32 private constant DIRECT_BORROW_ROLE = "DIRECT_BORROW_ROLE";
 
     /// @custom:storage-location erc7201:sprinter.storage.LiquidityPoolBase
-    struct LiquidityPoolStorage {
+    struct LiquidityPoolBaseStorage {
         BitMaps.BitMap usedNonces;
         uint256 totalDeposited;
         bool paused;
@@ -155,7 +155,7 @@ abstract contract LiquidityPoolBase is ILiquidityPool, AccessControlUpgradeable,
         __EIP712_init("LiquidityPool", "1.0.0");
         require(admin != address(0), ZeroAddress());
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        LiquidityPoolStorage storage $ = _getStorageBase();
+        LiquidityPoolBaseStorage storage $ = _getStorageBase();
         require(mpcAddress_ != address(0), ZeroAddress());
         $.mpcAddress = mpcAddress_;
         require(signerAddress_ != address(0), ZeroAddress());
@@ -380,7 +380,7 @@ abstract contract LiquidityPoolBase is ILiquidityPool, AccessControlUpgradeable,
         whenNotPaused()
     {
         require(to != address(0), ZeroAddress());
-        LiquidityPoolStorage storage $ = _getStorageBase();
+        LiquidityPoolBaseStorage storage $ = _getStorageBase();
         uint256 deposited = $.totalDeposited;
         require(deposited >= amount, InsufficientLiquidity());
         $.totalDeposited = deposited - amount;
@@ -409,14 +409,14 @@ abstract contract LiquidityPoolBase is ILiquidityPool, AccessControlUpgradeable,
 
     function setMPCAddress(address mpcAddress_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(mpcAddress_ != address(0), ZeroAddress());
-        LiquidityPoolStorage storage $ = _getStorageBase();
+        LiquidityPoolBaseStorage storage $ = _getStorageBase();
         address oldMPCAddress = $.mpcAddress;
         $.mpcAddress = mpcAddress_;
         emit MPCAddressSet(oldMPCAddress, mpcAddress_);
     }
 
     function setSignerAddress(address signerAddress_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        LiquidityPoolStorage storage $ = _getStorageBase();
+        LiquidityPoolBaseStorage storage $ = _getStorageBase();
         address oldSignerAddress = $.signerAddress;
         $.signerAddress = signerAddress_;
         emit SignerAddressSet(oldSignerAddress, signerAddress_);
@@ -550,7 +550,7 @@ abstract contract LiquidityPoolBase is ILiquidityPool, AccessControlUpgradeable,
     }
 
     function _validateSig(bytes32 digest, uint256 nonce, uint256 deadline, bytes calldata signature) private {
-        LiquidityPoolStorage storage $ = _getStorageBase();
+        LiquidityPoolBaseStorage storage $ = _getStorageBase();
         address signer = digest.recover(signature);
         require(signer == $.mpcAddress, InvalidSignature());
         require($.usedNonces.get(nonce) == false, NonceAlreadyUsed());
@@ -616,7 +616,7 @@ abstract contract LiquidityPoolBase is ILiquidityPool, AccessControlUpgradeable,
     }
 
     function _withdrawProfitLogic(IERC20 token) internal virtual returns (uint256) {
-        LiquidityPoolStorage storage $ = _getStorageBase();
+        LiquidityPoolBaseStorage storage $ = _getStorageBase();
         uint256 currentBalance = HelperLib.balanceOfThis(token);
         uint256 withdrawableSurplus = 0;
         if (token == ASSETS) {
@@ -658,7 +658,7 @@ abstract contract LiquidityPoolBase is ILiquidityPool, AccessControlUpgradeable,
         if (borrowTokens.length != 1) revert InvalidAsset();
         if (borrowTokens[0] != address(ASSETS)) revert InvalidAsset();
 
-        LiquidityPoolStorage storage $ = _getStorageBase();
+        LiquidityPoolBaseStorage storage $ = _getStorageBase();
         uint256 debt = $.directDebt[address(ASSETS)];
         if (debt == 0) revert NothingToRepay();
 
@@ -689,7 +689,7 @@ abstract contract LiquidityPoolBase is ILiquidityPool, AccessControlUpgradeable,
     }
 
     function balance(IERC20 token) external view override returns (uint256) {
-        LiquidityPoolStorage storage $ = _getStorageBase();
+        LiquidityPoolBaseStorage storage $ = _getStorageBase();
         if ($.paused || $.borrowPaused) return 0;
         if (token == NATIVE_TOKEN) token = WRAPPED_NATIVE_TOKEN;
         return _balance(token);
@@ -719,7 +719,7 @@ abstract contract LiquidityPoolBase is ILiquidityPool, AccessControlUpgradeable,
         return ISigner(signerAddr).isValidSignature(hash, signature);
     }
 
-    function _getStorageBase() internal pure returns (LiquidityPoolStorage storage $) {
+    function _getStorageBase() internal pure returns (LiquidityPoolBaseStorage storage $) {
         assembly {
             $.slot := STORAGE_LOCATION
         }

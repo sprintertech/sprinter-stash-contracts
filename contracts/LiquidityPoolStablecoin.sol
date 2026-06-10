@@ -32,7 +32,7 @@ contract LiquidityPoolStablecoin is LiquidityPoolBase {
     }
 
     function _withdrawProfitLogic(IERC20 token) internal override returns (uint256) {
-        LiquidityPoolStorage storage $ = _getStorageBase();
+        LiquidityPoolBaseStorage storage $ = _getStorageBase();
         uint256 assetBalance = HelperLib.balanceOfThis(ASSETS);
         uint256 deposited = $.totalDeposited;
         uint256 virtualAssets = assetBalance + $.directDebt[address(ASSETS)];

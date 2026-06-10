@@ -27,39 +27,54 @@ export const LiquidityPoolPublicUSDCV2 = "LiquidityPoolPublicUSDC-V2-7187ffa";
 export const LiquidityPoolUSDCStablecoinV4 = "LiquidityPoolUSDCStablecoin-V4-7187ffa";
 export const LiquidityPoolAaveUSDCLongTermV3 = "LiquidityPoolAaveUSDCLongTerm-V3-7187ffa";
 export const ERC4626AdapterUSDCV2 = "ERC4626AdapterUSDC-V2-7187ffa";
+
+export const LiquidityPoolAaveUSDCProxy = "TransparentUpgradeableProxy-LiquidityPoolAaveUSDC";
+export const LiquidityPoolUSDCProxy = "TransparentUpgradeableProxy-LiquidityPoolUSDC";
+export const LiquidityPoolPublicUSDCProxy = "TransparentUpgradeableProxy-LiquidityPoolPublicUSDC";
+export const LiquidityPoolUSDCStablecoinProxy = "TransparentUpgradeableProxy-LiquidityPoolUSDCStablecoin";
+export const LiquidityPoolAaveUSDCLongTermProxy = "TransparentUpgradeableProxy-LiquidityPoolAaveUSDCLongTerm";
+export const ERC4626AdapterUSDCProxy = "TransparentUpgradeableProxy-ERC4626AdapterUSDC";
+export const LiquidityPoolEUReProxy = "TransparentUpgradeableProxy-LiquidityPoolEURe";
 export const LiquidityPoolAaveUSDCLongTermVersions = [
   LiquidityPoolAaveUSDCLongTerm,
   LiquidityPoolAaveUSDCLongTermV2,
   LiquidityPoolAaveUSDCLongTermV3,
+  LiquidityPoolAaveUSDCLongTermProxy,
 ] as const;
 export const LiquidityPoolAaveUSDCVersions = [
   LiquidityPoolAaveUSDC,
   LiquidityPoolAaveUSDCV2,
   LiquidityPoolAaveUSDCV3,
   LiquidityPoolAaveUSDCV4,
+  LiquidityPoolAaveUSDCProxy,
 ] as const;
 export const LiquidityPoolUSDCVersions = [
   LiquidityPoolUSDC,
   LiquidityPoolUSDCV2,
   LiquidityPoolUSDCV3,
   LiquidityPoolUSDCV4,
+  LiquidityPoolUSDCProxy,
 ] as const;
 export const LiquidityPoolEUReVersions = [
-  LiquidityPoolEURe
+  LiquidityPoolEURe,
+  LiquidityPoolEUReProxy,
 ] as const;
 export const LiquidityPoolUSDCStablecoinVersions = [
   LiquidityPoolUSDCStablecoin,
   LiquidityPoolUSDCStablecoinV2,
   LiquidityPoolUSDCStablecoinV3,
   LiquidityPoolUSDCStablecoinV4,
+  LiquidityPoolUSDCStablecoinProxy,
 ] as const;
 export const LiquidityPoolPublicUSDCVersions = [
   LiquidityPoolPublicUSDC,
   LiquidityPoolPublicUSDCV2,
+  LiquidityPoolPublicUSDCProxy,
 ] as const;
 export const ERC4626AdapterUSDCVersions = [
   ERC4626AdapterUSDC,
   ERC4626AdapterUSDCV2,
+  ERC4626AdapterUSDCProxy,
 ] as const;
 
 const SUPPORTS_ONLY_USDC = false;
@@ -1170,7 +1185,7 @@ export const networkConfig: NetworksConfig = {
         ProtocolFeeRate: 20,
         FeeSetter: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
       },
-      ERC4626AdapterUSDCTargetVault: LiquidityPoolPublicUSDCV2,
+      ERC4626AdapterUSDCTargetVault: LiquidityPoolPublicUSDCProxy,
     },
   },
   BASE: {
@@ -1212,7 +1227,7 @@ export const networkConfig: NetworksConfig = {
         {period: 15552000n, multiplier: 1000000000n},
         {period: 31104000n, multiplier: 2200000000n},
       ],
-      Pool: LiquidityPoolAaveUSDCV4,
+      Pool: LiquidityPoolAaveUSDCProxy,
     },
     RebalancerRoutes: {
       [LiquidityPoolAaveUSDCV4]: {
@@ -1335,7 +1350,7 @@ export const networkConfig: NetworksConfig = {
           {period: 15552000n, multiplier: 1000000000n},
           {period: 31104000n, multiplier: 2200000000n},
         ],
-        Pool: LiquidityPoolAaveUSDCV4,
+        Pool: LiquidityPoolAaveUSDCProxy,
       },
       RebalancerRoutes: {
         [LiquidityPoolAaveUSDCV4]: {

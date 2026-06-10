@@ -1,11 +1,11 @@
-import dotenv from "dotenv"; 
+import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {NonceManager} from "ethers";
-import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers} from "./helpers";
+import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers, deployProxyX} from "./helpers";
 import {resolveProxyXAddress, toBytes32} from "../test/helpers";
 import {isSet, assert, DEFAULT_ADMIN_ROLE, sameAddress} from "./common";
-import {LiquidityPool} from "../typechain-types";
+import {LiquidityPool, ProxyAdmin} from "../typechain-types";
 import {Network, NetworkConfig, LiquidityPoolUSDCVersions} from "../network.config";
 
 export async function main() {
@@ -38,20 +38,19 @@ export async function main() {
   console.log(`Rebalancer: ${rebalancer}`);
 
   console.log("Deploying USDC Liquidity Pool");
-  const usdcPool: LiquidityPool = (await verifier.deployX(
-    "LiquidityPool",
-    deployerWithNonce,
-    {},
-    [
-      config.Tokens.USDC.Address,
-      deployer,
-      config.MpcAddress,
-      config.WrappedNativeToken,
-      config.SignerAddress,
-    ],
-    id
-  )) as LiquidityPool;
+  const {target: usdcPool, targetAdmin: usdcPoolAdmin}: {target: LiquidityPool; targetAdmin: ProxyAdmin} =
+    await deployProxyX<LiquidityPool>(
+      verifier.deployX,
+      "LiquidityPool",
+      deployerWithNonce,
+      config.Admin,
+      [config.Tokens.USDC.Address, config.WrappedNativeToken],
+      [deployer, config.MpcAddress, config.SignerAddress],
+      id,
+      verifier,
+    );
   console.log(`${id}: ${usdcPool.target}`);
+  console.log(`${id}ProxyAdmin: ${usdcPoolAdmin.target}`);
 
   await usdcPool!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
   await usdcPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);

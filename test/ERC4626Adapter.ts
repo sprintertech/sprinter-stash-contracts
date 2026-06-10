@@ -75,10 +75,15 @@ describe("ERC4626Adapter", function () {
       await getContractAt("PublicLiquidityPool", liquidityPoolProxy, deployer)
     ) as PublicLiquidityPool;
 
+    const adapterImpl = (
+      await deploy("ERC4626Adapter", deployer, {}, usdc, liquidityPool)
+    ) as ERC4626Adapter;
+    const adapterInit = (await adapterImpl.initialize.populateTransaction(admin)).data;
+    const adapterProxy = (await deploy(
+      "TransparentUpgradeableProxy", deployer, {}, adapterImpl, deployer, adapterInit,
+    )) as TransparentUpgradeableProxy;
     const adapter = (
-      await deploy("ERC4626Adapter", deployer, {},
-        usdc, liquidityPool, admin
-      )
+      await getContractAt("ERC4626Adapter", adapterProxy, deployer)
     ) as ERC4626Adapter;
 
     const LIQUIDITY_ADMIN_ROLE = encodeBytes32String("LIQUIDITY_ADMIN_ROLE");
@@ -125,49 +130,56 @@ describe("ERC4626Adapter", function () {
 
     return {deployer, admin, user, user2, mpc_signer, usdc, usdcOwner, eurc, eurcOwner,
       liquidityPool, mockTarget, mockBorrowSwap, USDC_DEC, EURC_DEC, generateProfit,
-      liquidityAdmin, withdrawProfit, pauser, mockSignerTrue, mockSignerFalse, lp, adapter};
+      liquidityAdmin, withdrawProfit, pauser, mockSignerTrue, mockSignerFalse, lp,
+      adapterImpl, adapter};
   };
 
   describe("Initialization", function () {
     it("Should initialize the contract with correct values", async function () {
       const {adapter, liquidityPool, usdc, admin} = await loadFixture(deployAll);
-      expect(await adapter.ASSETS())
-        .to.be.eq(usdc.target);
-      expect(await adapter.TARGET_VAULT())
-        .to.be.eq(liquidityPool.target);
-      expect(await adapter.totalDeposited())
-        .to.be.eq(0);
-      expect(await adapter.paused())
-        .to.be.false;
-      expect(await adapter.hasRole(DEFAULT_ADMIN_ROLE, admin))
-        .to.be.true;
+      expect(await adapter.ASSETS()).to.be.eq(usdc.target);
+      expect(await adapter.TARGET_VAULT()).to.be.eq(liquidityPool.target);
+      expect(await adapter.totalDeposited()).to.be.eq(0);
+      expect(await adapter.paused()).to.be.false;
+      expect(await adapter.hasRole(DEFAULT_ADMIN_ROLE, admin)).to.be.true;
+    });
+
+    it("Should NOT reinitialize the implementation", async function () {
+      const {adapterImpl, admin} = await loadFixture(deployAll);
+      await expect(adapterImpl.initialize(admin)).to.be.reverted;
+    });
+
+    it("Should NOT reinitialize the proxy", async function () {
+      const {adapter, admin} = await loadFixture(deployAll);
+      await expect(adapter.initialize(admin)).to.be.reverted;
     });
 
     it("Should NOT deploy the contract if liquidity token address is 0", async function () {
-      const {deployer, adapter, admin, liquidityPool} = await loadFixture(deployAll);
+      const {deployer, adapter, liquidityPool} = await loadFixture(deployAll);
       await expect(deploy("ERC4626Adapter", deployer, {},
-        ZERO_ADDRESS, liquidityPool, admin
+        ZERO_ADDRESS, liquidityPool,
       )).to.be.revertedWithCustomError(adapter, "ZeroAddress");
     });
 
-    it("Should NOT deploy the contract if admin address is 0", async function () {
-      const {deployer, adapter, usdc, liquidityPool} = await loadFixture(deployAll);
-      await expect(deploy("ERC4626Adapter", deployer, {},
-        usdc, liquidityPool, ZERO_ADDRESS
-      )).to.be.revertedWithCustomError(adapter, "ZeroAddress");
+    it("Should NOT deploy the proxy if admin address is 0", async function () {
+      const {deployer, adapterImpl} = await loadFixture(deployAll);
+      const adapterInit = (await adapterImpl.initialize.populateTransaction(ZERO_ADDRESS)).data;
+      await expect(deploy(
+        "TransparentUpgradeableProxy", deployer, {}, adapterImpl, deployer, adapterInit,
+      )).to.be.revertedWithCustomError(adapterImpl, "ZeroAddress");
     });
 
     it("Should NOT deploy the contract if target vault address is 0", async function () {
-      const {deployer, adapter, usdc, admin} = await loadFixture(deployAll);
+      const {deployer, adapter, usdc} = await loadFixture(deployAll);
       await expect(deploy("ERC4626Adapter", deployer, {},
-        usdc, ZERO_ADDRESS, admin
+        usdc, ZERO_ADDRESS,
       )).to.be.revertedWithCustomError(adapter, "ZeroAddress");
     });
 
     it("Should NOT deploy the contract if assets doesn't match that of a target vault", async function () {
-      const {deployer, adapter, eurc, admin, liquidityPool} = await loadFixture(deployAll);
+      const {deployer, adapter, eurc, liquidityPool} = await loadFixture(deployAll);
       await expect(deploy("ERC4626Adapter", deployer, {},
-        eurc, liquidityPool, admin
+        eurc, liquidityPool,
       )).to.be.revertedWithCustomError(adapter, "IncompatibleAssets");
     });
   });

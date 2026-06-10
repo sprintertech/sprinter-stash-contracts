@@ -1,12 +1,12 @@
-import dotenv from "dotenv"; 
+import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
-import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers} from "./helpers";
+import {NonceManager} from "ethers";
+import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers, deployProxyX} from "./helpers";
 import {toBytes32} from "../test/helpers";
 import {isSet, assert, DEFAULT_ADMIN_ROLE, sameAddress, assertAddress} from "./common";
-import {PublicLiquidityPool} from "../typechain-types";
+import {PublicLiquidityPool, ProxyAdmin} from "../typechain-types";
 import {Network, NetworkConfig, LiquidityPoolPublicUSDCVersions} from "../network.config";
-import {NonceManager} from "ethers";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -37,31 +37,31 @@ export async function main() {
   assertAddress(config.USDCPublicPool.FeeSetter, "FeeSetter must be an address");
 
   console.log("Deploying USDC Public Liquidity Pool");
-  const usdcPublicPool: PublicLiquidityPool = (await verifier.deployX(
-    "PublicLiquidityPool",
-    deployerWithNonce,
-    {},
-    [
-      config.Tokens.USDC.Address,
-      deployer,
-      config.MpcAddress,
-      config.WrappedNativeToken,
-      config.SignerAddress,
-      config.USDCPublicPool.Name,
-      config.USDCPublicPool.Symbol,
-      config.USDCPublicPool.ProtocolFeeRate * 10000 / 100,
-    ],
-    id
-  )) as PublicLiquidityPool;
+  const {
+    target: usdcPublicPool, targetAdmin: usdcPublicPoolAdmin,
+  }: {target: PublicLiquidityPool; targetAdmin: ProxyAdmin} =
+    await deployProxyX<PublicLiquidityPool>(
+      verifier.deployX,
+      "PublicLiquidityPool",
+      deployerWithNonce,
+      config.Admin,
+      [config.Tokens.USDC.Address, config.WrappedNativeToken],
+      [deployer, config.MpcAddress, config.SignerAddress,
+        config.USDCPublicPool.Name, config.USDCPublicPool.Symbol,
+        config.USDCPublicPool.ProtocolFeeRate * 10000 / 100],
+      id,
+      verifier,
+    );
   console.log(`${id}: ${usdcPublicPool.target}`);
+  console.log(`${id}ProxyAdmin: ${usdcPublicPoolAdmin.target}`);
 
-  await usdcPublicPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
-  await usdcPublicPool!.grantRole(PAUSER_ROLE, config.Pauser);
-  let lastTx = await usdcPublicPool!.grantRole(FEE_SETTER_ROLE, config.USDCPublicPool.FeeSetter);
+  await usdcPublicPool.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
+  await usdcPublicPool.grantRole(PAUSER_ROLE, config.Pauser);
+  let lastTx = await usdcPublicPool.grantRole(FEE_SETTER_ROLE, config.USDCPublicPool.FeeSetter);
 
   if (!sameAddress(deployer.address, config.Admin)) {
-    await usdcPublicPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-    lastTx = await usdcPublicPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    await usdcPublicPool.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
+    lastTx = await usdcPublicPool.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
   }
 
   await verifier.verify(process.env.VERIFY === "true");

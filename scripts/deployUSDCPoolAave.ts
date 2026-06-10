@@ -1,11 +1,13 @@
-import dotenv from "dotenv"; 
+import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {NonceManager} from "ethers";
-import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, percentsToBps, logDeployers} from "./helpers";
+import {
+  getVerifier, getHardhatNetworkConfig, getNetworkConfig, percentsToBps, logDeployers, deployProxyX,
+} from "./helpers";
 import {resolveProxyXAddress, toBytes32} from "../test/helpers";
 import {isSet, assert, assertAddress, DEFAULT_ADMIN_ROLE, sameAddress} from "./common";
-import {LiquidityPoolAave} from "../typechain-types";
+import {LiquidityPoolAave, ProxyAdmin} from "../typechain-types";
 import {Network, NetworkConfig, LiquidityPoolAaveUSDCVersions} from "../network.config";
 
 export async function main() {
@@ -48,22 +50,17 @@ export async function main() {
   console.log("Deploying Aave USDC Liquidity Pool");
   const minHealthFactor = BigInt(config.AavePool.MinHealthFactor) * 10000n / 100n;
   const defaultLTV = BigInt(config.AavePool.DefaultLTV) * 10000n / 100n;
-  const aavePool = (await verifier.deployX(
-    "LiquidityPoolAave",
-    deployerWithNonce,
-    {},
-    [
-      config.Tokens.USDC.Address,
-      config.AavePool.AaveAddressesProvider,
-      deployer,
-      config.MpcAddress,
-      minHealthFactor,
-      defaultLTV,
-      config.WrappedNativeToken,
-      config.SignerAddress,
-    ],
-    id,
-  )) as LiquidityPoolAave;
+  const {target: aavePool, targetAdmin: aavePoolAdmin}: {target: LiquidityPoolAave; targetAdmin: ProxyAdmin} =
+    await deployProxyX<LiquidityPoolAave>(
+      verifier.deployX,
+      "LiquidityPoolAave",
+      deployerWithNonce,
+      config.Admin,
+      [config.Tokens.USDC.Address, config.AavePool.AaveAddressesProvider, config.WrappedNativeToken],
+      [deployer, config.MpcAddress, config.SignerAddress, minHealthFactor, defaultLTV],
+      id,
+      verifier,
+    );
 
   if (config.AavePool.TokenLTVs) {
     const tokens = Object.keys(config.AavePool.TokenLTVs);
@@ -74,6 +71,7 @@ export async function main() {
     );
   }
   console.log(`${id}: ${aavePool.target}`);
+  console.log(`${id}ProxyAdmin: ${aavePoolAdmin.target}`);
 
   await aavePool.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
   await aavePool.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);

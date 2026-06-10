@@ -4,13 +4,13 @@ import {
 import {expect} from "chai";
 import hre from "hardhat";
 import {
-  deploy, signBorrow, setupTests, packAmount,
+  deploy, getContractAt, signBorrow, setupTests, packAmount,
 } from "./helpers";
 import {ETH, ZERO_ADDRESS, DEFAULT_ADMIN_ROLE} from "../scripts/common";
 import {encodeBytes32String} from "ethers";
 import {
   MockTarget, MockBorrowSwap, PublicLiquidityPool, MockSignerTrue, MockSignerFalse,
-  ERC4626Adapter
+  ERC4626Adapter, TransparentUpgradeableProxy,
 } from "../typechain-types";
 import {networkConfig} from "../network.config";
 
@@ -59,11 +59,20 @@ describe("ERC4626Adapter", function () {
       await deploy("MockSignerFalse", deployer)
     ) as MockSignerFalse;
 
-    const liquidityPool = (
+    const liquidityPoolImpl = (
       await deploy("PublicLiquidityPool", deployer, {},
-        usdc, deployer, mpc_signer, networkConfig.BASE.WrappedNativeToken, mockSignerTrue,
-        "Public Liquidity Pool", "PLP", 0
+        usdc, networkConfig.BASE.WrappedNativeToken
       )
+    ) as PublicLiquidityPool;
+    const liquidityPoolInit = (await liquidityPoolImpl.initialize.populateTransaction(
+      deployer, mpc_signer, mockSignerTrue, "Public Liquidity Pool", "PLP", 0
+    )).data;
+    const liquidityPoolProxy = (await deploy(
+      "TransparentUpgradeableProxy", deployer, {},
+      liquidityPoolImpl, deployer, liquidityPoolInit
+    )) as TransparentUpgradeableProxy;
+    const liquidityPool = (
+      await getContractAt("PublicLiquidityPool", liquidityPoolProxy, deployer)
     ) as PublicLiquidityPool;
 
     const adapter = (

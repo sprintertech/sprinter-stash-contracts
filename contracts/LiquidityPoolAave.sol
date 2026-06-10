@@ -9,7 +9,7 @@ import {IAavePoolAddressesProvider} from "./interfaces/IAavePoolAddressesProvide
 import {IAavePool, AaveDataTypes, NO_REFERRAL, INTEREST_RATE_MODE_VARIABLE} from "./interfaces/IAavePool.sol";
 import {IAaveOracle} from "./interfaces/IAaveOracle.sol";
 import {IAavePoolDataProvider} from "./interfaces/IAavePoolDataProvider.sol";
-import {LiquidityPoolBase} from "./LiquidityPoolBase.sol";
+import {LiquidityPoolBase} from "./LiquidityPool.sol";
 import {HelperLib} from "./utils/HelperLib.sol";
 import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 

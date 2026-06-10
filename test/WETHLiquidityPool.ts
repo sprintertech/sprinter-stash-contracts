@@ -4,13 +4,13 @@ import {
 import {expect} from "chai";
 import hre from "hardhat";
 import {
-  deploy, getBalance, signBorrow, signBorrowMany,
+  deploy, getContractAt, getBalance, signBorrow, signBorrowMany,
   setupTests,
 } from "./helpers";
 import {ZERO_ADDRESS, NATIVE_TOKEN, ETH} from "../scripts/common";
 import {encodeBytes32String, AbiCoder, hashMessage, Wallet} from "ethers";
 import {
-  MockTarget, MockBorrowSwap, LiquidityPool, MockSignerTrue, MockSignerFalse
+  MockTarget, MockBorrowSwap, LiquidityPool, MockSignerTrue, MockSignerFalse, TransparentUpgradeableProxy,
 } from "../typechain-types";
 import {networkConfig} from "../network.config";
 
@@ -66,11 +66,19 @@ describe("WETHLiquidityPool", function () {
       await deploy("MockSignerFalse", deployer)
     ) as MockSignerFalse;
 
-    const liquidityPool = (
+    const liquidityPoolImpl = (
       await deploy("LiquidityPool", deployer, {},
-        weth, admin, mpc_signer, weth, mockSignerTrue
+        weth, networkConfig.BASE.WrappedNativeToken
       )
     ) as LiquidityPool;
+    const liquidityPoolInit = (await liquidityPoolImpl.initialize.populateTransaction(
+      admin, mpc_signer, mockSignerTrue
+    )).data;
+    const liquidityPoolProxy = (await deploy(
+      "TransparentUpgradeableProxy", deployer, {},
+      liquidityPoolImpl, admin, liquidityPoolInit
+    )) as TransparentUpgradeableProxy;
+    const liquidityPool = (await getContractAt("LiquidityPool", liquidityPoolProxy, deployer)) as LiquidityPool;
 
     const LIQUIDITY_ADMIN_ROLE = encodeBytes32String("LIQUIDITY_ADMIN_ROLE");
     await liquidityPool.connect(admin).grantRole(LIQUIDITY_ADMIN_ROLE, liquidityAdmin);

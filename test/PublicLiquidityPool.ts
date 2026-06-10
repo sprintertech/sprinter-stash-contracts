@@ -4,13 +4,13 @@ import {
 import {expect} from "chai";
 import hre from "hardhat";
 import {
-  deploy, signBorrow, signBorrowMany, getBalance,
+  deploy, getContractAt, signBorrow, signBorrowMany, getBalance,
   setupTests,
 } from "./helpers";
 import {ZERO_ADDRESS, NATIVE_TOKEN, ETH} from "../scripts/common";
 import {encodeBytes32String, AbiCoder, hashMessage, resolveAddress, Signature} from "ethers";
 import {
-  MockTarget, MockBorrowSwap, PublicLiquidityPool, MockSignerTrue, MockSignerFalse
+  MockTarget, MockBorrowSwap, PublicLiquidityPool, MockSignerTrue, MockSignerFalse, TransparentUpgradeableProxy,
 } from "../typechain-types";
 import {networkConfig} from "../network.config";
 
@@ -84,11 +84,20 @@ describe("PublicLiquidityPool", function () {
       await deploy("MockSignerFalse", deployer)
     ) as MockSignerFalse;
 
-    const liquidityPool = (
+    const liquidityPoolImpl = (
       await deploy("PublicLiquidityPool", deployer, {},
-        usdc, admin, mpc_signer, networkConfig.BASE.WrappedNativeToken, mockSignerTrue,
-        "Public Liquidity Pool", "PLP", 2000
+        usdc, networkConfig.BASE.WrappedNativeToken
       )
+    ) as PublicLiquidityPool;
+    const liquidityPoolInit = (await liquidityPoolImpl.initialize.populateTransaction(
+      admin, mpc_signer, mockSignerTrue, "Public Liquidity Pool", "PLP", 2000
+    )).data;
+    const liquidityPoolProxy = (await deploy(
+      "TransparentUpgradeableProxy", deployer, {},
+      liquidityPoolImpl, admin, liquidityPoolInit
+    )) as TransparentUpgradeableProxy;
+    const liquidityPool = (
+      await getContractAt("PublicLiquidityPool", liquidityPoolProxy, deployer)
     ) as PublicLiquidityPool;
 
     const FEE_SETTER_ROLE = encodeBytes32String("FEE_SETTER_ROLE");
@@ -104,13 +113,15 @@ describe("PublicLiquidityPool", function () {
     await liquidityPool.connect(admin).grantRole(DIRECT_BORROWER_ROLE, directBorrower);
 
     return {deployer, admin, user, user2, mpc_signer, usdc, usdcOwner, gho, ghoOwner, eurc, eurcOwner,
-      liquidityPool, mockTarget, mockBorrowSwap, USDC_DEC, GHO_DEC, EURC_DEC, WETH_DEC, weth, wethOwner,
-      feeSetter, withdrawProfit, pauser, mockSignerTrue, mockSignerFalse, lp, directBorrower};
+      liquidityPool, liquidityPoolImpl, mockTarget, mockBorrowSwap, USDC_DEC, GHO_DEC, EURC_DEC, WETH_DEC,
+      weth, wethOwner, feeSetter, withdrawProfit, pauser, mockSignerTrue, mockSignerFalse, lp, directBorrower};
   };
 
   describe("Initialization", function () {
     it("Should initialize the contract with correct values", async function () {
-      const {liquidityPool, usdc, mpc_signer, mockSignerTrue, USDC_DEC, user} = await loadFixture(deployAll);
+      const {
+        liquidityPool, liquidityPoolImpl, usdc, admin, mpc_signer, mockSignerTrue, USDC_DEC, user
+      } = await loadFixture(deployAll);
       expect(await liquidityPool.ASSETS())
         .to.be.eq(usdc.target);
       expect(await liquidityPool.mpcAddress())
@@ -133,45 +144,64 @@ describe("PublicLiquidityPool", function () {
         user,
         1000n * USDC_DEC
       )).to.be.revertedWithCustomError(liquidityPool, "NotImplemented");
+      await expect(liquidityPoolImpl.initialize(
+        admin, mpc_signer, mockSignerTrue, "Public Liquidity Pool", "PLP", 2000
+      )).to.be.reverted;
+      await expect(liquidityPool.initialize(
+        admin, mpc_signer, mockSignerTrue, "Public Liquidity Pool", "PLP", 2000
+      )).to.be.reverted;
     });
 
     it("Should NOT deploy the contract if liquidity token address is 0", async function () {
-      const {deployer, liquidityPool, admin, mpc_signer, mockSignerTrue} = await loadFixture(deployAll);
+      const {deployer, liquidityPool} = await loadFixture(deployAll);
       await expect(deploy("PublicLiquidityPool", deployer, {},
-        ZERO_ADDRESS, admin, mpc_signer, networkConfig.BASE.WrappedNativeToken, mockSignerTrue,
-        "Public Liquidity Pool", "PLP", 2000
+        ZERO_ADDRESS, networkConfig.BASE.WrappedNativeToken
       )).to.be.revertedWithCustomError(liquidityPool, "ZeroAddress");
     });
 
-    it("Should NOT deploy the contract if admin address is 0", async function () {
-      const {deployer, liquidityPool, usdc, mpc_signer, mockSignerTrue} = await loadFixture(deployAll);
-      await expect(deploy("PublicLiquidityPool", deployer, {},
-        usdc, ZERO_ADDRESS, mpc_signer, networkConfig.BASE.WrappedNativeToken, mockSignerTrue,
-        "Public Liquidity Pool", "PLP", 2000
+    it("Should NOT deploy the proxy if admin address is 0", async function () {
+      const {deployer, liquidityPool, liquidityPoolImpl, mpc_signer, mockSignerTrue,
+        admin} = await loadFixture(deployAll);
+      await expect(deploy(
+        "TransparentUpgradeableProxy", deployer, {},
+        liquidityPoolImpl, admin,
+        (await liquidityPool.initialize.populateTransaction(
+          ZERO_ADDRESS, mpc_signer, mockSignerTrue, "Public Liquidity Pool", "PLP", 2000
+        )).data
       )).to.be.revertedWithCustomError(liquidityPool, "ZeroAddress");
     });
 
-    it("Should NOT deploy the contract if MPC address is 0", async function () {
-      const {deployer, liquidityPool, usdc, admin, mockSignerTrue} = await loadFixture(deployAll);
-      await expect(deploy("PublicLiquidityPool", deployer, {},
-        usdc, admin, ZERO_ADDRESS, networkConfig.BASE.WrappedNativeToken, mockSignerTrue,
-        "Public Liquidity Pool", "PLP", 2000
+    it("Should NOT deploy the proxy if MPC address is 0", async function () {
+      const {deployer, liquidityPool, liquidityPoolImpl, admin, mockSignerTrue} = await loadFixture(deployAll);
+      await expect(deploy(
+        "TransparentUpgradeableProxy", deployer, {},
+        liquidityPoolImpl, admin,
+        (await liquidityPool.initialize.populateTransaction(
+          admin, ZERO_ADDRESS, mockSignerTrue, "Public Liquidity Pool", "PLP", 2000
+        )).data
       )).to.be.revertedWithCustomError(liquidityPool, "ZeroAddress");
     });
 
-    it("Should NOT deploy the contract if signer address is 0", async function () {
-      const {deployer, liquidityPool, usdc, admin, mpc_signer} = await loadFixture(deployAll);
-      await expect(deploy("PublicLiquidityPool", deployer, {},
-        usdc, admin, mpc_signer, networkConfig.BASE.WrappedNativeToken, ZERO_ADDRESS,
-        "Public Liquidity Pool", "PLP", 2000
+    it("Should NOT deploy the proxy if signer address is 0", async function () {
+      const {deployer, liquidityPool, liquidityPoolImpl, admin, mpc_signer} = await loadFixture(deployAll);
+      await expect(deploy(
+        "TransparentUpgradeableProxy", deployer, {},
+        liquidityPoolImpl, admin,
+        (await liquidityPool.initialize.populateTransaction(
+          admin, mpc_signer, ZERO_ADDRESS, "Public Liquidity Pool", "PLP", 2000
+        )).data
       )).to.be.revertedWithCustomError(liquidityPool, "ZeroAddress");
     });
 
-    it("Should NOT deploy the contract if protocol fee rate is greater than 10000", async function () {
-      const {deployer, liquidityPool, usdc, admin, mpc_signer, mockSignerTrue} = await loadFixture(deployAll);
-      await expect(deploy("PublicLiquidityPool", deployer, {},
-        usdc, admin, mpc_signer, networkConfig.BASE.WrappedNativeToken, mockSignerTrue,
-        "Public Liquidity Pool", "PLP", 10001
+    it("Should NOT deploy the proxy if protocol fee rate is greater than 10000", async function () {
+      const {deployer, liquidityPool, liquidityPoolImpl, admin, mpc_signer,
+        mockSignerTrue} = await loadFixture(deployAll);
+      await expect(deploy(
+        "TransparentUpgradeableProxy", deployer, {},
+        liquidityPoolImpl, admin,
+        (await liquidityPool.initialize.populateTransaction(
+          admin, mpc_signer, mockSignerTrue, "Public Liquidity Pool", "PLP", 10001
+        )).data
       )).to.be.revertedWithCustomError(liquidityPool, "InvalidProtocolFeeRate");
     });
   });

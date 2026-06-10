@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {LiquidityPoolBase} from "./LiquidityPoolBase.sol";
+import {LiquidityPoolBase} from "./LiquidityPool.sol";
 import {HelperLib} from "./utils/HelperLib.sol";
 
 /// @title A version of the liquidity pool contract that supports multiple assets for borrowing.

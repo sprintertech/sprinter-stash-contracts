@@ -4,13 +4,13 @@ import {
 import {expect} from "chai";
 import hre from "hardhat";
 import {
-  deploy, signBorrow, getBalance, signBorrowMany,
+  deploy, getContractAt, signBorrow, getBalance, signBorrowMany,
   setupTests, BLOCK_TAG, packAmount, expectAlmostEqualDown,
 } from "./helpers";
 import {ZERO_ADDRESS, ETH, NATIVE_TOKEN} from "../scripts/common";
 import {encodeBytes32String, AbiCoder, hashMessage, Wallet} from "ethers";
 import {
-  MockTarget, MockBorrowSwap, LiquidityPoolAaveLongTerm, MockSignerTrue, MockSignerFalse
+  MockTarget, MockBorrowSwap, LiquidityPoolAaveLongTerm, MockSignerTrue, MockSignerFalse, TransparentUpgradeableProxy,
 } from "../typechain-types";
 import {networkConfig} from "../network.config";
 
@@ -118,10 +118,20 @@ describe("LiquidityPoolAaveLongTerm", function () {
       await deploy("MockSignerFalse", deployer)
     ) as MockSignerFalse;
 
-    const liquidityPool = (
+    const liquidityPoolImpl = (
       await deploy("LiquidityPoolAaveLongTerm", deployer, {},
-        usdc, AAVE_POOL_PROVIDER, admin, mpc_signer, healthFactor, defaultLtv, weth, mockSignerTrue
+        usdc, AAVE_POOL_PROVIDER, weth
       )
+    ) as LiquidityPoolAaveLongTerm;
+    const liquidityPoolInit = (await liquidityPoolImpl.initialize.populateTransaction(
+      admin, mpc_signer, mockSignerTrue, healthFactor, defaultLtv
+    )).data;
+    const liquidityPoolProxy = (await deploy(
+      "TransparentUpgradeableProxy", deployer, {},
+      liquidityPoolImpl, admin, liquidityPoolInit
+    )) as TransparentUpgradeableProxy;
+    const liquidityPool = (
+      await getContractAt("LiquidityPoolAaveLongTerm", liquidityPoolProxy, deployer)
     ) as LiquidityPoolAaveLongTerm;
 
     const LIQUIDITY_ADMIN_ROLE = encodeBytes32String("LIQUIDITY_ADMIN_ROLE");
@@ -144,10 +154,10 @@ describe("LiquidityPoolAaveLongTerm", function () {
 
     return {
       deployer, admin, user, user2, mpc_signer, usdc, usdcOwner, gho, ghoOwner, eurc, eurcOwner,
-      liquidityPool, mockTarget, mockBorrowSwap, USDC_DEC, GHO_DEC, EURC_DEC, AAVE_POOL_PROVIDER,
-      healthFactor, defaultLtv, aavePool, aToken, ghoDebtToken, eurcDebtToken, usdcDebtToken,
-      nonSupportedToken, nonSupportedTokenOwner, liquidityAdmin, withdrawProfit, pauser, weth,
-      wethOwner, WETH_DEC, wethDebtToken, REPAYER_ROLE, BORROW_LONG_TERM_ROLE, borrowAdmin,
+      liquidityPool, liquidityPoolImpl, mockTarget, mockBorrowSwap, USDC_DEC, GHO_DEC, EURC_DEC,
+      AAVE_POOL_PROVIDER, healthFactor, defaultLtv, aavePool, aToken, ghoDebtToken, eurcDebtToken,
+      usdcDebtToken, nonSupportedToken, nonSupportedTokenOwner, liquidityAdmin, withdrawProfit, pauser,
+      weth, wethOwner, WETH_DEC, wethDebtToken, REPAYER_ROLE, BORROW_LONG_TERM_ROLE, borrowAdmin,
       directBorrower, mockSignerTrue, mockSignerFalse
     };
   };
@@ -155,8 +165,8 @@ describe("LiquidityPoolAaveLongTerm", function () {
   describe("Initialization", function () {
     it("Should initialize the contract with correct values", async function () {
       const {
-        liquidityPool, usdc, AAVE_POOL_PROVIDER, healthFactor, defaultLtv, mpc_signer,
-        aavePool, aToken, mockSignerTrue
+        liquidityPool, liquidityPoolImpl, usdc, AAVE_POOL_PROVIDER, healthFactor, defaultLtv, admin,
+        mpc_signer, aavePool, aToken, mockSignerTrue
       } = await loadFixture(deployAll);
       expect(await liquidityPool.ASSETS())
         .to.be.eq(usdc.target);
@@ -174,16 +184,21 @@ describe("LiquidityPoolAaveLongTerm", function () {
         .to.be.eq(mpc_signer);
       expect(await liquidityPool.signerAddress())
         .to.be.eq(mockSignerTrue);
+      await expect(liquidityPoolImpl.initialize(
+        admin, mpc_signer, mockSignerTrue, healthFactor, defaultLtv,
+      )).to.be.reverted;
+      await expect(liquidityPool.initialize(
+        admin, mpc_signer, mockSignerTrue, healthFactor, defaultLtv,
+      )).to.be.reverted;
     });
 
     it("Should NOT deploy the contract if token cannot be used as collateral", async function () {
       const {
-        deployer, AAVE_POOL_PROVIDER, liquidityPool, gho, admin, mpc_signer, healthFactor, defaultLtv, weth,
-        mockSignerTrue
+        deployer, AAVE_POOL_PROVIDER, liquidityPool, gho, weth,
       } = await loadFixture(deployAll);
       const startingNonce = await deployer.getNonce();
       await expect(deploy("LiquidityPoolAaveLongTerm", deployer, {nonce: startingNonce},
-        gho, AAVE_POOL_PROVIDER, admin, mpc_signer, healthFactor, defaultLtv, weth, mockSignerTrue
+        gho, AAVE_POOL_PROVIDER, weth
       )).to.be.revertedWithCustomError(liquidityPool, "CollateralNotSupported");
     });
   });

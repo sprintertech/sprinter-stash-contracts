@@ -6,7 +6,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {ERC4626Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
-import {LiquidityPoolBase} from "./LiquidityPoolBase.sol";
+import {LiquidityPoolBase} from "./LiquidityPool.sol";
 import {HelperLib} from "./utils/HelperLib.sol";
 import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 

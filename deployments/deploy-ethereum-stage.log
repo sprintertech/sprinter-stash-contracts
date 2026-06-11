@@ -192,3 +192,31 @@ ProcessorProxyAdmin: 0xCBD79ba7Ab7CEa07Ce1Bb292d70a511a2908e077
 Granting DEFAULT_ADMIN_ROLE to Admin: 0x2D5B6C193C39D2AECb4a99052074E6F325258a0f
 Granting DEFAULT_ADMIN_ROLE to Ops Admin: 0x2D5B6C193C39D2AECb4a99052074E6F325258a0f
 Renouncing DEFAULT_ADMIN_ROLE for deployer: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Deployment ID: MVP
+Upgrade ID: SUB_PROCESSOR
+Upgrading Processor
+Using config for: stage, ETHEREUM
+Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+New Processor implementation deployed to 0x1603813Ff9631FE1767EF5710117bED4db62B0D2
+Sending Processor upgrade transaction.
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0x98b99255cdddbef9132b1dc68e2151687e8597bef9cf1961aad1313fb9b79231
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0x55b4f7446bf690d580f4e0b277fddd439b1aebbbf3de2670ea03694da4792ecd
+0x55b4f7446bf690d580f4e0b277fddd439b1aebbbf3de2670ea03694da4792ecd
+Processor upgraded.
+SubProcessor not yet initialized. Calling initializeSubProcessor()...
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0xad163eae5df0893cb2604513f9766228b0dc21fc409dc0bcab81926698317eb7
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0xbde3376513531b22ff940b0fe6f8a761df9d2fbb9a2b787e4b9340b67f516d5c
+initializeSubProcessor tx: 0xbde3376513531b22ff940b0fe6f8a761df9d2fbb9a2b787e4b9340b67f516d5c
+SubProcessor deployed at: 0x950b625fe252970fE8059B00A4Ca1bc2AE28FED0
+Granting CONFIG_ROLE to 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414...
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0xd33de65bfb0802723c3567afb3d9192b771cc545412bff94a2d840a72220794a
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0xdc21e5953d3b9dd9c7f46af3e52c157c1d4a42c88c6bd789586aeef4572ee22d
+grantRole tx: 0xdc21e5953d3b9dd9c7f46af3e52c157c1d4a42c88c6bd789586aeef4572ee22d
+CONFIG_ROLE granted to 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414
+SubProcessor: 0x950b625fe252970fE8059B00A4Ca1bc2AE28FED0

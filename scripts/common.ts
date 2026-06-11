@@ -5,7 +5,9 @@ export async function retry<T>(fn: () => Promise<T>, sleepMs: number = 1000, max
   for (let i = 0; i < maxRetries; i++) {
     try {
       return await fn();
-    } catch {
+    } catch(err) {
+      console.log(err);
+      console.log(`Retrying... in ${sleepMs}ms`);
       await sleep(sleepMs);
     }
   }

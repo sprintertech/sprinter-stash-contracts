@@ -721,6 +721,16 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
+            runs: 100,
+          },
+          viaIR: true,
+        },
+      },
+      "contracts/PublicLiquidityPool.sol": {
+        version: "0.8.28",
+        settings: {
+          optimizer: {
+            enabled: true,
             runs: 1000,
           },
           viaIR: true,
@@ -863,7 +873,6 @@ const config: HardhatUserConfig = {
             `${process.env.DRY_RUN || process.env.FORK_TEST}` as Network
           ]!.ChainId]: {hardforkHistory: {cancun: 0}}}
         : {[networkConfig.BASE.ChainId]: {hardforkHistory: {cancun: 0,}}},
-      allowUnlimitedContractSize: true,
     },
   },
   sourcify: {

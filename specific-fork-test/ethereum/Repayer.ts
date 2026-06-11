@@ -78,7 +78,6 @@ describe("Repayer", function () {
       "IArbitrumGatewayRouter",
       forkNetworkConfig.ArbitrumGatewayRouter!
     );
-    const everclearFeeAdapter = await hre.ethers.getContractAt("IFeeAdapterV2", forkNetworkConfig.EverclearFeeAdapter!);
     const weth = await hre.ethers.getContractAt("IWrappedNativeToken", forkNetworkConfig.WrappedNativeToken);
 
     const cctpV1DepositForBurnAbi = [
@@ -108,7 +107,6 @@ describe("Repayer", function () {
         cctpTokenMessenger,
         cctpMessageTransmitter,
         acrossV3SpokePool,
-        everclearFeeAdapter,
         weth,
         stargateTreasurer,
         optimismStandardBridge,
@@ -188,7 +186,7 @@ describe("Repayer", function () {
       USDC_DEC, liquidityPool, liquidityPool2, repayer, repayerProxy, repayerAdmin,
       cctpTokenMessenger, cctpMessageTransmitter, cctpV1Messenger, cctpV2Messenger,
       REPAYER_ROLE, DEFAULT_ADMIN_ROLE, acrossV3SpokePool, weth,
-      stargateTreasurer, everclearFeeAdapter, forkNetworkConfig, optimismStandardBridge, baseStandardBridge,
+      stargateTreasurer, forkNetworkConfig, optimismStandardBridge, baseStandardBridge,
       arbitrumGatewayRouter, dai, DAI_DEC, wbtc, WBTC_DEC,
     };
   };

@@ -53,7 +53,6 @@ describe.skip("Repayer USDT0 (Arbitrum fork), https://github.com/NomicFoundation
         forkNetworkConfig.CCTP!.TokenMessenger!,
         forkNetworkConfig.CCTP!.MessageTransmitter!,
         forkNetworkConfig.AcrossV3SpokePool!,
-        forkNetworkConfig.EverclearFeeAdapter!,
         weth,
         forkNetworkConfig.StargateTreasurer!,
         ZERO_ADDRESS,

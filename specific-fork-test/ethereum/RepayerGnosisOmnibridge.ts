@@ -53,7 +53,6 @@ describe("Repayer Gnosis Omnibridge (Ethereum fork)", function () {
         cctpTokenMessenger,
         cctpMessageTransmitter,
         forkNetworkConfig.AcrossV3SpokePool!,
-        forkNetworkConfig.EverclearFeeAdapter!,
         weth,
         forkNetworkConfig.StargateTreasurer!,
         forkNetworkConfig.OptimismStandardBridge!,

@@ -30,7 +30,7 @@ interface IRoute {
         CCTP,
         ACROSS,
         STARGATE,
-        EVERCLEAR,
+        EVERCLEAR_DEPRECATED,
         SUPERCHAIN_STANDARD_BRIDGE,
         ARBITRUM_GATEWAY,
         GNOSIS_OMNIBRIDGE,

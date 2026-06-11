@@ -56,7 +56,6 @@ describe("Repayer USDT0 (Ethereum fork)", function () {
         forkNetworkConfig.CCTP!.TokenMessenger!,
         forkNetworkConfig.CCTP!.MessageTransmitter!,
         forkNetworkConfig.AcrossV3SpokePool!,
-        forkNetworkConfig.EverclearFeeAdapter!,
         weth,
         forkNetworkConfig.StargateTreasurer!,
         forkNetworkConfig.OptimismStandardBridge!,

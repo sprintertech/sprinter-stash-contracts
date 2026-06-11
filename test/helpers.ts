@@ -4,7 +4,8 @@ import {
   keccak256, concat, dataSlice, AbiCoder, EventLog, encodeBytes32String, isAddress,
   BigNumberish, BytesLike,
 } from "ethers";
-import {assert, DEFAULT_PROXY_TYPE, CREATE_X_ADDRESS} from "../scripts/common";
+import {assert, CREATE_X_ADDRESS} from "../scripts/common";
+import {DEFAULT_PROXY_TYPE} from "../network.config";
 import {ICreateX} from "../typechain-types";
 import {expect} from "chai";
 import dotenv from "dotenv";

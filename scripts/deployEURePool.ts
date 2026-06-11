@@ -3,9 +3,9 @@ import {NonceManager} from "ethers";
 import hre from "hardhat";
 import {LiquidityPoolEUReVersions, Network, NetworkConfig} from "../network.config";
 import {toBytes32} from "../test/helpers";
-import {LiquidityPool} from "../typechain-types";
+import {LiquidityPool, ProxyAdmin} from "../typechain-types";
 import {assert, DEFAULT_ADMIN_ROLE, isSet, sameAddress} from "./common";
-import {getHardhatNetworkConfig, getNetworkConfig, getVerifier, logDeployers} from "./helpers";
+import {getHardhatNetworkConfig, getNetworkConfig, getVerifier, logDeployers, deployProxyX} from "./helpers";
 dotenv.config();
 
 export async function main() {
@@ -17,7 +17,7 @@ export async function main() {
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
   const verifier = getVerifier(process.env.DEPLOY_ID);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
-  let id = LiquidityPoolEUReVersions.at(-1);
+  let id = LiquidityPoolEUReVersions.at(0);
 
   let network: Network;
   let config: NetworkConfig;
@@ -33,27 +33,26 @@ export async function main() {
   assert(config.Tokens.EURe, "EURe token is not configured");
 
   console.log("Deploying EURe Liquidity Pool");
-  const eurePool: LiquidityPool = (await verifier.deployX(
-    "LiquidityPool",
-    deployerWithNonce,
-    {},
-    [
-      config.Tokens.EURe.Address,
-      deployer,
-      config.MpcAddress,
-      config.WrappedNativeToken,
-      config.SignerAddress,
-    ],
-    id
-  )) as LiquidityPool;
+  const {target: eurePool, targetAdmin: eurePoolAdmin}: {target: LiquidityPool; targetAdmin: ProxyAdmin} =
+    await deployProxyX<LiquidityPool>(
+      verifier.deployX,
+      "LiquidityPool",
+      deployerWithNonce,
+      config.Admin,
+      [config.Tokens.EURe.Address, config.WrappedNativeToken],
+      [deployer, config.MpcAddress, config.SignerAddress],
+      id,
+      verifier,
+    );
   console.log(`${id}: ${eurePool.target}`);
+  console.log(`${id}ProxyAdmin: ${eurePoolAdmin.target}`);
 
-  await eurePool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
-  let lastTx = await eurePool!.grantRole(PAUSER_ROLE, config.Pauser);
+  await eurePool.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
+  let lastTx = await eurePool.grantRole(PAUSER_ROLE, config.Pauser);
 
   if (!sameAddress(deployer.address, config.Admin)) {
-    await eurePool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-    lastTx = await eurePool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    await eurePool.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
+    lastTx = await eurePool.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
   }
 
   await verifier.verify(process.env.VERIFY === "true");

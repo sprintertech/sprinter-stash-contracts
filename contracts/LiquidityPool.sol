@@ -3,9 +3,9 @@ pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {ILiquidityPool} from "./interfaces/ILiquidityPool.sol";
@@ -14,9 +14,10 @@ import {IWrappedNativeToken} from "./interfaces/IWrappedNativeToken.sol";
 import {HelperLib} from "./utils/HelperLib.sol";
 import {NATIVE_TOKEN} from "./utils/Constants.sol";
 import {ISigner} from "./interfaces/ISigner.sol";
+import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 
-/// @title LiquidityPool
-/// @notice Liquidity pool contract holds the liquidity asset and allows solvers to borrow
+/// @title LiquidityPoolBase
+/// @notice Base contract for liquidity pools. Holds the liquidity asset and allows solvers to borrow
 /// the asset from the pool and to perform an external function call upon providing the MPC signature.
 /// The pool can also be used by trusted parties to borrow without the need of providing an MPC signature.
 /// It's possible to perform borrowing with swap by the solver (the solver gets the borrowed
@@ -26,8 +27,9 @@ import {ISigner} from "./interfaces/ISigner.sol";
 /// Profit from borrowing is accounted for and can be withdrawn by the WITHDRAW_PROFIT_ROLE.
 /// Borrowing can be paused by the WITHDRAW_PROFIT_ROLE before withdrawing the profit.
 /// The contract is pausable by the PAUSER_ROLE.
+/// @notice Upgradeable.
 /// @author Tanya Bushenyova <tanya@chainsafe.io>
-contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
+abstract contract LiquidityPoolBase is ILiquidityPool, AccessControlUpgradeable, EIP712Upgradeable, ISigner {
     using SafeERC20 for IERC20;
     using ECDSA for bytes32;
     using BitMaps for BitMaps.BitMap;
@@ -60,24 +62,29 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     );
 
     IERC20 immutable public ASSETS;
+    IWrappedNativeToken immutable public WRAPPED_NATIVE_TOKEN;
 
-    BitMaps.BitMap private _usedNonces;
-    uint256 internal _totalDeposited;
-
-    bool public paused;
-    bool public borrowPaused;
-    address public mpcAddress;
-    address public signerAddress;
-    mapping(address => uint256) public directDebt;
-    mapping(address => int256) public accruedProfit;
+    // bytes4(keccak256("isValidSignature(bytes32,bytes)")
+    bytes4 constant internal MAGICVALUE = 0x1626ba7e;
 
     bytes32 private constant LIQUIDITY_ADMIN_ROLE = "LIQUIDITY_ADMIN_ROLE";
     bytes32 private constant WITHDRAW_PROFIT_ROLE = "WITHDRAW_PROFIT_ROLE";
     bytes32 private constant PAUSER_ROLE = "PAUSER_ROLE";
     bytes32 private constant DIRECT_BORROW_ROLE = "DIRECT_BORROW_ROLE";
-    // bytes4(keccak256("isValidSignature(bytes32,bytes)")
-    bytes4 constant internal MAGICVALUE = 0x1626ba7e;
-    IWrappedNativeToken immutable public WRAPPED_NATIVE_TOKEN;
+
+    /// @custom:storage-location erc7201:sprinter.storage.LiquidityPoolBase
+    struct LiquidityPoolBaseStorage {
+        BitMaps.BitMap usedNonces;
+        uint256 totalDeposited;
+        bool paused;
+        bool borrowPaused;
+        address mpcAddress;
+        address signerAddress;
+        mapping(address => uint256) directDebt;
+        mapping(address => int256) accruedProfit;
+    }
+
+    bytes32 private constant STORAGE_LOCATION = 0x5e15f96722dbf086bee72311c58c79f389b08ebbbe17ddec49a890658a971800;
 
     error ZeroAddress();
     error InvalidSignature();
@@ -112,45 +119,77 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     event BorrowDirect(address indexed account, address indexed borrowToken, uint256 amount);
 
     modifier whenNotPaused() {
-        require(!paused, EnforcedPause());
+        require(!_getStorageBase().paused, EnforcedPause());
         _;
     }
 
     modifier whenBorrowNotPaused() {
-        require(!borrowPaused, BorrowingIsPaused());
+        require(!_getStorageBase().borrowPaused, BorrowingIsPaused());
         _;
     }
 
     modifier whenPaused() {
-        require(paused, ExpectedPause());
+        require(_getStorageBase().paused, ExpectedPause());
         _;
     }
-    
+
     modifier onlyDirectBorrower() {
-      require(hasRole(DIRECT_BORROW_ROLE, _msgSender()), NotDirectBorrower());
-      _;
+        require(hasRole(DIRECT_BORROW_ROLE, _msgSender()), NotDirectBorrower());
+        _;
     }
 
-    constructor(
-        address liquidityToken,
-        address admin,
-        address mpcAddress_,
-        address wrappedNativeToken,
-        address signerAddress_
-    ) EIP712("LiquidityPool", "1.0.0") {
+    constructor(address liquidityToken, address wrappedNativeToken) {
+        ERC7201Helper.validateStorageLocation(STORAGE_LOCATION, "sprinter.storage.LiquidityPoolBase");
         require(liquidityToken != address(0), ZeroAddress());
         ASSETS = IERC20(liquidityToken);
+        WRAPPED_NATIVE_TOKEN = IWrappedNativeToken(wrappedNativeToken);
+        _disableInitializers();
+    }
+
+    function _initializeBase(
+        address admin,
+        address mpcAddress_,
+        address signerAddress_
+    ) internal onlyInitializing {
+        __AccessControl_init();
+        __EIP712_init("LiquidityPool", "1.0.0");
         require(admin != address(0), ZeroAddress());
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        LiquidityPoolBaseStorage storage $ = _getStorageBase();
         require(mpcAddress_ != address(0), ZeroAddress());
-        mpcAddress = mpcAddress_;
-        WRAPPED_NATIVE_TOKEN = IWrappedNativeToken(wrappedNativeToken);
+        $.mpcAddress = mpcAddress_;
         require(signerAddress_ != address(0), ZeroAddress());
-        signerAddress = signerAddress_;
+        $.signerAddress = signerAddress_;
     }
 
     receive() external payable {
         // Allow native token transfers.
+    }
+
+    // Public getters for storage variables
+
+    function paused() public view returns (bool) {
+        return _getStorageBase().paused;
+    }
+
+    function borrowPaused() public view returns (bool) {
+        return _getStorageBase().borrowPaused;
+    }
+
+    function mpcAddress() public view returns (address) {
+        return _getStorageBase().mpcAddress;
+    }
+
+    function signerAddress() public view returns (address) {
+        return _getStorageBase().signerAddress;
+    }
+
+    function directDebt(address account) public view returns (uint256) {
+        return _getStorageBase().directDebt[account];
+    }
+
+    function accruedProfit(address token) public view returns (int256) {
+        return _getStorageBase().accruedProfit[token];
     }
 
     /// @notice The liqudity admin is supposed to call this function after transferring exact amount of assets.
@@ -196,7 +235,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         _unwrapNative(nativeValue);
         _finalizeBorrow(target, nativeValue, targetCallData);
     }
-    
+
     /// @notice This function allows an authorized caller to borrow funds from the contract.
     /// This is callable by authorized callers and does not need MPC signatures.
     /// The contract approves the tokens for the target address.
@@ -212,7 +251,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
             _borrow(borrowToken, packedAmount, _msgSender(), false, "");
 
         uint256 totalObligation = amount + profit;
-        directDebt[actualBorrowToken] += totalObligation;
+        _getStorageBase().directDebt[actualBorrowToken] += totalObligation;
         _afterBorrowLogic(actualBorrowToken, context);
 
         emit BorrowDirect(_msgSender(), borrowToken, totalObligation);
@@ -321,14 +360,14 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     function repay(address[] calldata borrowTokens) external override {
         _repay(borrowTokens);
     }
-    
+
     function repayDirect(
-        address[] calldata borrowTokens, 
+        address[] calldata borrowTokens,
         uint256[] calldata maxAmounts
     ) external override onlyDirectBorrower {
         _repayDirect(borrowTokens, maxAmounts);
     }
-  
+
     // Admin functions
 
     /// @notice Can withdraw a maximum of _totalDeposited. If anything is left, it is meant to be withdrawn through
@@ -341,9 +380,10 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         whenNotPaused()
     {
         require(to != address(0), ZeroAddress());
-        uint256 deposited = _totalDeposited;
+        LiquidityPoolBaseStorage storage $ = _getStorageBase();
+        uint256 deposited = $.totalDeposited;
         require(deposited >= amount, InsufficientLiquidity());
-        _totalDeposited = deposited - amount;
+        $.totalDeposited = deposited - amount;
         _withdrawLogic(to, amount);
         emit Withdraw(_msgSender(), to, amount);
     }
@@ -369,34 +409,36 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
 
     function setMPCAddress(address mpcAddress_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(mpcAddress_ != address(0), ZeroAddress());
-        address oldMPCAddress = mpcAddress;
-        mpcAddress = mpcAddress_;
+        LiquidityPoolBaseStorage storage $ = _getStorageBase();
+        address oldMPCAddress = $.mpcAddress;
+        $.mpcAddress = mpcAddress_;
         emit MPCAddressSet(oldMPCAddress, mpcAddress_);
     }
 
     function setSignerAddress(address signerAddress_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        address oldSignerAddress = signerAddress;
-        signerAddress = signerAddress_;
+        LiquidityPoolBaseStorage storage $ = _getStorageBase();
+        address oldSignerAddress = $.signerAddress;
+        $.signerAddress = signerAddress_;
         emit SignerAddressSet(oldSignerAddress, signerAddress_);
     }
 
     function pauseBorrow() external override onlyRole(WITHDRAW_PROFIT_ROLE) {
-        borrowPaused = true;
+        _getStorageBase().borrowPaused = true;
         emit BorrowPaused();
     }
 
     function unpauseBorrow() external override onlyRole(WITHDRAW_PROFIT_ROLE) {
-        borrowPaused = false;
+        _getStorageBase().borrowPaused = false;
         emit BorrowUnpaused();
     }
 
     function pause() external override onlyRole(PAUSER_ROLE) whenNotPaused() {
-        paused = true;
+        _getStorageBase().paused = true;
         emit Paused(_msgSender());
     }
 
     function unpause() external override onlyRole(PAUSER_ROLE) whenPaused() {
-        paused = false;
+        _getStorageBase().paused = false;
         emit Unpaused(_msgSender());
     }
 
@@ -415,7 +457,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     }
 
     function _deposit(address caller, uint256 amount) private {
-        _totalDeposited += amount;
+        _getStorageBase().totalDeposited += amount;
         _depositLogic(amount);
         emit Deposit(caller, amount);
     }
@@ -508,10 +550,11 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     }
 
     function _validateSig(bytes32 digest, uint256 nonce, uint256 deadline, bytes calldata signature) private {
+        LiquidityPoolBaseStorage storage $ = _getStorageBase();
         address signer = digest.recover(signature);
-        require(signer == mpcAddress, InvalidSignature());
-        require(_usedNonces.get(nonce) == false, NonceAlreadyUsed());
-        _usedNonces.set(nonce);
+        require(signer == $.mpcAddress, InvalidSignature());
+        require($.usedNonces.get(nonce) == false, NonceAlreadyUsed());
+        $.usedNonces.set(nonce);
         require(notPassed(deadline), ExpiredSignature());
     }
 
@@ -533,7 +576,7 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         } else {
             IERC20(borrowToken).forceApprove(target, amount);
         }
-        if (profit > 0) accruedProfit[actualBorrowToken] += int256(profit);
+        if (profit > 0) _getStorageBase().accruedProfit[actualBorrowToken] += int256(profit);
         return (nativeAmount, actualBorrowToken, amount, profit, context);
     }
 
@@ -573,11 +616,12 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     }
 
     function _withdrawProfitLogic(IERC20 token) internal virtual returns (uint256) {
+        LiquidityPoolBaseStorage storage $ = _getStorageBase();
         uint256 currentBalance = HelperLib.balanceOfThis(token);
         uint256 withdrawableSurplus = 0;
         if (token == ASSETS) {
-            uint256 deposited = _totalDeposited;
-            uint256 virtualBalance = currentBalance + directDebt[address(token)];
+            uint256 deposited = $.totalDeposited;
+            uint256 virtualBalance = currentBalance + $.directDebt[address(token)];
             if (virtualBalance > deposited) {
                 // In case there are extra funds in the pool, withdraw them.
                 withdrawableSurplus = Math.min(virtualBalance - deposited, currentBalance);
@@ -585,14 +629,14 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         } else {
             withdrawableSurplus = currentBalance;
         }
-        int256 profit = accruedProfit[address(token)];
+        int256 profit = $.accruedProfit[address(token)];
         // Cannot be negative (in this contract, but can be in children) but can be zero.
         if (profit <= 0) return withdrawableSurplus;
         uint256 toWithdraw = Math.min(currentBalance, uint256(profit));
-        accruedProfit[address(token)] = profit - int256(toWithdraw);
+        $.accruedProfit[address(token)] = profit - int256(toWithdraw);
         return Math.max(toWithdraw, withdrawableSurplus);
     }
-    
+
     function _repay(address[] calldata) internal virtual {
         // Repayment is done by sending tokens directly to LiquidityPool.
         // Pool implementations that need to actively settle debt (e.g. Aave) must override this.
@@ -603,22 +647,23 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
         // (see _withdrawProfitLogic for example).
         revert NotImplemented();
     }
- 
+
     function _repayDirect(
         address[] calldata borrowTokens,
         uint256[] calldata maxAmounts
     ) internal virtual {
-        // Validate calldata: we want the caller to send us ASSETS 
-        // and the max amount they are willing to repay. 
+        // Validate calldata: we want the caller to send us ASSETS
+        // and the max amount they are willing to repay.
         HelperLib.validatePositiveLength(borrowTokens.length, maxAmounts.length);
         if (borrowTokens.length != 1) revert InvalidAsset();
         if (borrowTokens[0] != address(ASSETS)) revert InvalidAsset();
 
-        uint256 debt = directDebt[address(ASSETS)];
+        LiquidityPoolBaseStorage storage $ = _getStorageBase();
+        uint256 debt = $.directDebt[address(ASSETS)];
         if (debt == 0) revert NothingToRepay();
-        
+
         uint256 repayAmount = Math.min(debt, maxAmounts[0]);
-        directDebt[address(ASSETS)] = debt - repayAmount;
+        $.directDebt[address(ASSETS)] = debt - repayAmount;
 
         // Repay the amount and decrease direct debt.
         // Note that extensions of this pool will need to take care
@@ -627,7 +672,6 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
 
         emit RepaidDirect(address(ASSETS), repayAmount);
     }
-
 
     function _balance(IERC20 token) internal view virtual returns (uint256) {
         if (token != ASSETS) return 0;
@@ -641,11 +685,12 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     // View functions
 
     function totalDeposited() external view virtual override returns (uint256) {
-        return _totalDeposited;
+        return _getStorageBase().totalDeposited;
     }
 
     function balance(IERC20 token) external view override returns (uint256) {
-        if (paused || borrowPaused) return 0;
+        LiquidityPoolBaseStorage storage $ = _getStorageBase();
+        if ($.paused || $.borrowPaused) return 0;
         if (token == NATIVE_TOKEN) token = WRAPPED_NATIVE_TOKEN;
         return _balance(token);
     }
@@ -663,13 +708,35 @@ contract LiquidityPool is ILiquidityPool, AccessControl, EIP712, ISigner {
     }
 
     function isValidSignature(bytes32 hash, bytes memory signature) external view returns (bytes4 magicValue) {
-        if (signerAddress.code.length == 0) {
+        address signerAddr = _getStorageBase().signerAddress;
+        if (signerAddr.code.length == 0) {
             // EOA
             address signerAddressRecovered = ECDSA.recover(hash, signature);
-            if (signerAddressRecovered == signerAddress) return MAGICVALUE;
+            if (signerAddressRecovered == signerAddr) return MAGICVALUE;
             else return 0xffffffff;
         }
         // Contract
-        return ISigner(signerAddress).isValidSignature(hash, signature);
+        return ISigner(signerAddr).isValidSignature(hash, signature);
+    }
+
+    function _getStorageBase() internal pure returns (LiquidityPoolBaseStorage storage $) {
+        assembly {
+            $.slot := STORAGE_LOCATION
+        }
+    }
+}
+
+/// @notice Concrete, upgradeable liquidity pool with the standard single-asset borrow/repay logic.
+/// @author Tanya Bushenyova <tanya@chainsafe.io>
+contract LiquidityPool is LiquidityPoolBase {
+    constructor(address liquidityToken, address wrappedNativeToken)
+        LiquidityPoolBase(liquidityToken, wrappedNativeToken) {}
+
+    function initialize(
+        address admin,
+        address mpcAddress_,
+        address signerAddress_
+    ) external initializer {
+        _initializeBase(admin, mpcAddress_, signerAddress_);
     }
 }

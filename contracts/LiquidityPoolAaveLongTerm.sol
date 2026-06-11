@@ -9,6 +9,7 @@ import {HelperLib} from "./utils/HelperLib.sol";
 /// @title Same as LiquidityPoolAave, but when borrowing the contract will first try to fulfill
 /// the request with own funds, in which case health factor and ltv are not checked.
 /// If there are not enough funds, the contract will borrow from Aave.
+/// @notice Upgradeable.
 /// @author Oleksii Matiiasevych <oleksii@sprinter.tech>
 contract LiquidityPoolAaveLongTerm is LiquidityPoolAave, ILiquidityPoolLongTerm {
     bytes32 private constant REPAYER_ROLE = "REPAYER_ROLE";
@@ -21,22 +22,8 @@ contract LiquidityPoolAaveLongTerm is LiquidityPoolAave, ILiquidityPoolLongTerm 
     constructor(
         address liquidityToken,
         address aavePoolProvider,
-        address admin,
-        address mpcAddress_,
-        uint32 minHealthFactor_,
-        uint32 defaultLTV_,
-        address wrappedNativeToken,
-        address signerAddress_
-    ) LiquidityPoolAave(
-        liquidityToken,
-        aavePoolProvider,
-        admin,
-        mpcAddress_,
-        minHealthFactor_,
-        defaultLTV_,
-        wrappedNativeToken,
-        signerAddress_
-    ) {}
+        address wrappedNativeToken
+    ) LiquidityPoolAave(liquidityToken, aavePoolProvider, wrappedNativeToken) {}
 
     function _repayAccessCheck() internal view override onlyRole(REPAYER_ROLE) {
         // Permissioned access through a modifier.
@@ -64,7 +51,7 @@ contract LiquidityPoolAaveLongTerm is LiquidityPoolAave, ILiquidityPoolLongTerm 
 
         emit BorrowLongTerm(borrowToken, amount);
     }
-    
+
     /// @dev borrowMany() might fail if trying to borrow duplicate tokens.
     function _borrowLogic(address borrowToken, uint256 amount, uint256 profit, bytes memory context)
         internal override returns (bytes memory)

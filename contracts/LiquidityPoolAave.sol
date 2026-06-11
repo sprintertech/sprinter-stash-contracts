@@ -9,8 +9,9 @@ import {IAavePoolAddressesProvider} from "./interfaces/IAavePoolAddressesProvide
 import {IAavePool, AaveDataTypes, NO_REFERRAL, INTEREST_RATE_MODE_VARIABLE} from "./interfaces/IAavePool.sol";
 import {IAaveOracle} from "./interfaces/IAaveOracle.sol";
 import {IAavePoolDataProvider} from "./interfaces/IAavePoolDataProvider.sol";
-import {LiquidityPool} from "./LiquidityPool.sol";
+import {LiquidityPoolBase} from "./LiquidityPool.sol";
 import {HelperLib} from "./utils/HelperLib.sol";
+import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 
 /// @title A version of the liquidity pool contract that uses Aave pool.
 /// Deposits of the liquidity token are supplied to Aave as collateral.
@@ -21,8 +22,9 @@ import {HelperLib} from "./utils/HelperLib.sol";
 /// Rebalancing is done by depositing and withdrawing assets from Aave pool by the liquidity admin role.
 /// Profit from borrowing and accrued interest from supplying liquidity is accounted for
 /// and can be withdrawn by the WITHDRAW_PROFIT_ROLE.
+/// @notice Upgradeable.
 /// @author Tanya Bushenyova <tanya@chainsafe.io>
-contract LiquidityPoolAave is LiquidityPool {
+contract LiquidityPoolAave is LiquidityPoolBase {
     using SafeERC20 for IERC20;
 
     uint256 private constant MULTIPLIER = 10000;
@@ -30,13 +32,16 @@ contract LiquidityPoolAave is LiquidityPool {
     IAavePoolAddressesProvider immutable public AAVE_POOL_PROVIDER;
     IAavePool immutable public AAVE_POOL;
     IERC20 immutable public ATOKEN;
-    uint8 immutable public ASSETS_DECIMALS;
 
-    uint32 public minHealthFactor;
-    uint32 public defaultLTV;
+    /// @custom:storage-location erc7201:sprinter.storage.LiquidityPoolAave
+    struct LiquidityPoolAaveStorage {
+        uint32 minHealthFactor;
+        uint32 defaultLTV;
+        mapping(address token => uint256 ltv) borrowTokenLTV;
+        mapping(address token => uint256 snapshot) debtSnapshot;
+    }
 
-    mapping(address token => uint256 ltv) public borrowTokenLTV;
-    mapping(address token => uint256 snapshot) public debtSnapshot;
+    bytes32 private constant STORAGE_LOCATION = 0xa970a5090ccc92b642632de0c6d5b2804c2710d470362ae3bea13b9a38a0d300;
 
     error TokenLtvExceeded();
     error NoCollateral();
@@ -53,14 +58,9 @@ contract LiquidityPoolAave is LiquidityPool {
     constructor(
         address liquidityToken,
         address aavePoolProvider,
-        address admin,
-        address mpcAddress_,
-        uint32 minHealthFactor_,
-        uint32 defaultLTV_,
-        address wrappedNativeToken,
-        address signerAddress_
-    ) LiquidityPool(liquidityToken, admin, mpcAddress_, wrappedNativeToken, signerAddress_) {
-        ASSETS_DECIMALS = IERC20Metadata(liquidityToken).decimals();
+        address wrappedNativeToken
+    ) LiquidityPoolBase(liquidityToken, wrappedNativeToken) {
+        ERC7201Helper.validateStorageLocation(STORAGE_LOCATION, "sprinter.storage.LiquidityPoolAave");
         require(aavePoolProvider != address(0), ZeroAddress());
         IAavePoolAddressesProvider provider = IAavePoolAddressesProvider(aavePoolProvider);
         AAVE_POOL_PROVIDER = provider;
@@ -71,8 +71,32 @@ contract LiquidityPoolAave is LiquidityPool {
         (,,,,,bool usageAsCollateralEnabled,,,bool isActive, bool isFrozen) =
             poolDataProvider.getReserveConfigurationData(liquidityToken);
         require(usageAsCollateralEnabled && isActive && !isFrozen, CollateralNotSupported());
+    }
+
+    function initialize(
+        address admin,
+        address mpcAddress_,
+        address signerAddress_,
+        uint32 minHealthFactor_,
+        uint32 defaultLTV_
+    ) external initializer {
+        _initializeBase(admin, mpcAddress_, signerAddress_);
         _setMinHealthFactor(minHealthFactor_);
         _setDefaultLTV(defaultLTV_);
+    }
+
+    // Public getters for storage variables
+
+    function minHealthFactor() public view returns (uint32) {
+        return _getStorage().minHealthFactor;
+    }
+
+    function defaultLTV() public view returns (uint32) {
+        return _getStorage().defaultLTV;
+    }
+
+    function borrowTokenLTV(address token) public view returns (uint256) {
+        return _getStorage().borrowTokenLTV[token];
     }
 
     // Admin functions
@@ -82,11 +106,12 @@ contract LiquidityPoolAave is LiquidityPool {
         uint32[] calldata ltvs
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         uint256 length = HelperLib.validatePositiveLength(tokens.length, ltvs.length);
+        LiquidityPoolAaveStorage storage $ = _getStorage();
         for (uint256 i = 0; i < length; ++i) {
             address token = tokens[i];
             uint256 ltv = ltvs[i];
-            uint256 oldLTV = borrowTokenLTV[token];
-            borrowTokenLTV[token] = ltv;
+            uint256 oldLTV = $.borrowTokenLTV[token];
+            $.borrowTokenLTV[token] = ltv;
             emit BorrowTokenLTVSet(token, oldLTV, ltv);
         }
     }
@@ -102,20 +127,23 @@ contract LiquidityPoolAave is LiquidityPool {
     // Internal functions
 
     function _setDefaultLTV(uint32 defaultLTV_) internal {
-        uint32 oldDefaultLTV = defaultLTV;
-        defaultLTV = defaultLTV_;
+        LiquidityPoolAaveStorage storage $ = _getStorage();
+        uint32 oldDefaultLTV = $.defaultLTV;
+        $.defaultLTV = defaultLTV_;
         emit DefaultLTVSet(oldDefaultLTV, defaultLTV_);
     }
 
     function _setMinHealthFactor(uint32 minHealthFactor_) internal {
-        uint32 oldHealthFactor = minHealthFactor;
-        minHealthFactor = minHealthFactor_;
+        LiquidityPoolAaveStorage storage $ = _getStorage();
+        uint32 oldHealthFactor = $.minHealthFactor;
+        $.minHealthFactor = minHealthFactor_;
         emit HealthFactorSet(oldHealthFactor, minHealthFactor_);
     }
 
     function _checkTokenLTV(uint256 totalCollateralBase, address borrowToken) internal view {
-        uint256 ltv = borrowTokenLTV[borrowToken];
-        if (ltv == 0) ltv = defaultLTV;
+        LiquidityPoolAaveStorage storage $ = _getStorage();
+        uint256 ltv = $.borrowTokenLTV[borrowToken];
+        if (ltv == 0) ltv = $.defaultLTV;
         if (ltv >= MULTIPLIER) {
             // No limit on borrowing this token.
             return;
@@ -157,9 +185,9 @@ contract LiquidityPoolAave is LiquidityPool {
         (uint256 currentDebt, uint256 accruedDebt) =
             _processDebtSnapshot(IERC20(borrowToken), IERC20(vdToken), amount);
         if (accruedDebt > 0) {
-            accruedProfit[borrowToken] -= int256(accruedDebt);
+            _getStorageBase().accruedProfit[borrowToken] -= int256(accruedDebt);
         }
-        debtSnapshot[borrowToken] = currentDebt;
+        _getStorage().debtSnapshot[borrowToken] = currentDebt;
         return context;
     }
 
@@ -189,11 +217,11 @@ contract LiquidityPoolAave is LiquidityPool {
     function _withdrawProfitLogic(IERC20 token) internal virtual override returns (uint256) {
         require(token != ATOKEN, CannotWithdrawAToken());
 
-        int256 profit = accruedProfit[address(token)];
+        int256 profit = _getStorageBase().accruedProfit[address(token)];
         if (token == ASSETS) {
             // Profit from collateral yield: aToken appreciation above deposited principal.
             uint256 aTokenBalance = HelperLib.balanceOfThis(ATOKEN);
-            uint256 deposited = _totalDeposited;
+            uint256 deposited = _getStorageBase().totalDeposited;
             if (aTokenBalance > deposited) {
                 uint256 interest = aTokenBalance - deposited;
                 _withdrawLogic(address(this), interest);
@@ -209,10 +237,11 @@ contract LiquidityPoolAave is LiquidityPool {
             return balance;
         }
 
+        LiquidityPoolAaveStorage storage $aave = _getStorage();
         (uint256 currentDebt, uint256 accruedDebt) = _processDebtSnapshot(token, IERC20(vdToken), 0);
         profit -= int256(accruedDebt);
 
-        uint256 virtualBalance = balance + directDebt[address(token)];
+        uint256 virtualBalance = balance + _getStorageBase().directDebt[address(token)];
         uint256 withdrawableSurplus = 0;
         if (virtualBalance > currentDebt) {
             withdrawableSurplus = virtualBalance - currentDebt;
@@ -229,12 +258,12 @@ contract LiquidityPoolAave is LiquidityPool {
             currentDebt += shortfall;
         }
 
-        debtSnapshot[address(token)] = currentDebt;
+        $aave.debtSnapshot[address(token)] = currentDebt;
         if (profit > 0) {
-            accruedProfit[address(token)] = 0;
+            _getStorageBase().accruedProfit[address(token)] = 0;
             return uint256(profit);
         } else {
-            accruedProfit[address(token)] = profit;
+            _getStorageBase().accruedProfit[address(token)] = profit;
             return 0;
         }
     }
@@ -245,14 +274,14 @@ contract LiquidityPoolAave is LiquidityPool {
         uint256 justBorrowed
     ) internal view returns (uint256, uint256) {
         uint256 currentDebt = HelperLib.balanceOfThis(vdToken);
-        uint256 snapshot = debtSnapshot[address(borrowToken)] + justBorrowed;
+        uint256 snapshot = _getStorage().debtSnapshot[address(borrowToken)] + justBorrowed;
         uint256 accruedDebt = 0;
         if (currentDebt > snapshot) {
             accruedDebt = currentDebt - snapshot;
         }
         return (currentDebt, accruedDebt);
     }
-    
+
     function _repay(address[] calldata borrowTokens) internal override {
         _repayAccessCheck();
         // Repay token to aave
@@ -277,21 +306,21 @@ contract LiquidityPoolAave is LiquidityPool {
 
         uint256 repayAmount = Math.min(Math.min(balance, maxRepayAmount), outstandingDebt);
         if (repayAmount == 0) return false;
-    
+
         uint256 repaidAmount = _executeRepay(borrowToken, repayAmount);
 
         emit Repaid(borrowToken, repaidAmount);
         return true;
     }
-    
+
     function _repayDirect(
-        address[] calldata borrowTokens, 
+        address[] calldata borrowTokens,
         uint256[] calldata maxAmounts
     ) internal override {
         uint256 length = HelperLib.validatePositiveLength(borrowTokens.length, maxAmounts.length);
         bool success;
         for (uint256 i = 0; i < length; i++) {
-            success = _repayTokenDirect(borrowTokens[i], maxAmounts[i]) || success;  
+            success = _repayTokenDirect(borrowTokens[i], maxAmounts[i]) || success;
         }
         require(success, NothingToRepay());
     }
@@ -302,34 +331,37 @@ contract LiquidityPoolAave is LiquidityPool {
     {
         address vdToken = AAVE_POOL.getReserveData(borrowToken).variableDebtTokenAddress;
         if (vdToken == address(0)) return false;
-        
-        uint256 outstandingDebt = directDebt[borrowToken];
+
+        LiquidityPoolBaseStorage storage $ = _getStorageBase();
+        uint256 outstandingDebt = $.directDebt[borrowToken];
         uint256 repayAmount = Math.min(outstandingDebt, maxRepayAmount);
         if (repayAmount == 0) return false;
-        
-        unchecked { directDebt[borrowToken] = outstandingDebt - repayAmount; }
-        IERC20(borrowToken).safeTransferFrom(_msgSender(), address(this), repayAmount);        
+
+        unchecked { $.directDebt[borrowToken] = outstandingDebt - repayAmount; }
+        IERC20(borrowToken).safeTransferFrom(_msgSender(), address(this), repayAmount);
         _executeRepay(borrowToken, repayAmount);
 
         emit RepaidDirect(borrowToken, repayAmount);
         return true;
     }
-    
+
     function _executeRepay(address borrowToken, uint256 repayAmount) private returns(uint256 repaidAmount) {
         address vdToken = AAVE_POOL.getReserveData(borrowToken).variableDebtTokenAddress;
         (, uint256 accruedDebt) = _processDebtSnapshot(IERC20(borrowToken), IERC20(vdToken), 0);
         if (accruedDebt > 0) {
-            accruedProfit[borrowToken] -= int256(accruedDebt);
+            _getStorageBase().accruedProfit[borrowToken] -= int256(accruedDebt);
         }
-        IERC20(borrowToken).forceApprove(address(AAVE_POOL), repayAmount); 
+        IERC20(borrowToken).forceApprove(address(AAVE_POOL), repayAmount);
         repaidAmount = AAVE_POOL.repay(borrowToken, repayAmount, 2, address(this));
-        debtSnapshot[borrowToken] = HelperLib.balanceOfThis(vdToken);
+        _getStorage().debtSnapshot[borrowToken] = HelperLib.balanceOfThis(vdToken);
     }
 
     function _checkHealthFactor() internal view returns (uint256) {
         (uint256 totalCollateralBase,,,,, uint256 currentHealthFactor) = AAVE_POOL.getUserAccountData(address(this));
-        require(currentHealthFactor / (1e18 / MULTIPLIER) >= minHealthFactor, HealthFactorTooLow());
-
+        require(
+            currentHealthFactor / (1e18 / MULTIPLIER) >= _getStorage().minHealthFactor,
+            HealthFactorTooLow()
+        );
         return totalCollateralBase;
     }
 
@@ -338,8 +370,9 @@ contract LiquidityPoolAave is LiquidityPool {
         uint256 totalCollateralBase,
         address borrowToken
     ) internal view returns (uint256, uint256 tokenUnit, uint256 tokenPrice) {
-        uint256 ltv = borrowTokenLTV[borrowToken];
-        if (ltv == 0) ltv = defaultLTV;
+        LiquidityPoolAaveStorage storage $ = _getStorage();
+        uint256 ltv = $.borrowTokenLTV[borrowToken];
+        if (ltv == 0) ltv = $.defaultLTV;
         if (ltv > MULTIPLIER) {
             ltv = MULTIPLIER;
         }
@@ -391,7 +424,7 @@ contract LiquidityPoolAave is LiquidityPool {
         (uint256 totalCollateralBase, uint256 totalDebtBase,,, uint256 ltv,) =
             AAVE_POOL.getUserAccountData(address(this));
         uint256 maxBorrowsByMinHealthFactor = _calculateAvailableBorrowsBase(
-            totalCollateralBase, totalDebtBase, ltv, minHealthFactor
+            totalCollateralBase, totalDebtBase, ltv, _getStorage().minHealthFactor
         );
         (uint256 maxBorrowByTokenLTV, uint256 tokenUnit, uint256 tokenPrice) =
             _calculateMaximumTokenBorrowBase(totalCollateralBase, address(token));
@@ -404,5 +437,11 @@ contract LiquidityPoolAave is LiquidityPool {
     function _repayAccessCheck() internal view virtual {
         // Public access.
         return;
+    }
+
+    function _getStorage() internal pure returns (LiquidityPoolAaveStorage storage $) {
+        assembly {
+            $.slot := STORAGE_LOCATION
+        }
     }
 }

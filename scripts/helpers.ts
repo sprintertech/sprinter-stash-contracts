@@ -8,11 +8,11 @@ import {
   TransparentUpgradeableProxy, ProxyAdmin, Repayer,
 } from "../typechain-types";
 import {
-  sleep, DEFAULT_PROXY_TYPE, assert, assertAddress, DomainSolidity, addressToBytes32, bytes32ToToken, SolidityDomain
+  sleep, assert, assertAddress, DomainSolidity, addressToBytes32, bytes32ToToken, SolidityDomain
 } from "./common";
 import {
   networkConfig, Network, NetworkConfig, StandaloneRepayerEnv, StandaloneRepayerConfig,
-  repayerConfig,
+  repayerConfig, DEFAULT_PROXY_TYPE,
   Provider,
   LiquidityPoolAaveUSDCVersions,
   LiquidityPoolUSDCVersions,

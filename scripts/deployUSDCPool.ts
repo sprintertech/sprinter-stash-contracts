@@ -21,7 +21,7 @@ export async function main() {
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
   const verifier = getVerifier(process.env.DEPLOY_ID);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
-  let id = LiquidityPoolUSDCVersions.at(-1);
+  let id = LiquidityPoolUSDCVersions.at(0);
 
   let network: Network;
   let config: NetworkConfig;

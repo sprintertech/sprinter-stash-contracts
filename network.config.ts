@@ -1,5 +1,7 @@
 import * as AAVEPools from "@bgd-labs/aave-address-book";
 
+export const DEFAULT_PROXY_TYPE = "TransparentUpgradeableProxy";
+
 // Upgradeable contracts proxies are deployed once with the contract name suffix in id.
 // Subsequent implementation just use UPGRADE_ID env variable.
 // Immutable contracts are deployed first with the name-derived unique id.
@@ -28,13 +30,13 @@ export const LiquidityPoolUSDCStablecoinV4 = "LiquidityPoolUSDCStablecoin-V4-718
 export const LiquidityPoolAaveUSDCLongTermV3 = "LiquidityPoolAaveUSDCLongTerm-V3-7187ffa";
 export const ERC4626AdapterUSDCV2 = "ERC4626AdapterUSDC-V2-7187ffa";
 
-export const LiquidityPoolAaveUSDCProxy = "TransparentUpgradeableProxy-LiquidityPoolAaveUSDC";
-export const LiquidityPoolUSDCProxy = "TransparentUpgradeableProxy-LiquidityPoolUSDC";
-export const LiquidityPoolPublicUSDCProxy = "TransparentUpgradeableProxy-LiquidityPoolPublicUSDC";
-export const LiquidityPoolUSDCStablecoinProxy = "TransparentUpgradeableProxy-LiquidityPoolUSDCStablecoin";
-export const LiquidityPoolAaveUSDCLongTermProxy = "TransparentUpgradeableProxy-LiquidityPoolAaveUSDCLongTerm";
-export const ERC4626AdapterUSDCProxy = "TransparentUpgradeableProxy-ERC4626AdapterUSDC";
-export const LiquidityPoolEUReProxy = "TransparentUpgradeableProxy-LiquidityPoolEURe";
+export const LiquidityPoolAaveUSDCProxy = DEFAULT_PROXY_TYPE + LiquidityPoolAaveUSDC;
+export const LiquidityPoolUSDCProxy = DEFAULT_PROXY_TYPE + LiquidityPoolUSDC;
+export const LiquidityPoolPublicUSDCProxy = DEFAULT_PROXY_TYPE + LiquidityPoolPublicUSDC;
+export const LiquidityPoolUSDCStablecoinProxy = DEFAULT_PROXY_TYPE + LiquidityPoolUSDCStablecoin;
+export const LiquidityPoolAaveUSDCLongTermProxy = DEFAULT_PROXY_TYPE + LiquidityPoolAaveUSDCLongTerm;
+export const ERC4626AdapterUSDCProxy = DEFAULT_PROXY_TYPE + ERC4626AdapterUSDC;
+export const LiquidityPoolEUReProxy = DEFAULT_PROXY_TYPE + LiquidityPoolEURe;
 export const LiquidityPoolAaveUSDCLongTermVersions = [
   LiquidityPoolAaveUSDCLongTerm,
   LiquidityPoolAaveUSDCLongTermV2,

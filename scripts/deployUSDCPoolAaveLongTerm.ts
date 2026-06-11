@@ -24,7 +24,7 @@ export async function main() {
   const verifier = getVerifier(process.env.DEPLOY_ID);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
 
-  let id = LiquidityPoolAaveUSDCLongTermVersions.at(-1);
+  let id = LiquidityPoolAaveUSDCLongTermVersions.at(0);
 
   let network: Network;
   let config: NetworkConfig;

@@ -32,7 +32,6 @@ contract LiquidityPoolAave is LiquidityPoolBase {
     IAavePoolAddressesProvider immutable public AAVE_POOL_PROVIDER;
     IAavePool immutable public AAVE_POOL;
     IERC20 immutable public ATOKEN;
-    uint8 immutable public ASSETS_DECIMALS;
 
     /// @custom:storage-location erc7201:sprinter.storage.LiquidityPoolAave
     struct LiquidityPoolAaveStorage {
@@ -62,7 +61,6 @@ contract LiquidityPoolAave is LiquidityPoolBase {
         address wrappedNativeToken
     ) LiquidityPoolBase(liquidityToken, wrappedNativeToken) {
         ERC7201Helper.validateStorageLocation(STORAGE_LOCATION, "sprinter.storage.LiquidityPoolAave");
-        ASSETS_DECIMALS = IERC20Metadata(liquidityToken).decimals();
         require(aavePoolProvider != address(0), ZeroAddress());
         IAavePoolAddressesProvider provider = IAavePoolAddressesProvider(aavePoolProvider);
         AAVE_POOL_PROVIDER = provider;
@@ -99,10 +97,6 @@ contract LiquidityPoolAave is LiquidityPoolBase {
 
     function borrowTokenLTV(address token) public view returns (uint256) {
         return _getStorage().borrowTokenLTV[token];
-    }
-
-    function debtSnapshot(address token) public view returns (uint256) {
-        return _getStorage().debtSnapshot[token];
     }
 
     // Admin functions

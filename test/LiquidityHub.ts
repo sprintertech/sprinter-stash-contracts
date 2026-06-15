@@ -1424,15 +1424,17 @@ describe("LiquidityHub", function () {
       const {liquidityHub, usdc, user, lpToken, USDC, LP} = await loadFixture(deployAll);
       await depositFor(liquidityHub, usdc, user, 10n * USDC);
 
-      await expect(liquidityHub.connect(user).requestRedeem(5n * LP, user, user))
-        .to.emit(liquidityHub, "RedeemRequest")
-        .withArgs(user.address, user.address, 0n, user.address, 5n * LP);
+      const tx = await liquidityHub.connect(user).requestRedeem(4n * LP, user, user);
+      await expect(tx).to.emit(liquidityHub, "RedeemRequest")
+        .withArgs(user.address, user.address, 0n, user.address, 4n * LP);
 
       // shares are burned immediately; virtual totalSupply adds them back via totalRedeemRequest
-      expect(await lpToken.balanceOf(user)).to.equal(5n * LP);
+      expect(await lpToken.balanceOf(user)).to.equal(6n * LP);
       expect(await lpToken.balanceOf(liquidityHub)).to.equal(0n);
-      expect(await lpToken.totalSupply()).to.equal(5n * LP);
-      expect(await liquidityHub.totalRedeemRequest()).to.equal(5n * LP);
+      expect(await lpToken.totalSupply()).to.equal(6n * LP);
+      expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(4n * LP);
+      expect(await liquidityHub.pendingRedeemRequest(0n, user)).to.equal(0n);
+      expect(await liquidityHub.totalRedeemRequest()).to.equal(4n * LP);
       expect(await liquidityHub.totalSupply()).to.equal(10n * LP);
       expect(await liquidityHub.totalAssets()).to.equal(10n * USDC);
     });
@@ -1446,48 +1448,60 @@ describe("LiquidityHub", function () {
 
       // pool has assets so all 5 LP is immediately claimable (pending = total - claimable = 0)
       expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(5n * LP);
+      expect(await liquidityHub.pendingRedeemRequest(0n, user)).to.equal(0n);
+      expect(await liquidityHub.totalRedeemRequest()).to.equal(5n * LP);
     });
 
     it("setOperator / isOperator allow third-party requestRedeem", async function () {
       const {liquidityHub, usdc, user, user2, USDC, LP} = await loadFixture(deployAll);
       await depositFor(liquidityHub, usdc, user, 10n * USDC);
 
-      await expect(liquidityHub.connect(user).setOperator(user2, true))
-        .to.emit(liquidityHub, "OperatorSet")
-        .withArgs(user.address, user2.address, true);
+      const tx1 = await liquidityHub.connect(user).setOperator(user2, true);
+      await expect(tx1).to.emit(liquidityHub, "OperatorSet").withArgs(user.address, user2.address, true);
 
       expect(await liquidityHub.isOperator(user, user2)).to.equal(true);
 
-      await expect(liquidityHub.connect(user2).requestRedeem(4n * LP, user2, user))
-        .to.emit(liquidityHub, "RedeemRequest")
+      const tx2 = await liquidityHub.connect(user2).requestRedeem(4n * LP, user2, user);
+      await expect(tx2).to.emit(liquidityHub, "RedeemRequest")
         .withArgs(user2.address, user.address, 0n, user2.address, 4n * LP);
 
       // pool has assets so all 4 LP is immediately claimable
+      expect(await liquidityHub.balanceOf(user)).to.equal(6n * LP);
       expect(await liquidityHub.claimableRedeemRequest(0n, user2)).to.equal(4n * LP);
+      expect(await liquidityHub.pendingRedeemRequest(0n, user2)).to.equal(0n);
+      expect(await liquidityHub.totalRedeemRequest()).to.equal(4n * LP);
     });
 
-    it("requestRedeemSetOperator sets hub as operator and queues redeem in one tx", async function () {
+    it("requestRedeemWithFulfil sets hub as operator and queues redeem in one tx", async function () {
       const {liquidityHub, usdc, admin, user, USDC, LP} = await loadFixture(deployAll);
       await depositFor(liquidityHub, usdc, user, 10n * USDC);
       await liquidityHub.connect(admin).grantRole(FULFIL_REDEEM_ROLE, admin);
 
       // single call: sets hub as operator and requests redeem
-      const tx1 = await liquidityHub.connect(user).requestRedeemSetOperator(5n * LP, user);
+      const tx1 = await liquidityHub.connect(user).requestRedeemWithFulfil(6n * LP);
       await expect(tx1).to.emit(liquidityHub, "OperatorSet").withArgs(user.address, liquidityHub.target, true);
-      await expect(tx1).to.emit(liquidityHub, "RedeemRequest").withArgs(user.address, user.address, 0n, user.address, 5n * LP);
+      await expect(tx1).to.emit(liquidityHub, "RedeemRequest")
+        .withArgs(user.address, user.address, 0n, user.address, 6n * LP);
 
       expect(await liquidityHub.isOperator(user, liquidityHub)).to.equal(true);
-      expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(5n * LP);
+      expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(6n * LP);
+      expect(await liquidityHub.pendingRedeemRequest(0n, user)).to.equal(0n);
+      expect(await liquidityHub.totalRedeemRequest()).to.equal(6n * LP);
 
       // calling again re-emits OperatorSet (setOperator is always called)
-      const tx2 = await liquidityHub.connect(user).requestRedeemSetOperator(2n * LP, user);
+      const tx2 = await liquidityHub.connect(user).requestRedeemWithFulfil(2n * LP);
       await expect(tx2).to.emit(liquidityHub, "OperatorSet").withArgs(user.address, liquidityHub.target, true);
       await expect(tx2).to.emit(liquidityHub, "RedeemRequest");
-      expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(7n * LP);
+      expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(8n * LP);
+      expect(await liquidityHub.pendingRedeemRequest(0n, user)).to.equal(0n);
+      expect(await liquidityHub.totalRedeemRequest()).to.equal(8n * LP);
 
       // fulfilRedeem pays the user without any further user interaction
       await liquidityHub.connect(admin).fulfilRedeem([user]);
-      expect(await usdc.balanceOf(user)).to.equal(7n * USDC);
+      expect(await usdc.balanceOf(user)).to.equal(8n * USDC);
+      expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(0n);
+      expect(await liquidityHub.pendingRedeemRequest(0n, user)).to.equal(0n);
+      expect(await liquidityHub.totalRedeemRequest()).to.equal(0n);
     });
 
     it("requestRedeem reverts with ERC20InsufficientAllowance for non-operator third party", async function () {
@@ -1503,11 +1517,32 @@ describe("LiquidityHub", function () {
 
       await lpToken.connect(user).approve(user2, 4n * LP);
 
-      await expect(liquidityHub.connect(user2).requestRedeem(4n * LP, user2, user))
-        .to.emit(liquidityHub, "RedeemRequest")
+      const tx = await liquidityHub.connect(user2).requestRedeem(4n * LP, user2, user);
+      await expect(tx).to.emit(liquidityHub, "RedeemRequest")
         .withArgs(user2.address, user.address, 0n, user2.address, 4n * LP);
 
+      expect(await lpToken.allowance(user, user2)).to.equal(0n);
+      expect(await liquidityHub.balanceOf(user)).to.equal(6n * LP);
       expect(await liquidityHub.claimableRedeemRequest(0n, user2)).to.equal(4n * LP);
+      expect(await liquidityHub.pendingRedeemRequest(0n, user2)).to.equal(0n);
+      expect(await liquidityHub.totalRedeemRequest()).to.equal(4n * LP);
+    });
+
+    it("requestRedeem with partial allowance leaves remainder on the allowance", async function () {
+      const {liquidityHub, usdc, user, user2, lpToken, USDC, LP} = await loadFixture(deployAll);
+      await depositFor(liquidityHub, usdc, user, 10n * USDC);
+
+      await lpToken.connect(user).approve(user2, 6n * LP);
+
+      const tx = await liquidityHub.connect(user2).requestRedeem(4n * LP, user2, user);
+      await expect(tx).to.emit(liquidityHub, "RedeemRequest")
+        .withArgs(user2.address, user.address, 0n, user2.address, 4n * LP);
+
+      expect(await lpToken.allowance(user, user2)).to.equal(2n * LP);
+      expect(await liquidityHub.balanceOf(user)).to.equal(6n * LP);
+      expect(await liquidityHub.claimableRedeemRequest(0n, user2)).to.equal(4n * LP);
+      expect(await liquidityHub.pendingRedeemRequest(0n, user2)).to.equal(0n);
+      expect(await liquidityHub.totalRedeemRequest()).to.equal(4n * LP);
     });
 
     it("claimableRedeemRequest returns min(pending, previewWithdraw(pool))", async function () {
@@ -1518,9 +1553,11 @@ describe("LiquidityHub", function () {
       await liquidityHub.connect(user).requestRedeem(10n * LP, user, user);
 
       // pool has 20 USDC, user pending is 10 LP — all claimable
+      expect(await liquidityHub.balanceOf(user2)).to.equal(10n * LP);
       const claimable = await liquidityHub.claimableRedeemRequest(0n, user);
       expect(claimable).to.equal(10n * LP);
       expect(await liquidityHub.pendingRedeemRequest(0n, user)).to.equal(0n);
+      expect(await liquidityHub.totalRedeemRequest()).to.equal(10n * LP);
     });
 
     it("pendingRedeemRequest returns non-claimable portion when totalAssets exceeds pool balance", async function () {
@@ -1535,6 +1572,7 @@ describe("LiquidityHub", function () {
       const pending = await liquidityHub.pendingRedeemRequest(0n, user);
       expect(pending).to.equal(9n * LP);
       expect(claimable).to.equal(1n * LP);
+      expect(await liquidityHub.totalRedeemRequest()).to.equal(10n * LP);
     });
 
     it("previewRedeem and previewWithdraw unaffected by pending requests", async function () {
@@ -1542,13 +1580,12 @@ describe("LiquidityHub", function () {
       await depositFor(liquidityHub, usdc, user, 10n * USDC);
       await depositFor(liquidityHub, usdc, user2, 10n * USDC);
 
-      const previewBefore = await liquidityHub.previewRedeem(1n * LP);
-      const previewWBefore = await liquidityHub.previewWithdraw(1n * USDC);
+      await liquidityHub.connect(user).requestRedeem(4n * LP, user, user);
 
-      await liquidityHub.connect(user).requestRedeem(5n * LP, user, user);
-
-      expect(await liquidityHub.previewRedeem(1n * LP)).to.equal(previewBefore);
-      expect(await liquidityHub.previewWithdraw(1n * USDC)).to.equal(previewWBefore);
+      expect(await liquidityHub.previewRedeem(1n * LP)).to.equal(1n * USDC);
+      expect(await liquidityHub.previewWithdraw(1n * USDC)).to.equal(1n * LP);
+      expect(await liquidityHub.balanceOf(user)).to.equal(6n * LP);
+      expect(await liquidityHub.balanceOf(user2)).to.equal(10n * LP);
     });
 
     it("maxRedeem includes pending shares and is bounded by pool balance", async function () {
@@ -1571,8 +1608,8 @@ describe("LiquidityHub", function () {
       await depositFor(liquidityHub, usdc, user2, 4n * USDC);
       await liquidityHub.connect(admin).grantRole(FULFIL_REDEEM_ROLE, admin);
 
-      await liquidityHub.connect(user).requestRedeemSetOperator(6n * LP, user);
-      await liquidityHub.connect(user2).requestRedeemSetOperator(4n * LP, user2);
+      await liquidityHub.connect(user).requestRedeemWithFulfil(6n * LP);
+      await liquidityHub.connect(user2).requestRedeemWithFulfil(4n * LP);
 
       const tx = await liquidityHub.connect(admin).fulfilRedeem([user, user2]);
       await expect(tx).to.emit(liquidityHub, "Withdraw");
@@ -1580,20 +1617,48 @@ describe("LiquidityHub", function () {
       expect(await usdc.balanceOf(user)).to.equal(6n * USDC);
       expect(await usdc.balanceOf(user2)).to.equal(4n * USDC);
       expect(await liquidityHub.totalAssets()).to.equal(0n);
+      expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(0n);
+      expect(await liquidityHub.claimableRedeemRequest(0n, user2)).to.equal(0n);
       expect(await liquidityHub.pendingRedeemRequest(0n, user)).to.equal(0n);
       expect(await liquidityHub.pendingRedeemRequest(0n, user2)).to.equal(0n);
+      expect(await liquidityHub.totalRedeemRequest()).to.equal(0n);
+    });
+
+    it("fulfilRedeem sends partial redeem assets and leaves remainder in wallet", async function () {
+      const {liquidityHub, usdc, admin, user, user2, USDC, LP} = await loadFixture(deployAll);
+      await depositFor(liquidityHub, usdc, user, 9n * USDC);
+      await depositFor(liquidityHub, usdc, user2, 6n * USDC);
+      await liquidityHub.connect(admin).grantRole(FULFIL_REDEEM_ROLE, admin);
+
+      await liquidityHub.connect(user).requestRedeemWithFulfil(6n * LP);
+      await liquidityHub.connect(user2).requestRedeemWithFulfil(4n * LP);
+
+      const tx = await liquidityHub.connect(admin).fulfilRedeem([user, user2]);
+      await expect(tx).to.emit(liquidityHub, "Withdraw");
+
+      expect(await usdc.balanceOf(user)).to.equal(6n * USDC);
+      expect(await usdc.balanceOf(user2)).to.equal(4n * USDC);
+      expect(await liquidityHub.balanceOf(user)).to.equal(3n * LP);
+      expect(await liquidityHub.balanceOf(user2)).to.equal(2n * LP);
+      expect(await liquidityHub.totalAssets()).to.equal(5n * USDC);
+      expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(0n);
+      expect(await liquidityHub.claimableRedeemRequest(0n, user2)).to.equal(0n);
+      expect(await liquidityHub.pendingRedeemRequest(0n, user)).to.equal(0n);
+      expect(await liquidityHub.pendingRedeemRequest(0n, user2)).to.equal(0n);
+      expect(await liquidityHub.totalRedeemRequest()).to.equal(0n);
     });
 
     it("fulfilRedeem skips receivers with 0 claimable", async function () {
       const {liquidityHub, usdc, admin, user, user2, USDC, LP} = await loadFixture(deployAll);
       await depositFor(liquidityHub, usdc, user, 5n * USDC);
       await liquidityHub.connect(admin).grantRole(FULFIL_REDEEM_ROLE, admin);
-      await liquidityHub.connect(user).requestRedeemSetOperator(5n * LP, user);
+      await liquidityHub.connect(user).requestRedeemWithFulfil(5n * LP);
 
       // user2 has no pending request — must not revert
-      await expect(liquidityHub.connect(admin).fulfilRedeem([user, user2]))
-        .to.emit(liquidityHub, "Withdraw");
+      const tx = await liquidityHub.connect(admin).fulfilRedeem([user, user2]);
+      await expect(tx).to.emit(liquidityHub, "Withdraw");
       expect(await usdc.balanceOf(user)).to.equal(5n * USDC);
+      expect(await usdc.balanceOf(user2)).to.equal(0n);
     });
 
     it("fulfilRedeem reverts without FULFIL_REDEEM_ROLE", async function () {
@@ -1613,7 +1678,9 @@ describe("LiquidityHub", function () {
 
       expect(await usdc.balanceOf(user)).to.equal(5n * USDC);
       expect(await liquidityHub.balanceOf(user)).to.equal(5n * LP);
+      expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(0n);
       expect(await liquidityHub.pendingRedeemRequest(0n, user)).to.equal(0n);
+      expect(await liquidityHub.totalRedeemRequest()).to.equal(0n);
     });
 
     it("requestRedeem with controller different from caller and owner", async function () {
@@ -1627,6 +1694,9 @@ describe("LiquidityHub", function () {
       expect(await liquidityHub.balanceOf(user)).to.equal(4n * LP);
       expect(await liquidityHub.claimableRedeemRequest(0n, user3)).to.equal(6n * LP);
       expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(0n);
+      expect(await liquidityHub.pendingRedeemRequest(0n, user3)).to.equal(0n);
+      expect(await liquidityHub.pendingRedeemRequest(0n, user)).to.equal(0n);
+      expect(await liquidityHub.totalRedeemRequest()).to.equal(6n * LP);
     });
 
     it("requestRedeem with caller, owner, and controller all different", async function () {
@@ -1641,13 +1711,16 @@ describe("LiquidityHub", function () {
       expect(await liquidityHub.balanceOf(user)).to.equal(4n * LP);
       expect(await liquidityHub.claimableRedeemRequest(0n, user3)).to.equal(6n * LP);
       expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(0n);
+      expect(await liquidityHub.pendingRedeemRequest(0n, user3)).to.equal(0n);
+      expect(await liquidityHub.pendingRedeemRequest(0n, user)).to.equal(0n);
+      expect(await liquidityHub.totalRedeemRequest()).to.equal(6n * LP);
     });
 
     it("fulfilRedeem processes partial claimable when pool is underfunded", async function () {
       const {liquidityHub, usdc, admin, user, USDC, LP} = await loadFixture(deployAll);
       await depositFor(liquidityHub, usdc, user, 10n * USDC);
       await liquidityHub.connect(admin).grantRole(FULFIL_REDEEM_ROLE, admin);
-      await liquidityHub.connect(user).requestRedeemSetOperator(10n * LP, user);
+      await liquidityHub.connect(user).requestRedeemWithFulfil(10n * LP);
 
       // inflate totalAssets: totalAssets=100 USDC, pool=10 USDC, rate=10 USDC/LP
       // previewWithdraw(10 USDC) = 1 LP → claimable=1 LP, pool is fully drained by 1 LP redeem
@@ -1659,6 +1732,7 @@ describe("LiquidityHub", function () {
       expect(await usdc.balanceOf(user)).to.equal(10n * USDC);
       expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(0n);
       expect(await liquidityHub.pendingRedeemRequest(0n, user)).to.equal(9n * LP);
+      expect(await liquidityHub.totalRedeemRequest()).to.equal(9n * LP);
     });
 
     it("redeem of pending shares reverts for non-owner non-operator caller", async function () {
@@ -1668,6 +1742,14 @@ describe("LiquidityHub", function () {
 
       await expect(liquidityHub.connect(user2).redeem(6n * LP, user2, user))
         .to.be.revertedWithCustomError(liquidityHub, "Unauthorized");
+      await expect(liquidityHub.connect(user2).redeem(6n * LP, user, user))
+        .to.be.revertedWithCustomError(liquidityHub, "Unauthorized");
+
+      expect(await liquidityHub.balanceOf(user)).to.equal(4n * LP);
+      expect(await usdc.balanceOf(user2)).to.equal(0n);
+      expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(6n * LP);
+      expect(await liquidityHub.pendingRedeemRequest(0n, user)).to.equal(0n);
+      expect(await liquidityHub.totalRedeemRequest()).to.equal(6n * LP);
     });
 
     it("fulfilRedeem reverts if receiver did not set LiquidityHub as operator", async function () {
@@ -1694,6 +1776,7 @@ describe("LiquidityHub", function () {
       expect(await liquidityHub.balanceOf(user)).to.equal(4n * LP);
       // pool is well-funded so the 2 LP remainder is claimable, not pending
       expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(2n * LP);
+      expect(await liquidityHub.pendingRedeemRequest(0n, user)).to.equal(0n);
       expect(await liquidityHub.totalRedeemRequest()).to.equal(2n * LP);
     });
 
@@ -1708,8 +1791,61 @@ describe("LiquidityHub", function () {
 
       expect(await usdc.balanceOf(user)).to.equal(6n * USDC);
       expect(await liquidityHub.balanceOf(user)).to.equal(4n * LP);
+      expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(0n);
       expect(await liquidityHub.pendingRedeemRequest(0n, user)).to.equal(0n);
       expect(await liquidityHub.totalRedeemRequest()).to.equal(0n);
+    });
+
+    it("withdraw() partially drains pending shares, remainder stays in redeemRequests", async function () {
+      const {liquidityHub, usdc, user, USDC, LP} = await loadFixture(deployAll);
+      await depositFor(liquidityHub, usdc, user, 10n * USDC);
+      await liquidityHub.connect(user).requestRedeem(6n * LP, user, user);
+      // user has 4 LP in wallet, 6 LP pending
+
+      await liquidityHub.connect(user).withdraw(4n * USDC, user, user);
+      // withdraws 4 USDC = 4 LP from pending; 2 LP remain in redeemRequests
+
+      expect(await usdc.balanceOf(user)).to.equal(4n * USDC);
+      expect(await liquidityHub.balanceOf(user)).to.equal(4n * LP);
+      expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(2n * LP);
+      expect(await liquidityHub.pendingRedeemRequest(0n, user)).to.equal(0n);
+      expect(await liquidityHub.totalRedeemRequest()).to.equal(2n * LP);
+    });
+
+    it("withdraw() drains all pending shares when 1 LP = 2 USDC", async function () {
+      const {liquidityHub, usdc, admin, user, USDC, LP} = await loadFixture(deployAll);
+      await depositFor(liquidityHub, usdc, user, 20n * USDC);
+      await liquidityHub.connect(admin).adjustTotalAssets(20n * USDC, INCREASE);
+      // totalAssets=40 USDC, pool=20 USDC, rate: 1 LP = 2 USDC
+      await liquidityHub.connect(user).requestRedeem(6n * LP, user, user);
+      // user has 14 LP in wallet, 6 LP pending (worth 12 USDC)
+
+      await liquidityHub.connect(user).withdraw(12n * USDC, user, user);
+      // withdraws 12 USDC = 6 LP all from pending; wallet stays at 14 LP
+
+      expect(await usdc.balanceOf(user)).to.equal(12n * USDC);
+      expect(await liquidityHub.balanceOf(user)).to.equal(14n * LP);
+      expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(0n);
+      expect(await liquidityHub.pendingRedeemRequest(0n, user)).to.equal(0n);
+      expect(await liquidityHub.totalRedeemRequest()).to.equal(0n);
+    });
+
+    it("withdraw() partially drains pending shares when 1 LP = 2 USDC", async function () {
+      const {liquidityHub, usdc, admin, user, USDC, LP} = await loadFixture(deployAll);
+      await depositFor(liquidityHub, usdc, user, 20n * USDC);
+      await liquidityHub.connect(admin).adjustTotalAssets(20n * USDC, INCREASE);
+      // totalAssets=40 USDC, pool=20 USDC, rate: 1 LP = 2 USDC
+      await liquidityHub.connect(user).requestRedeem(6n * LP, user, user);
+      // user has 14 LP in wallet, 6 LP pending (worth 12 USDC)
+
+      await liquidityHub.connect(user).withdraw(8n * USDC, user, user);
+      // withdraws 8 USDC = 4 LP from pending; 2 LP remain in redeemRequests
+
+      expect(await usdc.balanceOf(user)).to.equal(8n * USDC);
+      expect(await liquidityHub.balanceOf(user)).to.equal(14n * LP);
+      expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(2n * LP);
+      expect(await liquidityHub.pendingRedeemRequest(0n, user)).to.equal(0n);
+      expect(await liquidityHub.totalRedeemRequest()).to.equal(2n * LP);
     });
   });
 });

@@ -40,7 +40,10 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
     event TotalAssetsAdjustment(uint256 oldAssets, uint256 newAssets);
     event AssetsLimitSet(uint256 oldLimit, uint256 newLimit);
     event DepositProfit(address caller, uint256 assets);
-    event RedeemRequest(address indexed controller, address indexed owner, uint256 indexed requestId, address sender, uint256 shares);
+    event RedeemRequest(
+        address indexed controller, address indexed owner, uint256 indexed requestId,
+        address sender, uint256 shares
+    );
     event OperatorSet(address indexed owner, address indexed operator, bool approved);
 
     error ZeroAddress();
@@ -239,12 +242,14 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         return _requestRedeem(shares, controller, owner, _msgSender());
     }
 
-    function requestRedeemSetOperator(uint256 shares, address controller) external returns (uint256 requestId) {
+    function requestRedeemWithFulfil(uint256 shares) external returns (uint256 requestId) {
         setOperator(address(this), true);
-        return _requestRedeem(shares, controller, _msgSender(), _msgSender());
+        return _requestRedeem(shares, _msgSender(), _msgSender(), _msgSender());
     }
 
-    function _requestRedeem(uint256 shares, address controller, address owner, address caller) internal returns (uint256 requestId) {
+    function _requestRedeem(uint256 shares, address controller, address owner, address caller)
+        internal returns (uint256 requestId)
+    {
         LiquidityHubStorage storage $ = _getStorage();
         if (caller != owner && !isOperator(owner, caller)) {
             _spendAllowance(owner, caller, shares);

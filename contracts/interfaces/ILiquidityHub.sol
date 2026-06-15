@@ -9,7 +9,7 @@ interface ILiquidityHub {
     function setOperator(address operator, bool approved) external;
     function isOperator(address owner, address operator) external view returns (bool);
     function requestRedeem(uint256 shares, address controller, address owner) external returns (uint256 requestId);
-    function requestRedeemSetOperator(uint256 shares, address controller) external returns (uint256 requestId);
+    function requestRedeemWithFulfil(uint256 shares) external returns (uint256 requestId);
     function claimableRedeemRequest(uint256 requestId, address controller) external view returns (uint256 shares);
     function pendingRedeemRequest(uint256 requestId, address controller) external view returns (uint256 shares);
     function fulfilRedeem(address[] calldata receivers) external;

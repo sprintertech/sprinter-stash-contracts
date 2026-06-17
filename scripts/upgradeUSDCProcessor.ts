@@ -10,7 +10,7 @@ import {
   logDeployers,
 } from "./helpers";
 import {createSender} from "./safe";
-import {getDeployProxyXAddress, resolveXAddress, getContractAt} from "../test/helpers";
+import {getDeployProxyXAddress, resolveProxyXAddress, getContractAt} from "../test/helpers";
 import {isSet, assert, assertAddress, ZERO_ADDRESS, retry} from "./common";
 import {Processor} from "../typechain-types";
 import {Network, NetworkConfig} from "../network.config";
@@ -39,13 +39,15 @@ export async function main() {
   assertAddress(config.SignerAddress, "SignerAddress must be an address, used as OpsAdmin");
 
   const processorAddress = await getDeployProxyXAddress("Processor");
+  const repayerAddress = await resolveProxyXAddress("Repayer");
+  console.log(`Repayer: ${repayerAddress}`);
 
   const {txRequired} = await upgradeProxyX<Processor>(
     verifier.deployX,
     processorAddress,
     "Processor",
     sender,
-    [config.Tokens.USDC.Address, await resolveXAddress("Repayer")],
+    [config.Tokens.USDC.Address, repayerAddress],
     "Processor"
   );
 

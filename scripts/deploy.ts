@@ -144,7 +144,7 @@ export async function main() {
   let aavePoolLongTerm: LiquidityPoolAaveLongTerm;
   let aavePoolLongTermAdmin: ProxyAdmin;
   if (config.AavePoolLongTerm) {
-    const id = LiquidityPoolAaveUSDCLongTermVersions.at(0);
+    const id = LiquidityPoolAaveUSDCLongTermVersions[0];
     const minHealthFactor = BigInt(config.AavePoolLongTerm.MinHealthFactor) * 10000n / 100n;
     const defaultLTV = BigInt(config.AavePoolLongTerm.DefaultLTV) * 10000n / 100n;
     console.log("Deploying AAVE Liquidity Pool Long Term");
@@ -186,7 +186,7 @@ export async function main() {
   let aavePool: LiquidityPoolAave;
   let aavePoolAdmin: ProxyAdmin;
   if (config.AavePool) {
-    const id = LiquidityPoolAaveUSDCVersions.at(0);
+    const id = LiquidityPoolAaveUSDCVersions[0];
     const minHealthFactor = BigInt(config.AavePool.MinHealthFactor) * 10000n / 100n;
     const defaultLTV = BigInt(config.AavePool.DefaultLTV) * 10000n / 100n;
     console.log("Deploying AAVE Liquidity Pool");
@@ -229,7 +229,7 @@ export async function main() {
   let usdcPool: LiquidityPool;
   let usdcPoolAdmin: ProxyAdmin;
   if (config.USDCPool) {
-    const id = LiquidityPoolUSDCVersions.at(0);
+    const id = LiquidityPoolUSDCVersions[0];
     console.log("Deploying USDC Liquidity Pool");
     ({target: usdcPool, targetAdmin: usdcPoolAdmin} = await deployProxyX<LiquidityPool>(
       verifier.deployX,
@@ -261,7 +261,7 @@ export async function main() {
   let usdcStablecoinPool: LiquidityPoolStablecoin;
   let usdcStablecoinPoolAdmin: ProxyAdmin;
   if (config.USDCStablecoinPool) {
-    const id = LiquidityPoolUSDCStablecoinVersions.at(0);
+    const id = LiquidityPoolUSDCStablecoinVersions[0];
     console.log("Deploying USDC Stablecoin Liquidity Pool");
     ({target: usdcStablecoinPool, targetAdmin: usdcStablecoinPoolAdmin} =
       await deployProxyX<LiquidityPoolStablecoin>(
@@ -295,7 +295,7 @@ export async function main() {
   let usdcPublicPoolAdmin: ProxyAdmin;
   if (config.USDCPublicPool) {
     assertAddress(config.USDCPublicPool.FeeSetter, "FeeSetter must be an address");
-    const id = LiquidityPoolPublicUSDCVersions.at(0);
+    const id = LiquidityPoolPublicUSDCVersions[0];
     console.log("Deploying USDC Public Liquidity Pool");
     ({target: usdcPublicPool, targetAdmin: usdcPublicPoolAdmin} = await deployProxyX<PublicLiquidityPool>(
       verifier.deployX,
@@ -316,7 +316,7 @@ export async function main() {
   let erc4626AdapterUSDC: ERC4626Adapter;
   let erc4626AdapterUSDCAdmin: ProxyAdmin;
   if (config.ERC4626AdapterUSDCTargetVault) {
-    const id = ERC4626AdapterUSDCVersions.at(0);
+    const id = ERC4626AdapterUSDCVersions[0];
     const targetVault = await resolveXAddress(config.ERC4626AdapterUSDCTargetVault);
     console.log(`Target Vault: ${targetVault}`);
 

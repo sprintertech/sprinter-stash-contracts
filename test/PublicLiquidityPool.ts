@@ -8,7 +8,7 @@ import {
   setupTests,
 } from "./helpers";
 import {ZERO_ADDRESS, NATIVE_TOKEN, ETH} from "../scripts/common";
-import {encodeBytes32String, AbiCoder, hashMessage, resolveAddress, Signature} from "ethers";
+import {encodeBytes32String, AbiCoder, hashMessage, concat, resolveAddress, Signature} from "ethers";
 import {
   MockTarget, MockBorrowSwap, PublicLiquidityPool, MockSignerTrue, MockSignerFalse
 } from "../typechain-types";
@@ -23,8 +23,14 @@ const ERC4626Withdraw = "withdraw(uint256,address,address)";
 const ERC4626DepositEvent = "Deposit(address,address,uint256,uint256)";
 const ERC4626WithdrawEvent = "Withdraw(address,address,address,uint256,uint256)";
 
-function packProfit(profit: bigint, amount: bigint) {
-  return (profit << 128n) | amount;
+function addAmountToReceive(callData: string, amountToReceive: bigint) {
+  return concat([
+    callData,
+    AbiCoder.defaultAbiCoder().encode(
+      ["uint256"],
+      [amountToReceive]
+    )
+  ]);
 }
 
 describe("PublicLiquidityPool", function () {
@@ -326,24 +332,24 @@ describe("PublicLiquidityPool", function () {
 
       const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
 
-      const callData = (await mockTarget.fulfill.populateTransaction(usdc, fillAmount, additionalData)).data;
-      const packedAmount = packProfit(fee, amountToReceive);
+      const callData = await mockTarget.fulfill.populateTransaction(usdc, fillAmount, additionalData);
+      const callDataWithAmountToReceive = addAmountToReceive(callData.data, amountToReceive);
 
       const signature = await signBorrow(
         mpc_signer,
         liquidityPool,
         user,
         usdc,
-        packedAmount,
+        amountToBorrow,
         mockTarget,
-        callData,
+        callDataWithAmountToReceive,
       );
 
       await expect(liquidityPool.connect(user).borrow(
         usdc,
-        packedAmount,
+        amountToBorrow,
         mockTarget,
-        callData,
+        callDataWithAmountToReceive,
         0n,
         2000000000n,
         signature))
@@ -380,24 +386,24 @@ describe("PublicLiquidityPool", function () {
 
       const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
 
-      const callData = (await mockTarget.fulfill.populateTransaction(usdc, fillAmount, additionalData)).data;
-      const packedAmount = packProfit(fee, amountToReceive);
+      const callData = await mockTarget.fulfill.populateTransaction(usdc, fillAmount, additionalData);
+      const callDataWithAmountToReceive = addAmountToReceive(callData.data, amountToReceive);
 
       const signature = await signBorrow(
         mpc_signer,
         liquidityPool,
         user,
         usdc,
-        packedAmount,
+        amountToBorrow,
         mockTarget,
-        callData,
+        callDataWithAmountToReceive,
       );
 
       await expect(liquidityPool.connect(user).borrow(
         usdc,
-        packedAmount,
+        amountToBorrow,
         mockTarget,
-        callData,
+        callDataWithAmountToReceive,
         0n,
         2000000000n,
         signature))
@@ -432,8 +438,8 @@ describe("PublicLiquidityPool", function () {
 
       const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
 
-      const callData = (await mockTarget.fulfill.populateTransaction(eurc, fillAmount, additionalData)).data;
-      const packedAmount = packProfit(fee, amountToReceive);
+      const callData = await mockTarget.fulfill.populateTransaction(eurc, fillAmount, additionalData);
+      const callDataWithAmountToReceive = addAmountToReceive(callData.data, amountToReceive);
       const swapData = AbiCoder.defaultAbiCoder().encode(
         ["address"],
         [eurcOwner.address]
@@ -444,17 +450,17 @@ describe("PublicLiquidityPool", function () {
         liquidityPool,
         mockBorrowSwap,
         usdc,
-        packedAmount,
+        amountToBorrow,
         mockTarget,
-        callData,
+        callDataWithAmountToReceive,
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
         usdc,
-        packedAmount,
+        amountToBorrow,
         {fillToken: eurc, fillAmount, swapData},
         mockTarget,
-        callData,
+        callDataWithAmountToReceive,
         0n,
         2000000000n,
         signature
@@ -495,8 +501,8 @@ describe("PublicLiquidityPool", function () {
 
       const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
 
-      const callData = (await mockTarget.fulfill.populateTransaction(NATIVE_TOKEN, fillAmount, additionalData)).data;
-      const packedAmount = packProfit(fee, amountToReceive);
+      const callData = await mockTarget.fulfill.populateTransaction(NATIVE_TOKEN, fillAmount, additionalData);
+      const callDataWithAmountToReceive = addAmountToReceive(callData.data, amountToReceive);
       const swapData = AbiCoder.defaultAbiCoder().encode(
         ["address"],
         [wethOwner.address]
@@ -507,17 +513,17 @@ describe("PublicLiquidityPool", function () {
         liquidityPool,
         mockBorrowSwap,
         usdc,
-        packedAmount,
+        amountToBorrow,
         mockTarget,
-        callData,
+        callDataWithAmountToReceive,
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
         usdc,
-        packedAmount,
+        amountToBorrow,
         {fillToken: NATIVE_TOKEN, fillAmount, swapData},
         mockTarget,
-        callData,
+        callDataWithAmountToReceive,
         0n,
         2000000000n,
         signature
@@ -560,8 +566,8 @@ describe("PublicLiquidityPool", function () {
 
       const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
 
-      const callData = (await mockTarget.fulfill.populateTransaction(NATIVE_TOKEN, fillAmount, additionalData)).data;
-      const packedAmount = packProfit(fee, amountToReceive);
+      const callData = await mockTarget.fulfill.populateTransaction(NATIVE_TOKEN, fillAmount, additionalData);
+      const callDataWithAmountToReceive = addAmountToReceive(callData.data, amountToReceive);
       const swapData = AbiCoder.defaultAbiCoder().encode(
         ["address", "uint256"],
         [ZERO_ADDRESS, fillAmount - 1n]
@@ -572,17 +578,17 @@ describe("PublicLiquidityPool", function () {
         liquidityPool,
         mockBorrowSwap,
         usdc,
-        packedAmount,
+        amountToBorrow,
         mockTarget,
-        callData,
+        callDataWithAmountToReceive,
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
         usdc,
-        packedAmount,
+        amountToBorrow,
         {fillToken: NATIVE_TOKEN, fillAmount, swapData},
         mockTarget,
-        callData,
+        callDataWithAmountToReceive,
         0n,
         2000000000n,
         signature
@@ -613,8 +619,8 @@ describe("PublicLiquidityPool", function () {
 
       const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
 
-      const callData = (await mockTarget.fulfill.populateTransaction(NATIVE_TOKEN, fillAmount, additionalData)).data;
-      const packedAmount = packProfit(fee, amountToReceive);
+      const callData = await mockTarget.fulfill.populateTransaction(NATIVE_TOKEN, fillAmount, additionalData);
+      const callDataWithAmountToReceive = addAmountToReceive(callData.data, amountToReceive);
       const swapData = AbiCoder.defaultAbiCoder().encode(
         ["address", "uint256"],
         [ZERO_ADDRESS, returnedAmount]
@@ -625,17 +631,17 @@ describe("PublicLiquidityPool", function () {
         liquidityPool,
         mockBorrowSwap,
         usdc,
-        packedAmount,
+        amountToBorrow,
         mockTarget,
-        callData,
+        callDataWithAmountToReceive,
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
         usdc,
-        packedAmount,
+        amountToBorrow,
         {fillToken: NATIVE_TOKEN, fillAmount, swapData},
         mockTarget,
-        callData,
+        callDataWithAmountToReceive,
         0n,
         2000000000n,
         signature
@@ -675,7 +681,7 @@ describe("PublicLiquidityPool", function () {
 
       const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
 
-      const callData = (await mockTarget.fulfill.populateTransaction(usdc, amountToBorrow2, additionalData)).data;
+      const callData = await mockTarget.fulfill.populateTransaction(usdc, amountToBorrow2, additionalData);
 
       const signature = await signBorrowMany(
         mpc_signer,
@@ -684,14 +690,14 @@ describe("PublicLiquidityPool", function () {
         [usdc, usdc],
         [amountToBorrow, amountToBorrow2],
         mockTarget,
-        callData,
+        callData.data,
       );
 
       await expect(liquidityPool.connect(user).borrowMany(
         [usdc, usdc],
         [amountToBorrow, amountToBorrow2],
         mockTarget,
-        callData,
+        callData.data,
         0n,
         2000000000n,
         signature)
@@ -714,7 +720,7 @@ describe("PublicLiquidityPool", function () {
 
       const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
 
-      const callData = (await mockTarget.fulfill.populateTransaction(eurc, fillAmount, additionalData)).data;
+      const callData = await mockTarget.fulfill.populateTransaction(eurc, fillAmount, additionalData);
       const swapData = AbiCoder.defaultAbiCoder().encode(
         ["address"],
         [eurcOwner.address]
@@ -727,7 +733,7 @@ describe("PublicLiquidityPool", function () {
         [usdc],
         [amountToBorrow],
         mockTarget,
-        callData,
+        callData.data,
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwapMany.populateTransaction(
@@ -735,7 +741,7 @@ describe("PublicLiquidityPool", function () {
         [amountToBorrow],
         {fillToken: eurc, fillAmount, swapData},
         mockTarget,
-        callData,
+        callData.data,
         0n,
         2000000000n,
         signature
@@ -745,21 +751,14 @@ describe("PublicLiquidityPool", function () {
         .to.be.reverted;
     });
 
-    it("Should borrow direct", async function() {
+    it("Should NOT borrow direct", async function() {
       const {liquidityPool, usdc, USDC_DEC, directBorrower, lp} = await loadFixture(deployAll);
       const amountLiquidity = 1000n * USDC_DEC;
       await usdc.connect(lp).approve(liquidityPool, amountLiquidity);
       await liquidityPool.connect(lp)[ERC4626Deposit](amountLiquidity, lp);
 
-      await liquidityPool.connect(directBorrower).borrowDirect(usdc, 1n * USDC_DEC);
-      await usdc.connect(directBorrower).transferFrom(liquidityPool, directBorrower, 1n * USDC_DEC);
-      expect(await usdc.balanceOf(liquidityPool)).to.eq(amountLiquidity - 1n * USDC_DEC);
-      expect(await liquidityPool.totalDeposited()).to.eq(amountLiquidity);
-      expect(await liquidityPool.totalAssets()).to.eq(amountLiquidity);
-      expect(await liquidityPool.totalSupply()).to.eq(amountLiquidity);
-      expect(await liquidityPool.balance(usdc)).to.eq(amountLiquidity - 1n * USDC_DEC);
-      expect(await usdc.balanceOf(directBorrower)).to.eq(1n * USDC_DEC);
-      expect(await liquidityPool.directDebt(usdc)).to.eq(1n * USDC_DEC);
+      await expect(liquidityPool.connect(directBorrower).borrowDirect(usdc, 1n * USDC_DEC))
+        .to.be.revertedWithCustomError(liquidityPool, "TargetCallDataTooShort");
     });
 
     it("Should deposit when the contract is paused", async function () {
@@ -870,24 +869,24 @@ describe("PublicLiquidityPool", function () {
 
       const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
 
-      const callData = (await mockTarget.fulfill.populateTransaction(usdc, fillAmount, additionalData)).data;
-      const packedAmount = packProfit(fee, amountToReceive);
+      const callData = await mockTarget.fulfill.populateTransaction(usdc, fillAmount, additionalData);
+      const callDataWithAmountToReceive = addAmountToReceive(callData.data, amountToReceive);
 
       const signature = await signBorrow(
         mpc_signer,
         liquidityPool,
         user,
         usdc,
-        packedAmount,
+        amountToBorrow,
         mockTarget,
-        callData,
+        callDataWithAmountToReceive,
       );
 
       await expect(liquidityPool.connect(user).borrow(
         usdc,
-        packedAmount,
+        amountToBorrow,
         mockTarget,
-        callData,
+        callDataWithAmountToReceive,
         0n,
         2000000000n,
         signature))
@@ -1019,7 +1018,7 @@ describe("PublicLiquidityPool", function () {
       await eurc.connect(eurcOwner).transfer(liquidityPool, amountLiquidity);
 
       const amountToBorrow = 2n * EURC_DEC;
-      const callData = "0x";
+      const callData = addAmountToReceive("0x", amountToBorrow);
       const signature = await signBorrow(
         mpc_signer,
         liquidityPool,
@@ -1081,7 +1080,7 @@ describe("PublicLiquidityPool", function () {
       await liquidityPool.connect(lp)[ERC4626Deposit](amountLiquidity, lp);
 
       const amountToBorrow = 2n * USDC_DEC;
-      const callData = "0x";
+      const callData = addAmountToReceive("0x", amountToBorrow);
       const signature = await signBorrow(
         mpc_signer,
         liquidityPool,
@@ -1158,7 +1157,8 @@ describe("PublicLiquidityPool", function () {
 
       const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
 
-      const callData = (await mockTarget.fulfill.populateTransaction(usdc, amountToBorrow, additionalData)).data;
+      const callData = await mockTarget.fulfill.populateTransaction(usdc, amountToBorrow, additionalData);
+      const callDataWithAmountToReceive = addAmountToReceive(callData.data, amountToBorrow);
 
       const signature = await signBorrow(
         mpc_signer,
@@ -1167,14 +1167,14 @@ describe("PublicLiquidityPool", function () {
         usdc,
         amountToBorrow,
         usdc,
-        callData,
+        callDataWithAmountToReceive,
       );
 
       await expect(liquidityPool.connect(user).borrow(
         usdc,
         amountToBorrow,
         usdc,
-        callData,
+        callDataWithAmountToReceive,
         0n,
         2000000000n,
         signature))
@@ -1278,7 +1278,7 @@ describe("PublicLiquidityPool", function () {
 
       const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
 
-      const callData = (await mockTarget.fulfill.populateTransaction(eurc, fillAmount, additionalData)).data;
+      const callData = await mockTarget.fulfill.populateTransaction(eurc, fillAmount, additionalData);
       const swapData = AbiCoder.defaultAbiCoder().encode(
         ["address"],
         [eurcOwner.address]
@@ -1292,7 +1292,7 @@ describe("PublicLiquidityPool", function () {
         usdc,
         amountToBorrow,
         mockTarget,
-        callData,
+        callData.data,
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
@@ -1300,7 +1300,7 @@ describe("PublicLiquidityPool", function () {
         amountToBorrow,
         {fillToken: eurc, fillAmount, swapData},
         mockTarget,
-        callData,
+        callData.data,
         0n,
         2000000000n,
         signature
@@ -1325,7 +1325,8 @@ describe("PublicLiquidityPool", function () {
 
       const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
 
-      const callData = (await mockTarget.fulfill.populateTransaction(eurc, fillAmount, additionalData)).data;
+      const callData = await mockTarget.fulfill.populateTransaction(eurc, fillAmount, additionalData);
+      const callDataWithAmountToReceive = addAmountToReceive(callData.data, amountToBorrow);
       const swapData = AbiCoder.defaultAbiCoder().encode(
         ["address"],
         [eurcOwner.address]
@@ -1338,7 +1339,7 @@ describe("PublicLiquidityPool", function () {
         usdc,
         amountToBorrow,
         mockTarget,
-        callData,
+        callDataWithAmountToReceive,
       );
 
       const borrowCalldata = await liquidityPool.borrowAndSwap.populateTransaction(
@@ -1346,7 +1347,7 @@ describe("PublicLiquidityPool", function () {
         amountToBorrow,
         {fillToken: eurc, fillAmount, swapData},
         mockTarget,
-        callData,
+        callDataWithAmountToReceive,
         0n,
         2000000000n,
         signature
@@ -1366,7 +1367,7 @@ describe("PublicLiquidityPool", function () {
       await eurc.connect(eurcOwner).transfer(liquidityPool, amountLiquidity);
 
       const amountToBorrow = 2n * EURC_DEC;
-      const callData = "0x";
+      const callData = addAmountToReceive("0x", amountToBorrow);
       const signature = await signBorrow(
         mpc_signer,
         liquidityPool,
@@ -1403,24 +1404,24 @@ describe("PublicLiquidityPool", function () {
 
       const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
 
-      const callData = (await mockTarget.fulfill.populateTransaction(usdc, fillAmount, additionalData)).data;
-      const packedAmount = packProfit(fee, amountToReceive);
+      const callData = await mockTarget.fulfill.populateTransaction(usdc, fillAmount, additionalData);
+      const callDataWithAmountToReceive = addAmountToReceive(callData.data, amountToReceive);
 
       const signature = await signBorrow(
         mpc_signer,
         liquidityPool,
         user,
         usdc,
-        packedAmount,
+        amountToBorrow,
         mockTarget,
-        callData,
+        callDataWithAmountToReceive,
       );
 
       await liquidityPool.connect(user).borrow(
         usdc,
-        packedAmount,
+        amountToBorrow,
         mockTarget,
-        callData,
+        callDataWithAmountToReceive,
         0n,
         2000000000n,
         signature
@@ -1464,24 +1465,24 @@ describe("PublicLiquidityPool", function () {
 
       const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
 
-      const callData = (await mockTarget.fulfill.populateTransaction(usdc, fillAmount, additionalData)).data;
-      const packedAmount = packProfit(fee, amountToReceive);
+      const callData = await mockTarget.fulfill.populateTransaction(usdc, fillAmount, additionalData);
+      const callDataWithAmountToReceive = addAmountToReceive(callData.data, amountToReceive);
 
       const signature = await signBorrow(
         mpc_signer,
         liquidityPool,
         user,
         usdc,
-        packedAmount,
+        amountToBorrow,
         mockTarget,
-        callData,
+        callDataWithAmountToReceive,
       );
 
       await liquidityPool.connect(user).borrow(
         usdc,
-        packedAmount,
+        amountToBorrow,
         mockTarget,
-        callData,
+        callDataWithAmountToReceive,
         0n,
         2000000000n,
         signature
@@ -1702,24 +1703,24 @@ describe("PublicLiquidityPool", function () {
 
       const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
 
-      const callData = (await mockTarget.fulfill.populateTransaction(usdc, fillAmount, additionalData)).data;
-      const packedAmount = packProfit(fee, amountToReceive);
+      const callData = await mockTarget.fulfill.populateTransaction(usdc, fillAmount, additionalData);
+      const callDataWithAmountToReceive = addAmountToReceive(callData.data, amountToReceive);
 
       const signature = await signBorrow(
         mpc_signer,
         liquidityPool,
         user,
         usdc,
-        packedAmount,
+        amountToBorrow,
         mockTarget,
-        callData,
+        callDataWithAmountToReceive,
       );
 
       await expect(liquidityPool.connect(user).borrow(
         usdc,
-        packedAmount,
+        amountToBorrow,
         mockTarget,
-        callData,
+        callDataWithAmountToReceive,
         0n,
         2000000000n,
         signature))
@@ -1753,24 +1754,24 @@ describe("PublicLiquidityPool", function () {
 
       const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
 
-      const callData = (await mockTarget.fulfill.populateTransaction(usdc, fillAmount, additionalData)).data;
-      const packedAmount = packProfit(fee, amountToReceive);
+      const callData = await mockTarget.fulfill.populateTransaction(usdc, fillAmount, additionalData);
+      const callDataWithAmountToReceive = addAmountToReceive(callData.data, amountToReceive);
 
       const signature = await signBorrow(
         mpc_signer,
         liquidityPool,
         user,
         usdc,
-        packedAmount,
+        amountToBorrow,
         mockTarget,
-        callData,
+        callDataWithAmountToReceive,
       );
 
       await expect(liquidityPool.connect(user).borrow(
         usdc,
-        packedAmount,
+        amountToBorrow,
         mockTarget,
-        callData,
+        callDataWithAmountToReceive,
         0n,
         2000000000n,
         signature))
@@ -1804,24 +1805,24 @@ describe("PublicLiquidityPool", function () {
 
       const additionalData = "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0";
 
-      const callData = (await mockTarget.fulfill.populateTransaction(usdc, fillAmount, additionalData)).data;
-      const packedAmount = packProfit(fee, amountToReceive);
+      const callData = await mockTarget.fulfill.populateTransaction(usdc, fillAmount, additionalData);
+      const callDataWithAmountToReceive = addAmountToReceive(callData.data, amountToReceive);
 
       const signature = await signBorrow(
         mpc_signer,
         liquidityPool,
         user,
         usdc,
-        packedAmount,
+        amountToBorrow,
         mockTarget,
-        callData,
+        callDataWithAmountToReceive,
       );
 
       await expect(liquidityPool.connect(user).borrow(
         usdc,
-        packedAmount,
+        amountToBorrow,
         mockTarget,
-        callData,
+        callDataWithAmountToReceive,
         0n,
         2000000000n,
         signature))

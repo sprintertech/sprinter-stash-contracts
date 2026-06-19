@@ -8,7 +8,7 @@ import {
   getNetworkConfig,
   getHardhatNetworkConfig,
 } from "./helpers";
-import {resolveXAddress} from "../test/helpers";
+import {resolveProxyXAddress} from "../test/helpers";
 import {isSet, assert, assertAddress} from "./common";
 import {Processor} from "../typechain-types";
 import {Network, NetworkConfig} from "../network.config";
@@ -33,7 +33,7 @@ export async function main() {
   assertAddress(config.Admin, "Admin must be an address");
   assertAddress(config.RepayerCaller, "RepayerCaller must be an address");
 
-  const repayerAddress = await resolveXAddress("Repayer");
+  const repayerAddress = await resolveProxyXAddress("Repayer");
   console.table({
     Repayer: repayerAddress,
     Target: config.Tokens.USDC.Address,

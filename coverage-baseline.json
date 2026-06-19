@@ -1,6 +1,13 @@
 {
+<<<<<<< HEAD
   "lines": "99.67",
   "functions": "99.65",
   "branches": "92.65",
   "statements": "99.67"
+=======
+  "lines": "99.66",
+  "functions": "99.64",
+  "branches": "92.39",
+  "statements": "99.66"
+>>>>>>> task/remove-everclear
 }

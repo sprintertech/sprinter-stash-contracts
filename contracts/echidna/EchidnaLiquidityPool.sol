@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity 0.8.28;
 
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {LiquidityPool} from "../LiquidityPool.sol";
 import {TestUSDC} from "../testing/TestUSDC.sol";
 import {TestWETH} from "../testing/TestWETH.sol";
@@ -16,13 +17,14 @@ contract EchidnaLiquidityPool {
         liquidityToken = new TestUSDC();
         liquidityToken.mint(address(this), 1e18);
 
-        pool = new LiquidityPool(
-            address(liquidityToken),
-            address(this),
-            address(this),
-            address(new TestWETH()),
-            address(this)
+        address weth = address(new TestWETH());
+        LiquidityPool impl = new LiquidityPool(address(liquidityToken), weth);
+        bytes memory initData = abi.encodeCall(
+            LiquidityPool.initialize,
+            (address(this), address(this), address(this))
         );
+        pool = LiquidityPool(payable(new ERC1967Proxy(address(impl), initData)));
+
         bytes32 liquidityAdminRole = "LIQUIDITY_ADMIN_ROLE";
         bytes32 withdrawProfitRole = "WITHDRAW_PROFIT_ROLE";
         pool.grantRole(liquidityAdminRole, address(this));

@@ -3,21 +3,26 @@ pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {LiquidityPool} from "./LiquidityPool.sol";
+import {LiquidityPoolBase} from "./LiquidityPool.sol";
 import {HelperLib} from "./utils/HelperLib.sol";
 
 /// @title A version of the liquidity pool contract that supports multiple assets for borrowing.
 /// The idea is that pool has to allow repayments with any token equivalent to the liquidity token.
 /// It's possible to borrow any tokens that are present in the pool.
+/// @notice Upgradeable.
 /// @author Tanya Bushenyova <tanya@chainsafe.io>
-contract LiquidityPoolStablecoin is LiquidityPool {
+contract LiquidityPoolStablecoin is LiquidityPoolBase {
     constructor(
         address liquidityToken,
+        address wrappedNativeToken
+    ) LiquidityPoolBase(liquidityToken, wrappedNativeToken) {}
+
+    function initialize(
         address admin,
         address mpcAddress_,
-        address wrappedNativeToken,
         address signerAddress_
-    ) LiquidityPool(liquidityToken, admin, mpcAddress_, wrappedNativeToken, signerAddress_) {
+    ) external initializer {
+        _initializeBase(admin, mpcAddress_, signerAddress_);
     }
 
     function _borrowLogic(address /*borrowToken*/, uint256 /*amount*/, uint256 /*profit*/, bytes memory context)
@@ -27,9 +32,10 @@ contract LiquidityPoolStablecoin is LiquidityPool {
     }
 
     function _withdrawProfitLogic(IERC20 token) internal override returns (uint256) {
+        LiquidityPoolBaseStorage storage $ = _getStorageBase();
         uint256 assetBalance = HelperLib.balanceOfThis(ASSETS);
-        uint256 deposited = _totalDeposited;
-        uint256 virtualAssets = assetBalance + directDebt[address(ASSETS)];
+        uint256 deposited = $.totalDeposited;
+        uint256 virtualAssets = assetBalance + $.directDebt[address(ASSETS)];
         bool surplusAllowed = virtualAssets >= deposited;
         uint256 currentBalance = HelperLib.balanceOfThis(token);
         uint256 withdrawableSurplus = 0;
@@ -40,11 +46,11 @@ contract LiquidityPoolStablecoin is LiquidityPool {
                 withdrawableSurplus = currentBalance;
             }
         }
-        int256 profit = accruedProfit[address(token)];
+        int256 profit = $.accruedProfit[address(token)];
         // Cannot be negative but can be zero.
         if (profit <= 0) return withdrawableSurplus;
         uint256 toWithdraw = Math.min(currentBalance, uint256(profit));
-        accruedProfit[address(token)] = profit - int256(toWithdraw);
+        $.accruedProfit[address(token)] = profit - int256(toWithdraw);
         return Math.max(toWithdraw, withdrawableSurplus);
     }
 

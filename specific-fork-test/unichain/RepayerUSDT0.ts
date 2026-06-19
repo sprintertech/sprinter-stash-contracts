@@ -53,7 +53,6 @@ describe("Repayer USDT0 (Unichain fork)", function () {
         forkNetworkConfig.CCTP!.TokenMessenger!,
         forkNetworkConfig.CCTP!.MessageTransmitter!,
         forkNetworkConfig.AcrossV3SpokePool!,
-        forkNetworkConfig.EverclearFeeAdapter!,
         weth,
         forkNetworkConfig.StargateTreasurer!,
         ZERO_ADDRESS,

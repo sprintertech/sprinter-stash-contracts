@@ -13,7 +13,6 @@ import {InputOutputTokenData} from "./utils/AdapterHelper.sol";
 import {CCTPV2Adapter} from "./utils/CCTPV2Adapter.sol";
 import {AcrossAdapter} from "./utils/AcrossAdapter.sol";
 import {StargateAdapter} from "./utils/StargateAdapter.sol";
-import {EverclearAdapter} from "./utils/EverclearAdapter.sol";
 import {SuperchainStandardBridgeAdapter} from "./utils/SuperchainStandardBridgeAdapter.sol";
 import {ArbitrumGatewayAdapter} from "./utils/ArbitrumGatewayAdapter.sol";
 import {GnosisOmnibridgeAdapter} from "./utils/GnosisOmnibridgeAdapter.sol";
@@ -31,7 +30,6 @@ contract Repayer is
     CCTPV2Adapter,
     AcrossAdapter,
     StargateAdapter,
-    EverclearAdapter,
     SuperchainStandardBridgeAdapter,
     ArbitrumGatewayAdapter,
     GnosisOmnibridgeAdapter,
@@ -104,7 +102,6 @@ contract Repayer is
         address cctpTokenMessenger,
         address cctpMessageTransmitter,
         address acrossSpokePool,
-        address everclearFeeAdapter,
         address wrappedNativeToken,
         address stargateTreasurer,
         address optimismBridge,
@@ -126,7 +123,6 @@ contract Repayer is
         )
         AcrossAdapter(acrossSpokePool)
         StargateAdapter(stargateTreasurer)
-        EverclearAdapter(everclearFeeAdapter)
         SuperchainStandardBridgeAdapter(optimismBridge, baseBridge, wrappedNativeToken)
         ArbitrumGatewayAdapter(arbitrumGatewayRouter)
         GnosisOmnibridgeAdapter(
@@ -242,16 +238,6 @@ contract Repayer is
                 $.inputOutputTokens[address(token)]
             );
         } else
-        if (provider == Provider.EVERCLEAR) {
-            initiateTransferEverclear(
-                token,
-                amount,
-                destinationPool,
-                destinationDomain,
-                extraData,
-                $.inputOutputTokens[address(token)]
-            );
-        } else
         if (provider == Provider.STARGATE) {
             initiateTransferStargate(token, amount, destinationPool, destinationDomain, extraData, _msgSender());
         } else
@@ -283,7 +269,6 @@ contract Repayer is
         if (provider == Provider.USDT0) {
             initiateTransferUSDT0(token, amount, destinationPool, destinationDomain, DOMAIN, _msgSender());
         } else {
-            // Unreachable atm, but could become so when more providers are added to enum.
             revert UnsupportedProvider();
         }
     }

@@ -595,7 +595,7 @@ describe("Rebalancer", function () {
       liquidityPool, Provider.STARGATE, "0x"
     )).to.be.revertedWithCustomError(rebalancer, "UnsupportedProvider()");
     await expect(rebalancer.connect(rebalanceUser).processRebalance(
-      liquidityPool, Provider.EVERCLEAR, "0x"
+      liquidityPool, Provider.EVERCLEAR_DEPRECATED, "0x"
     )).to.be.revertedWithCustomError(rebalancer, "UnsupportedProvider()");
     await expect(rebalancer.connect(rebalanceUser).processRebalance(
       liquidityPool, Provider.SUPERCHAIN_STANDARD_BRIDGE, "0x"

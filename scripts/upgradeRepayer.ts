@@ -46,9 +46,6 @@ export async function main() {
   if (!config.AcrossV3SpokePool) {
     config.AcrossV3SpokePool = ZERO_ADDRESS;
   }
-  if (!config.EverclearFeeAdapter) {
-    config.EverclearFeeAdapter = ZERO_ADDRESS;
-  }
   if (!config.StargateTreasurer) {
     config.StargateTreasurer = ZERO_ADDRESS;
   }
@@ -81,7 +78,6 @@ export async function main() {
       config.CCTP.TokenMessenger,
       config.CCTP.MessageTransmitter,
       config.AcrossV3SpokePool,
-      config.EverclearFeeAdapter,
       config.WrappedNativeToken,
       config.StargateTreasurer,
       config.OptimismStandardBridge,

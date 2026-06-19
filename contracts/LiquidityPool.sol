@@ -141,6 +141,7 @@ abstract contract LiquidityPoolBase is ILiquidityPool, AccessControlUpgradeable,
     constructor(address liquidityToken, address wrappedNativeToken) {
         ERC7201Helper.validateStorageLocation(STORAGE_LOCATION, "sprinter.storage.LiquidityPoolBase");
         require(liquidityToken != address(0), ZeroAddress());
+        require(wrappedNativeToken != address(0), ZeroAddress());
         ASSETS = IERC20(liquidityToken);
         WRAPPED_NATIVE_TOKEN = IWrappedNativeToken(wrappedNativeToken);
         _disableInitializers();
@@ -184,8 +185,8 @@ abstract contract LiquidityPoolBase is ILiquidityPool, AccessControlUpgradeable,
         return _getStorageBase().signerAddress;
     }
 
-    function directDebt(address account) public view returns (uint256) {
-        return _getStorageBase().directDebt[account];
+    function directDebt(address token) public view returns (uint256) {
+        return _getStorageBase().directDebt[token];
     }
 
     function accruedProfit(address token) public view returns (int256) {

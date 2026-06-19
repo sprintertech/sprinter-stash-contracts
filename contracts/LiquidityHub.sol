@@ -349,6 +349,7 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         uint256 shares
     ) internal virtual override {
         LiquidityHubStorage storage $ = _getStorage();
+        $.totalAssets -= assets;
         uint256 pending = $.redeemRequests[owner];
         uint256 fromPending = Math.min(pending, shares);
         if (fromPending > 0) {
@@ -363,7 +364,6 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
             }
             _burn(owner, fromOwner);
         }
-        $.totalAssets -= assets;
         LIQUIDITY_POOL.withdraw(receiver, assets);
         emit Withdraw(caller, receiver, owner, assets, shares);
     }

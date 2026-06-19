@@ -36,6 +36,7 @@ contract LiquidityPoolAave is LiquidityPool {
     uint32 public defaultLTV;
 
     mapping(address token => uint256 ltv) public borrowTokenLTV;
+    mapping(address token => uint256 snapshot) public debtSnapshot;
 
     error TokenLtvExceeded();
     error NoCollateral();
@@ -123,7 +124,7 @@ contract LiquidityPoolAave is LiquidityPool {
         require(totalCollateralBase > 0, NoCollateral());
 
         AaveDataTypes.ReserveData memory borrowTokenData = AAVE_POOL.getReserveData(borrowToken);
-        uint256 totalBorrowed = IERC20(borrowTokenData.variableDebtTokenAddress).balanceOf(address(this));
+        uint256 totalBorrowed = HelperLib.balanceOfThis(borrowTokenData.variableDebtTokenAddress);
 
         uint256 price = IAaveOracle(AAVE_POOL_PROVIDER.getPriceOracle()).getAssetPrice(borrowToken);
 
@@ -142,7 +143,7 @@ contract LiquidityPoolAave is LiquidityPool {
         emit SuppliedToAave(amount);
     }
 
-    function _borrowLogic(address borrowToken, uint256 amount, bytes memory context)
+    function _borrowLogic(address borrowToken, uint256 amount, uint256 /*profit*/, bytes memory context)
         internal virtual override returns (bytes memory)
     {
         AAVE_POOL.borrow(
@@ -152,6 +153,13 @@ contract LiquidityPoolAave is LiquidityPool {
             NO_REFERRAL,
             address(this)
         );
+        address vdToken = AAVE_POOL.getReserveData(borrowToken).variableDebtTokenAddress;
+        (uint256 currentDebt, uint256 accruedDebt) =
+            _processDebtSnapshot(IERC20(borrowToken), IERC20(vdToken), amount);
+        if (accruedDebt > 0) {
+            accruedProfit[borrowToken] -= int256(accruedDebt);
+        }
+        debtSnapshot[borrowToken] = currentDebt;
         return context;
     }
 
@@ -172,36 +180,78 @@ contract LiquidityPoolAave is LiquidityPool {
     }
 
     function _withdrawLogic(address to, uint256 amount) internal override {
-        require(ATOKEN.balanceOf(address(this)) >= amount, InsufficientLiquidity());
+        require(HelperLib.balanceOfThis(ATOKEN) >= amount, InsufficientLiquidity());
         AAVE_POOL.withdraw(address(ASSETS), amount, to);
         _checkHealthFactor();
         emit WithdrawnFromAave(to, amount);
     }
 
     function _withdrawProfitLogic(IERC20 token) internal virtual override returns (uint256) {
-        // Check that not aToken
         require(token != ATOKEN, CannotWithdrawAToken());
-        uint256 totalBalance = token.balanceOf(address(this));
 
-        address vdToken = AAVE_POOL.getReserveData(address(token)).variableDebtTokenAddress;
-        uint256 outstandingDebt = 0;
-        if (vdToken != address(0)) {
-            outstandingDebt = IERC20(vdToken).balanceOf(address(this)); 
-        }
-        uint256 interest = 0;
+        int256 profit = accruedProfit[address(token)];
         if (token == ASSETS) {
-            // Calculate accrued interest from deposits.
-            interest = ATOKEN.balanceOf(address(this)) - _totalDeposited;
-            totalBalance += interest;
+            // Profit from collateral yield: aToken appreciation above deposited principal.
+            uint256 aTokenBalance = HelperLib.balanceOfThis(ATOKEN);
+            uint256 deposited = _totalDeposited;
+            if (aTokenBalance > deposited) {
+                uint256 interest = aTokenBalance - deposited;
+                _withdrawLogic(address(this), interest);
+                profit += int256(interest);
+            }
         }
 
-        uint256 virtualBalance = totalBalance + directDebt[address(token)];
-        if (virtualBalance < outstandingDebt) return 0;
-        if (interest > 0) {
-            _withdrawLogic(address(this), interest);
+        // Doing it here so that balance from earlier withdrawal is accounted for.
+        uint256 balance = HelperLib.balanceOfThis(token);
+        address vdToken = AAVE_POOL.getReserveData(address(token)).variableDebtTokenAddress;
+        // Withdrawing a token that cannot be borrowed.
+        if (vdToken == address(0)) {
+            return balance;
         }
-        return Math.min(totalBalance, virtualBalance - outstandingDebt);
-    } 
+
+        (uint256 currentDebt, uint256 accruedDebt) = _processDebtSnapshot(token, IERC20(vdToken), 0);
+        profit -= int256(accruedDebt);
+
+        uint256 virtualBalance = balance + directDebt[address(token)];
+        uint256 withdrawableSurplus = 0;
+        if (virtualBalance > currentDebt) {
+            withdrawableSurplus = virtualBalance - currentDebt;
+            // profit = max(profit, withdrawableSurplus)
+            if (int256(withdrawableSurplus) > profit) {
+                profit = int256(withdrawableSurplus);
+            }
+        }
+
+        if (int256(balance) < profit) {
+            uint256 shortfall = uint256(profit) - balance;
+            AAVE_POOL.borrow(address(token), shortfall, INTEREST_RATE_MODE_VARIABLE, NO_REFERRAL, address(this));
+            _checkHealthFactor();
+            currentDebt += shortfall;
+        }
+
+        debtSnapshot[address(token)] = currentDebt;
+        if (profit > 0) {
+            accruedProfit[address(token)] = 0;
+            return uint256(profit);
+        } else {
+            accruedProfit[address(token)] = profit;
+            return 0;
+        }
+    }
+
+    function _processDebtSnapshot(
+        IERC20 borrowToken,
+        IERC20 vdToken,
+        uint256 justBorrowed
+    ) internal view returns (uint256, uint256) {
+        uint256 currentDebt = HelperLib.balanceOfThis(vdToken);
+        uint256 snapshot = debtSnapshot[address(borrowToken)] + justBorrowed;
+        uint256 accruedDebt = 0;
+        if (currentDebt > snapshot) {
+            accruedDebt = currentDebt - snapshot;
+        }
+        return (currentDebt, accruedDebt);
+    }
     
     function _repay(address[] calldata borrowTokens) internal override {
         _repayAccessCheck();
@@ -219,10 +269,10 @@ contract LiquidityPoolAave is LiquidityPool {
         address vdToken = AAVE_POOL.getReserveData(borrowToken).variableDebtTokenAddress;
         if (vdToken == address(0)) return false;
 
-        uint256 outstandingDebt = IERC20(vdToken).balanceOf(address(this));
+        uint256 outstandingDebt = HelperLib.balanceOfThis(vdToken);
         if (outstandingDebt == 0) return false;
 
-        uint256 balance = IERC20(borrowToken).balanceOf(address(this));
+        uint256 balance = HelperLib.balanceOfThis(borrowToken);
         if (balance == 0) return false;
 
         uint256 repayAmount = Math.min(Math.min(balance, maxRepayAmount), outstandingDebt);
@@ -266,8 +316,14 @@ contract LiquidityPoolAave is LiquidityPool {
     }
     
     function _executeRepay(address borrowToken, uint256 repayAmount) private returns(uint256 repaidAmount) {
+        address vdToken = AAVE_POOL.getReserveData(borrowToken).variableDebtTokenAddress;
+        (, uint256 accruedDebt) = _processDebtSnapshot(IERC20(borrowToken), IERC20(vdToken), 0);
+        if (accruedDebt > 0) {
+            accruedProfit[borrowToken] -= int256(accruedDebt);
+        }
         IERC20(borrowToken).forceApprove(address(AAVE_POOL), repayAmount); 
         repaidAmount = AAVE_POOL.repay(borrowToken, repayAmount, 2, address(this));
+        debtSnapshot[borrowToken] = HelperLib.balanceOfThis(vdToken);
     }
 
     function _checkHealthFactor() internal view returns (uint256) {
@@ -291,7 +347,7 @@ contract LiquidityPoolAave is LiquidityPool {
         uint256 totalAvailableBorrowsBase = totalCollateralBase * ltv / MULTIPLIER;
 
         AaveDataTypes.ReserveData memory borrowTokenData = AAVE_POOL.getReserveData(borrowToken);
-        uint256 debt = IERC20(borrowTokenData.variableDebtTokenAddress).balanceOf(address(this));
+        uint256 debt = HelperLib.balanceOfThis(borrowTokenData.variableDebtTokenAddress);
 
         tokenPrice = IAaveOracle(AAVE_POOL_PROVIDER.getPriceOracle()).getAssetPrice(borrowToken);
 
@@ -330,7 +386,7 @@ contract LiquidityPoolAave is LiquidityPool {
         if (reserveAToken == address(0)) {
             return 0;
         }
-        uint256 maxBorrowByAaveReserves = token.balanceOf(reserveAToken);
+        uint256 maxBorrowByAaveReserves = HelperLib.balanceOf(token, reserveAToken);
 
         (uint256 totalCollateralBase, uint256 totalDebtBase,,, uint256 ltv,) =
             AAVE_POOL.getUserAccountData(address(this));

@@ -60,7 +60,7 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         uint256 assetsLimit;
         uint256 totalRedeemRequest;
         mapping(address controller => uint256 shares) redeemRequests;
-        mapping(address controller => mapping(address operator => bool)) operators;
+        mapping(address ownerOrController => mapping(address operator => bool)) operators;
     }
 
     bytes32 private constant STORAGE_LOCATION = 0xb877bfaae1674461dd1960c90f24075e3de3265a91f6906fe128ab8da6ba1700;
@@ -234,8 +234,8 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         emit OperatorSet(_msgSender(), operator, approved);
     }
 
-    function isOperator(address owner, address operator) public view returns (bool) {
-        return _getStorage().operators[owner][operator];
+    function isOperator(address controller, address operator) public view returns (bool) {
+        return _getStorage().operators[controller][operator];
     }
 
     function requestRedeem(uint256 shares, address controller, address owner) external returns (uint256 requestId) {
@@ -251,7 +251,8 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         internal returns (uint256 requestId)
     {
         LiquidityHubStorage storage $ = _getStorage();
-        if (caller != owner && !isOperator(owner, caller)) {
+        bool ownerOrOperator = caller == owner || isOperator(owner, caller);
+        if (!ownerOrOperator) {
             _spendAllowance(owner, caller, shares);
         }
         _burn(owner, shares);
@@ -264,8 +265,9 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
     function claimableRedeemRequest(uint256 /* requestId */, address controller) public view returns (uint256) {
         uint256 pending = _getStorage().redeemRequests[controller];
         if (pending == 0) return 0;
-        uint256 available = LIQUIDITY_POOL.balance(IERC20(asset()));
-        return Math.min(pending, previewWithdraw(available));
+        uint256 availableAssets = LIQUIDITY_POOL.balance(IERC20(asset()));
+        uint256 availableShares = _convertToShares(availableAssets, Math.Rounding.Floor);
+        return Math.min(pending, availableShares);
     }
 
     function pendingRedeemRequest(uint256 /* requestId */, address controller) external view returns (uint256) {
@@ -283,8 +285,9 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
 
     function maxRedeem(address owner) public view override returns (uint256) {
         uint256 total = balanceOf(owner) + _getStorage().redeemRequests[owner];
-        uint256 available = LIQUIDITY_POOL.balance(IERC20(asset()));
-        return Math.min(total, previewWithdraw(available));
+        uint256 availableAssets = LIQUIDITY_POOL.balance(IERC20(asset()));
+        uint256 availableShares = _convertToShares(availableAssets, Math.Rounding.Floor);
+        return Math.min(total, availableShares);
     }
 
     function maxWithdraw(address owner) public view override returns (uint256) {
@@ -352,14 +355,15 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         $.totalAssets -= assets;
         uint256 pending = $.redeemRequests[owner];
         uint256 fromPending = Math.min(pending, shares);
+        bool ownerOrOperator = caller == owner || isOperator(owner, caller);
         if (fromPending > 0) {
-            require(caller == owner || isOperator(owner, caller), Unauthorized());
+            require(ownerOrOperator, Unauthorized());
             $.redeemRequests[owner] = pending - fromPending;
             $.totalRedeemRequest -= fromPending;
         }
         uint256 fromOwner = shares - fromPending;
         if (fromOwner > 0) {
-            if (caller != owner) {
+            if (!ownerOrOperator) {
                 _spendAllowance(owner, caller, fromOwner);
             }
             _burn(owner, fromOwner);

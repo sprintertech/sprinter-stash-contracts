@@ -263,6 +263,32 @@ describe("LiquidityHub", function () {
     expect(await usdc.balanceOf(liquidityPool)).to.equal(0n);
   });
 
+  it("Should allow to withdraw, tiny amounts", async function () {
+    const {lpToken, liquidityHub, usdc, deployer, user, liquidityPool, admin} = await loadFixture(deployAll);
+
+    await usdc.connect(deployer).transfer(user, 4n);
+    await usdc.connect(user).approve(liquidityHub, 4n);
+    await liquidityHub.connect(user).mint(1n, user);
+    await liquidityHub.connect(admin).adjustTotalAssets(1n, INCREASE);
+    await liquidityHub.connect(user).deposit(3n, user);
+    expect(await lpToken.balanceOf(user)).to.equal(2n);
+    const tx = liquidityHub.connect(user).withdraw(4n, user, user);
+    await expect(tx)
+      .to.emit(lpToken, "Transfer")
+      .withArgs(user.address, ZERO_ADDRESS, 2n);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(liquidityPool.target, user.address, 4n);
+    expect(await lpToken.balanceOf(user)).to.equal(0n);
+    expect(await lpToken.totalSupply()).to.equal(0n);
+    expect(await liquidityHub.totalSupply()).to.equal(0n);
+    expect(await liquidityHub.totalAssets()).to.equal(1n);
+    expect(await liquidityHub.balanceOf(user)).to.equal(0n);
+    expect(await usdc.balanceOf(user)).to.equal(4n);
+    expect(await usdc.balanceOf(liquidityHub)).to.equal(0n);
+    expect(await usdc.balanceOf(liquidityPool)).to.equal(0n);
+  });
+
   it("Should allow to redeem", async function () {
     const {lpToken, liquidityHub, usdc, deployer, user, USDC, LP, liquidityPool} = await loadFixture(deployAll);
 

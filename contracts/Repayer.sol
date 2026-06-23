@@ -214,8 +214,7 @@ contract Repayer is
         }
 
         if (provider == Provider.LOCAL) {
-            // This should always pass because isRouteAllowed check will fail earlier.
-            // It is put here for explicitness.
+            require(destinationPool != address(this), RouteDenied());
             require(destinationDomain == DOMAIN, UnsupportedDomain());
             // For local we proceed to the process right away.
             _processRepayLOCAL(token, amount, destinationPool);
@@ -416,6 +415,11 @@ contract Repayer is
     }
 
     function isRouteAllowed(address pool, Domain domain, Provider provider) public view returns (bool) {
+        // As long as we deploy the Repayer contract on the same address on every supported domain this will work.
+        // If we are to ever deploy it to new address, we will need to change this logic.
+        if (pool == address(this)) {
+            return true;
+        }
         return _getStorage().allowedRoutes[pool].get(_toIndex(domain, provider));
     }
 

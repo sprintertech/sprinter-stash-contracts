@@ -4307,4 +4307,65 @@ describe("Repayer", function () {
       }
     );
   });
+
+  it("Should not allow initiating local repay to repayer's own address", async function () {
+    const {repayer, usdc, USDC_DEC, repayUser} = await loadFixture(deployAll);
+
+    await usdc.transfer(repayer, 10n * USDC_DEC);
+    await expect(repayer.connect(repayUser).initiateRepay(
+      usdc,
+      4n * USDC_DEC,
+      repayer,
+      Domain.BASE,
+      Provider.LOCAL,
+      "0x"
+    )).to.be.revertedWithCustomError(repayer, "RouteDenied()");
+  });
+
+  it("Should allow initiating remote repay to repayer's own address without an explicit route", async function () {
+    const {repayer, usdc, USDC_DEC, repayUser, cctpTokenMessenger} = await loadFixture(deployAll);
+
+    await usdc.transfer(repayer, 10n * USDC_DEC);
+    const tx = repayer.connect(repayUser).initiateRepay(
+      usdc,
+      4n * USDC_DEC,
+      repayer,
+      Domain.ETHEREUM,
+      Provider.CCTP,
+      "0x"
+    );
+    await expect(tx)
+      .to.emit(repayer, "InitiateRepay")
+      .withArgs(usdc.target, 4n * USDC_DEC, repayer.target, Domain.ETHEREUM, Provider.CCTP);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(repayer.target, cctpTokenMessenger.target, 4n * USDC_DEC);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(cctpTokenMessenger.target, ZERO_ADDRESS, 4n * USDC_DEC);
+
+    expect(await usdc.balanceOf(repayer)).to.equal(6n * USDC_DEC);
+  });
+
+  it("Should allow processing repay to repayer's own address without an explicit route", async function () {
+    const {repayer, usdc, USDC_DEC, repayUser} = await loadFixture(deployAll);
+
+    expect(await repayer.isRouteAllowed(repayer, Domain.BASE, Provider.LOCAL)).to.be.true;
+
+    const message = AbiCoder.defaultAbiCoder().encode(
+      ["address", "address", "uint256"],
+      [usdc.target, repayer.target, 4n * USDC_DEC]
+    );
+    const signature = AbiCoder.defaultAbiCoder().encode(["bool", "bool"], [true, true]);
+    const extraData = AbiCoder.defaultAbiCoder().encode(["bytes", "bytes"], [message, signature]);
+    const tx = repayer.connect(repayUser).processRepay(repayer, Provider.CCTP, extraData);
+    await expect(tx)
+      .to.emit(repayer, "ProcessRepay")
+      .withArgs(usdc.target, 4n * USDC_DEC, repayer.target, Provider.CCTP);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(ZERO_ADDRESS, repayer.target, 4n * USDC_DEC);
+
+    expect(await usdc.balanceOf(repayer)).to.equal(4n * USDC_DEC);
+  });
 });

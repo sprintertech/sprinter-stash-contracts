@@ -94,3 +94,18 @@ Deployer        : 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
 DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
 Deploying EURe Liquidity Pool
 LiquidityPoolEURe: 0xdA7ba9eA9fc37D66F56D8Ec078263D9889cC8A11
+
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Deployment ID: MVP
+Upgrade ID: REPAYER_TO_SELF
+Upgrading Repayer
+Using config for: stage, GNOSIS_CHAIN
+Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+New Repayer implementation deployed to 0xa11a51185D9406ADe8B7D05166f30B31C88Ec57c
+Sending Repayer upgrade transaction.
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0xbb17323f4ff9800f8dbfa24df8f7ba697e523c9b5364d390ad793643e8cda862
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0x086663576087046ecf6accd3c61a81019385763ee687149a966fdd9ececfeee7
+0x086663576087046ecf6accd3c61a81019385763ee687149a966fdd9ececfeee7
+Repayer upgraded.

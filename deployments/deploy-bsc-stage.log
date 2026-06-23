@@ -73,3 +73,18 @@ InputOutputTokens:
 │ 28      │ '0x55d398326f99059fF775485246999027B3197955' │ 'LINEA'           │ '0xA219439258ca9da29E9Cc4cE5596924745e12B93' │ 12           │
 │ 29      │ '0x55d398326f99059fF775485246999027B3197955' │ 'GNOSIS_CHAIN'    │ '0x4ECaBa5870353805a9F068101A40E0f32ed605C6' │ 12           │
 └─────────┴──────────────────────────────────────────────┴───────────────────┴──────────────────────────────────────────────┴──────────────┘
+
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Deployment ID: MVP
+Upgrade ID: REPAYER_TO_SELF
+Upgrading Repayer
+Using config for: stage, BSC
+Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+New Repayer implementation deployed to 0xa11a51185D9406ADe8B7D05166f30B31C88Ec57c
+Sending Repayer upgrade transaction.
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0x18a30721ba2773178d7c4034e24fb632d334c0f07f0de62fd939fe942e9940c1
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0x9b40becf771cd4d5622abacc8b77228641900635ed6cb708943104c39e9b48ae
+0x9b40becf771cd4d5622abacc8b77228641900635ed6cb708943104c39e9b48ae
+Repayer upgraded.

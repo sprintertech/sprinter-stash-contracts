@@ -116,3 +116,18 @@ InputOutputTokens:
 │ 34      │ '0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6' │ 'BSC'          │ '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c' │ -10          │
 │ 35      │ '0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6' │ 'LINEA'        │ '0x3aAB2285ddcDdaD8edf438C1bAB47e1a9D05a9b4' │ 0            │
 └─────────┴──────────────────────────────────────────────┴────────────────┴──────────────────────────────────────────────┴──────────────┘
+
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Deployment ID: MVP
+Upgrade ID: REPAYER_TO_SELF
+Upgrading Repayer
+Using config for: stage, POLYGON_MAINNET
+Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+New Repayer implementation deployed to 0xa11a51185D9406ADe8B7D05166f30B31C88Ec57c
+Sending Repayer upgrade transaction.
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0xd84c80ec63e97501de1ab23b6bd441aa5bad61b8854184d00e73f61272c606b8
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0x23eb06c87202eb1050ce9a034a3c7adc3bab778ca2d5292c1ff8c7587cb90ad5
+0x23eb06c87202eb1050ce9a034a3c7adc3bab778ca2d5292c1ff8c7587cb90ad5
+Repayer upgraded.

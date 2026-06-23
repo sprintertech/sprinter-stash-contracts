@@ -133,3 +133,18 @@ Following tokens will be added to 0x697ECA1cae710FA0348e2173900e6C09b180C35b.
 │ 7       │ '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f' │ 'BSC'          │ '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c' │ -10          │
 └─────────┴──────────────────────────────────────────────┴────────────────┴──────────────────────────────────────────────┴──────────────┘
 Done.
+
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Deployment ID: MVP
+Upgrade ID: REPAYER_TO_SELF
+Upgrading Repayer
+Using config for: stage, ARBITRUM_ONE
+Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+New Repayer implementation deployed to 0xa11a51185D9406ADe8B7D05166f30B31C88Ec57c
+Sending Repayer upgrade transaction.
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0xe315d2b447870dd991ea0d772fd0d6a1d684b9f4ecf50b392caf4a3e417549a4
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0xcd190babc6320262931bf05b4965bbe68e006e31d94347257f579b8db6aaa96a
+0xcd190babc6320262931bf05b4965bbe68e006e31d94347257f579b8db6aaa96a
+Repayer upgraded.

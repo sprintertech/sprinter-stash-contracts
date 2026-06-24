@@ -123,6 +123,8 @@ export enum Token {
   WETH = "WETH",
   WBTC = "WBTC",
   EURe = "EURe",
+  USDG = "USDG",
+  PYUSD = "PYUSD",
 }
 
 interface CCTPConfig {
@@ -230,6 +232,8 @@ export interface NetworkConfig {
     [Token.WETH]?: TokenInfo;
     [Token.WBTC]?: TokenInfo;
     [Token.EURe]?: TokenInfo;
+    [Token.USDG]?: TokenInfo;
+    [Token.PYUSD]?: TokenInfo;
   };
   WrappedNativeToken: string;
   RebalancerRoutes?: RebalancerRoutesConfig;
@@ -287,6 +291,8 @@ export const networkConfig: NetworksConfig = {
       DAI: tokenInfo("0x6B175474E89094C44Da98b954EedeAC495271d0F", 18),
       WETH: tokenInfo("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", 18),
       WBTC: tokenInfo("0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599", 8),
+      USDG: tokenInfo("0xe343167631d89B6Ffc58B88d6b7fB0228795491D", 6),
+      PYUSD: tokenInfo("0x6c3ea9036406852006290770BEdFcAbA0e23A0e8", 6),
     },
     WrappedNativeToken: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
     IsTest: false,

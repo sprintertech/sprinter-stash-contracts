@@ -9,6 +9,7 @@ contract TestLiquidityPool is ILiquidityPool, AccessControl {
     IERC20 public immutable ASSETS;
     bytes32 public constant LIQUIDITY_ADMIN_ROLE = "LIQUIDITY_ADMIN_ROLE";
     IWrappedNativeToken immutable public WRAPPED_NATIVE_TOKEN;
+    mapping(address => uint256) private _directDebt;
 
     event Deposit();
     event Repaid();
@@ -44,7 +45,14 @@ contract TestLiquidityPool is ILiquidityPool, AccessControl {
         return;
     }
     
-    function borrowDirect(address, uint256) external pure override { return; }
+    function directDebt(address token) external view override returns (uint256) {
+        return _directDebt[token];
+    }
+
+    function borrowDirect(address borrowToken, uint256 amount) external override {
+        _directDebt[borrowToken] += amount;
+        IERC20(borrowToken).approve(msg.sender, amount);
+    }
 
     function borrowMany(
         address[] calldata,
@@ -88,7 +96,14 @@ contract TestLiquidityPool is ILiquidityPool, AccessControl {
         emit Repaid();
     }
     
-    function repayDirect(address[] calldata, uint256[] calldata) external override {
+    function repayDirect(address[] calldata borrowTokens, uint256[] calldata maxAmounts) external override {
+        for (uint256 i = 0; i < borrowTokens.length; i++) {
+            uint256 debt = _directDebt[borrowTokens[i]];
+            if (debt == 0) continue;
+            uint256 repayAmount = maxAmounts[i] < debt ? maxAmounts[i] : debt;
+            _directDebt[borrowTokens[i]] = debt - repayAmount;
+            IERC20(borrowTokens[i]).transferFrom(msg.sender, address(this), repayAmount);
+        }
         emit Repaid();
     }
 

@@ -11,6 +11,10 @@ contract TestWETH is ERC20 {
 
     constructor() ERC20("Wrapped Ether", "WETH") {}
 
+    function mint(address to, uint256 amount) external {
+        _mint(to, amount);
+    }
+
     function deposit() external payable {
         _mint(msg.sender, msg.value);
         emit Deposit(msg.sender, msg.value);

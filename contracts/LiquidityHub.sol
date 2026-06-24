@@ -239,6 +239,7 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
     }
 
     function requestRedeem(uint256 shares, address controller, address owner) external returns (uint256 requestId) {
+        require(controller != address(0), ZeroAddress());
         return _requestRedeem(shares, controller, owner, _msgSender());
     }
 

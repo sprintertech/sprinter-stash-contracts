@@ -1586,6 +1586,13 @@ describe("LiquidityHub", function () {
       expect(await liquidityHub.totalRedeemRequest()).to.equal(0n);
     });
 
+    it("requestRedeem reverts with ZeroAddress when controller is zero address", async function () {
+      const {liquidityHub, usdc, user, USDC, LP} = await loadFixture(deployAll);
+      await depositFor(liquidityHub, usdc, user, 5n * USDC);
+      await expect(liquidityHub.connect(user).requestRedeem(1n * LP, ZERO_ADDRESS, user))
+        .to.be.revertedWithCustomError(liquidityHub, "ZeroAddress()");
+    });
+
     it("requestRedeem reverts with ERC20InsufficientAllowance for non-operator third party", async function () {
       const {liquidityHub, usdc, user, user2, lpToken, USDC, LP} = await loadFixture(deployAll);
       await depositFor(liquidityHub, usdc, user, 5n * USDC);

@@ -125,6 +125,9 @@ contract EchidnaLiquidityHub {
     // withdraw() should be successful
     function testWithdraw(uint256 amount) public {
         // Preconditions
+        uint256 assets = hub.totalAssets();
+        uint256 balanceSharesBeforeDeposit = shares.balanceOf(address(this));
+        require(balanceSharesBeforeDeposit > 0 || assets > liquidityToken.balanceOf(address(pool)), RequireFailed());
         require(amount > 0, RequireFailed());
         require(amount <= hub.maxDeposit(address(this)), RequireFailed());
         // require(shares.balanceOf(address(this)) >= amount);
@@ -156,12 +159,13 @@ contract EchidnaLiquidityHub {
     function testRedeem(uint256 amount) public {
         // Preconditions
         uint256 assets = hub.totalAssets();
+        uint256 balanceSharesBeforeDeposit = shares.balanceOf(address(this));
+        require(balanceSharesBeforeDeposit > 0 || assets > liquidityToken.balanceOf(address(pool)), RequireFailed());
         require(assets > 0, RequireFailed());
         require((amount > assets / 10 ** 12) && (amount > 1), RequireFailed());
         require(amount <= hub.maxDeposit(address(this)), RequireFailed());
         uint256 previewShares = hub.previewDeposit(amount);
         require(previewShares > 0, RequireFailed());
-        uint256 balanceSharesBeforeDeposit = shares.balanceOf(address(this));
         liquidityToken.mint(address(this), amount);
         liquidityToken.approve(address(hub), amount);
         hub.deposit(amount, address(this));

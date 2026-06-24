@@ -562,6 +562,20 @@ export const networkConfig: NetworksConfig = {
           },
         },
       },
+      AavePool: {
+        AaveAddressesProvider: AAVEPools.AaveV3Ethereum.POOL_ADDRESSES_PROVIDER,
+        MinHealthFactor: 150,
+        DefaultLTV: 0,
+        TokenLTVs: {
+          "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599": 100, // WBTC
+          "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2": 100, // WETH
+          "0x6b175474e89094c44da98b954eedeac495271d0f": 100, // DAI
+          "0x6c3ea9036406852006290770BEdFcAbA0e23A0e8": 100, // PYUSD
+          "0xe343167631d89B6Ffc58B88d6b7fB0228795491D": 100, // USDG
+          "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48": 100, // USDC
+          "0xdAC17F958D2ee523a2206206994597C13D831ec7": 100, // USDT
+        },
+      },
       USDCPool: true,
     },
   },

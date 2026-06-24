@@ -284,10 +284,13 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
     }
 
     function maxRedeem(address owner) public view override returns (uint256) {
-        uint256 total = balanceOf(owner) + _getStorage().redeemRequests[owner];
+        uint256 totalShares = balanceOf(owner) + _getStorage().redeemRequests[owner];
+        uint256 total = _convertToAssets(totalShares, Math.Rounding.Floor);
         uint256 availableAssets = LIQUIDITY_POOL.balance(IERC20(asset()));
-        uint256 availableShares = _convertToShares(availableAssets, Math.Rounding.Floor);
-        return Math.min(total, availableShares);
+        if (total > availableAssets) {
+            return _convertToShares(availableAssets, Math.Rounding.Floor);
+        }
+        return totalShares;
     }
 
     function maxWithdraw(address owner) public view override returns (uint256) {

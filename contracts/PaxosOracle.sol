@@ -27,6 +27,8 @@ contract PaxosOracle is IOracle, AccessControl {
     /// @notice Decimals of USDC, fetched once at deployment and used to scale returned values.
     uint8 public immutable USDC_DECIMALS;
 
+    uint8 internal constant MAX_DECIMALS = 18;
+
     mapping(bytes32 assetId => AssetConfig) public assetConfig;
 
     event AssetAdded(bytes32 indexed assetId, uint8 decimals);
@@ -35,6 +37,7 @@ contract PaxosOracle is IOracle, AccessControl {
     error ZeroAddress();
     error AssetAlreadySupported(bytes32 assetId);
     error AssetNotSupported(bytes32 assetId);
+    error DecimalsTooLarge(uint8 decimals);
 
     /// @param admin Super-admin able to add/remove supported stablecoins.
     /// @param usdc Address of the USDC token, used as the value denomination (its decimals).
@@ -87,6 +90,7 @@ contract PaxosOracle is IOracle, AccessControl {
 
     function _addAsset(bytes32 assetId, uint8 decimals) internal {
         require(!assetConfig[assetId].supported, AssetAlreadySupported(assetId));
+        require(decimals <= MAX_DECIMALS, DecimalsTooLarge(decimals));
         assetConfig[assetId] = AssetConfig({supported: true, decimals: decimals});
         emit AssetAdded(assetId, decimals);
     }

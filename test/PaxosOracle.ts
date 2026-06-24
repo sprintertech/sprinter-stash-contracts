@@ -131,6 +131,16 @@ describe("PaxosOracle", function () {
       .to.be.revertedWithCustomError(oracle, "AssetNotSupported");
   });
 
+  it("Should reject decimals above the maximum of 18", async function () {
+    const {admin, weth, oracle} = await loadFixture(deployAll);
+
+    await expect(oracle.connect(admin).addAsset(addressToBytes32(weth.target), 19))
+      .to.be.revertedWithCustomError(oracle, "DecimalsTooLarge").withArgs(19);
+    // The boundary value (18) is accepted.
+    await expect(oracle.connect(admin).addAsset(addressToBytes32(weth.target), 18))
+      .to.emit(oracle, "AssetAdded").withArgs(addressToBytes32(weth.target), 18);
+  });
+
   it("Should set the super-admin on deployment", async function () {
     const {admin, oracle} = await loadFixture(deployAll);
 

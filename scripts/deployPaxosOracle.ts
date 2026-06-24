@@ -24,13 +24,14 @@ export async function main() {
   }
   await logDeployers();
 
-  assert(config.Tokens.USDG, "USDG must be configured");
-  assert(config.Tokens.PYUSD, "PYUSD must be configured");
-
   const usdc = config.Tokens.USDC.Address;
-  const paxosStablecoins: TokenInfo[] = [config.Tokens.USDG, config.Tokens.PYUSD];
+  // Only the Paxos stablecoins configured for this network are registered as initial assets.
+  const paxosStablecoins: TokenInfo[] = [config.Tokens.USDG, config.Tokens.PYUSD]
+    .filter((token): token is TokenInfo => Boolean(token));
   console.log(`USDC: ${usdc}`);
-  console.log(`Paxos stablecoins (1:1 to USDC): ${paxosStablecoins.map(t => t.Address).join(", ")}`);
+  console.log(
+    `Paxos stablecoins (1:1 to USDC): ${paxosStablecoins.map(t => t.Address).join(", ") || "none configured"}`
+  );
 
   const initialAssets = paxosStablecoins.map(t => ({
     assetId: addressToBytes32(t.Address),

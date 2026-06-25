@@ -57,8 +57,10 @@ interface ILiquidityPool is ILiquidityPoolBase {
     ) external;
 
     function repay(address[] calldata borrowTokens) external;
-    
+
     function repayDirect(address[] calldata borrowTokens, uint256[] calldata maxAmounts) external;
+
+    function directDebt(address token) external view returns (uint256);
 
     function pauseBorrow() external;
 

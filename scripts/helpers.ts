@@ -23,6 +23,8 @@ import {
   PartialNetworksConfig,
   Token,
   TokenInfo,
+  RepayerProxy, USDCProcessorProxy,
+  LiquidityPoolAaveUSDCProxy, LiquidityPoolUSDCProxy,
 } from "../network.config";
 
 export async function resolveAddresses(input: any[]): Promise<any[]> {
@@ -445,6 +447,21 @@ export async function getHardhatNetworkConfig() {
   }
   if (!config.ERC4626AdapterUSDCTargetVault) {
     config.ERC4626AdapterUSDCTargetVault = LiquidityPoolPublicUSDCVersions.at(-1);
+  }
+  if (!config.StashDex) {
+    config.StashDex = {
+      Oracle: "PaxosOracle-DeployTest",
+      Receiver: RepayerProxy,
+      ConfigAdmin: opsAdmin.address,
+      Forwarder: opsAdmin.address,
+      Pools: {
+        USDC: LiquidityPoolUSDCProxy,
+        USDT: LiquidityPoolAaveUSDCProxy,
+      },
+      Routes: [
+        {TokenIn: Token.USDT, TokenOut: Token.USDC, FeeBps: 3, Processor: USDCProcessorProxy},
+      ],
+    };
   }
 
   console.log("Using config for: hardhat");

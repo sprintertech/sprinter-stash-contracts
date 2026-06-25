@@ -79,6 +79,10 @@ export const ERC4626AdapterUSDCVersions = [
   ERC4626AdapterUSDCProxy,
 ] as const;
 
+export const RepayerProxy = DEFAULT_PROXY_TYPE + "Repayer";
+export const PYUSDProcessorProxy = DEFAULT_PROXY_TYPE + "PYUSDProcessor";
+export const USDCProcessorProxy = DEFAULT_PROXY_TYPE + "Processor";
+export const USDGProcessorProxy = DEFAULT_PROXY_TYPE + "USDGProcessor";
 const SUPPORTS_ONLY_USDC = false;
 
 export enum Network {
@@ -187,6 +191,26 @@ interface Tier {
   multiplier: bigint;
 }
 
+type StashDexPools = {
+  [key in Token]?: string;
+}
+
+interface StashDexRoute {
+  TokenIn: Token;
+  TokenOut: Token;
+  FeeBps: number;
+  Processor: string;
+}
+
+interface StashDexConfig {
+  Oracle: string; // PaxosOracle address.
+  Receiver: string; // Address that receives forwarded tokens (eg. Repayer).
+  ConfigAdmin: string; // Address holding CONFIG_ROLE — can set pools and routes.
+  Forwarder: string; // Address holding FORWARD_ROLE — can call forward().
+  Pools: StashDexPools;
+  Routes: StashDexRoute[];
+}
+
 interface HubConfig {
   AssetsAdjuster: string; // Address that can increase/decrease LP conversion rate.
   DepositProfit: string; // Address that can deposit profit to the Liquidity Pool via Liquidity Hub.
@@ -255,6 +279,7 @@ export interface NetworkConfig {
   USDCPublicPool?: PublicPoolConfig;
   ERC4626AdapterUSDCTargetVault?: string;
   ActiveLegacyPools?: ActiveLegacyPoolConfig;
+  StashDex?: StashDexConfig;
   Stage?: NetworkConfig;
 }
 
@@ -585,6 +610,55 @@ export const networkConfig: NetworksConfig = {
         },
       },
       USDCPool: true,
+      StashDex: {
+        Oracle: "PaxosOracle",
+        Receiver: RepayerProxy,
+        ConfigAdmin: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+        Forwarder: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+        Pools: {
+          USDC: LiquidityPoolUSDCProxy,
+          PYUSD: LiquidityPoolAaveUSDCProxy,
+          USDG: LiquidityPoolAaveUSDCProxy,
+        },
+        Routes: [
+          {
+            TokenIn: Token.USDC,
+            TokenOut: Token.PYUSD,
+            FeeBps: 3,
+            Processor: PYUSDProcessorProxy,
+          },
+          {
+            TokenIn: Token.PYUSD,
+            TokenOut: Token.USDC,
+            FeeBps: 3,
+            Processor: USDCProcessorProxy,
+          },
+          {
+            TokenIn: Token.USDC,
+            TokenOut: Token.USDG,
+            FeeBps: 3,
+            Processor: USDGProcessorProxy,
+          },
+          {
+            TokenIn: Token.USDG,
+            TokenOut: Token.USDC,
+            FeeBps: 3,
+            Processor: USDCProcessorProxy,
+          },
+          {
+            TokenIn: Token.USDG,
+            TokenOut: Token.PYUSD,
+            FeeBps: 3,
+            Processor: PYUSDProcessorProxy,
+          },
+          {
+            TokenIn: Token.PYUSD,
+            TokenOut: Token.USDG,
+            FeeBps: 3,
+            Processor: USDGProcessorProxy,
+          },
+        ],
+      },
     },
   },
   AVALANCHE: {

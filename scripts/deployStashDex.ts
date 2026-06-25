@@ -22,7 +22,6 @@ export async function main() {
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
   const verifier = getVerifier(process.env.DEPLOY_ID);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
-  let id = "StashDex";
 
   let network: Network;
   let config: NetworkConfig;
@@ -30,7 +29,6 @@ export async function main() {
   ({network, config} = await getNetworkConfig());
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
-    id += "-DeployTest";
   }
 
   await logDeployers();
@@ -41,6 +39,10 @@ export async function main() {
   assertAddress(config.Pauser, "Pauser must be an address");
   assertAddress(stashDexConfig.ConfigAdmin, "StashDex.ConfigAdmin must be an address");
   assertAddress(stashDexConfig.Forwarder, "StashDex.Forwarder must be an address");
+
+  for (const {TokenOut} of stashDexConfig.Routes) {
+    assert(stashDexConfig.Pools[TokenOut], `Route tokenOut ${TokenOut} has no pool configured in StashDex.Pools`);
+  }
 
   const oracle = await resolveXAddress(stashDexConfig.Oracle);
   const receiver = await resolveXAddress(stashDexConfig.Receiver);
@@ -85,7 +87,7 @@ export async function main() {
       initialPools,
       initialRoutes,
     ],
-    id,
+    "StashDex",
     verifier,
   );
 
@@ -98,6 +100,18 @@ export async function main() {
   if (initialRoutes.length > 0) {
     console.log("InitialRoutes:");
     console.table(initialRoutes);
+  }
+
+  if (initialPools.length > 0) {
+    const DIRECT_BORROW_ROLE = hre.ethers.encodeBytes32String("DIRECT_BORROW_ROLE");
+    const calldata = (await stashDex.grantRole.populateTransaction(DIRECT_BORROW_ROLE, stashDex.target)).data;
+    const poolTokenNames = Object.keys(stashDexConfig.Pools) as Token[];
+    console.log("NEXT STEPS — grant DIRECT_BORROW_ROLE on each pool so StashDex can borrow:");
+    console.log(`Calldata: ${calldata}`);
+    console.table(initialPools.map(({pool}, i) => ({
+      token: poolTokenNames[i],
+      to: pool,
+    })));
   }
 
   await verifier.verify(process.env.VERIFY === "true");

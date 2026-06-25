@@ -19,6 +19,7 @@ import {main as deployUSDCProcessor} from "./deployUSDCProcessor";
 import {main as upgradeUSDCProcessor} from "./upgradeUSDCProcessor";
 import {main as deployPaxosOracle} from "./deployPaxosOracle";
 import {main as deployStashDex} from "./deployStashDex";
+import {main as deployStashDexProcessor} from "./deployStashDexProcessor";
 
 async function main() {
   console.log("Test deploy.");
@@ -51,6 +52,9 @@ async function main() {
   await upgradeUSDCProcessor();
   console.log("Test deployPaxosOracle.");
   await deployPaxosOracle();
+  console.log("Test deployStashDexProcessor USDC.");
+  process.env.TARGET_ASSET_NAME = "USDC";
+  await deployStashDexProcessor();
   console.log("Test deployStashDex.");
   await deployStashDex();
   console.log("Test deployStandaloneRepayer.");

@@ -80,9 +80,9 @@ export const ERC4626AdapterUSDCVersions = [
 ] as const;
 
 export const RepayerProxy = DEFAULT_PROXY_TYPE + "Repayer";
-export const PYUSDProcessorProxy = DEFAULT_PROXY_TYPE + "PYUSDProcessor";
-export const USDCProcessorProxy = DEFAULT_PROXY_TYPE + "Processor";
-export const USDGProcessorProxy = DEFAULT_PROXY_TYPE + "USDGProcessor";
+export const PYUSDStashDexProcessorProxy = DEFAULT_PROXY_TYPE + "PYUSDStashDexProcessor";
+export const USDCStashDexProcessorProxy = DEFAULT_PROXY_TYPE + "USDCStashDexProcessor";
+export const USDGStashDexProcessorProxy = DEFAULT_PROXY_TYPE + "USDGStashDexProcessor";
 const SUPPORTS_ONLY_USDC = false;
 
 export enum Network {
@@ -625,37 +625,37 @@ export const networkConfig: NetworksConfig = {
             TokenIn: Token.USDC,
             TokenOut: Token.PYUSD,
             FeeBps: 3,
-            Processor: PYUSDProcessorProxy,
+            Processor: PYUSDStashDexProcessorProxy,
           },
           {
             TokenIn: Token.PYUSD,
             TokenOut: Token.USDC,
             FeeBps: 3,
-            Processor: USDCProcessorProxy,
+            Processor: USDCStashDexProcessorProxy,
           },
           {
             TokenIn: Token.USDC,
             TokenOut: Token.USDG,
             FeeBps: 3,
-            Processor: USDGProcessorProxy,
+            Processor: USDGStashDexProcessorProxy,
           },
           {
             TokenIn: Token.USDG,
             TokenOut: Token.USDC,
             FeeBps: 3,
-            Processor: USDCProcessorProxy,
+            Processor: USDCStashDexProcessorProxy,
           },
           {
             TokenIn: Token.USDG,
             TokenOut: Token.PYUSD,
             FeeBps: 3,
-            Processor: PYUSDProcessorProxy,
+            Processor: PYUSDStashDexProcessorProxy,
           },
           {
             TokenIn: Token.PYUSD,
             TokenOut: Token.USDG,
             FeeBps: 3,
-            Processor: USDGProcessorProxy,
+            Processor: USDGStashDexProcessorProxy,
           },
         ],
       },

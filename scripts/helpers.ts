@@ -23,7 +23,7 @@ import {
   PartialNetworksConfig,
   Token,
   TokenInfo,
-  RepayerProxy, USDCProcessorProxy,
+  RepayerProxy, USDCStashDexProcessorProxy,
   LiquidityPoolAaveUSDCProxy, LiquidityPoolUSDCProxy,
 } from "../network.config";
 
@@ -450,7 +450,7 @@ export async function getHardhatNetworkConfig() {
   }
   if (!config.StashDex) {
     config.StashDex = {
-      Oracle: "PaxosOracle-DeployTest",
+      Oracle: "PaxosOracle",
       Receiver: RepayerProxy,
       ConfigAdmin: opsAdmin.address,
       Forwarder: opsAdmin.address,
@@ -459,7 +459,7 @@ export async function getHardhatNetworkConfig() {
         USDT: LiquidityPoolAaveUSDCProxy,
       },
       Routes: [
-        {TokenIn: Token.USDT, TokenOut: Token.USDC, FeeBps: 3, Processor: USDCProcessorProxy},
+        {TokenIn: Token.USDT, TokenOut: Token.USDC, FeeBps: 3, Processor: USDCStashDexProcessorProxy},
       ],
     };
   }

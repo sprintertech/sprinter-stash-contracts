@@ -9,7 +9,7 @@ import {
   getHardhatNetworkConfig,
 } from "./helpers";
 import {resolveProxyXAddress} from "../test/helpers";
-import {isSet, assert, assertAddress} from "./common";
+import {isSet, assert, assertAddress, ZERO_ADDRESS} from "./common";
 import {Processor} from "../typechain-types";
 import {Network, NetworkConfig} from "../network.config";
 
@@ -34,18 +34,20 @@ export async function main() {
   assertAddress(config.RepayerCaller, "RepayerCaller must be an address");
 
   const repayerAddress = await resolveProxyXAddress("Repayer");
+  const oracleAddress = ZERO_ADDRESS;
   console.table({
     Repayer: repayerAddress,
+    Oracle: oracleAddress,
     Target: config.Tokens.USDC.Address,
     RepayerCaller: config.RepayerCaller,
-  })
+  });
 
   const {target: processor, targetAdmin: processorAdmin} = await deployProxyX<Processor>(
     verifier.deployX,
     "Processor",
     deployer,
     config.Admin,
-    [config.Tokens.USDC.Address, repayerAddress],
+    [config.Tokens.USDC.Address, repayerAddress, oracleAddress],
     [config.Admin, config.RepayerCaller, config.SignerAddress],
     "Processor",
     verifier,

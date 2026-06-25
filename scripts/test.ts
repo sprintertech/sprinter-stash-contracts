@@ -17,6 +17,7 @@ import {main as deployUSDCPublicPool} from "./deployUSDCPublicPool";
 import {main as deployERC4626Adapter} from "./deployERC4626Adapter";
 import {main as deployUSDCProcessor} from "./deployUSDCProcessor";
 import {main as upgradeUSDCProcessor} from "./upgradeUSDCProcessor";
+import {main as deployPaxosOracle} from "./deployPaxosOracle";
 
 async function main() {
   console.log("Test deploy.");
@@ -47,6 +48,8 @@ async function main() {
   await deployUSDCProcessor();
   console.log("Test upgradeUSDCProcessor.");
   await upgradeUSDCProcessor();
+  console.log("Test deployPaxosOracle.");
+  await deployPaxosOracle();
   console.log("Test deployStandaloneRepayer.");
   process.env.STANDALONE_REPAYER_ENV = "SparkStage";
   await deployStandaloneRepayer();

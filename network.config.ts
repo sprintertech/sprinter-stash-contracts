@@ -910,6 +910,9 @@ export const networkConfig: NetworksConfig = {
       MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
       SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
       RebalancerRoutes: {
+        [LiquidityPoolAaveUSDCProxy]: {
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
+        },
         [LiquidityPoolAaveUSDCV4]: {
           [Network.BASE]: [Provider.CCTP, Provider.CCTP_V2],
           [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
@@ -931,6 +934,12 @@ export const networkConfig: NetworksConfig = {
         },
       },
       RepayerRoutes: {
+        [LiquidityPoolAaveUSDCProxy]: {
+          SupportsAllTokens: true,
+          Domains: {
+            [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
+          },
+        },
         [LiquidityPoolAaveUSDCV4]: {
           SupportsAllTokens: true,
           Domains: {
@@ -1180,6 +1189,9 @@ export const networkConfig: NetworksConfig = {
       MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
       SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
       RebalancerRoutes: {
+        [LiquidityPoolAaveUSDCProxy]: {
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
+        },
         [LiquidityPoolAaveUSDCV4]: {
           [Network.BASE]: [Provider.CCTP, Provider.CCTP_V2],
           [Network.OP_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
@@ -1195,6 +1207,12 @@ export const networkConfig: NetworksConfig = {
         },
       },
       RepayerRoutes: {
+        [LiquidityPoolAaveUSDCProxy]: {
+          SupportsAllTokens: true,
+          Domains: {
+            [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
+          },
+        },
         [LiquidityPoolAaveUSDCV4]: {
           SupportsAllTokens: true,
           Domains: {
@@ -1441,6 +1459,9 @@ export const networkConfig: NetworksConfig = {
         Pool: LiquidityPoolAaveUSDCProxy,
       },
       RebalancerRoutes: {
+        [LiquidityPoolAaveUSDCProxy]: {
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
+        },
         [LiquidityPoolAaveUSDCV4]: {
           [Network.OP_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
           [Network.ARBITRUM_ONE]: [Provider.CCTP, Provider.CCTP_V2],
@@ -1462,6 +1483,12 @@ export const networkConfig: NetworksConfig = {
         },
       },
       RepayerRoutes: {
+        [LiquidityPoolAaveUSDCProxy]: {
+          SupportsAllTokens: true,
+          Domains: {
+            [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
+          },
+        },
         [LiquidityPoolAaveUSDCV4]: {
           SupportsAllTokens: true,
           Domains: {
@@ -1662,6 +1689,9 @@ export const networkConfig: NetworksConfig = {
       MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
       SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
       RebalancerRoutes: {
+        [LiquidityPoolAaveUSDCProxy]: {
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
+        },
         [LiquidityPoolAaveUSDCV4]: {
           [Network.BASE]: [Provider.CCTP, Provider.CCTP_V2],
           [Network.OP_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
@@ -1681,6 +1711,12 @@ export const networkConfig: NetworksConfig = {
         },
       },
       RepayerRoutes: {
+        [LiquidityPoolAaveUSDCProxy]: {
+          SupportsAllTokens: true,
+          Domains: {
+            [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
+          },
+        },
         [LiquidityPoolAaveUSDCV4]: {
           SupportsAllTokens: true,
           Domains: {
@@ -1868,6 +1904,9 @@ export const networkConfig: NetworksConfig = {
       MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
       SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
       RebalancerRoutes: {
+        [LiquidityPoolAaveUSDCProxy]: {
+          [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
+        },
         [LiquidityPoolAaveUSDCV4]: {
           [Network.BASE]: [Provider.CCTP, Provider.CCTP_V2],
           [Network.OP_MAINNET]: [Provider.CCTP, Provider.CCTP_V2],
@@ -1885,6 +1924,12 @@ export const networkConfig: NetworksConfig = {
         },
       },
       RepayerRoutes: {
+        [LiquidityPoolAaveUSDCProxy]: {
+          SupportsAllTokens: true,
+          Domains: {
+            [Network.ETHEREUM]: [Provider.CCTP, Provider.ACROSS, Provider.CCTP_V2],
+          },
+        },
         [LiquidityPoolAaveUSDCV4]: {
           SupportsAllTokens: true,
           Domains: {
@@ -2017,6 +2062,12 @@ export const networkConfig: NetworksConfig = {
       MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
       SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
       RepayerRoutes: {
+        [LiquidityPoolAaveUSDCProxy]: {
+          SupportsAllTokens: true,
+          Domains: {
+            [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE],
+          },
+        },
         [LiquidityPoolAaveUSDCV4]: {
           SupportsAllTokens: true,
           Domains: {
@@ -2216,6 +2267,12 @@ export const networkConfig: NetworksConfig = {
         },
       },
       RepayerRoutes: {
+        [LiquidityPoolAaveUSDCProxy]: {
+          SupportsAllTokens: true,
+          Domains: {
+            [Network.ETHEREUM]: [Provider.STARGATE, Provider.GNOSIS_OMNIBRIDGE],
+          },
+        },
         [LiquidityPoolAaveUSDCV4]: {
           SupportsAllTokens: true,
           Domains: {

@@ -79,6 +79,10 @@ export const ERC4626AdapterUSDCVersions = [
   ERC4626AdapterUSDCProxy,
 ] as const;
 
+export const RepayerProxy = DEFAULT_PROXY_TYPE + "Repayer";
+export const PYUSDProcessorProxy = DEFAULT_PROXY_TYPE + "PYUSDProcessor";
+export const USDCProcessorProxy = DEFAULT_PROXY_TYPE + "Processor";
+export const USDGProcessorProxy = DEFAULT_PROXY_TYPE + "USDGProcessor";
 const SUPPORTS_ONLY_USDC = false;
 
 export enum Network {
@@ -187,6 +191,26 @@ interface Tier {
   multiplier: bigint;
 }
 
+type StashDexPools = {
+  [key in Token]?: string;
+}
+
+interface StashDexRoute {
+  TokenIn: Token;
+  TokenOut: Token;
+  FeeBps: number;
+  Processor: string;
+}
+
+interface StashDexConfig {
+  Oracle: string; // PaxosOracle address.
+  Receiver: string; // Address that receives forwarded tokens (eg. Repayer).
+  ConfigAdmin: string; // Address holding CONFIG_ROLE — can set pools and routes.
+  Forwarder: string; // Address holding FORWARD_ROLE — can call forward().
+  Pools: StashDexPools;
+  Routes: StashDexRoute[];
+}
+
 interface HubConfig {
   AssetsAdjuster: string; // Address that can increase/decrease LP conversion rate.
   DepositProfit: string; // Address that can deposit profit to the Liquidity Pool via Liquidity Hub.
@@ -255,6 +279,7 @@ export interface NetworkConfig {
   USDCPublicPool?: PublicPoolConfig;
   ERC4626AdapterUSDCTargetVault?: string;
   ActiveLegacyPools?: ActiveLegacyPoolConfig;
+  StashDex?: StashDexConfig;
   Stage?: NetworkConfig;
 }
 
@@ -570,7 +595,70 @@ export const networkConfig: NetworksConfig = {
           },
         },
       },
+      AavePool: {
+        AaveAddressesProvider: AAVEPools.AaveV3Ethereum.POOL_ADDRESSES_PROVIDER,
+        MinHealthFactor: 150,
+        DefaultLTV: 0,
+        TokenLTVs: {
+          "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599": 100, // WBTC
+          "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2": 100, // WETH
+          "0x6b175474e89094c44da98b954eedeac495271d0f": 100, // DAI
+          "0x6c3ea9036406852006290770BEdFcAbA0e23A0e8": 100, // PYUSD
+          "0xe343167631d89B6Ffc58B88d6b7fB0228795491D": 100, // USDG
+          "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48": 100, // USDC
+          "0xdAC17F958D2ee523a2206206994597C13D831ec7": 100, // USDT
+        },
+      },
       USDCPool: true,
+      StashDex: {
+        Oracle: "PaxosOracle",
+        Receiver: RepayerProxy,
+        ConfigAdmin: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+        Forwarder: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+        Pools: {
+          USDC: LiquidityPoolUSDCProxy,
+          PYUSD: LiquidityPoolAaveUSDCProxy,
+          USDG: LiquidityPoolAaveUSDCProxy,
+        },
+        Routes: [
+          {
+            TokenIn: Token.USDC,
+            TokenOut: Token.PYUSD,
+            FeeBps: 3,
+            Processor: PYUSDProcessorProxy,
+          },
+          {
+            TokenIn: Token.PYUSD,
+            TokenOut: Token.USDC,
+            FeeBps: 3,
+            Processor: USDCProcessorProxy,
+          },
+          {
+            TokenIn: Token.USDC,
+            TokenOut: Token.USDG,
+            FeeBps: 3,
+            Processor: USDGProcessorProxy,
+          },
+          {
+            TokenIn: Token.USDG,
+            TokenOut: Token.USDC,
+            FeeBps: 3,
+            Processor: USDCProcessorProxy,
+          },
+          {
+            TokenIn: Token.USDG,
+            TokenOut: Token.PYUSD,
+            FeeBps: 3,
+            Processor: PYUSDProcessorProxy,
+          },
+          {
+            TokenIn: Token.PYUSD,
+            TokenOut: Token.USDG,
+            FeeBps: 3,
+            Processor: USDGProcessorProxy,
+          },
+        ],
+      },
     },
   },
   AVALANCHE: {

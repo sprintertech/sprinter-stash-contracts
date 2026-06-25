@@ -7,6 +7,8 @@ import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/acce
 import {ILiquidityPool} from "./interfaces/ILiquidityPool.sol";
 import {IOracle} from "./interfaces/IOracle.sol";
 import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 /// @title StashDex — upgradeable DEX that routes swaps through Sprinter liquidity pools.
 /// @notice Accepts tokenIn from the caller and delivers tokenOut borrowed from a configured
@@ -15,6 +17,7 @@ import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 /// @author Sprinter
 contract StashDex is AccessControlUpgradeable {
     using SafeERC20 for IERC20;
+    using SafeCast for uint256;
 
     bytes32 public constant CONFIG_ROLE = "CONFIG_ROLE";
     bytes32 public constant PAUSER_ROLE = "PAUSER_ROLE";
@@ -28,32 +31,45 @@ contract StashDex is AccessControlUpgradeable {
     struct RouteConfig {
         bool allowed;
         uint16 feeBps;
-        address destination;
+        address processor;
+    }
+
+    // pool (20 bytes) + totalBorrowed (12 bytes) = 32 bytes = one storage slot
+    struct TokenConfig {
+        ILiquidityPool pool;
+        uint96 totalBorrowed;
+    }
+
+    struct PoolInit {
+        address token;
+        ILiquidityPool pool;
     }
 
     struct RouteInit {
         address tokenIn;
         address tokenOut;
         uint16 feeBps;
-        address destination;
-        ILiquidityPool pool;
+        address processor;
     }
 
     /// @custom:storage-location erc7201:sprinter.storage.StashDex
     struct StashDexStorage {
         mapping(address tokenIn => mapping(address tokenOut => RouteConfig)) routes;
-        mapping(address token => ILiquidityPool) pool;
+        mapping(address token => TokenConfig) tokenConfig;
         bool paused;
     }
 
     bytes32 private constant STORAGE_LOCATION = 0xcf0fc60ec5775aeb9384817ddbc170789307c3e4b4fa0209ca63afb0f9c5ab00;
 
     error ZeroAddress();
+    error SameToken();
     error RouteNotAllowed();
     error InsufficientOutput();
     error NothingToForward();
     error InvalidIndex();
     error InvalidFeeBps();
+    error OutstandingDebt();
+    error PoolNotConfigured();
     error EnforcedPause();
     error ExpectedPause();
 
@@ -62,14 +78,9 @@ contract StashDex is AccessControlUpgradeable {
         _;
     }
 
-    event RouteSet(
-        address indexed tokenIn,
-        address indexed tokenOut,
-        uint16 feeBps,
-        address destination,
-        ILiquidityPool pool
-    );
-    event RouteDisabled(address indexed tokenIn, address indexed tokenOut);
+    event PoolSet(address indexed token, ILiquidityPool pool);
+    event RouteSet(address indexed tokenIn, address indexed tokenOut, uint16 feeBps, address processor);
+    event RouteDisabled(address tokenIn, address tokenOut);
 
     event Swapped(
         address tokenIn,
@@ -97,6 +108,7 @@ contract StashDex is AccessControlUpgradeable {
         address configAdmin,
         address pauser,
         address forwarder,
+        PoolInit[] calldata initialPools,
         RouteInit[] calldata initialRoutes
     ) external initializer {
         __AccessControl_init();
@@ -108,6 +120,9 @@ contract StashDex is AccessControlUpgradeable {
         _grantRole(CONFIG_ROLE, configAdmin);
         _grantRole(PAUSER_ROLE, pauser);
         _grantRole(FORWARD_ROLE, forwarder);
+        for (uint256 i = 0; i < initialPools.length; i++) {
+            _setPool(initialPools[i]);
+        }
         for (uint256 i = 0; i < initialRoutes.length; i++) {
             _setRoute(initialRoutes[i]);
         }
@@ -126,15 +141,17 @@ contract StashDex is AccessControlUpgradeable {
         RouteConfig memory route = $.routes[tokenIn][tokenOut];
         require(route.allowed, RouteNotAllowed());
 
-        uint256 valueIn = ORACLE.getAssetValue(bytes32(uint256(uint160(tokenIn))), amountIn);
-        uint256 valueOut = ORACLE.getAssetValue(bytes32(uint256(uint160(tokenOut))), amountOut);
+        uint256 valueIn = ORACLE.getAssetValue(_tokenToAssetId(tokenIn), amountIn * 10**12);
+        uint256 valueOut = ORACLE.getAssetValue(_tokenToAssetId(tokenOut), amountOut * 10**12);
         require(valueIn * (BPS - route.feeBps) >= valueOut * BPS, InsufficientOutput());
 
-        IERC20(tokenIn).safeTransferFrom(_msgSender(), route.destination, amountIn);
+        IERC20(tokenIn).safeTransferFrom(_msgSender(), route.processor, amountIn);
 
-        ILiquidityPool pool = $.pool[tokenOut];
-        pool.borrowDirect(tokenOut, amountOut);
-        IERC20(tokenOut).safeTransferFrom(address(pool), recipient, amountOut);
+        TokenConfig storage tc = $.tokenConfig[tokenOut];
+        require(address(tc.pool) != address(0), PoolNotConfigured());
+        tc.pool.borrowDirect(tokenOut, amountOut);
+        tc.totalBorrowed += amountOut.toUint96();
+        IERC20(tokenOut).safeTransferFrom(address(tc.pool), recipient, amountOut);
 
         emit Swapped(tokenIn, tokenOut, amountIn, amountOut, recipient);
     }
@@ -148,29 +165,32 @@ contract StashDex is AccessControlUpgradeable {
         uint256 amountOut,
         address recipient
     ) external {
-        require(indexIn == uint256(uint160(indexIn)) && indexOut == uint256(uint160(indexOut)), InvalidIndex());
-        swap(address(uint160(indexIn)), address(uint160(indexOut)), amountIn, amountOut, recipient);
+        swap(_indexToAddress(indexIn), _indexToAddress(indexOut), amountIn, amountOut, recipient);
     }
 
     /// @notice Repay the liquidity pool for token if debt is outstanding, using this contract's balance.
     function repay(address token) public whenNotPaused() {
-        StashDexStorage storage $ = _getStorage();
-        ILiquidityPool pool = $.pool[token];
-        if (pool.directDebt(token) == 0) return;
-        uint256 amount = IERC20(token).balanceOf(address(this));
+        TokenConfig storage config = _getStorage().tokenConfig[token];
+        uint256 debt = config.totalBorrowed;
+        if (debt == 0) return;
+
+        uint256 available = IERC20(token).balanceOf(address(this));
+        uint256 repayAmount = Math.min(debt, available);
+        if (repayAmount == 0) return;
+        config.totalBorrowed = uint96(debt - repayAmount);
+
         address[] memory tokens = new address[](1);
         uint256[] memory amounts = new uint256[](1);
         tokens[0] = token;
-        amounts[0] = amount;
-        IERC20(token).forceApprove(address(pool), amount);
-        pool.repayDirect(tokens, amounts);
-        emit Repaid(token, amount);
+        amounts[0] = repayAmount;
+
+        config.pool.repayDirect(tokens, amounts);
+        emit Repaid(token, repayAmount);
     }
 
     /// @notice Repay the pool if configured, then transfer any remaining balance to RECEIVER.
     function forward(address token) external onlyRole(FORWARD_ROLE) whenNotPaused() {
-        ILiquidityPool pool = _getStorage().pool[token];
-        if (address(pool) != address(0)) {
+        if (address(_getStorage().tokenConfig[token].pool) != address(0)) {
             repay(token);
         }
         uint256 amount = IERC20(token).balanceOf(address(this));
@@ -181,7 +201,7 @@ contract StashDex is AccessControlUpgradeable {
 
     /// @notice Returns the available balance of token in its configured liquidity pool.
     function balance(IERC20 token) external view returns (uint256) {
-        ILiquidityPool pool = _getStorage().pool[address(token)];
+        ILiquidityPool pool = _getStorage().tokenConfig[address(token)].pool;
         if (address(pool) == address(0)) return 0;
         return pool.balance(token);
     }
@@ -206,25 +226,45 @@ contract StashDex is AccessControlUpgradeable {
 
     // --- CONFIG_ROLE functions ---
 
+    function setPool(address token, ILiquidityPool pool) external onlyRole(CONFIG_ROLE) {
+        _setPool(PoolInit({token: token, pool: pool}));
+    }
+
     function setRoute(RouteInit calldata route) external onlyRole(CONFIG_ROLE) {
         _setRoute(route);
     }
 
     function disableRoute(address tokenIn, address tokenOut) external onlyRole(CONFIG_ROLE) {
-        _getStorage().routes[tokenIn][tokenOut].allowed = false;
+        StashDexStorage storage $ = _getStorage();
+        require($.routes[tokenIn][tokenOut].allowed, RouteNotAllowed());
+        $.routes[tokenIn][tokenOut].allowed = false;
         emit RouteDisabled(tokenIn, tokenOut);
+    }
+
+    function _setPool(PoolInit memory params) internal {
+        require(params.token != address(0), ZeroAddress());
+        require(address(params.pool) != address(0), ZeroAddress());
+        TokenConfig storage config = _getStorage().tokenConfig[params.token];
+        address currentPool = address(config.pool);
+        if (currentPool != address(0) && currentPool != address(params.pool)) {
+            require(config.totalBorrowed == 0, OutstandingDebt());
+            IERC20(params.token).forceApprove(currentPool, 0);
+        }
+        config.pool = params.pool;
+        IERC20(params.token).forceApprove(address(params.pool), type(uint256).max);
+        emit PoolSet(params.token, params.pool);
     }
 
     function _setRoute(RouteInit memory route) internal {
         require(route.tokenIn != address(0), ZeroAddress());
         require(route.tokenOut != address(0), ZeroAddress());
-        require(route.destination != address(0), ZeroAddress());
-        require(address(route.pool) != address(0), ZeroAddress());
+        require(route.tokenIn != route.tokenOut, SameToken());
+        require(route.processor != address(0), ZeroAddress());
         require(route.feeBps < BPS, InvalidFeeBps());
-        StashDexStorage storage $ = _getStorage();
-        $.routes[route.tokenIn][route.tokenOut] = RouteConfig({allowed: true, feeBps: route.feeBps, destination: route.destination});
-        $.pool[route.tokenOut] = route.pool;
-        emit RouteSet(route.tokenIn, route.tokenOut, route.feeBps, route.destination, route.pool);
+        _getStorage().routes[route.tokenIn][route.tokenOut] = RouteConfig({
+            allowed: true, feeBps: route.feeBps, processor: route.processor
+        });
+        emit RouteSet(route.tokenIn, route.tokenOut, route.feeBps, route.processor);
     }
 
     // --- View helpers ---
@@ -234,7 +274,20 @@ contract StashDex is AccessControlUpgradeable {
     }
 
     function getPool(address token) external view returns (ILiquidityPool) {
-        return _getStorage().pool[token];
+        return _getStorage().tokenConfig[token].pool;
+    }
+
+    function getTotalBorrowed(address token) external view returns (uint256) {
+        return _getStorage().tokenConfig[token].totalBorrowed;
+    }
+
+    function _indexToAddress(uint256 index) internal pure returns (address) {
+        require(index == uint256(uint160(index)), InvalidIndex());
+        return address(uint160(index));
+    }
+
+    function _tokenToAssetId(address token) internal pure returns (bytes32) {
+        return bytes32(uint256(uint160(token)));
     }
 
     function _getStorage() internal pure returns (StashDexStorage storage $) {

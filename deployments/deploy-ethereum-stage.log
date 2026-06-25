@@ -262,3 +262,13 @@ LiquidityPoolAaveUSDC: 0xd73abd244837256B0F0ADCF5417950984B9964F8
 LiquidityPoolAaveUSDCProxyAdmin: 0x98b9644DB5144104C898b8fecfff3d5ae6a10705
 Access control setup complete.
 Remember to update Rebalancer and Repayer routes in the config and then onchain.
+
+
+Deployment ID: MVP
+Deploying PaxosOracle
+Using config for: stage, ETHEREUM
+Deployer        : 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+USDC: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+Paxos stablecoins (1:1 to USDC): 0xe343167631d89B6Ffc58B88d6b7fB0228795491D, 0x6c3ea9036406852006290770BEdFcAbA0e23A0e8
+PaxosOracle: 0x4666013984fD7a624aa8BFADD0E95456870dADEc

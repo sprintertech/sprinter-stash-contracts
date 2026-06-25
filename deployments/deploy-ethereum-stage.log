@@ -272,3 +272,66 @@ DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
 USDC: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
 Paxos stablecoins (1:1 to USDC): 0xe343167631d89B6Ffc58B88d6b7fB0228795491D, 0x6c3ea9036406852006290770BEdFcAbA0e23A0e8
 PaxosOracle: 0x4666013984fD7a624aa8BFADD0E95456870dADEc
+
+Deployment ID: MVP
+Deploying USDG Processor
+Using config for: stage, ETHEREUM
+Deployer        : 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+┌───────────────┬──────────────────────────────────────────────┐
+│ (index)       │ Values                                       │
+├───────────────┼──────────────────────────────────────────────┤
+│ Processor     │ 'ProcessorUSDG'                              │
+│ Token         │ 'USDG'                                       │
+│ TokenAddress  │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' │
+│ Repayer       │ '0x697ECA1cae710FA0348e2173900e6C09b180C35b' │
+│ RepayerCaller │ '0xc1d6EEa5ce163d7D9f1952Db220830Aae16Cb607' │
+└───────────────┴──────────────────────────────────────────────┘
+ProcessorUSDG: 0x8b8eB971638acb18509CC96D783A2cBD0F70448C
+ProcessorUSDGProxyAdmin: 0x61871537a15e60Acf36b6Fc150E374d0007153AA
+SubProcessor: 0x1Ebd515C5ECF0Fe2c538234d05e0f93Afc58D67C
+
+Deployment ID: MVP
+Deploying PYUSD Processor
+Using config for: stage, ETHEREUM
+Deployer        : 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+┌───────────────┬──────────────────────────────────────────────┐
+│ (index)       │ Values                                       │
+├───────────────┼──────────────────────────────────────────────┤
+│ Processor     │ 'ProcessorPYUSD'                             │
+│ Token         │ 'PYUSD'                                      │
+│ TokenAddress  │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8' │
+│ Repayer       │ '0x697ECA1cae710FA0348e2173900e6C09b180C35b' │
+│ RepayerCaller │ '0xc1d6EEa5ce163d7D9f1952Db220830Aae16Cb607' │
+└───────────────┴──────────────────────────────────────────────┘
+ProcessorPYUSD: 0xcE0774BD8B0F8eC3dE44aFdEE900C3eAef56cd18
+ProcessorPYUSDProxyAdmin: 0x22DD395D9cd5Eb8FeF3D1Fb6428d252f39B09203
+SubProcessor: 0xDAdB6fBdE7985e6CA26A2cc5E2241B205bCCFf5D
+
+Deployment ID: MVP
+Deploying StashDex
+Using config for: stage, ETHEREUM
+Deployer        : 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+StashDex: 0x125Bf891F832c3A1422E24f4Ca7ef314c0858740
+StashDexProxyAdmin: 0x4CC70A265EE668c3985Cf48f30bA5EC97c1024b1
+InitialPools:
+┌─────────┬──────────────────────────────────────────────┬──────────────────────────────────────────────┐
+│ (index) │ token                                        │ pool                                         │
+├─────────┼──────────────────────────────────────────────┼──────────────────────────────────────────────┤
+│ 0       │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ '0xd73abd244837256B0F0ADCF5417950984B9964F8' │
+│ 1       │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8' │ '0xd73abd244837256B0F0ADCF5417950984B9964F8' │
+│ 2       │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' │ '0xd73abd244837256B0F0ADCF5417950984B9964F8' │
+└─────────┴──────────────────────────────────────────────┴──────────────────────────────────────────────┘
+InitialRoutes:
+┌─────────┬──────────────────────────────────────────────┬──────────────────────────────────────────────┬────────┬──────────────────────────────────────────────┐
+│ (index) │ tokenIn                                      │ tokenOut                                     │ feeBps │ processor                                    │
+├─────────┼──────────────────────────────────────────────┼──────────────────────────────────────────────┼────────┼──────────────────────────────────────────────┤
+│ 0       │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8' │ 3      │ '0xcE0774BD8B0F8eC3dE44aFdEE900C3eAef56cd18' │
+│ 1       │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8' │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ 3      │ '0x804C106cF3e7cbda2D48e35124C045410dfeF67e' │
+│ 2       │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' │ 3      │ '0x8b8eB971638acb18509CC96D783A2cBD0F70448C' │
+│ 3       │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ 3      │ '0x804C106cF3e7cbda2D48e35124C045410dfeF67e' │
+│ 4       │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8' │ 3      │ '0xcE0774BD8B0F8eC3dE44aFdEE900C3eAef56cd18' │
+│ 5       │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8' │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' │ 3      │ '0x8b8eB971638acb18509CC96D783A2cBD0F70448C' │
+└─────────┴──────────────────────

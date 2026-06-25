@@ -80,9 +80,9 @@ export const ERC4626AdapterUSDCVersions = [
 ] as const;
 
 export const RepayerProxy = DEFAULT_PROXY_TYPE + "Repayer";
-export const PYUSDProcessorProxy = DEFAULT_PROXY_TYPE + "PYUSDProcessor";
+export const PYUSDProcessorProxy = DEFAULT_PROXY_TYPE + "ProcessorPYUSD";
 export const USDCProcessorProxy = DEFAULT_PROXY_TYPE + "Processor";
-export const USDGProcessorProxy = DEFAULT_PROXY_TYPE + "USDGProcessor";
+export const USDGProcessorProxy = DEFAULT_PROXY_TYPE + "ProcessorUSDG";
 const SUPPORTS_ONLY_USDC = false;
 
 export enum Network {
@@ -611,12 +611,12 @@ export const networkConfig: NetworksConfig = {
       },
       USDCPool: true,
       StashDex: {
-        Oracle: "PaxosOracle",
+        Oracle: "0x4666013984fD7a624aa8BFADD0E95456870dADEc",
         Receiver: RepayerProxy,
         ConfigAdmin: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
         Forwarder: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
         Pools: {
-          USDC: LiquidityPoolUSDCProxy,
+          USDC: LiquidityPoolAaveUSDCProxy,
           PYUSD: LiquidityPoolAaveUSDCProxy,
           USDG: LiquidityPoolAaveUSDCProxy,
         },

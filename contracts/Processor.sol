@@ -10,6 +10,7 @@ import {IRoyco} from "./interfaces/IRoyco.sol";
 import {IERC7540} from "./interfaces/IERC7540.sol";
 import {SubProcessor} from "./SubProcessor.sol";
 import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
+import {IOracle} from "./interfaces/IOracle.sol";
 
 /// @title Processor for unwinding vault tokens.
 /// @author Sprinter
@@ -18,6 +19,7 @@ contract Processor is AccessControlUpgradeable, MulticallUpgradeable {
 
     IERC20 public immutable TARGET_ASSET;
     address public immutable RECEIVER;
+    IOracle immutable public ORACLE;
 
     uint256 public constant MULTIPLIER = 100_00;
 
@@ -33,7 +35,7 @@ contract Processor is AccessControlUpgradeable, MulticallUpgradeable {
     bytes32 private constant STORAGE_LOCATION = 0x315f94a0eb28ebc9ade3d51c8bd7ef4c2011752d9ac5c2acc448e4822cfa1f00;
 
     event Forwarded(address caller, IERC20 token);
-    event Processed(address caller, IERC4626 tokenIn, uint256 sharesIn, uint256 amountOut);
+    event Processed(address caller, IERC20 tokenIn, uint256 amountIn, uint256 amountOut);
     event MaxSlippageSet(uint256 maxSlippage);
     event AdminProcessed(address caller);
 
@@ -44,8 +46,9 @@ contract Processor is AccessControlUpgradeable, MulticallUpgradeable {
     error InsufficientAssets();
     error InvalidSlippage();
     error AlreadyInitialized();
+    error DeadlineExceeded();
 
-    constructor(address asset, address receiver) {
+    constructor(address asset, address receiver, address oracle) {
         ERC7201Helper.validateStorageLocation(
             STORAGE_LOCATION,
             "sprinter.storage.Processor"
@@ -55,6 +58,7 @@ contract Processor is AccessControlUpgradeable, MulticallUpgradeable {
         require(receiver != address(0), ZeroAddress());
         TARGET_ASSET = IERC20(asset);
         RECEIVER = receiver;
+        ORACLE = IOracle(oracle);
     }
 
     function initialize(
@@ -91,8 +95,7 @@ contract Processor is AccessControlUpgradeable, MulticallUpgradeable {
     }
 
     function forward(IERC20 token) external onlyRole(CALLER_ROLE) {
-        token.safeTransfer(RECEIVER, token.balanceOf(address(this)));
-
+        _finalizeTransfer(token, token.balanceOf(address(this)));
         emit Forwarded(msg.sender, token);
     }
 
@@ -129,21 +132,63 @@ contract Processor is AccessControlUpgradeable, MulticallUpgradeable {
         uint256 amountOutMin,
         SubProcessor.Call[] calldata calls
     ) external onlyRole(CALLER_ROLE) {
-        require(sharesIn > 0, ZeroAmount());
-        require(address(tokenIn) != address(TARGET_ASSET), InvalidTokenIn());
         ProcessorStorage storage $ = _getStorage();
         uint256 redeemResult = tokenIn.convertToAssets(sharesIn);
-        require(redeemResult * (MULTIPLIER - uint256($.maxSlippage)) / MULTIPLIER <= amountOutMin, SlippageTooHigh());
-        IERC20(address(tokenIn)).safeTransfer(address($.subProcessor), sharesIn);
+        _assertOutputAmount($, redeemResult, amountOutMin);
+        _process($, tokenIn, sharesIn, amountOutMin, calls);
+    }
+    
+    /// @notice Signature is not used at the moment, but might be useful in the future.
+    function process(
+        IERC20 tokenIn,
+        uint256 amountIn,
+        uint256 amountOutMin,
+        uint256 deadline,
+        bytes calldata signature,
+        SubProcessor.Call[] calldata calls
+    ) external onlyRole(CALLER_ROLE) {
+        require(block.timestamp <= deadline, DeadlineExceeded());
+        ProcessorStorage storage $ = _getStorage();
+        _processSignature(tokenIn, amountIn, amountOutMin, deadline, signature);
+        _process($, tokenIn, amountIn, amountOutMin, calls);
+    }
+
+    function _process(
+        ProcessorStorage storage $,
+        IERC20 tokenIn,
+        uint256 amountIn,
+        uint256 amountOutMin,
+        SubProcessor.Call[] calldata calls
+    ) internal {
+        require(amountIn > 0, ZeroAmount());
+        require(tokenIn != TARGET_ASSET, InvalidTokenIn());
+        tokenIn.safeTransfer(address($.subProcessor), amountIn);
         uint256 assets = TARGET_ASSET.balanceOf(address(this));
         $.subProcessor.process(calls);
         uint256 assetsAfter = TARGET_ASSET.balanceOf(address(this));
         require(assetsAfter >= assets, InsufficientAssets());
         uint256 amountOut = assetsAfter - assets;
         require(amountOut >= amountOutMin, InsufficientAssets());
-        TARGET_ASSET.safeTransfer(RECEIVER, assetsAfter);
+        _finalizeTransfer(TARGET_ASSET, amountOut);
+        emit Processed(msg.sender, tokenIn, amountIn, amountOut);
+    }
 
-        emit Processed(msg.sender, tokenIn, sharesIn, amountOut);
+    function _finalizeTransfer(IERC20 token, uint256 amount) internal virtual {
+        token.safeTransfer(RECEIVER, amount);
+    }
+
+    /// @notice Currently consults oracle instead of checking the signature.
+    function _processSignature(
+        IERC20 tokenIn,
+        uint256 amountIn,
+        uint256 amountOutMin,
+        uint256,
+        bytes calldata
+    ) internal view {
+        ProcessorStorage storage $ = _getStorage();
+        uint256 valueIn = ORACLE.getAssetValue(_tokenToAssetId(tokenIn), amountIn);
+        uint256 valueOut = ORACLE.getAssetValue(_tokenToAssetId(TARGET_ASSET), amountOutMin);
+        _assertOutputAmount($, valueIn, valueOut);
     }
 
     function adminProcess(SubProcessor.Call[] calldata calls) external onlyRole(CONFIG_ROLE) {
@@ -156,6 +201,18 @@ contract Processor is AccessControlUpgradeable, MulticallUpgradeable {
         require(newMaxSlippage < MULTIPLIER, InvalidSlippage());
         $.maxSlippage = uint16(newMaxSlippage);
         emit MaxSlippageSet(newMaxSlippage);
+    }
+
+    function _tokenToAssetId(address token) internal pure returns (bytes32) {
+        return bytes32(uint256(uint160(token)));
+    }
+
+    function _tokenToAssetId(IERC20 token) internal pure returns (bytes32) {
+        return _tokenToAssetId(address(token));
+    }
+
+    function _assertOutputAmount(ProcessorStorage storage $, uint256 valueIn, uint256 valueOut) internal view {
+        require(valueIn * (MULTIPLIER - uint256($.maxSlippage)) <= valueOut * MULTIPLIER, SlippageTooHigh());
     }
 
     function _getStorage() private pure returns (ProcessorStorage storage $) {

@@ -141,8 +141,9 @@ contract StashDex is AccessControlUpgradeable {
         RouteConfig memory route = $.routes[tokenIn][tokenOut];
         require(route.allowed, RouteNotAllowed());
 
-        uint256 valueIn = ORACLE.getAssetValue(_tokenToAssetId(tokenIn), amountIn * 10**12);
-        uint256 valueOut = ORACLE.getAssetValue(_tokenToAssetId(tokenOut), amountOut * 10**12);
+        uint256 precision = 10**12;
+        uint256 valueIn = ORACLE.getAssetValue(_tokenToAssetId(tokenIn), amountIn * precision);
+        uint256 valueOut = ORACLE.getAssetValue(_tokenToAssetId(tokenOut), amountOut * precision);
         require(valueIn * (BPS - route.feeBps) >= valueOut * BPS, InsufficientOutput());
 
         IERC20(tokenIn).safeTransferFrom(_msgSender(), route.processor, amountIn);

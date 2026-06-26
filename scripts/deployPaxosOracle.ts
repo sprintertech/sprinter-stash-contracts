@@ -12,7 +12,7 @@ export async function main() {
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
   const verifier = getVerifier(process.env.DEPLOY_ID);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
-  let id = "PaxosOracle";
+  const id = "PaxosOracle";
 
   let network: Network;
   let config: NetworkConfig;
@@ -20,7 +20,6 @@ export async function main() {
   ({network, config} = await getNetworkConfig());
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
-    id += "-DeployTest";
   }
   await logDeployers();
 

@@ -1,15 +1,16 @@
 import {HardhatUserConfig, task, types} from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import {
-  networkConfig, Network, Provider,
+  networkConfig, Network, Provider, Token,
 } from "./network.config";
 import {TypedDataDomain, AbiCoder, toNumber, dataSlice, getAddress, parseEther} from "ethers";
 import {
-  LiquidityPoolAave, Rebalancer, Repayer
+  LiquidityPoolAave, Rebalancer, Repayer, StashDex,
 } from "./typechain-types";
 import {
   assert, isSet, ProviderSolidity, DomainSolidity, CCTPDomain, SolidityDomain, SolidityProvider,
   DEFAULT_ADMIN_ROLE, assertAddress,
+  sameAddress,
 } from "./scripts/common";
 import "hardhat-ignore-warnings";
 import "solidity-coverage";
@@ -545,6 +546,218 @@ task("update-tokens-repayer", "Update input output tokens based on current netwo
     }
   } else {
     console.log("There are no missing tokens to add.");
+  }
+});
+
+task("update-stashdex-routes", "Update StashDex routes to match current network config")
+.addOptionalParam("stashdex", "StashDex address or id", "StashDex", types.string)
+.addOptionalParam("action", "Action to perform: add, disable, or both (default)", "both", types.string)
+.setAction(async (args: {stashdex: string, action: string}, hre) => {
+  const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
+  const {getNetworkConfig} = await loadScriptHelpers();
+  const {config} = await getNetworkConfig();
+
+  assert(config.StashDex, "StashDex not configured for this network");
+  assert(["add", "disable", "both"].includes(args.action), "Invalid action");
+
+  const [sender] = await hre.ethers.getSigners();
+  const admin = await createSender(hre, sender);
+
+  const targetAddress = await resolveProxyXAddress(args.stashdex);
+  const target = (await hre.ethers.getContractAt("StashDex", targetAddress, admin)) as StashDex;
+
+  // Resolve desired local routes to concrete addresses.
+  const localRoutes: {TokenIn: string, TokenOut: string, FeeBps: number, Processor: string}[] = [];
+  for (const route of config.StashDex.Routes) {
+    const tokenInInfo = config.Tokens[route.TokenIn];
+    const tokenOutInfo = config.Tokens[route.TokenOut];
+    assert(tokenInInfo, `Token ${route.TokenIn} not found in config`);
+    assert(tokenOutInfo, `Token ${route.TokenOut} not found in config`);
+    localRoutes.push({
+      TokenIn: getAddress(tokenInInfo.Address),
+      TokenOut: getAddress(tokenOutInfo.Address),
+      FeeBps: route.FeeBps,
+      Processor: await resolveXAddress(route.Processor),
+    });
+  }
+
+  // Reverse map: checksummed address → token name, for human-readable output.
+  const addrToName = new Map<string, string>(
+    (Object.entries(config.Tokens) as [Token, {Address: string}][])
+      .map(([name, info]) => [getAddress(info.Address), name])
+  );
+  const routeLabel = (tokenIn: string, tokenOut: string) =>
+    `${addrToName.get(tokenIn) ?? tokenIn} → ${addrToName.get(tokenOut) ?? tokenOut}`;
+
+  // Build the universe of token addresses to probe onchain (Pools keys + Route tokens).
+  const tokenAddrs = new Set<string>();
+  for (const tokenName of Object.keys(config.StashDex.Pools) as Token[]) {
+    const info = config.Tokens[tokenName];
+    if (info) tokenAddrs.add(getAddress(info.Address));
+  }
+  for (const route of config.StashDex.Routes) {
+    const inInfo = config.Tokens[route.TokenIn];
+    const outInfo = config.Tokens[route.TokenOut];
+    if (inInfo) tokenAddrs.add(getAddress(inInfo.Address));
+    if (outInfo) tokenAddrs.add(getAddress(outInfo.Address));
+  }
+  const tokenList = Array.from(tokenAddrs);
+
+  // Read all enabled routes onchain for every ordered pair in the universe.
+  const onchainRoutes: {TokenIn: string, TokenOut: string, FeeBps: number, Processor: string}[] = [];
+  for (const tokenIn of tokenList) {
+    for (const tokenOut of tokenList) {
+      if (tokenIn === tokenOut) continue;
+      const r = await target.getRoute(tokenIn, tokenOut);
+      if (r.allowed) {
+        onchainRoutes.push({
+          TokenIn: tokenIn,
+          TokenOut: tokenOut,
+          FeeBps: Number(r.feeBps),
+          Processor: getAddress(r.processor),
+        });
+      }
+    }
+  }
+
+  console.log("Onchain routes:");
+  console.table(onchainRoutes);
+  console.log("Desired routes:");
+  console.table(localRoutes);
+
+  // Routes to set: in local config but missing onchain, or onchain with wrong params.
+  const toSet = localRoutes.filter(lr => !onchainRoutes.some(or =>
+    sameAddress(or.TokenIn, lr.TokenIn) &&
+    sameAddress(or.TokenOut, lr.TokenOut) &&
+    or.FeeBps === lr.FeeBps &&
+    sameAddress(or.Processor, lr.Processor)
+  ));
+  // Routes to disable: enabled onchain but no matching (tokenIn, tokenOut) pair in local config.
+  const toDisable = onchainRoutes.filter(or => !localRoutes.some(lr =>
+    sameAddress(lr.TokenIn, or.TokenIn) &&
+    sameAddress(lr.TokenOut, or.TokenOut)
+  ));
+
+  const CONFIG_ROLE = await target.CONFIG_ROLE();
+  const hasRole = await target.hasRole(CONFIG_ROLE, admin);
+
+  if (toDisable.length > 0) {
+    if (hasRole && (args.action === "disable" || args.action === "both")) {
+      for (const route of toDisable) {
+        await (await target.disableRoute(route.TokenIn, route.TokenOut)).wait();
+      }
+      console.log("Disabled routes:");
+      console.table(toDisable);
+    } else {
+      console.log("To disable excess routes execute the following transactions:");
+      console.log(`To: ${targetAddress}`);
+      console.log("Function: disableRoute");
+      for (const route of toDisable) {
+        const tx = await target.disableRoute.populateTransaction(route.TokenIn, route.TokenOut);
+        console.log(`  ${routeLabel(route.TokenIn, route.TokenOut)}: ${tx.data}`);
+      }
+    }
+  } else {
+    console.log("No excess routes to disable.");
+  }
+
+  if (toSet.length > 0) {
+    if (hasRole && (args.action === "add" || args.action === "both")) {
+      for (const route of toSet) {
+        await (await target.setRoute({
+          tokenIn: route.TokenIn,
+          tokenOut: route.TokenOut,
+          feeBps: route.FeeBps,
+          processor: route.Processor,
+        })).wait();
+      }
+      console.log("Set routes:");
+      console.table(toSet);
+    } else {
+      console.log("To add/update missing routes execute the following transactions:");
+      console.log(`To: ${targetAddress}`);
+      console.log("Function: setRoute");
+      for (const route of toSet) {
+        const tx = await target.setRoute.populateTransaction({
+          tokenIn: route.TokenIn,
+          tokenOut: route.TokenOut,
+          feeBps: route.FeeBps,
+          processor: route.Processor,
+        });
+        console.log(`  ${routeLabel(route.TokenIn, route.TokenOut)}: ${tx.data}`);
+      }
+    }
+  } else {
+    console.log("No missing routes to add.");
+  }
+});
+
+task("update-stashdex-pools", "Update StashDex pools to match current network config")
+.addOptionalParam("stashdex", "StashDex address or id", "StashDex", types.string)
+.setAction(async (args: {stashdex: string}, hre) => {
+  const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
+  const {getNetworkConfig} = await loadScriptHelpers();
+  const {config} = await getNetworkConfig();
+
+  assert(config.StashDex, "StashDex not configured for this network");
+
+  const [sender] = await hre.ethers.getSigners();
+  const admin = await createSender(hre, sender);
+
+  const targetAddress = await resolveProxyXAddress(args.stashdex);
+  const target = (await hre.ethers.getContractAt("StashDex", targetAddress, admin)) as StashDex;
+
+  // Resolve desired local pools to concrete addresses.
+  const localPools: {TokenName: Token, PoolId: string, Token: string, Pool: string}[] = [];
+  for (const [tokenName, poolId] of Object.entries(config.StashDex.Pools) as [Token, string][]) {
+    const tokenInfo = config.Tokens[tokenName];
+    assert(tokenInfo, `Token ${tokenName} not found in config`);
+    localPools.push({
+      TokenName: tokenName,
+      PoolId: poolId,
+      Token: getAddress(tokenInfo.Address),
+      Pool: await resolveXAddress(poolId),
+    });
+  }
+
+  // Read onchain pool for each token.
+  const onchainPools: {Token: string, Pool: string}[] = [];
+  for (const {Token: token} of localPools) {
+    const pool = await target.getPool(token);
+    onchainPools.push({Token: token, Pool: getAddress(pool)});
+  }
+
+  console.log("Onchain pools:");
+  console.table(onchainPools);
+  console.log("Desired pools:");
+  console.table(localPools);
+
+  const toSet = localPools.filter(lp => !onchainPools.some(op =>
+    sameAddress(op.Token, lp.Token) &&
+    sameAddress(op.Pool, lp.Pool)
+  ));
+
+  const CONFIG_ROLE = await target.CONFIG_ROLE();
+  const hasRole = await target.hasRole(CONFIG_ROLE, admin);
+
+  if (toSet.length > 0) {
+    if (hasRole) {
+      for (const {Token: token, Pool: pool} of toSet) {
+        await (await target.setPool(token, pool)).wait();
+      }
+      console.log("Updated pools:");
+      console.table(toSet);
+    } else {
+      console.log("To update pools execute the following transactions:");
+      console.log(`To: ${targetAddress}`);
+      console.log("Function: setPool");
+      for (const {TokenName, PoolId, Token: token, Pool: pool} of toSet) {
+        const tx = await target.setPool.populateTransaction(token, pool);
+        console.log(`  ${TokenName} → ${PoolId}: ${tx.data}`);
+      }
+    }
+  } else {
+    console.log("All pools are up to date.");
   }
 });
 

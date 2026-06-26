@@ -11,9 +11,10 @@ import {
   TestRoyco,
   SubProcessor,
   MockTarget,
+  PaxosOracle,
 } from "../typechain-types";
 import {loadFixture} from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import {DEFAULT_ADMIN_ROLE} from "../scripts/common";
+import {addressToBytes32, DEFAULT_ADMIN_ROLE, ZERO_ADDRESS} from "../scripts/common";
 
 describe("Processor", function () {
   setupTests();
@@ -24,11 +25,20 @@ describe("Processor", function () {
     const CALLER_ROLE = toBytes32("CALLER_ROLE");
     const CONFIG_ROLE = toBytes32("CONFIG_ROLE");
 
+    const usdcRef = (await deploy("TestUSDC", deployer, {})) as TestUSDC;
     const usdc = (await deploy("TestUSDC", deployer, {})) as TestUSDC;
+    const tokenIn = (await deploy("TestUSDC", deployer, {})) as TestUSDC;
+
+    const oracle = (await deploy("PaxosOracle", deployer, {}, admin, usdcRef, [
+      {assetId: addressToBytes32(await usdc.getAddress()), decimals: 6},
+      {assetId: addressToBytes32(await tokenIn.getAddress()), decimals: 6},
+    ])) as PaxosOracle;
+
     const processorImpl = (
       await deployX("Processor", deployer, "Processor", {},
         usdc,
-        receiver
+        receiver,
+        oracle,
       )
     ) as Processor;
     const processorInit = (await processorImpl.initialize.populateTransaction(
@@ -69,7 +79,8 @@ describe("Processor", function () {
       "tRoycoUSDC",
     )) as TestRoyco;
     return {
-      deployer, admin, caller, user, receiver, usdc, test4626, test7540, testRoyco,
+      deployer, admin, caller, user, receiver, usdc, tokenIn, oracle,
+      test4626, test7540, testRoyco,
       processor, processorAdmin, CALLER_ROLE, DEFAULT_ADMIN_ROLE, config, CONFIG_ROLE,
     };
   };
@@ -96,7 +107,7 @@ describe("Processor", function () {
 
   it("Should have default values", async function () {
     const {
-        deployer, processor, admin, caller, receiver, usdc,
+        deployer, processor, admin, caller, receiver, usdc, oracle,
         CALLER_ROLE, DEFAULT_ADMIN_ROLE, config, CONFIG_ROLE,
     } = await loadFixture(deployAll);
 
@@ -106,10 +117,11 @@ describe("Processor", function () {
     expect(await processor.hasRole(CALLER_ROLE, deployer)).to.be.false;
     expect(await processor.hasRole(CONFIG_ROLE, config)).to.be.true;
     expect(await processor.hasRole(CONFIG_ROLE, deployer)).to.be.false;
-    expect(await processor.TARGET_ASSET()).to.be.equal(await usdc.getAddress())
-    expect(await processor.RECEIVER()).to.be.equal(receiver.address)
-    expect(await processor.maxSlippage()).to.be.equal(3_00n)
-    expect(await processor.MULTIPLIER()).to.be.equal(10000n)
+    expect(await processor.TARGET_ASSET()).to.be.equal(await usdc.getAddress());
+    expect(await processor.RECEIVER()).to.be.equal(receiver.address);
+    expect(await processor.ORACLE()).to.be.equal(await oracle.getAddress());
+    expect(await processor.maxSlippage()).to.be.equal(3_00n);
+    expect(await processor.MULTIPLIER()).to.be.equal(10000n);
     const subProcessorAddress = await processor.subProcessor();
     expect(subProcessorAddress).to.not.equal(hre.ethers.ZeroAddress);
     const subProcessor = await getContractAt("SubProcessor", subProcessorAddress, deployer) as SubProcessor;
@@ -461,5 +473,117 @@ describe("Processor", function () {
     expect(await usdc.balanceOf(user)).to.equal(40_000000n);
     expect(await usdc.balanceOf(deployer)).to.equal(deployerBefore + 60_000000n);
     expect(await usdc.balanceOf(subProcAddr)).to.equal(0n);
+  });
+
+  describe("forward", function () {
+    it("sends non-TARGET_ASSET token to receiver directly", async function () {
+      const {caller, receiver, usdc, tokenIn, processor} = await loadFixture(deployAll);
+
+      await tokenIn.mint(processor, 40_000000n);
+      await usdc.mint(processor, 100_000000n);
+
+      const tx = await processor.connect(caller).forward(tokenIn);
+      await expect(tx).to.emit(processor, "Forwarded").withArgs(caller.address, await tokenIn.getAddress());
+
+      expect(await tokenIn.balanceOf(receiver)).to.equal(40_000000n);
+      expect(await tokenIn.balanceOf(processor)).to.equal(0n);
+      expect(await usdc.balanceOf(processor)).to.equal(100_000000n);
+      expect(await usdc.balanceOf(receiver)).to.equal(0n);
+    });
+  });
+
+  describe("process", function () {
+    it("reverts when oracle is zero address", async function () {
+      const {deployer, admin, caller, config, usdc, tokenIn, receiver} = await loadFixture(deployAll);
+
+      const zeroOracleImpl = (await deploy("Processor", deployer, {}, usdc, receiver, ZERO_ADDRESS)) as Processor;
+      const initData = (await zeroOracleImpl.initialize.populateTransaction(receiver, caller, config)).data;
+      const proxy = (await deploy(
+        "TransparentUpgradeableProxy", deployer, {}, zeroOracleImpl, admin, initData
+      )) as TransparentUpgradeableProxy;
+      const zeroOracleProcessor = (await getContractAt("Processor", proxy, deployer)) as Processor;
+
+      await tokenIn.mint(zeroOracleProcessor, 100_000000n);
+      const deadline = 2000000000n;
+
+      // Calling getAssetValue on address(0) reverts — ABI decoder fails on empty return data
+      await expect(
+        zeroOracleProcessor.connect(caller).process(tokenIn, 100_000000n, 97_000000n, deadline, "0x", [])
+      ).to.be.reverted;
+    });
+
+    it("forwards TARGET_ASSET to RECEIVER and emits Processed", async function () {
+      const {caller, receiver, usdc, tokenIn, processor} = await loadFixture(deployAll);
+
+      const amountIn = 100_000000n;
+      const amountOutMin = 97_000000n;
+      await tokenIn.mint(processor, amountIn);
+      const subProcessorAddr = await processor.subProcessor();
+      await usdc.mint(subProcessorAddr, amountOutMin);
+      const deadline = 2000000000n;
+
+      const tx = await processor.connect(caller).process(
+        tokenIn, amountIn, amountOutMin, deadline, "0x", []
+      );
+      await expect(tx).to.emit(processor, "Processed")
+        .withArgs(caller.address, await tokenIn.getAddress(), amountIn, amountOutMin);
+
+      expect(await usdc.balanceOf(receiver)).to.equal(amountOutMin);
+      expect(await usdc.balanceOf(processor)).to.equal(0n);
+      expect(await usdc.balanceOf(subProcessorAddr)).to.equal(0n);
+      expect(await tokenIn.balanceOf(processor)).to.equal(0n);
+    });
+
+    it("reverts DeadlineExceeded when deadline is in the past", async function () {
+      const {caller, tokenIn, processor} = await loadFixture(deployAll);
+
+      const pastDeadline = (await hre.ethers.provider.getBlock("latest"))!.timestamp - 1;
+
+      await expect(
+        processor.connect(caller).process(tokenIn, 100_000000n, 97_000000n, pastDeadline, "0x", [])
+      ).to.revertedWithCustomError(processor, "DeadlineExceeded");
+    });
+
+    it("reverts SlippageTooHigh when amountOutMin is below oracle slippage threshold", async function () {
+      const {caller, tokenIn, processor} = await loadFixture(deployAll);
+
+      await tokenIn.mint(processor, 100_000000n);
+      const deadline = 2000000000n;
+      // amountOutMin = 96_000000 < 100_000000 * 97% = 97_000000 → oracle rejects
+      await expect(
+        processor.connect(caller).process(tokenIn, 100_000000n, 96_999999n, deadline, "0x", [])
+      ).to.revertedWithCustomError(processor, "SlippageTooHigh");
+    });
+
+    it("reverts InvalidTokenIn when tokenIn equals TARGET_ASSET", async function () {
+      const {caller, usdc, processor} = await loadFixture(deployAll);
+
+      await usdc.mint(processor, 100_000000n);
+      const deadline = 2000000000n;
+
+      await expect(
+        processor.connect(caller).process(usdc, 100_000000n, 97_000000n, deadline, "0x", [])
+      ).to.revertedWithCustomError(processor, "InvalidTokenIn");
+    });
+
+    it("reverts ZeroAmount when amountIn is zero", async function () {
+      const {caller, tokenIn, processor} = await loadFixture(deployAll);
+
+      const deadline = 2000000000n;
+
+      await expect(
+        processor.connect(caller).process(tokenIn, 0n, 0n, deadline, "0x", [])
+      ).to.revertedWithCustomError(processor, "ZeroAmount");
+    });
+
+    it("reverts AccessControlUnauthorizedAccount when caller lacks CALLER_ROLE", async function () {
+      const {user, tokenIn, processor} = await loadFixture(deployAll);
+
+      const deadline = 2000000000n;
+
+      await expect(
+        processor.connect(user).process(tokenIn, 1n, 1n, deadline, "0x", [])
+      ).to.revertedWithCustomError(processor, "AccessControlUnauthorizedAccount");
+    });
   });
 });

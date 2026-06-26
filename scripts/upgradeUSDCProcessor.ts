@@ -40,6 +40,7 @@ export async function main() {
 
   const processorAddress = await getDeployProxyXAddress("Processor");
   const repayerAddress = await resolveProxyXAddress("Repayer");
+  const oracleAddress = ZERO_ADDRESS;
   console.log(`Repayer: ${repayerAddress}`);
 
   const {txRequired} = await upgradeProxyX<Processor>(
@@ -47,7 +48,7 @@ export async function main() {
     processorAddress,
     "Processor",
     sender,
-    [config.Tokens.USDC.Address, repayerAddress],
+    [config.Tokens.USDC.Address, repayerAddress, oracleAddress],
     "Processor"
   );
 

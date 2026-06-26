@@ -254,7 +254,7 @@ describe("LiquidityPoolAave", function () {
       } = await loadFixture(deployAll);
       const amountLiquidity = 100000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, amountLiquidity);
-      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity));
+      await liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity);
 
       const amountToBorrow = 1n * ETH;
 
@@ -474,9 +474,9 @@ describe("LiquidityPoolAave", function () {
         signature
       );
 
-      await expect(mockBorrowSwap.connect(user).callBorrow(liquidityPool, borrowCalldata.data))
-        .to.emit(mockBorrowSwap, "Swapped").withArgs(swapData)
-        .and.to.emit(mockTarget, "DataReceived").withArgs(additionalData);
+      const tx = await mockBorrowSwap.connect(user).callBorrow(liquidityPool, borrowCalldata.data);
+      await expect(tx).to.emit(mockBorrowSwap, "Swapped").withArgs(swapData);
+      await expect(tx).to.emit(mockTarget, "DataReceived").withArgs(additionalData);
       expect(await gho.balanceOf(liquidityPool)).to.eq(0);
       expect(await gho.balanceOf(mockBorrowSwap)).to.eq(amountToBorrow);
       expect(await eurc.balanceOf(liquidityPool)).to.eq(0);
@@ -491,7 +491,7 @@ describe("LiquidityPoolAave", function () {
       } = await loadFixture(deployAll);
       const amountLiquidity = 1000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, amountLiquidity);
-      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity));
+      await liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity);
 
       const amountToBorrow = 10n * USDC_DEC;
       const fillAmount = 1n * ETH;
@@ -526,9 +526,9 @@ describe("LiquidityPoolAave", function () {
         signature
       );
 
-      await expect(mockBorrowSwap.connect(user).callBorrowBubbleRevert(liquidityPool, borrowCalldata.data))
-        .to.emit(mockBorrowSwap, "Swapped").withArgs(swapData)
-        .and.to.emit(mockTarget, "DataReceived").withArgs(additionalData);
+      const tx = await mockBorrowSwap.connect(user).callBorrowBubbleRevert(liquidityPool, borrowCalldata.data);
+      await expect(tx).to.emit(mockBorrowSwap, "Swapped").withArgs(swapData);
+      await expect(tx).to.emit(mockTarget, "DataReceived").withArgs(additionalData);
       expect(await weth.balanceOf(liquidityPool)).to.eq(0);
       expect(await weth.balanceOf(mockBorrowSwap)).to.eq(0);
       expect(await usdc.balanceOf(liquidityPool)).to.eq(0);
@@ -601,7 +601,7 @@ describe("LiquidityPoolAave", function () {
       } = await loadFixture(deployAll);
       const amountLiquidity = 1000000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, amountLiquidity);
-      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity));
+      await liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity);
 
       const amountToBorrow = 3n * WETH_DEC;
       const fillAmount = 1n * ETH;
@@ -648,7 +648,7 @@ describe("LiquidityPoolAave", function () {
       } = await loadFixture(deployAll);
       const amountLiquidity = 1000000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, amountLiquidity);
-      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity));
+      await liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity);
 
       const amountToBorrow = 3n * WETH_DEC;
       const fillAmount = 1n * ETH;
@@ -683,9 +683,9 @@ describe("LiquidityPoolAave", function () {
         signature
       );
 
-      await expect(mockBorrowSwap.connect(user).callBorrow(liquidityPool, borrowCalldata.data))
-        .to.emit(mockBorrowSwap, "Swapped").withArgs(swapData)
-        .and.to.emit(mockTarget, "DataReceived").withArgs(additionalData);
+      const tx = await mockBorrowSwap.connect(user).callBorrow(liquidityPool, borrowCalldata.data);
+      await expect(tx).to.emit(mockBorrowSwap, "Swapped").withArgs(swapData);
+      await expect(tx).to.emit(mockTarget, "DataReceived").withArgs(additionalData);
       expect(await weth.balanceOf(liquidityPool)).to.eq(0);
       expect(await weth.balanceOf(mockBorrowSwap)).to.eq(amountToBorrow - returnedAmount);
       expect(await getBalance(liquidityPool)).to.eq(returnedAmount - fillAmount);
@@ -700,7 +700,7 @@ describe("LiquidityPoolAave", function () {
       } = await loadFixture(deployAll);
       const amountLiquidity = 1000000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, amountLiquidity);
-      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity));
+      await liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity);
 
       const amountToBorrow = 3n * WETH_DEC;
       const amountToBorrow2 = 4n * ETH;
@@ -746,7 +746,7 @@ describe("LiquidityPoolAave", function () {
       } = await loadFixture(deployAll);
       const amountLiquidity = 1000000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, amountLiquidity);
-      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity));
+      await liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity);
 
       const amountToBorrow = 3n * WETH_DEC;
       const amountToBorrow2 = 4n * ETH;
@@ -792,7 +792,7 @@ describe("LiquidityPoolAave", function () {
       } = await loadFixture(deployAll);
       const amountLiquidity = 1000000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, amountLiquidity);
-      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity));
+      await liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity);
 
       const amountToBorrow = 3n * WETH_DEC;
       const amountToBorrow2 = 4n * ETH;
@@ -876,9 +876,9 @@ describe("LiquidityPoolAave", function () {
         signature
       );
 
-      await expect(mockBorrowSwap.connect(user).callBorrow(liquidityPool, borrowCalldata.data))
-        .to.emit(mockBorrowSwap, "Swapped").withArgs(swapData)
-        .and.to.emit(mockTarget, "DataReceived").withArgs(additionalData);
+      const tx = await mockBorrowSwap.connect(user).callBorrow(liquidityPool, borrowCalldata.data);
+      await expect(tx).to.emit(mockBorrowSwap, "Swapped").withArgs(swapData);
+      await expect(tx).to.emit(mockTarget, "DataReceived").withArgs(additionalData);
       expect(await gho.balanceOf(liquidityPool)).to.eq(0);
       expect(await gho.balanceOf(mockBorrowSwap)).to.eq(amountToBorrow);
       expect(await eurc.balanceOf(liquidityPool)).to.eq(0);
@@ -895,7 +895,7 @@ describe("LiquidityPoolAave", function () {
       } = await loadFixture(deployAll);
       const amountLiquidity = 1000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, amountLiquidity);
-      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity));
+      await liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity);
 
       const amountToBorrow = 10n * USDC_DEC;
       const fillAmount = 1n * ETH;
@@ -930,9 +930,9 @@ describe("LiquidityPoolAave", function () {
         signature
       );
 
-      await expect(mockBorrowSwap.connect(user).callBorrowBubbleRevert(liquidityPool, borrowCalldata.data))
-        .to.emit(mockBorrowSwap, "Swapped").withArgs(swapData)
-        .and.to.emit(mockTarget, "DataReceived").withArgs(additionalData);
+      const tx = await mockBorrowSwap.connect(user).callBorrowBubbleRevert(liquidityPool, borrowCalldata.data);
+      await expect(tx).to.emit(mockBorrowSwap, "Swapped").withArgs(swapData);
+      await expect(tx).to.emit(mockTarget, "DataReceived").withArgs(additionalData);
       expect(await weth.balanceOf(liquidityPool)).to.eq(0);
       expect(await weth.balanceOf(mockBorrowSwap)).to.eq(0);
       expect(await usdc.balanceOf(liquidityPool)).to.eq(0);
@@ -1005,7 +1005,7 @@ describe("LiquidityPoolAave", function () {
       } = await loadFixture(deployAll);
       const amountLiquidity = 1000000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, amountLiquidity);
-      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity));
+      await liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity);
 
       const amountToBorrow = 3n * WETH_DEC;
       const fillAmount = 1n * ETH;
@@ -1052,7 +1052,7 @@ describe("LiquidityPoolAave", function () {
       } = await loadFixture(deployAll);
       const amountLiquidity = 1000000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, amountLiquidity);
-      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity));
+      await liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity);
 
       const amountToBorrow = 3n * WETH_DEC;
       const fillAmount = 1n * ETH;
@@ -1087,9 +1087,9 @@ describe("LiquidityPoolAave", function () {
         signature
       );
 
-      await expect(mockBorrowSwap.connect(user).callBorrow(liquidityPool, borrowCalldata.data))
-        .to.emit(mockBorrowSwap, "Swapped").withArgs(swapData)
-        .and.to.emit(mockTarget, "DataReceived").withArgs(additionalData);
+      const tx = await mockBorrowSwap.connect(user).callBorrow(liquidityPool, borrowCalldata.data);
+      await expect(tx).to.emit(mockBorrowSwap, "Swapped").withArgs(swapData);
+      await expect(tx).to.emit(mockTarget, "DataReceived").withArgs(additionalData);
       expect(await weth.balanceOf(liquidityPool)).to.eq(0);
       expect(await weth.balanceOf(mockBorrowSwap)).to.eq(amountToBorrow - returnedAmount);
       expect(await getBalance(liquidityPool)).to.eq(returnedAmount - fillAmount);
@@ -1476,9 +1476,9 @@ describe("LiquidityPoolAave", function () {
       const amountGHO = 1n * GHO_DEC;
       await eurc.connect(eurcOwner).transfer(liquidityPool, amountEURC);
       await gho.connect(ghoOwner).transfer(liquidityPool, amountGHO);
-      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([eurc, gho], user))
-        .to.emit(liquidityPool, "ProfitWithdrawn").withArgs(eurc.target, user.address, amountEURC)
-        .and.to.emit(liquidityPool, "ProfitWithdrawn").withArgs(gho.target, user.address, amountGHO);
+      const tx = await liquidityPool.connect(withdrawProfit).withdrawProfit([eurc, gho], user);
+      await expect(tx).to.emit(liquidityPool, "ProfitWithdrawn").withArgs(eurc.target, user.address, amountEURC);
+      await expect(tx).to.emit(liquidityPool, "ProfitWithdrawn").withArgs(gho.target, user.address, amountGHO);
       expect(await eurc.balanceOf(user)).to.eq(amountEURC);
       expect(await gho.balanceOf(user)).to.eq(amountGHO);
     });
@@ -3585,12 +3585,12 @@ describe("LiquidityPoolAave", function () {
       const oldRplLTV = await liquidityPool.borrowTokenLTV(gho);
       const eurc_ltv = 1000;
       const gho_ltv = 2000;
-      await expect(liquidityPool.connect(admin).setBorrowTokenLTVs(
+      const tx = await liquidityPool.connect(admin).setBorrowTokenLTVs(
         [eurc, gho],
         [eurc_ltv, gho_ltv]
-      ))
-        .to.emit(liquidityPool, "BorrowTokenLTVSet").withArgs(eurc.target, oldUniLTV, eurc_ltv)
-        .and.to.emit(liquidityPool, "BorrowTokenLTVSet").withArgs(gho.target, oldRplLTV, gho_ltv);
+      );
+      await expect(tx).to.emit(liquidityPool, "BorrowTokenLTVSet").withArgs(eurc.target, oldUniLTV, eurc_ltv);
+      await expect(tx).to.emit(liquidityPool, "BorrowTokenLTVSet").withArgs(gho.target, oldRplLTV, gho_ltv);
       expect(await liquidityPool.borrowTokenLTV(eurc))
         .to.eq(eurc_ltv);
       expect(await liquidityPool.borrowTokenLTV(gho))

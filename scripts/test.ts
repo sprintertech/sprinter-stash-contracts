@@ -20,6 +20,7 @@ import {main as upgradeUSDCProcessor} from "./upgradeUSDCProcessor";
 import {main as deployPaxosOracle} from "./deployPaxosOracle";
 import {main as deployStashDex} from "./deployStashDex";
 import {main as deployStashDexProcessor} from "./deployStashDexProcessor";
+import {main as upgradeStashDexProcessor} from "./upgradeStashDexProcessor";
 
 async function main() {
   console.log("Test deploy.");
@@ -52,11 +53,13 @@ async function main() {
   await upgradeUSDCProcessor();
   console.log("Test deployPaxosOracle.");
   await deployPaxosOracle();
-  console.log("Test deployStashDexProcessor USDC.");
   process.env.TARGET_ASSET_NAME = "USDC";
+  console.log("Test deployStashDexProcessor USDC.");
   await deployStashDexProcessor();
   console.log("Test deployStashDex.");
   await deployStashDex();
+  console.log("Test upgradeStashDexProcessor USDC.");
+  await upgradeStashDexProcessor();
   console.log("Test deployStandaloneRepayer.");
   process.env.STANDALONE_REPAYER_ENV = "SparkStage";
   await deployStandaloneRepayer();

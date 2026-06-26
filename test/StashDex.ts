@@ -484,24 +484,25 @@ describe("StashDex", function () {
     it("reverts InvalidIndex when indexIn has bits above position 159", async function () {
       const {stashDex, user, tokenB, USDC} = await loadFixture(deployAll);
       const badIndex = (1n << 160n) | BigInt(await tokenB.getAddress());
-      await expect(
-        stashDex.connect(user).exchange(badIndex, BigInt(await tokenB.getAddress()), 1n * USDC, 1n * USDC, user)
-      ).to.be.revertedWithCustomError(stashDex, "InvalidIndex");
+      await expect(stashDex.connect(user)["exchange(uint256,uint256,uint256,uint256,address)"](
+        badIndex, BigInt(await tokenB.getAddress()), 1n * USDC, 1n * USDC, user
+      )).to.be.revertedWithCustomError(stashDex, "InvalidIndex");
     });
 
     it("reverts InvalidIndex when indexOut has bits above position 159", async function () {
       const {stashDex, user, tokenA, USDC} = await loadFixture(deployAll);
       const badIndex = (1n << 160n) | BigInt(await tokenA.getAddress());
-      await expect(
-        stashDex.connect(user).exchange(BigInt(await tokenA.getAddress()), badIndex, 1n * USDC, 1n * USDC, user)
-      ).to.be.revertedWithCustomError(stashDex, "InvalidIndex");
+      await expect(stashDex.connect(user)["exchange(uint256,uint256,uint256,uint256,address)"](
+        BigInt(await tokenA.getAddress()), badIndex, 1n * USDC, 1n * USDC, user
+      )).to.be.revertedWithCustomError(stashDex, "InvalidIndex");
     });
 
     it("accepts type(uint160).max as a valid index for both in and out", async function () {
       const {stashDex, user} = await loadFixture(deployAll);
       const maxAddr = 2n ** 160n - 1n;
-      await expect(stashDex.connect(user).exchange(maxAddr, maxAddr, 1n, 1n, user))
-        .to.be.revertedWithCustomError(stashDex, "RouteNotAllowed");
+      await expect(stashDex.connect(user)["exchange(uint256,uint256,uint256,uint256,address)"](
+        maxAddr, maxAddr, 1n, 1n, user
+      )).to.be.revertedWithCustomError(stashDex, "RouteNotAllowed");
     });
 
     it("delegates to swap and transfers tokens correctly", async function () {
@@ -512,7 +513,7 @@ describe("StashDex", function () {
       await tokenA.connect(user).approve(stashDex, 10_000n * USDC);
       await tokenB.mint(pool, 9_997n * USDC);
 
-      const tx = await stashDex.connect(user).exchange(
+      const tx = await stashDex.connect(user)["exchange(uint256,uint256,uint256,uint256,address)"](
         BigInt(await tokenA.getAddress()), BigInt(await tokenB.getAddress()), 10_000n * USDC, 9_997n * USDC, user2
       );
       await expect(tx).to.emit(stashDex, "Swapped")
@@ -520,6 +521,24 @@ describe("StashDex", function () {
 
       expect(await tokenA.balanceOf(processor)).to.equal(10_000n * USDC);
       expect(await tokenB.balanceOf(user2)).to.equal(9_997n * USDC);
+    });
+
+    it("delegates without recipient to swap and transfers tokens correctly", async function () {
+      const {stashDex, configAdmin, user, tokenA, tokenB, pool, processor, USDC} = await loadFixture(deployAll);
+      await stashDex.connect(configAdmin).setPool(tokenB, pool);
+      await stashDex.connect(configAdmin).setRoute({tokenIn: tokenA, tokenOut: tokenB, feeBps: 3, processor});
+      await tokenA.mint(user, 10_000n * USDC);
+      await tokenA.connect(user).approve(stashDex, 10_000n * USDC);
+      await tokenB.mint(pool, 9_997n * USDC);
+
+      const tx = await stashDex.connect(user)["exchange(uint256,uint256,uint256,uint256)"](
+        BigInt(await tokenA.getAddress()), BigInt(await tokenB.getAddress()), 10_000n * USDC, 9_997n * USDC
+      );
+      await expect(tx).to.emit(stashDex, "Swapped")
+        .withArgs(tokenA.target, tokenB.target, 10_000n * USDC, 9_997n * USDC, user.address);
+
+      expect(await tokenA.balanceOf(processor)).to.equal(10_000n * USDC);
+      expect(await tokenB.balanceOf(user)).to.equal(9_997n * USDC);
     });
   });
 
@@ -751,7 +770,7 @@ describe("StashDex", function () {
       await tokenA.mint(user, 10_000n * USDC);
       await tokenA.connect(user).approve(stashDex, 10_000n * USDC);
       await tokenB.mint(pool, 9_997n * USDC);
-      await stashDex.connect(user).exchange(
+      await stashDex.connect(user)["exchange(uint256,uint256,uint256,uint256,address)"](
         BigInt(await tokenA.getAddress()), BigInt(await tokenB.getAddress()),
         10_000n * USDC, 9_997n * USDC, user
       );

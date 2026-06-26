@@ -442,3 +442,21 @@ Using config for: stage, ETHEREUM
 Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
 Added asset: USDC (0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48) 6 decimals
 Added asset: USDT (0xdAC17F958D2ee523a2206206994597C13D831ec7) 6 decimals
+
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Deployment ID: MVP
+Upgrade ID: STASH_DEX_INTERFACE
+Upgrading StashDex
+Using config for: stage, ETHEREUM
+Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+StashStablecoinDex proxy: 0x125Bf891F832c3A1422E24f4Ca7ef314c0858740
+Oracle: 0x4666013984fD7a624aa8BFADD0E95456870dADEc
+Receiver: 0x697ECA1cae710FA0348e2173900e6C09b180C35b
+New StashDex implementation deployed to 0x02790659dd9B647ED37DFb4Bbc18CeCCDc5A8068
+Sending StashDex upgrade transaction.
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0x573f41a11085b89263fd733b81da52c706ea740b2c2f61420156f1901879e8ab
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0xfffdba1d5234084edcb4ae47945f65fa30ab69bfe6b60e41e1bf582ca0ad797b
+0xfffdba1d5234084edcb4ae47945f65fa30ab69bfe6b60e41e1bf582ca0ad797b
+StashDex upgraded.

@@ -4,7 +4,7 @@ import hre from "hardhat";
 import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers} from "./helpers";
 import {isSet, assert, addressToBytes32} from "./common";
 import {PaxosOracle} from "../typechain-types";
-import {Network, NetworkConfig, TokenInfo} from "../network.config";
+import {Network, NetworkConfig, Token, TokenInfo} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -23,10 +23,15 @@ export async function main() {
   }
   await logDeployers();
 
+  assert(config.StashDex, "StashDex must be configured");
   const usdc = config.Tokens.USDC.Address;
-  // Only the Paxos stablecoins configured for this network are registered as initial assets.
-  const paxosStablecoins: TokenInfo[] = [config.Tokens.USDG, config.Tokens.PYUSD]
-    .filter((token): token is TokenInfo => Boolean(token));
+  // Register exactly the tokens that are configured as StashDex pools.
+  const paxosStablecoins: TokenInfo[] = (Object.keys(config.StashDex.Pools) as Token[])
+    .map(tokenName => {
+      const tokenInfo = config.Tokens[tokenName];
+      assert(tokenInfo, `Token ${tokenName} not found in config`);
+      return tokenInfo;
+    });
   console.log(`USDC: ${usdc}`);
   console.log(
     `Paxos stablecoins (1:1 to USDC): ${paxosStablecoins.map(t => t.Address).join(", ") || "none configured"}`

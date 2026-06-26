@@ -165,8 +165,17 @@ contract StashDex is AccessControlUpgradeable {
         uint256 amountIn,
         uint256 amountOut,
         address recipient
-    ) external {
+    ) public {
         swap(_indexToAddress(indexIn), _indexToAddress(indexOut), amountIn, amountOut, recipient);
+    }
+
+    function exchange(
+        uint256 indexIn,
+        uint256 indexOut,
+        uint256 amountIn,
+        uint256 amountOut
+    ) external {
+        exchange(indexIn, indexOut, amountIn, amountOut, _msgSender());
     }
 
     /// @notice Repay the liquidity pool for token if debt is outstanding, using this contract's balance.

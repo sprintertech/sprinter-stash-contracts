@@ -80,10 +80,10 @@ export const ERC4626AdapterUSDCVersions = [
 ] as const;
 
 export const RepayerProxy = DEFAULT_PROXY_TYPE + "Repayer";
-export const PYUSDStashDexProcessorProxy = DEFAULT_PROXY_TYPE + "PYUSDStashDexProcessor";
-export const USDCStashDexProcessorProxy = DEFAULT_PROXY_TYPE + "USDCStashDexProcessor";
-export const USDGStashDexProcessorProxy = DEFAULT_PROXY_TYPE + "USDGStashDexProcessor";
-export const USDTStashDexProcessorProxy = DEFAULT_PROXY_TYPE + "USDTStashDexProcessor";
+export const PYUSDStashDexProcessorProxy = DEFAULT_PROXY_TYPE + "StashDexProcessorPYUSD";
+export const USDCStashDexProcessorProxy = DEFAULT_PROXY_TYPE + "StashDexProcessorUSDC";
+export const USDGStashDexProcessorProxy = DEFAULT_PROXY_TYPE + "StashDexProcessorUSDG";
+export const USDTStashDexProcessorProxy = DEFAULT_PROXY_TYPE + "StashDexProcessorUSDT";
 const SUPPORTS_ONLY_USDC = false;
 
 export enum Network {

@@ -262,3 +262,201 @@ LiquidityPoolAaveUSDC: 0xd73abd244837256B0F0ADCF5417950984B9964F8
 LiquidityPoolAaveUSDCProxyAdmin: 0x98b9644DB5144104C898b8fecfff3d5ae6a10705
 Access control setup complete.
 Remember to update Rebalancer and Repayer routes in the config and then onchain.
+
+Deployment ID: MVP
+Deploying PaxosOracle
+Using config for: stage, ETHEREUM
+Deployer        : 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+USDC: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+Paxos stablecoins (1:1 to USDC): 0xe343167631d89B6Ffc58B88d6b7fB0228795491D, 0x6c3ea9036406852006290770BEdFcAbA0e23A0e8
+PaxosOracle: 0x4666013984fD7a624aa8BFADD0E95456870dADEc
+
+=== Deployed without Oracle ===
+Deployment ID: MVP
+Deploying USDG Processor
+Using config for: stage, ETHEREUM
+Deployer        : 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+┌───────────────┬──────────────────────────────────────────────┐
+│ (index)       │ Values                                       │
+├───────────────┼──────────────────────────────────────────────┤
+│ Processor     │ 'ProcessorUSDG'                              │
+│ Token         │ 'USDG'                                       │
+│ TokenAddress  │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' │
+│ Repayer       │ '0x697ECA1cae710FA0348e2173900e6C09b180C35b' │
+│ RepayerCaller │ '0xc1d6EEa5ce163d7D9f1952Db220830Aae16Cb607' │
+└───────────────┴──────────────────────────────────────────────┘
+ProcessorUSDG: 0x8b8eB971638acb18509CC96D783A2cBD0F70448C
+ProcessorUSDGProxyAdmin: 0x61871537a15e60Acf36b6Fc150E374d0007153AA
+SubProcessor: 0x1Ebd515C5ECF0Fe2c538234d05e0f93Afc58D67C
+
+=== Deployed without Oracle ===
+Deployment ID: MVP
+Deploying PYUSD Processor
+Using config for: stage, ETHEREUM
+Deployer        : 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+┌───────────────┬──────────────────────────────────────────────┐
+│ (index)       │ Values                                       │
+├───────────────┼──────────────────────────────────────────────┤
+│ Processor     │ 'ProcessorPYUSD'                             │
+│ Token         │ 'PYUSD'                                      │
+│ TokenAddress  │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8' │
+│ Repayer       │ '0x697ECA1cae710FA0348e2173900e6C09b180C35b' │
+│ RepayerCaller │ '0xc1d6EEa5ce163d7D9f1952Db220830Aae16Cb607' │
+└───────────────┴──────────────────────────────────────────────┘
+ProcessorPYUSD: 0xcE0774BD8B0F8eC3dE44aFdEE900C3eAef56cd18
+ProcessorPYUSDProxyAdmin: 0x22DD395D9cd5Eb8FeF3D1Fb6428d252f39B09203
+SubProcessor: 0xDAdB6fBdE7985e6CA26A2cc5E2241B205bCCFf5D
+
+Deployment ID: MVP
+Deploying StashDex
+Using config for: stage, ETHEREUM
+Deployer        : 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+StashDex: 0x125Bf891F832c3A1422E24f4Ca7ef314c0858740
+StashDexProxyAdmin: 0x4CC70A265EE668c3985Cf48f30bA5EC97c1024b1
+InitialPools:
+┌─────────┬───────────┬────────────────────────────────────────────────────┬──────────────────────────────────────────────┬──────────────────────────────────────────────┐
+│ (index) │ TokenName │ PoolId                                             │ Token                                        │ Pool                                         │
+├─────────┼───────────┼────────────────────────────────────────────────────┼──────────────────────────────────────────────┼──────────────────────────────────────────────┤
+│ 0       │ 'USDC'    │ 'TransparentUpgradeableProxyLiquidityPoolAaveUSDC' │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ '0xd73abd244837256B0F0ADCF5417950984B9964F8' │
+│ 1       │ 'PYUSD'   │ 'TransparentUpgradeableProxyLiquidityPoolAaveUSDC' │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8' │ '0xd73abd244837256B0F0ADCF5417950984B9964F8' │
+│ 2       │ 'USDG'    │ 'TransparentUpgradeableProxyLiquidityPoolAaveUSDC' │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' │ '0xd73abd244837256B0F0ADCF5417950984B9964F8' │
+└─────────┴───────────┴────────────────────────────────────────────────────┴──────────────────────────────────────────────┴──────────────────────────────────────────────┘
+InitialRoutes:
+┌─────────┬──────────────────────────────────────────────┬──────────────────────────────────────────────┬────────┬──────────────────────────────────────────────┐
+│ (index) │ tokenIn                                      │ tokenOut                                     │ feeBps │ processor                                    │
+├─────────┼──────────────────────────────────────────────┼──────────────────────────────────────────────┼────────┼──────────────────────────────────────────────┤
+│ 0       │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8' │ 3      │ '0xcE0774BD8B0F8eC3dE44aFdEE900C3eAef56cd18' │
+│ 1       │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8' │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ 3      │ '0x804C106cF3e7cbda2D48e35124C045410dfeF67e' │
+│ 2       │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' │ 3      │ '0x8b8eB971638acb18509CC96D783A2cBD0F70448C' │
+│ 3       │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ 3      │ '0x804C106cF3e7cbda2D48e35124C045410dfeF67e' │
+│ 4       │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8' │ 3      │ '0xcE0774BD8B0F8eC3dE44aFdEE900C3eAef56cd18' │
+│ 5       │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8' │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' │ 3      │ '0x8b8eB971638acb18509CC96D783A2cBD0F70448C' │
+└─────────┴──────────────────────────────────────────────┴──────────────────────────────────────────────┴────────┴──────────────────────────────────────────────┘
+
+Deployment ID: MVP
+Deploying USDC StashDex Processor
+Using config for: stage, ETHEREUM
+Deployer        : 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+┌──────────┬────────────────────────────────────────────────────┐
+│ (index)  │ Values                                             │
+├──────────┼────────────────────────────────────────────────────┤
+│ StashDex │ '0x125Bf891F832c3A1422E24f4Ca7ef314c0858740'       │
+│ Oracle   │ '0x4666013984fD7a624aa8BFADD0E95456870dADEc'       │
+│ Token    │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'       │
+│ Caller   │ '0xc1d6EEa5ce163d7D9f1952Db220830Aae16Cb607'       │
+│ Id       │ 'TransparentUpgradeableProxyStashDexProcessorUSDC' │
+└──────────┴────────────────────────────────────────────────────┘
+StashDexProcessorUSDC: 0xF278c2A62EfcF3b6C39D7235F4BbA2Fcb5e64901
+StashDexProcessorUSDC ProxyAdmin: 0x33d638aFD3dF11fCa6c3d7c378eDA794c939DCc8
+StashDexSubProcessorUSDC: 0x13FDAde562889BF0D12Da61F9f13d43a798a19ce
+
+Deployment ID: MVP
+Deploying USDG StashDex Processor
+Using config for: stage, ETHEREUM
+Deployer        : 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+┌──────────┬────────────────────────────────────────────────────┐
+│ (index)  │ Values                                             │
+├──────────┼────────────────────────────────────────────────────┤
+│ StashDex │ '0x125Bf891F832c3A1422E24f4Ca7ef314c0858740'       │
+│ Oracle   │ '0x4666013984fD7a624aa8BFADD0E95456870dADEc'       │
+│ Token    │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D'       │
+│ Caller   │ '0xc1d6EEa5ce163d7D9f1952Db220830Aae16Cb607'       │
+│ Id       │ 'TransparentUpgradeableProxyStashDexProcessorUSDG' │
+└──────────┴────────────────────────────────────────────────────┘
+StashDexProcessorUSDG: 0xAB181d2543d91d21768087c9d6792A82184110A4
+StashDexProcessorUSDG ProxyAdmin: 0x206018c2b039D89A5FB76D0240e9825A86398EcC
+StashDexSubProcessorUSDG: 0xd5C5cF03E25BFeC2c16b7e6F7a695c17d815A385
+
+Deployment ID: MVP
+Deploying USDT StashDex Processor
+Using config for: stage, ETHEREUM
+Deployer        : 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+┌──────────┬────────────────────────────────────────────────────┐
+│ (index)  │ Values                                             │
+├──────────┼────────────────────────────────────────────────────┤
+│ StashDex │ '0x125Bf891F832c3A1422E24f4Ca7ef314c0858740'       │
+│ Oracle   │ '0x4666013984fD7a624aa8BFADD0E95456870dADEc'       │
+│ Token    │ '0xdAC17F958D2ee523a2206206994597C13D831ec7'       │
+│ Caller   │ '0xc1d6EEa5ce163d7D9f1952Db220830Aae16Cb607'       │
+│ Id       │ 'TransparentUpgradeableProxyStashDexProcessorUSDT' │
+└──────────┴────────────────────────────────────────────────────┘
+StashDexProcessorUSDT: 0xA0cE5326f2144804E75a72108231D56DE63ba0c5
+StashDexProcessorUSDT ProxyAdmin: 0x26C5790f042f41F4CE91c99832d2194377ae2874
+StashDexSubProcessorUSDT: 0x3563578Ad362B43e649c53a0aB7e2bae37e3c577
+
+Deployment ID: MVP
+Deploying PYUSD StashDex Processor
+Using config for: stage, ETHEREUM
+Deployer        : 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+┌──────────┬─────────────────────────────────────────────────────┐
+│ (index)  │ Values                                              │
+├──────────┼─────────────────────────────────────────────────────┤
+│ StashDex │ '0x125Bf891F832c3A1422E24f4Ca7ef314c0858740'        │
+│ Oracle   │ '0x4666013984fD7a624aa8BFADD0E95456870dADEc'        │
+│ Token    │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8'        │
+│ Caller   │ '0xc1d6EEa5ce163d7D9f1952Db220830Aae16Cb607'        │
+│ Id       │ 'TransparentUpgradeableProxyStashDexProcessorPYUSD' │
+└──────────┴─────────────────────────────────────────────────────┘
+StashDexProcessorPYUSD: 0xa88Ca4702797BE89b0E4D2Fa0180477352cca250
+StashDexProcessorPYUSD ProxyAdmin: 0x18666E82921eb22027934182A69721415C566fE6
+StashDexSubProcessorPYUSD: 0x7D29DEe0bd6Dc850Ae282938A38534F1115A0796
+
+DEPLOY_TYPE=STAGE hardhat update-stashdex-routes --network ETHEREUM
+No excess routes to disable.
+Set routes:
+┌─────────┬──────────────────────────────────────────────┬──────────────────────────────────────────────┬────────┬──────────────────────────────────────────────┐
+│ (index) │ TokenIn                                      │ TokenOut                                     │ FeeBps │ Processor                                    │
+├─────────┼──────────────────────────────────────────────┼──────────────────────────────────────────────┼────────┼──────────────────────────────────────────────┤
+│ 0       │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8' │ 3      │ '0xa88Ca4702797BE89b0E4D2Fa0180477352cca250' │
+│ 1       │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8' │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ 3      │ '0xF278c2A62EfcF3b6C39D7235F4BbA2Fcb5e64901' │
+│ 2       │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' │ 3      │ '0xAB181d2543d91d21768087c9d6792A82184110A4' │
+│ 3       │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ 3      │ '0xF278c2A62EfcF3b6C39D7235F4BbA2Fcb5e64901' │
+│ 4       │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8' │ 3      │ '0xa88Ca4702797BE89b0E4D2Fa0180477352cca250' │
+│ 5       │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8' │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' │ 3      │ '0xAB181d2543d91d21768087c9d6792A82184110A4' │
+│ 6       │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ '0xdAC17F958D2ee523a2206206994597C13D831ec7' │ 3      │ '0xA0cE5326f2144804E75a72108231D56DE63ba0c5' │
+│ 7       │ '0xdAC17F958D2ee523a2206206994597C13D831ec7' │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ 3      │ '0xF278c2A62EfcF3b6C39D7235F4BbA2Fcb5e64901' │
+│ 8       │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' │ '0xdAC17F958D2ee523a2206206994597C13D831ec7' │ 3      │ '0xA0cE5326f2144804E75a72108231D56DE63ba0c5' │
+│ 9       │ '0xdAC17F958D2ee523a2206206994597C13D831ec7' │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' │ 3      │ '0xAB181d2543d91d21768087c9d6792A82184110A4' │
+│ 10      │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8' │ '0xdAC17F958D2ee523a2206206994597C13D831ec7' │ 3      │ '0xA0cE5326f2144804E75a72108231D56DE63ba0c5' │
+│ 11      │ '0xdAC17F958D2ee523a2206206994597C13D831ec7' │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8' │ 3      │ '0xa88Ca4702797BE89b0E4D2Fa0180477352cca250' │
+└─────────┴──────────────────────────────────────────────┴──────────────────────────────────────────────┴────────┴──────────────────────────────────────────────┘
+
+DEPLOY_TYPE=STAGE hardhat update-stashdex-pools --network ETHEREUM
+Updated pools:
+┌─────────┬───────────┬────────────────────────────────────────────────────┬──────────────────────────────────────────────┬──────────────────────────────────────────────┐
+│ (index) │ TokenName │ PoolId                                             │ Token                                        │ Pool                                         │
+├─────────┼───────────┼────────────────────────────────────────────────────┼──────────────────────────────────────────────┼──────────────────────────────────────────────┤
+│ 0       │ 'USDT'    │ 'TransparentUpgradeableProxyLiquidityPoolAaveUSDC' │ '0xdAC17F958D2ee523a2206206994597C13D831ec7' │ '0xd73abd244837256B0F0ADCF5417950984B9964F8' │
+└─────────┴───────────┴────────────────────────────────────────────────────┴──────────────────────────────────────────────┴──────────────────────────────────────────────┘
+
+DEPLOY_TYPE=STAGE hardhat update-paxos-oracle-assets --network ETHEREUM
+Using config for: stage, ETHEREUM
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Added asset: USDC (0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48) 6 decimals
+Added asset: USDT (0xdAC17F958D2ee523a2206206994597C13D831ec7) 6 decimals
+
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Deployment ID: MVP
+Upgrade ID: STASH_DEX_INTERFACE
+Upgrading StashDex
+Using config for: stage, ETHEREUM
+Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+StashStablecoinDex proxy: 0x125Bf891F832c3A1422E24f4Ca7ef314c0858740
+Oracle: 0x4666013984fD7a624aa8BFADD0E95456870dADEc
+Receiver: 0x697ECA1cae710FA0348e2173900e6C09b180C35b
+New StashDex implementation deployed to 0x02790659dd9B647ED37DFb4Bbc18CeCCDc5A8068
+Sending StashDex upgrade transaction.
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0x573f41a11085b89263fd733b81da52c706ea740b2c2f61420156f1901879e8ab
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0xfffdba1d5234084edcb4ae47945f65fa30ab69bfe6b60e41e1bf582ca0ad797b
+0xfffdba1d5234084edcb4ae47945f65fa30ab69bfe6b60e41e1bf582ca0ad797b
+StashDex upgraded.

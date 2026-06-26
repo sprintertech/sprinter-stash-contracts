@@ -5,11 +5,11 @@ import {
 } from "./network.config";
 import {TypedDataDomain, AbiCoder, toNumber, dataSlice, getAddress, parseEther} from "ethers";
 import {
-  LiquidityPoolAave, Rebalancer, Repayer, StashDex,
+  LiquidityPoolAave, PaxosOracle, Rebalancer, Repayer, StashDex,
 } from "./typechain-types";
 import {
   assert, isSet, ProviderSolidity, DomainSolidity, CCTPDomain, SolidityDomain, SolidityProvider,
-  DEFAULT_ADMIN_ROLE, assertAddress,
+  DEFAULT_ADMIN_ROLE, assertAddress, addressToBytes32,
   sameAddress,
 } from "./scripts/common";
 import "hardhat-ignore-warnings";
@@ -550,7 +550,7 @@ task("update-tokens-repayer", "Update input output tokens based on current netwo
 });
 
 task("update-stashdex-routes", "Update StashDex routes to match current network config")
-.addOptionalParam("stashdex", "StashDex address or id", "StashDex", types.string)
+.addOptionalParam("stashdex", "StashDex address or id", "StashStablecoinDex", types.string)
 .addOptionalParam("action", "Action to perform: add, disable, or both (default)", "both", types.string)
 .setAction(async (args: {stashdex: string, action: string}, hre) => {
   const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
@@ -693,7 +693,7 @@ task("update-stashdex-routes", "Update StashDex routes to match current network 
 });
 
 task("update-stashdex-pools", "Update StashDex pools to match current network config")
-.addOptionalParam("stashdex", "StashDex address or id", "StashDex", types.string)
+.addOptionalParam("stashdex", "StashDex address or id", "StashStablecoinDex", types.string)
 .setAction(async (args: {stashdex: string}, hre) => {
   const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
   const {getNetworkConfig} = await loadScriptHelpers();
@@ -758,6 +758,106 @@ task("update-stashdex-pools", "Update StashDex pools to match current network co
     }
   } else {
     console.log("All pools are up to date.");
+  }
+});
+
+// Does not verify if decimals are correct on-chain.
+task("update-paxos-oracle-assets", "Synchronize PaxosOracle assets with tokens in StashDex.Pools config")
+.addOptionalParam("oracle", "PaxosOracle address or id", "PaxosOracle", types.string)
+.setAction(async (args: {oracle: string}, hre) => {
+  const {resolveXAddress} = await loadTestHelpers();
+  const {getNetworkConfig} = await loadScriptHelpers();
+  const {config} = await getNetworkConfig();
+
+  assert(config.StashDex, "StashDex not configured for this network");
+
+  const [sender] = await hre.ethers.getSigners();
+  const admin = await createSender(hre, sender);
+
+  const targetAddress = await resolveXAddress(args.oracle);
+  const target = (await hre.ethers.getContractAt("PaxosOracle", targetAddress, admin)) as PaxosOracle;
+
+  // Desired: tokens present in StashDex.Pools.
+  const desiredTokens = (Object.keys(config.StashDex.Pools) as Token[])
+    .map(tokenName => {
+      const tokenInfo = config.Tokens[tokenName];
+      assert(tokenInfo, `Token ${tokenName} not found in config`);
+      return {TokenName: tokenName, Address: getAddress(tokenInfo.Address), Decimals: tokenInfo.Decimals};
+    });
+
+  // All known tokens — used to detect on-chain assets that should be removed.
+  const allKnownTokens = (Object.entries(config.Tokens) as [Token, {Address: string, Decimals: number} | undefined][])
+    .filter(([, info]) => info)
+    .map(([tokenName, info]) => ({TokenName: tokenName, Address: getAddress(info!.Address), Decimals: info!.Decimals}));
+
+  const desiredAddresses = new Set(desiredTokens.map(t => t.Address));
+
+  // Check onchain support for all known tokens.
+  const toAdd: typeof desiredTokens = [];
+  const toRemove: typeof allKnownTokens = [];
+  const onchainAssets: {TokenName: string, Address: string, Decimals: number}[] = [];
+
+  for (const token of desiredTokens) {
+    const assetId = addressToBytes32(token.Address);
+    const supported = await target.isSupported(assetId);
+    if (!supported) toAdd.push(token);
+    else onchainAssets.push(token);
+  }
+
+  for (const token of allKnownTokens) {
+    if (desiredAddresses.has(token.Address)) continue;
+    const assetId = addressToBytes32(token.Address);
+    const supported = await target.isSupported(assetId);
+    if (supported) {
+      toRemove.push(token);
+      onchainAssets.push(token);
+    }
+  }
+
+  console.log("Desired assets (StashDex.Pools tokens):");
+  console.table(desiredTokens);
+  console.log("On-chain assets:");
+  console.table(onchainAssets);
+
+  if (toAdd.length === 0 && toRemove.length === 0) {
+    console.log("PaxosOracle assets are up to date.");
+    return;
+  }
+
+  const hasRole = await target.hasRole(DEFAULT_ADMIN_ROLE, admin);
+
+  if (toAdd.length > 0) {
+    if (hasRole) {
+      for (const {TokenName, Address, Decimals} of toAdd) {
+        await (await target.addAsset(addressToBytes32(Address), Decimals)).wait();
+        console.log(`Added asset: ${TokenName} (${Address}) ${Decimals} decimals`);
+      }
+    } else {
+      console.log("Assets to add — execute the following transactions:");
+      console.log(`To: ${targetAddress}`);
+      console.log("Function: addAsset");
+      for (const {TokenName, Address, Decimals} of toAdd) {
+        const tx = await target.addAsset.populateTransaction(addressToBytes32(Address), Decimals);
+        console.log(`  ${TokenName} (${Address}): ${tx.data}`);
+      }
+    }
+  }
+
+  if (toRemove.length > 0) {
+    if (hasRole) {
+      for (const {TokenName, Address} of toRemove) {
+        await (await target.removeAsset(addressToBytes32(Address))).wait();
+        console.log(`Removed asset: ${TokenName} (${Address})`);
+      }
+    } else {
+      console.log("Assets to remove — execute the following transactions:");
+      console.log(`To: ${targetAddress}`);
+      console.log("Function: removeAsset");
+      for (const {TokenName, Address} of toRemove) {
+        const tx = await target.removeAsset.populateTransaction(addressToBytes32(Address));
+        console.log(`  ${TokenName} (${Address}): ${tx.data}`);
+      }
+    }
   }
 });
 

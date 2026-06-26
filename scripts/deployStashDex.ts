@@ -22,6 +22,7 @@ export async function main() {
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
   const verifier = getVerifier(process.env.DEPLOY_ID);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
+  const id = "StashStablecoinDex";
 
   let network: Network;
   let config: NetworkConfig;
@@ -87,11 +88,11 @@ export async function main() {
       initialPools,
       initialRoutes,
     ],
-    "StashDex",
+    id,
     verifier,
   );
 
-  console.log(`StashDex: ${stashDex.target}`);
+  console.log(`${id}: ${stashDex.target}`);
   console.log(`StashDexProxyAdmin: ${stashDexAdmin.target}`);
   if (initialPools.length > 0) {
     console.log("InitialPools:");

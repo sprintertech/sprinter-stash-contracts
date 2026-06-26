@@ -13,7 +13,7 @@ import {createSender} from "./safe";
 import {getDeployProxyXAddress, resolveProxyXAddress, getContractAt} from "../test/helpers";
 import {isSet, assert, assertAddress, ZERO_ADDRESS, retry} from "./common";
 import {Processor} from "../typechain-types";
-import {Network, NetworkConfig} from "../network.config";
+import {Network, NetworkConfig, Token} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -27,7 +27,13 @@ export async function main() {
 
   let network: Network;
   let config: NetworkConfig;
-  console.log("Upgrading Processor");
+  const token = (process.env.PROCESSOR_TOKEN) as Token;
+  assert(
+    Object.values(Token).includes(token),
+    `PROCESSOR_TOKEN must be one of: ${Object.values(Token).join(", ")}`,
+  );
+
+  console.log(`Upgrading ${token} Processor`);
   ({network, config} = await getNetworkConfig());
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
@@ -35,10 +41,13 @@ export async function main() {
 
   await logDeployers(false);
 
-  assertAddress(config.Tokens.USDC.Address, "USDC must be an address");
+  const tokenInfo = config.Tokens[token];
+  assert(tokenInfo, `${token} must be configured`);
+  assertAddress(tokenInfo.Address, `${token} must be an address`);
   assertAddress(config.SignerAddress, "SignerAddress must be an address, used as OpsAdmin");
 
-  const processorAddress = await getDeployProxyXAddress("Processor");
+  const id = token === Token.USDC ? "Processor" : `Processor${token}`;
+  const processorAddress = await getDeployProxyXAddress(id);
   const repayerAddress = await resolveProxyXAddress("Repayer");
   const oracleAddress = ZERO_ADDRESS;
   console.log(`Repayer: ${repayerAddress}`);
@@ -48,8 +57,8 @@ export async function main() {
     processorAddress,
     "Processor",
     sender,
-    [config.Tokens.USDC.Address, repayerAddress, oracleAddress],
-    "Processor"
+    [tokenInfo.Address, repayerAddress, oracleAddress],
+    id
   );
 
   const processor = (await getContractAt("Processor", processorAddress, sender)) as Processor;
@@ -101,7 +110,7 @@ export async function main() {
       console.log(`CONFIG_ROLE granted to ${config.SignerAddress}`);
 
       console.log(`SubProcessor: ${subProcessor}`);
-      await verifier.addContractForVerification(subProcessor, [config.Tokens.USDC.Address]);
+      await verifier.addContractForVerification(subProcessor, [tokenInfo.Address]);
     }
   }
 

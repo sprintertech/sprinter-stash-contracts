@@ -21,7 +21,7 @@ export async function main() {
 
   let network: Network;
   let config: NetworkConfig;
-  console.log(`Deploying ${process.env.TARGET_ASSET_NAME} StashDex Processor`);
+  console.log(`Deploying ${process.env.PROCESSOR_TOKEN} StashDex Processor`);
   ({network, config} = await getNetworkConfig());
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
@@ -29,9 +29,9 @@ export async function main() {
   
   await logDeployers();
 
-  assert(isSet(process.env.TARGET_ASSET_NAME), "TARGET_ASSET_NAME must be set");
-  const targetAsset = process.env.TARGET_ASSET_NAME as Token;
-  assert(Object.values(Token).includes(targetAsset), "TARGET_ASSET_NAME must be a valid Token");
+  assert(isSet(process.env.PROCESSOR_TOKEN), "PROCESSOR_TOKEN must be set");
+  const targetAsset = process.env.PROCESSOR_TOKEN as Token;
+  assert(Object.values(Token).includes(targetAsset), "PROCESSOR_TOKEN must be a valid Token");
   const tokenInfo = config.Tokens[targetAsset];
   assert(tokenInfo, `${targetAsset} not found in config`);
   assertAddress(tokenInfo.Address, `${targetAsset}.Address must be an address`);
@@ -39,13 +39,13 @@ export async function main() {
   assertAddress(config.RepayerCaller, "RepayerCaller must be an address");
   assert(config.StashDex, "StashDex must be in config");
 
-  const id = `${targetAsset}StashDexProcessor`;
-  const stashDexAddress = await resolveProxyXAddress("StashDex", false);
+  const id = `StashDexProcessor${targetAsset}`;
+  const stashDexAddress = await resolveProxyXAddress("StashStablecoinDex", false);
   const oracleAddress = await resolveXAddress(config.StashDex.Oracle);
   console.table({
     StashDex: stashDexAddress,
     Oracle: oracleAddress,
-    Target: tokenInfo.Address,
+    Token: tokenInfo.Address,
     Caller: config.RepayerCaller,
     Id: `${DEFAULT_PROXY_TYPE}${id}`,
   });
@@ -62,9 +62,9 @@ export async function main() {
     1,
   );
   const subProcessor = await processor.subProcessor();
-  console.log(`Processor: ${processor.target}`);
-  console.log(`ProcessorProxyAdmin: ${processorAdmin.target}`);
-  console.log(`SubProcessor: ${subProcessor}`);
+  console.log(`${id}: ${processor.target}`);
+  console.log(`${id} ProxyAdmin: ${processorAdmin.target}`);
+  console.log(`StashDexSubProcessor${targetAsset}: ${subProcessor}`);
 
   await verifier.addContractForVerification(subProcessor, [tokenInfo.Address]);
 

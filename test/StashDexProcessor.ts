@@ -121,10 +121,14 @@ describe("StashDexProcessor", function () {
 
       // Create tokenA debt: set up a pool for tokenA and a swap route usdc→tokenA
       const tokenADebt = 100_000000n;
-      const tokenAPool = (await deploy("TestLiquidityPool", deployer, {}, tokenA, admin, ZERO_ADDRESS)) as TestLiquidityPool;
+      const tokenAPool = (
+        await deploy("TestLiquidityPool", deployer, {}, tokenA, admin, ZERO_ADDRESS)
+      ) as TestLiquidityPool;
       await tokenA.mint(tokenAPool, tokenADebt);
       await stashDex.connect(configAdmin).setPool(tokenA, tokenAPool);
-      await stashDex.connect(configAdmin).setRoute({tokenIn: usdc, tokenOut: tokenA, feeBps: 0, processor: swapProcessor});
+      await stashDex.connect(configAdmin).setRoute({
+        tokenIn: usdc, tokenOut: tokenA, feeBps: 0, processor: swapProcessor
+      });
       await usdc.mint(user, tokenADebt);
       await usdc.connect(user).approve(stashDex, tokenADebt);
       await stashDex.connect(user).swap(usdc, tokenA, tokenADebt, tokenADebt, user);

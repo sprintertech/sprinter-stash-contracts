@@ -114,6 +114,34 @@ describe("StashDexProcessor", function () {
       expect(await usdc.balanceOf(stashDex)).to.equal(0n);
       expect(await usdc.balanceOf(pool)).to.equal(debtAmount);
     });
+
+    it("repays tokenA debt when forwarding tokenA", async function () {
+      const {deployer, admin, configAdmin, caller, user, swapProcessor, usdc, tokenA, stashDex, stashDexProcessor} =
+        await loadFixture(deployAll);
+
+      // Create tokenA debt: set up a pool for tokenA and a swap route usdc→tokenA
+      const tokenADebt = 100_000000n;
+      const tokenAPool = (await deploy("TestLiquidityPool", deployer, {}, tokenA, admin, ZERO_ADDRESS)) as TestLiquidityPool;
+      await tokenA.mint(tokenAPool, tokenADebt);
+      await stashDex.connect(configAdmin).setPool(tokenA, tokenAPool);
+      await stashDex.connect(configAdmin).setRoute({tokenIn: usdc, tokenOut: tokenA, feeBps: 0, processor: swapProcessor});
+      await usdc.mint(user, tokenADebt);
+      await usdc.connect(user).approve(stashDex, tokenADebt);
+      await stashDex.connect(user).swap(usdc, tokenA, tokenADebt, tokenADebt, user);
+
+      const forwardAmount = 60_000000n;
+      await tokenA.mint(stashDexProcessor, forwardAmount);
+
+      const tx = await stashDexProcessor.connect(caller).forward(tokenA);
+      await expect(tx).to.emit(stashDexProcessor, "Forwarded");
+      await expect(tx).to.emit(stashDex, "Repaid").withArgs(tokenA.target, forwardAmount);
+
+      expect(await stashDex.getTotalBorrowed(tokenA)).to.equal(tokenADebt - forwardAmount);
+      expect(await tokenA.balanceOf(stashDexProcessor)).to.equal(0n);
+      expect(await tokenA.balanceOf(stashDex)).to.equal(0n);
+      expect(await tokenA.balanceOf(tokenAPool)).to.equal(forwardAmount);
+      expect(await stashDex.getTotalBorrowed(usdc)).to.equal(debtAmount); // usdc debt unaffected
+    });
   });
 
   describe("process4626", function () {

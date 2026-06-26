@@ -475,12 +475,29 @@ describe("Processor", function () {
     expect(await usdc.balanceOf(subProcAddr)).to.equal(0n);
   });
 
+  describe("forward", function () {
+    it("sends non-TARGET_ASSET token to receiver directly", async function () {
+      const {caller, receiver, usdc, tokenIn, processor} = await loadFixture(deployAll);
+
+      await tokenIn.mint(processor, 40_000000n);
+      await usdc.mint(processor, 100_000000n);
+
+      const tx = await processor.connect(caller).forward(tokenIn);
+      await expect(tx).to.emit(processor, "Forwarded").withArgs(caller.address, await tokenIn.getAddress());
+
+      expect(await tokenIn.balanceOf(receiver)).to.equal(40_000000n);
+      expect(await tokenIn.balanceOf(processor)).to.equal(0n);
+      expect(await usdc.balanceOf(processor)).to.equal(100_000000n);
+      expect(await usdc.balanceOf(receiver)).to.equal(0n);
+    });
+  });
+
   describe("process", function () {
     it("reverts when oracle is zero address", async function () {
-      const {deployer, admin, caller, config, usdc, tokenIn} = await loadFixture(deployAll);
+      const {deployer, admin, caller, config, usdc, tokenIn, receiver} = await loadFixture(deployAll);
 
-      const zeroOracleImpl = (await deploy("Processor", deployer, {}, usdc, admin, ZERO_ADDRESS)) as Processor;
-      const initData = (await zeroOracleImpl.initialize.populateTransaction(admin, caller, config)).data;
+      const zeroOracleImpl = (await deploy("Processor", deployer, {}, usdc, receiver, ZERO_ADDRESS)) as Processor;
+      const initData = (await zeroOracleImpl.initialize.populateTransaction(receiver, caller, config)).data;
       const proxy = (await deploy(
         "TransparentUpgradeableProxy", deployer, {}, zeroOracleImpl, admin, initData
       )) as TransparentUpgradeableProxy;

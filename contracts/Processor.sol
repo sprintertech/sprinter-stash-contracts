@@ -95,7 +95,7 @@ contract Processor is AccessControlUpgradeable, MulticallUpgradeable {
     }
 
     function forward(IERC20 token) external onlyRole(CALLER_ROLE) {
-        _finalizeTransfer(token.balanceOf(address(this)));
+        _finalizeTransfer(token, token.balanceOf(address(this)));
         emit Forwarded(msg.sender, token);
     }
 
@@ -169,12 +169,12 @@ contract Processor is AccessControlUpgradeable, MulticallUpgradeable {
         require(assetsAfter >= assets, InsufficientAssets());
         uint256 amountOut = assetsAfter - assets;
         require(amountOut >= amountOutMin, InsufficientAssets());
-        _finalizeTransfer(amountOut);
+        _finalizeTransfer(TARGET_ASSET, amountOut);
         emit Processed(msg.sender, tokenIn, amountIn, amountOut);
     }
 
-    function _finalizeTransfer(uint256 amount) internal virtual {
-        TARGET_ASSET.safeTransfer(RECEIVER, amount);
+    function _finalizeTransfer(IERC20 token, uint256 amount) internal virtual {
+        token.safeTransfer(RECEIVER, amount);
     }
 
     /// @notice Currently consults oracle instead of checking the signature.

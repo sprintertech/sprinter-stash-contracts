@@ -83,6 +83,7 @@ export const RepayerProxy = DEFAULT_PROXY_TYPE + "Repayer";
 export const PYUSDStashDexProcessorProxy = DEFAULT_PROXY_TYPE + "PYUSDStashDexProcessor";
 export const USDCStashDexProcessorProxy = DEFAULT_PROXY_TYPE + "USDCStashDexProcessor";
 export const USDGStashDexProcessorProxy = DEFAULT_PROXY_TYPE + "USDGStashDexProcessor";
+export const USDTStashDexProcessorProxy = DEFAULT_PROXY_TYPE + "USDTStashDexProcessor";
 const SUPPORTS_ONLY_USDC = false;
 
 export enum Network {
@@ -430,6 +431,92 @@ export const networkConfig: NetworksConfig = {
       RepayCaller: "0x9A5B33bd11329116A55F764c604a5152eE8Ca292",
     },
     USDCPool: true,
+    StashDex: {
+      Oracle: "PaxosOracle",
+      Receiver: RepayerProxy,
+      ConfigAdmin: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+      Forwarder: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+      Pools: {
+        USDC: LiquidityPoolAaveUSDCProxy,
+        PYUSD: LiquidityPoolAaveUSDCProxy,
+        USDG: LiquidityPoolAaveUSDCProxy,
+        USDT: LiquidityPoolAaveUSDCProxy,
+      },
+      Routes: [
+        {
+          TokenIn: Token.USDC,
+          TokenOut: Token.PYUSD,
+          FeeBps: 3,
+          Processor: PYUSDStashDexProcessorProxy,
+        },
+        {
+          TokenIn: Token.PYUSD,
+          TokenOut: Token.USDC,
+          FeeBps: 3,
+          Processor: USDCStashDexProcessorProxy,
+        },
+        {
+          TokenIn: Token.USDC,
+          TokenOut: Token.USDG,
+          FeeBps: 3,
+          Processor: USDGStashDexProcessorProxy,
+        },
+        {
+          TokenIn: Token.USDG,
+          TokenOut: Token.USDC,
+          FeeBps: 3,
+          Processor: USDCStashDexProcessorProxy,
+        },
+        {
+          TokenIn: Token.USDG,
+          TokenOut: Token.PYUSD,
+          FeeBps: 3,
+          Processor: PYUSDStashDexProcessorProxy,
+        },
+        {
+          TokenIn: Token.PYUSD,
+          TokenOut: Token.USDG,
+          FeeBps: 3,
+          Processor: USDGStashDexProcessorProxy,
+        },
+        {
+          TokenIn: Token.USDC,
+          TokenOut: Token.USDT,
+          FeeBps: 3,
+          Processor: USDTStashDexProcessorProxy,
+        },
+        {
+          TokenIn: Token.USDT,
+          TokenOut: Token.USDC,
+          FeeBps: 3,
+          Processor: USDCStashDexProcessorProxy,
+        },
+        {
+          TokenIn: Token.USDG,
+          TokenOut: Token.USDT,
+          FeeBps: 3,
+          Processor: USDTStashDexProcessorProxy,
+        },
+        {
+          TokenIn: Token.USDT,
+          TokenOut: Token.USDG,
+          FeeBps: 3,
+          Processor: USDGStashDexProcessorProxy,
+        },
+        {
+          TokenIn: Token.PYUSD,
+          TokenOut: Token.USDT,
+          FeeBps: 3,
+          Processor: USDTStashDexProcessorProxy,
+        },
+        {
+          TokenIn: Token.USDT,
+          TokenOut: Token.PYUSD,
+          FeeBps: 3,
+          Processor: PYUSDStashDexProcessorProxy,
+        },
+      ],
+    },
     Stage: {
       ChainId: 1,
       CCTP: {
@@ -616,9 +703,10 @@ export const networkConfig: NetworksConfig = {
         ConfigAdmin: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
         Forwarder: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
         Pools: {
-          USDC: LiquidityPoolUSDCProxy,
+          USDC: LiquidityPoolAaveUSDCProxy,
           PYUSD: LiquidityPoolAaveUSDCProxy,
           USDG: LiquidityPoolAaveUSDCProxy,
+          USDT: LiquidityPoolAaveUSDCProxy,
         },
         Routes: [
           {
@@ -656,6 +744,42 @@ export const networkConfig: NetworksConfig = {
             TokenOut: Token.USDG,
             FeeBps: 3,
             Processor: USDGStashDexProcessorProxy,
+          },
+          {
+            TokenIn: Token.USDC,
+            TokenOut: Token.USDT,
+            FeeBps: 3,
+            Processor: USDTStashDexProcessorProxy,
+          },
+          {
+            TokenIn: Token.USDT,
+            TokenOut: Token.USDC,
+            FeeBps: 3,
+            Processor: USDCStashDexProcessorProxy,
+          },
+          {
+            TokenIn: Token.USDG,
+            TokenOut: Token.USDT,
+            FeeBps: 3,
+            Processor: USDTStashDexProcessorProxy,
+          },
+          {
+            TokenIn: Token.USDT,
+            TokenOut: Token.USDG,
+            FeeBps: 3,
+            Processor: USDGStashDexProcessorProxy,
+          },
+          {
+            TokenIn: Token.PYUSD,
+            TokenOut: Token.USDT,
+            FeeBps: 3,
+            Processor: USDTStashDexProcessorProxy,
+          },
+          {
+            TokenIn: Token.USDT,
+            TokenOut: Token.PYUSD,
+            FeeBps: 3,
+            Processor: PYUSDStashDexProcessorProxy,
           },
         ],
       },

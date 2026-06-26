@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity 0.8.28;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Processor} from "./Processor.sol";
 import {IStashDex} from "./interfaces/IStashDex.sol";
 
@@ -13,8 +14,8 @@ contract StashDexProcessor is Processor {
         require(oracle != address(0), ZeroAddress());
     }
 
-    function _finalizeTransfer(uint256 amount) internal override {
-        super._finalizeTransfer(amount);
-        IStashDex(RECEIVER).repay(address(TARGET_ASSET));
+    function _finalizeTransfer(IERC20 token, uint256 amount) internal override {
+        super._finalizeTransfer(token, amount);
+        IStashDex(RECEIVER).repay(address(token));
     }
 }

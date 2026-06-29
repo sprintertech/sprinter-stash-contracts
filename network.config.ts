@@ -1751,6 +1751,9 @@ export const networkConfig: NetworksConfig = {
       [LiquidityPoolAaveUSDCLongTermV3]: {
         [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
       },
+      [LiquidityPoolAaveUSDCProxy]: {
+        [Network.ETHEREUM]: [Provider.CCTP_V2]
+      }
     },
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCV4]: {

@@ -991,6 +991,60 @@ task("cctp-get-process-data", "Get burn attestation from CCTP Api to mint USDC o
   console.log(extraDatas);
 });
 
+interface CCTPV2Message {
+  attestation: string,
+  message: string,
+  eventNonce: string,
+  status: string,
+};
+
+interface CCTPV2ResponseSuccess {
+  messages: CCTPV2Message[],
+};
+
+task("cctpv2-get-process-data", "Get burn attestation from CCTP V2 Api to mint USDC on destination")
+.addParam("txhash", "Hash of the initiate transaction")
+.addOptionalParam("adapter", "Rebalancer or Repayer address", "0xA85Cf46c150db2600b1D03E437bedD5513869888")
+.setAction(async ({txhash, adapter}: {txhash: string, adapter: string}, hre) => {
+  const {resolveProxyXAddress} = await loadTestHelpers();
+  assert(txhash.length > 0, "Valid txhash should be provided.");
+
+  const cctpAdapter = await hre.ethers.getContractAt("CCTPV2Adapter", await resolveProxyXAddress(adapter));
+  const cctpDomain = await cctpAdapter.domainCCTP(DomainSolidity[hre.network.name as Network]);
+
+  const url = `https://iris-api.circle.com/v2/messages/${cctpDomain}?transactionHash=${txhash}`;
+  const options = {method: "GET", headers: {"Content-Type": "application/json"}};
+  const result = await (await fetch(url, options)).json();
+
+  if (result.error) {
+    console.error(result.error);
+    return;
+  }
+
+  const success = result as CCTPV2ResponseSuccess;
+
+  assert(success.messages, `Messages are missing in CCTP response: ${success}`);
+
+  if (success.messages[0].status !== "complete" || !success.messages[0].attestation.startsWith("0x")) {
+    console.error("Attestation is not ready:", success.messages[0].status, success.messages[0].attestation);
+    return;
+  }
+
+  const extraDatas = success.messages.map(el => {
+    const destinationCCTP = toNumber(dataSlice(el.message, 8, 12));
+    const destination = CCTPDomain[destinationCCTP];
+    assert(destination, `Unknown CCTP domain ${destinationCCTP}`);
+    return {
+      destination,
+      extraData: AbiCoder.defaultAbiCoder().encode(["bytes", "bytes"], [el.message, el.attestation]),
+    };
+  });
+
+  const count = extraDatas.length;
+  console.log(count, `message${count > 1 ? "s" : ""} found.`);
+  console.log(extraDatas);
+});
+
 task("push-native-token", "Push native currency through a selfdestruct")
 .addParam("receiver", "Address of the receiver")
 .addOptionalParam("amount", "Human readable amount of native token to send", "0.0011")

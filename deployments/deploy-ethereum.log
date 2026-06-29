@@ -200,3 +200,159 @@ After the upgrade is executed, the following post-upgrade steps are needed:
    To:    0xFFDB380C79D9BF412a61d63060388d761D16286D
    Value: 0
    Data:  0x2f2ff15d434f4e4649475f524f4c4500000000000000000000000000000000000000000000000000000000000000000083b8d2eada788943c3e80892f37f9c102271c1d6
+
+Deployment ID: MVP
+Deploying Aave USDC Pool
+Using config for: ETHEREUM
+Deployer        : 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+DEPLOYER_ADDRESS: 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+Rebalancer: 0xA85Cf46c150db2600b1D03E437bedD5513869888
+Deploying Aave USDC Liquidity Pool
+LiquidityPoolAaveUSDC: 0x63Ff95c79bF61486c600Eb8aF4CcE4c0a9a4068B
+LiquidityPoolAaveUSDCProxyAdmin: 0x45B5f91af4dbEB8187e7F401eF8650831ed796C7
+Access control setup complete.
+Remember to update Rebalancer and Repayer routes in the config and then onchain.
+
+Deployment ID: MVP
+Deploying PaxosOracle
+Using config for: ETHEREUM
+Deployer        : 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+DEPLOYER_ADDRESS: 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+USDC: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+Paxos stablecoins (1:1 to USDC): 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, 0x6c3ea9036406852006290770BEdFcAbA0e23A0e8, 0xe343167631d89B6Ffc58B88d6b7fB0228795491D, 0xdAC17F958D2ee523a2206206994597C13D831ec7
+PaxosOracle: 0xBbbDdf4B6029A61FCcF82d78eFcBedCF223ac4fc
+
+Deployment ID: MVP
+Deploying USDC StashDex Processor
+Using config for: ETHEREUM
+Deployer        : 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+DEPLOYER_ADDRESS: 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+┌──────────┬────────────────────────────────────────────────────┐
+│ (index)  │ Values                                             │
+├──────────┼────────────────────────────────────────────────────┤
+│ StashDex │ '0x77C8093B4AA70f614f95A490246bD7C40C47dCF2'       │
+│ Oracle   │ '0xBbbDdf4B6029A61FCcF82d78eFcBedCF223ac4fc'       │
+│ Token    │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'       │
+│ Caller   │ '0x9A5B33bd11329116A55F764c604a5152eE8Ca292'       │
+│ Id       │ 'TransparentUpgradeableProxyStashDexProcessorUSDC' │
+└──────────┴────────────────────────────────────────────────────┘
+StashDexProcessorUSDC: 0x59f457A8BeAf36bB66241475FfAC79F8B5338C85
+StashDexProcessorUSDC ProxyAdmin: 0x8BFabF228d0C2493D066877EF22dD6AE36821AE0
+StashDexSubProcessorUSDC: 0x3A60342cb0307cC4DD5112d6c07983E7C7c90f8d
+
+Deploying USDG StashDex Processor
+Using config for: ETHEREUM
+Deployer        : 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+DEPLOYER_ADDRESS: 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+┌──────────┬────────────────────────────────────────────────────┐
+│ (index)  │ Values                                             │
+├──────────┼────────────────────────────────────────────────────┤
+│ StashDex │ '0x77C8093B4AA70f614f95A490246bD7C40C47dCF2'       │
+│ Oracle   │ '0xBbbDdf4B6029A61FCcF82d78eFcBedCF223ac4fc'       │
+│ Token    │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D'       │
+│ Caller   │ '0x9A5B33bd11329116A55F764c604a5152eE8Ca292'       │
+│ Id       │ 'TransparentUpgradeableProxyStashDexProcessorUSDG' │
+└──────────┴────────────────────────────────────────────────────┘
+StashDexProcessorUSDG: 0x213a86C3CAa954A0343e24686CDEB6D7d0FB16cb
+StashDexProcessorUSDG ProxyAdmin: 0x9bdb5AFd0651C772D2E59efBF75597bc738513c4
+StashDexSubProcessorUSDG: 0x5e0f446317f9C544F55a0FD23E27FF95C8bb6bA8
+
+Deployment ID: MVP
+Deploying USDT StashDex Processor
+Using config for: ETHEREUM
+Deployer        : 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+DEPLOYER_ADDRESS: 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+┌──────────┬────────────────────────────────────────────────────┐
+│ (index)  │ Values                                             │
+├──────────┼────────────────────────────────────────────────────┤
+│ StashDex │ '0x77C8093B4AA70f614f95A490246bD7C40C47dCF2'       │
+│ Oracle   │ '0xBbbDdf4B6029A61FCcF82d78eFcBedCF223ac4fc'       │
+│ Token    │ '0xdAC17F958D2ee523a2206206994597C13D831ec7'       │
+│ Caller   │ '0x9A5B33bd11329116A55F764c604a5152eE8Ca292'       │
+│ Id       │ 'TransparentUpgradeableProxyStashDexProcessorUSDT' │
+└──────────┴────────────────────────────────────────────────────┘
+StashDexProcessorUSDT: 0x987203Be4450932F9C0d6cFED8383A894c70E391
+StashDexProcessorUSDT ProxyAdmin: 0x34D1394a537701866d8004c087909d3518F2f9E7
+StashDexSubProcessorUSDT: 0xf9b7639Ca2A899be04ef94730711Aa866474449f
+
+Deploying PYUSD StashDex Processor
+Using config for: ETHEREUM
+Deployer        : 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+DEPLOYER_ADDRESS: 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+┌──────────┬─────────────────────────────────────────────────────┐
+│ (index)  │ Values                                              │
+├──────────┼─────────────────────────────────────────────────────┤
+│ StashDex │ '0x77C8093B4AA70f614f95A490246bD7C40C47dCF2'        │
+│ Oracle   │ '0xBbbDdf4B6029A61FCcF82d78eFcBedCF223ac4fc'        │
+│ Token    │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8'        │
+│ Caller   │ '0x9A5B33bd11329116A55F764c604a5152eE8Ca292'        │
+│ Id       │ 'TransparentUpgradeableProxyStashDexProcessorPYUSD' │
+└──────────┴─────────────────────────────────────────────────────┘
+StashDexProcessorPYUSD: 0x8Cb72081E1eEF579c62d0C3d642CCeB7B355c457
+StashDexProcessorPYUSD ProxyAdmin: 0x0598c69ded48626eed8B8d2d3451Ce0830173202
+StashDexSubProcessorPYUSD: 0x9e6C9A5EF86BBe1594982289eC182DD355D0835E
+
+Deployment ID: MVP
+Deploying StashDex
+Using config for: ETHEREUM
+Deployer        : 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+DEPLOYER_ADDRESS: 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+StashStablecoinDex: 0x77C8093B4AA70f614f95A490246bD7C40C47dCF2
+StashDexProxyAdmin: 0x21fd25B74C075101F6648aBD6dB77EF97a3Ba1fd
+InitialPools:
+┌─────────┬──────────────────────────────────────────────┬──────────────────────────────────────────────┐
+│ (index) │ token                                        │ pool                                         │
+├─────────┼──────────────────────────────────────────────┼──────────────────────────────────────────────┤
+│ 0       │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ '0x63Ff95c79bF61486c600Eb8aF4CcE4c0a9a4068B' │
+│ 1       │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8' │ '0x63Ff95c79bF61486c600Eb8aF4CcE4c0a9a4068B' │
+│ 2       │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' │ '0x63Ff95c79bF61486c600Eb8aF4CcE4c0a9a4068B' │
+│ 3       │ '0xdAC17F958D2ee523a2206206994597C13D831ec7' │ '0x63Ff95c79bF61486c600Eb8aF4CcE4c0a9a4068B' │
+└─────────┴──────────────────────────────────────────────┴──────────────────────────────────────────────┘
+InitialRoutes:
+┌─────────┬──────────────────────────────────────────────┬──────────────────────────────────────────────┬────────┬──────────────────────────────────────────────┐
+│ (index) │ tokenIn                                      │ tokenOut                                     │ feeBps │ processor                                    │
+├─────────┼──────────────────────────────────────────────┼──────────────────────────────────────────────┼────────┼──────────────────────────────────────────────┤
+│ 0       │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8' │ 3      │ '0x8Cb72081E1eEF579c62d0C3d642CCeB7B355c457' │
+│ 1       │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8' │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ 3      │ '0x59f457A8BeAf36bB66241475FfAC79F8B5338C85' │
+│ 2       │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' │ 3      │ '0x213a86C3CAa954A0343e24686CDEB6D7d0FB16cb' │
+│ 3       │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ 3      │ '0x59f457A8BeAf36bB66241475FfAC79F8B5338C85' │
+│ 4       │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8' │ 3      │ '0x8Cb72081E1eEF579c62d0C3d642CCeB7B355c457' │
+│ 5       │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8' │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' │ 3      │ '0x213a86C3CAa954A0343e24686CDEB6D7d0FB16cb' │
+│ 6       │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ '0xdAC17F958D2ee523a2206206994597C13D831ec7' │ 3      │ '0x987203Be4450932F9C0d6cFED8383A894c70E391' │
+│ 7       │ '0xdAC17F958D2ee523a2206206994597C13D831ec7' │ '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' │ 3      │ '0x59f457A8BeAf36bB66241475FfAC79F8B5338C85' │
+│ 8       │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' │ '0xdAC17F958D2ee523a2206206994597C13D831ec7' │ 3      │ '0x987203Be4450932F9C0d6cFED8383A894c70E391' │
+│ 9       │ '0xdAC17F958D2ee523a2206206994597C13D831ec7' │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' │ 3      │ '0x213a86C3CAa954A0343e24686CDEB6D7d0FB16cb' │
+│ 10      │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8' │ '0xdAC17F958D2ee523a2206206994597C13D831ec7' │ 3      │ '0x987203Be4450932F9C0d6cFED8383A894c70E391' │
+│ 11      │ '0xdAC17F958D2ee523a2206206994597C13D831ec7' │ '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8' │ 3      │ '0x8Cb72081E1eEF579c62d0C3d642CCeB7B355c457' │
+└─────────┴──────────────────────────────────────────────┴──────────────────────────────────────────────┴────────┴──────────────────────────────────────────────┘
+DIRECT_BORROW_ROLE already granted on all pools — no action needed.
+
+update-routes-rebalancer
+Using config for: ETHEREUM
+To allow missing routes execute the following transaction.
+To: 0xA85Cf46c150db2600b1D03E437bedD5513869888
+Function: setRoute
+Params:
+isAllowed: true
+┌─────────┬──────────────────────────────────────────────┬────────────────┬─────────────┐
+│ (index) │ pools                                        │ domains        │ providers   │
+├─────────┼──────────────────────────────────────────────┼────────────────┼─────────────┤
+│ 0       │ '0x63Ff95c79bF61486c600Eb8aF4CcE4c0a9a4068B' │ '0 (ETHEREUM)' │ '0 (LOCAL)' │
+└─────────┴──────────────────────────────────────────────┴────────────────┴─────────────┘
+Raw data: 0xee108544000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000c000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000063ff95c79bf61486c600eb8af4cce4c0a9a4068b0000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000
+There are no excess routes to deny.
+
+update-routes-repayer
+Using config for: ETHEREUM
+There are no excess routes to deny.
+To allow missing routes execute the following transaction.
+To: 0x36364Acc7B9c67692CA215af09A41CBd10439511
+Function: setRoute
+Params:
+isAllowed: true
+┌─────────┬──────────────────────────────────────────────┬────────────────┬─────────────┬───────────────────┐
+│ (index) │ pools                                        │ domains        │ providers   │ supportsAllTokens │
+├─────────┼──────────────────────────────────────────────┼────────────────┼─────────────┼───────────────────┤
+│ 0       │ '0x63Ff95c79bF61486c600Eb8aF4CcE4c0a9a4068B' │ '0 (ETHEREUM)' │ '0 (LOCAL)' │ true              │
+└─────────┴──────────────────────────────────────────────┴────────────────┴─────────────┴───────────────────┘
+Raw data: 0x6065fcd800000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001600000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000063ff95c79bf61486c600eb8af4cce4c0a9a4068b000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001

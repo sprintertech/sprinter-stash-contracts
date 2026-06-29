@@ -84,6 +84,7 @@ export const PYUSDStashDexProcessorProxy = DEFAULT_PROXY_TYPE + "StashDexProcess
 export const USDCStashDexProcessorProxy = DEFAULT_PROXY_TYPE + "StashDexProcessorUSDC";
 export const USDGStashDexProcessorProxy = DEFAULT_PROXY_TYPE + "StashDexProcessorUSDG";
 export const USDTStashDexProcessorProxy = DEFAULT_PROXY_TYPE + "StashDexProcessorUSDT";
+export const StashStablecoinDexProxy = DEFAULT_PROXY_TYPE + "StashStablecoinDex";
 const SUPPORTS_ONLY_USDC = false;
 
 export enum Network {
@@ -171,6 +172,7 @@ interface AavePoolConfig {
   TokenLTVs?: {
     [token: string]: number;
   };
+  DirectBorrowCaller?: string;
 }
 
 interface AavePoolLongTermConfig extends AavePoolConfig {
@@ -429,6 +431,21 @@ export const networkConfig: NetworksConfig = {
       },
       BorrowLongTermAdmin: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
       RepayCaller: "0x9A5B33bd11329116A55F764c604a5152eE8Ca292",
+    },
+    AavePool: {
+      AaveAddressesProvider: AAVEPools.AaveV3Ethereum.POOL_ADDRESSES_PROVIDER,
+      MinHealthFactor: 150,
+      DefaultLTV: 0,
+      TokenLTVs: {
+        "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599": 100, // WBTC
+        "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2": 100, // WETH
+        "0x6b175474e89094c44da98b954eedeac495271d0f": 100, // DAI
+        "0x6c3ea9036406852006290770BEdFcAbA0e23A0e8": 100, // PYUSD
+        "0xe343167631d89B6Ffc58B88d6b7fB0228795491D": 100, // USDG
+        "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48": 100, // USDC
+        "0xdAC17F958D2ee523a2206206994597C13D831ec7": 100, // USDT
+      },
+      DirectBorrowCaller: StashStablecoinDexProxy,
     },
     USDCPool: true,
     StashDex: {
@@ -1476,6 +1493,9 @@ export const networkConfig: NetworksConfig = {
         [Network.UNICHAIN]: [Provider.CCTP, Provider.CCTP_V2],
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
+        [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
+      },
+      [LiquidityPoolAaveUSDCProxy]: {
         [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
       },
     },

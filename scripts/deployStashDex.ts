@@ -105,14 +105,26 @@ export async function main() {
 
   if (initialPools.length > 0) {
     const DIRECT_BORROW_ROLE = hre.ethers.encodeBytes32String("DIRECT_BORROW_ROLE");
-    const calldata = (await stashDex.grantRole.populateTransaction(DIRECT_BORROW_ROLE, stashDex.target)).data;
+    const calldata = (await stashDex.grantRole.populateTransaction(DIRECT_BORROW_ROLE, stashDex)).data;
     const poolTokenNames = Object.keys(stashDexConfig.Pools) as Token[];
-    console.log("NEXT STEPS — grant DIRECT_BORROW_ROLE on each pool so StashDex can borrow:");
-    console.log(`Calldata: ${calldata}`);
-    console.table(initialPools.map(({pool}, i) => ({
-      token: poolTokenNames[i],
-      to: pool,
-    })));
+
+    const grouped = new Map<string, string[]>();
+    for (let i = 0; i < initialPools.length; i++) {
+      const {pool} = initialPools[i];
+      const poolContract = await hre.ethers.getContractAt("AccessControlUpgradeable", pool);
+      if (await poolContract.hasRole(DIRECT_BORROW_ROLE, stashDex)) continue;
+      const tokens = grouped.get(pool) ?? [];
+      tokens.push(poolTokenNames[i]);
+      grouped.set(pool, tokens);
+    }
+
+    if (grouped.size > 0) {
+      console.log("NEXT STEPS — grant DIRECT_BORROW_ROLE on each pool so StashDex can borrow:");
+      console.log(`Calldata: ${calldata}`);
+      console.table([...grouped.entries()].map(([pool, tokens]) => ({tokens: tokens.join(", "), to: pool})));
+    } else {
+      console.log("DIRECT_BORROW_ROLE already granted on all pools — no action needed.");
+    }
   }
 
   await verifier.verify(process.env.VERIFY === "true");

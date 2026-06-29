@@ -496,42 +496,6 @@ export const networkConfig: NetworksConfig = {
           FeeBps: 3,
           Processor: USDGStashDexProcessorProxy,
         },
-        {
-          TokenIn: Token.USDC,
-          TokenOut: Token.USDT,
-          FeeBps: 3,
-          Processor: USDTStashDexProcessorProxy,
-        },
-        {
-          TokenIn: Token.USDT,
-          TokenOut: Token.USDC,
-          FeeBps: 3,
-          Processor: USDCStashDexProcessorProxy,
-        },
-        {
-          TokenIn: Token.USDG,
-          TokenOut: Token.USDT,
-          FeeBps: 3,
-          Processor: USDTStashDexProcessorProxy,
-        },
-        {
-          TokenIn: Token.USDT,
-          TokenOut: Token.USDG,
-          FeeBps: 3,
-          Processor: USDGStashDexProcessorProxy,
-        },
-        {
-          TokenIn: Token.PYUSD,
-          TokenOut: Token.USDT,
-          FeeBps: 3,
-          Processor: USDTStashDexProcessorProxy,
-        },
-        {
-          TokenIn: Token.USDT,
-          TokenOut: Token.PYUSD,
-          FeeBps: 3,
-          Processor: PYUSDStashDexProcessorProxy,
-        },
       ],
     },
     Stage: {

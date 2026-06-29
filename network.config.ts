@@ -1600,7 +1600,7 @@ export const networkConfig: NetworksConfig = {
           {period: 15552000n, multiplier: 1000000000n},
           {period: 31104000n, multiplier: 2200000000n},
         ],
-        Pool: LiquidityPoolAaveUSDCProxy,
+        Pool: LiquidityPoolAaveUSDCV4,
       },
       RebalancerRoutes: {
         [LiquidityPoolAaveUSDCProxy]: {

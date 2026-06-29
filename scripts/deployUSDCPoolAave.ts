@@ -5,7 +5,7 @@ import {NonceManager} from "ethers";
 import {
   getVerifier, getHardhatNetworkConfig, getNetworkConfig, percentsToBps, logDeployers, deployProxyX,
 } from "./helpers";
-import {resolveProxyXAddress, toBytes32} from "../test/helpers";
+import {resolveProxyXAddress, resolveXAddress, toBytes32} from "../test/helpers";
 import {isSet, assert, assertAddress, DEFAULT_ADMIN_ROLE, sameAddress} from "./common";
 import {LiquidityPoolAave, ProxyAdmin} from "../typechain-types";
 import {Network, NetworkConfig, LiquidityPoolAaveUSDCVersions} from "../network.config";
@@ -16,6 +16,7 @@ export async function main() {
 
   const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
   const WITHDRAW_PROFIT_ROLE = toBytes32("WITHDRAW_PROFIT_ROLE");
+  const DIRECT_BORROW_ROLE = toBytes32("DIRECT_BORROW_ROLE");
   const PAUSER_ROLE = toBytes32("PAUSER_ROLE");
 
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
@@ -43,6 +44,10 @@ export async function main() {
   assertAddress(config.MpcAddress, "MpcAddress must be an address");
   assertAddress(config.WrappedNativeToken, "WrappedNativeToken must be an address");
   assertAddress(config.SignerAddress, "SignerAddress must be an address");
+  let directBorrowCaller = "";
+  if (config.AavePool.DirectBorrowCaller) {
+    directBorrowCaller = await resolveXAddress(config.AavePool.DirectBorrowCaller, false);
+  }
 
   const rebalancer = await resolveProxyXAddress("Rebalancer");
   console.log(`Rebalancer: ${rebalancer}`);
@@ -75,6 +80,9 @@ export async function main() {
 
   await aavePool.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
   await aavePool.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
+  if (directBorrowCaller !== "") {
+    await aavePool.grantRole(DIRECT_BORROW_ROLE, directBorrowCaller);
+  }
   let lastTx = await aavePool.grantRole(PAUSER_ROLE, config.Pauser);
 
   if (!sameAddress(deployer.address, config.Admin)) {

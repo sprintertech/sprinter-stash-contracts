@@ -37,6 +37,7 @@ export async function main() {
   assertAddress(tokenInfo.Address, `${targetAsset}.Address must be an address`);
   assertAddress(config.Admin, "Admin must be an address");
   assertAddress(config.RepayerCaller, "RepayerCaller must be an address");
+  assertAddress(config.SignerAddress, "SignerAddress must be an address");
   assert(config.StashDex, "StashDex must be in config");
 
   const id = `StashDexProcessor${targetAsset}`;

@@ -22,6 +22,7 @@ contract StashDex is AccessControlUpgradeable {
     bytes32 public constant CONFIG_ROLE = "CONFIG_ROLE";
     bytes32 public constant PAUSER_ROLE = "PAUSER_ROLE";
     bytes32 public constant FORWARD_ROLE = "FORWARD_ROLE";
+    bytes32 public constant USER_ROLE = "USER_ROLE";
 
     uint256 private constant BPS = 10_000;
 
@@ -72,6 +73,7 @@ contract StashDex is AccessControlUpgradeable {
     error PoolNotConfigured();
     error EnforcedPause();
     error ExpectedPause();
+    error Unauthorized();
 
     modifier whenNotPaused() {
         require(!_getStorage().paused, EnforcedPause());
@@ -137,6 +139,9 @@ contract StashDex is AccessControlUpgradeable {
         uint256 amountOut,
         address recipient
     ) public whenNotPaused() {
+        // Checking the role on tx.origin instead of _msgSender() because StashDex is called through another contract.
+        /* solhint-disable avoid-tx-origin */
+        require(hasRole(USER_ROLE, tx.origin), Unauthorized());
         StashDexStorage storage $ = _getStorage();
         RouteConfig memory route = $.routes[tokenIn][tokenOut];
         require(route.allowed, RouteNotAllowed());

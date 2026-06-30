@@ -4,7 +4,7 @@ import hre from "hardhat";
 import {deploy, getContractAt, setupTests} from "./helpers";
 import {addressToBytes32, ZERO_ADDRESS, DEFAULT_ADMIN_ROLE} from "../scripts/common";
 import {
-  TestUSDC, TestWETH, PaxosOracle, StashDex, TestLiquidityPool, TransparentUpgradeableProxy,
+  TestUSDC, TestWETH, PaxosOracle, StashDex, TestLiquidityPool, TransparentUpgradeableProxy, MockBorrowSwap,
 } from "../typechain-types";
 
 describe("StashDex", function () {
@@ -42,11 +42,13 @@ describe("StashDex", function () {
     const CONFIG_ROLE = await stashDex.CONFIG_ROLE();
     const PAUSER_ROLE = await stashDex.PAUSER_ROLE();
     const FORWARD_ROLE = await stashDex.FORWARD_ROLE();
+    const USER_ROLE = await stashDex.USER_ROLE();
+    await stashDex.connect(admin).grantRole(USER_ROLE, user);
 
     return {
       deployer, admin, configAdmin, pauser, forwarder, user, user2, processor, receiver,
       tokenA, tokenB, tokenC, usdcRef, oracle, pool, stashDex, stashDexImpl,
-      CONFIG_ROLE, PAUSER_ROLE, FORWARD_ROLE, USDC, WETH,
+      CONFIG_ROLE, PAUSER_ROLE, FORWARD_ROLE, USER_ROLE, USDC, WETH,
     };
   };
 
@@ -343,6 +345,60 @@ describe("StashDex", function () {
       await tokenA.connect(user).approve(stashDex, 10_000n * USDC);
       await tokenB.mint(pool, 9_997n * USDC);
       await stashDex.connect(user).swap(tokenA, tokenB, 10_000n * USDC, 9_997n * USDC, user);
+    });
+  });
+
+  describe("USER_ROLE", function () {
+    it("swap reverts Unauthorized when tx.origin lacks USER_ROLE", async function () {
+      const {stashDex, user2, tokenA, tokenB, USDC} = await loadFixture(deployAll);
+      await expect(stashDex.connect(user2).swap(tokenA, tokenB, 10_000n * USDC, 9_997n * USDC, user2))
+        .to.be.revertedWithCustomError(stashDex, "Unauthorized");
+    });
+
+    it("exchange(5 params) reverts Unauthorized when tx.origin lacks USER_ROLE", async function () {
+      const {stashDex, user2, tokenA, tokenB, USDC} = await loadFixture(deployAll);
+      await expect(stashDex.connect(user2)["exchange(uint256,uint256,uint256,uint256,address)"](
+        BigInt(await tokenA.getAddress()), BigInt(await tokenB.getAddress()), 10_000n * USDC, 9_997n * USDC, user2
+      )).to.be.revertedWithCustomError(stashDex, "Unauthorized");
+    });
+
+    it("exchange(4 params) reverts Unauthorized when tx.origin lacks USER_ROLE", async function () {
+      const {stashDex, user2, tokenA, tokenB, USDC} = await loadFixture(deployAll);
+      await expect(stashDex.connect(user2)["exchange(uint256,uint256,uint256,uint256)"](
+        BigInt(await tokenA.getAddress()), BigInt(await tokenB.getAddress()), 10_000n * USDC, 9_997n * USDC
+      )).to.be.revertedWithCustomError(stashDex, "Unauthorized");
+    });
+
+    it("tx.origin is checked: user (USER_ROLE) succeeds via mock, user2 reverts via mock", async function () {
+      const {stashDex, configAdmin, user, user2, tokenA, tokenB, pool, processor, USDC} = await loadFixture(deployAll);
+      const mock = (await deploy("MockBorrowSwap", user)) as MockBorrowSwap;
+
+      await stashDex.connect(configAdmin).setPool(tokenB, pool);
+      await stashDex.connect(configAdmin).setRoute({tokenIn: tokenA, tokenOut: tokenB, feeBps: 3, processor});
+      await tokenA.mint(mock, 10_000n * USDC);
+      await tokenB.mint(pool, 9_997n * USDC);
+
+      // mock (msg.sender) approves stashDex to pull its tokenA during swap
+      const approveData = await tokenA.approve.populateTransaction(stashDex, 10_000n * USDC);
+      await mock.connect(user).callBorrow(tokenA, approveData.data);
+
+      const swapData = await stashDex.swap.populateTransaction(
+        tokenA.target, tokenB.target, 10_000n * USDC, 9_997n * USDC, user.address,
+      );
+
+      // user2 has no USER_ROLE → tx.origin check fails → Unauthorized
+      await expect(mock.connect(user2).callBorrowBubbleRevert(stashDex, swapData.data))
+        .to.be.revertedWithCustomError(stashDex, "Unauthorized");
+
+      // user has USER_ROLE → tx.origin check passes → succeeds
+      const tx = await mock.connect(user).callBorrow(stashDex, swapData.data);
+      await expect(tx).to.emit(stashDex, "Swapped")
+        .withArgs(tokenA.target, tokenB.target, 10_000n * USDC, 9_997n * USDC, user.address);
+
+      expect(await tokenA.balanceOf(mock)).to.equal(0n);
+      expect(await tokenA.balanceOf(processor)).to.equal(10_000n * USDC);
+      expect(await tokenB.balanceOf(user)).to.equal(9_997n * USDC);
+      expect(await tokenB.balanceOf(pool)).to.equal(0n);
     });
   });
 

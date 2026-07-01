@@ -128,7 +128,7 @@ describe("Netter", function () {
       const tx = await netter.connect(caller).net(processorB, processorA, amountFromB, amountFromA);
 
       await expect(tx).to.emit(netter, "Netted")
-        .withArgs(processorA.target, processorB.target, amountFromA, amountFromB);
+        .withArgs(processorB.target, processorA.target, amountFromB, amountFromA);
       await expect(tx).to.emit(processorA, "Forwarded")
         .withArgs(netter.target, assetB.target, amountFromA);
       await expect(tx).to.emit(processorB, "Forwarded")

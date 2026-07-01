@@ -1564,7 +1564,7 @@ export const networkConfig: NetworksConfig = {
           {period: 15552000n, multiplier: 1000000000n},
           {period: 31104000n, multiplier: 2200000000n},
         ],
-        Pool: LiquidityPoolAaveUSDCProxy,
+        Pool: LiquidityPoolAaveUSDCV4,
       },
       RebalancerRoutes: {
         [LiquidityPoolAaveUSDCProxy]: {
@@ -1715,6 +1715,9 @@ export const networkConfig: NetworksConfig = {
       [LiquidityPoolAaveUSDCLongTermV3]: {
         [Network.ETHEREUM]: [Provider.CCTP, Provider.CCTP_V2],
       },
+      [LiquidityPoolAaveUSDCProxy]: {
+        [Network.ETHEREUM]: [Provider.CCTP_V2]
+      }
     },
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCV4]: {

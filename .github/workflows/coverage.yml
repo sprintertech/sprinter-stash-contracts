@@ -65,7 +65,7 @@ jobs:
         timeout-minutes: 15
         run: |
           set -e  # Exit immediately if coverage fails
-          npm run coverage
+          FORK_BLOCK_NUMBER=40729100 npm run coverage
           echo "✅ Coverage completed successfully"
 
       - name: Validate coverage

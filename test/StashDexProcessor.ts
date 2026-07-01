@@ -50,6 +50,7 @@ describe("StashDexProcessor", function () {
     await usdc.mint(pool, debtAmount);
     await tokenA.mint(user, debtAmount);
     await tokenA.connect(user).approve(stashDex, debtAmount);
+    await stashDex.connect(admin).grantRole(await stashDex.USER_ROLE(), user);
     await stashDex.connect(user).swap(tokenA, usdc, debtAmount, debtAmount, user);
 
     // Deploy StashDexProcessor proxy

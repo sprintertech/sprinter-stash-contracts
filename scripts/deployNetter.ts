@@ -1,16 +1,16 @@
 import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
-import {NonceManager} from "ethers";
 import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers} from "./helpers";
 import {resolveXAddress} from "../test/helpers";
 import {isSet, assert, assertAddress, DEFAULT_ADMIN_ROLE} from "./common";
 import {Netter} from "../typechain-types";
 import {Network, NetworkConfig} from "../network.config";
+import {createSender} from "./safe";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
-  const deployerWithNonce = new NonceManager(deployer);
+  const sender = await createSender(hre, deployer);
 
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
   const verifier = getVerifier(process.env.DEPLOY_ID);
@@ -24,7 +24,7 @@ export async function main() {
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
   }
-  await logDeployers();
+  await logDeployers(false);
 
   assert(config.StashDex, "StashDex must be in config");
   assertAddress(config.Admin, "Admin must be an address");
@@ -34,7 +34,7 @@ export async function main() {
 
   const netter = (await verifier.deployX(
     "Netter",
-    deployerWithNonce,
+    sender,
     {},
     [oracle, config.Admin, config.RepayerCaller],
     id,
@@ -56,8 +56,8 @@ export async function main() {
       console.log(`CALLER_ROLE already granted to Netter on ${processorAddr} — skipping`);
       continue;
     }
-    if (await processor.hasRole(DEFAULT_ADMIN_ROLE, deployerWithNonce)) {
-      await processor.grantRole(CALLER_ROLE, netter);
+    if (await processor.hasRole(DEFAULT_ADMIN_ROLE, sender)) {
+      await processor.connect(sender).grantRole(CALLER_ROLE, netter);
       granted.push(processorAddr);
     } else {
       needsInstruction.push(processorAddr);

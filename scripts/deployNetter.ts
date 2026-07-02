@@ -15,7 +15,6 @@ export async function main() {
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
   const verifier = getVerifier(process.env.DEPLOY_ID);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
-  const id = "Netter";
 
   let network: Network;
   let config: NetworkConfig;
@@ -32,14 +31,13 @@ export async function main() {
 
   const oracle = await resolveXAddress(config.StashDex.Oracle);
 
-  const netter = (await verifier.deployX(
+  const netter = (await verifier.deploy(
     "Netter",
     sender,
     {},
     [oracle, config.Admin, config.RepayerCaller],
-    id,
   )) as Netter;
-  console.log(`${id}: ${netter.target}`);
+  console.log(`Netter: ${netter.target}`);
 
   const uniqueProcessors = [
     ...new Set(await Promise.all(config.StashDex.Routes.map(r => resolveXAddress(r.Processor)))),
@@ -51,13 +49,13 @@ export async function main() {
   const needsInstruction: string[] = [];
 
   for (const processorAddr of uniqueProcessors) {
-    const processor = await hre.ethers.getContractAt("AccessControlUpgradeable", processorAddr);
+    const processor = await hre.ethers.getContractAt("AccessControlUpgradeable", processorAddr, sender);
     if (await processor.hasRole(CALLER_ROLE, netter)) {
       console.log(`CALLER_ROLE already granted to Netter on ${processorAddr} — skipping`);
       continue;
     }
     if (await processor.hasRole(DEFAULT_ADMIN_ROLE, sender)) {
-      await processor.connect(sender).grantRole(CALLER_ROLE, netter);
+      await (await processor.grantRole(CALLER_ROLE, netter)).wait();
       granted.push(processorAddr);
     } else {
       needsInstruction.push(processorAddr);

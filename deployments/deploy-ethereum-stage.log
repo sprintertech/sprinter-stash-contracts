@@ -488,18 +488,6 @@ Using config for: stage, ETHEREUM
 Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
 DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
 Netter: 0x56257E9a97F9404F2D7c93A04462D2f44766d9e2
-Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0x4a31aa182bd301ec8e2892556354c0fa0a10515f2e6ac0dab6a7950ac9df723b
-Threshold met (1/1). Executing on-chain...
-Executed. On-chain TX hash: 0x58e0ac88e4bbbeb44966564ef1360126e16ad283b5047af503a658a1f2c4812e
-Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0x186e39041efde8ef10e39c759aa24894e61a11b1fc647de9d80ec7bad8d47ff5
-Threshold met (1/1). Executing on-chain...
-Executed. On-chain TX hash: 0x2d2d3f8a339ed09aa262ea91e55250153e66b2f14b79dfb0a5d1d35fa312786f
-Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0xb339897e8a37988d80c93505f7e6bbf787a5a44d16c3a2ab23ee6468527c9944
-Threshold met (1/1). Executing on-chain...
-Executed. On-chain TX hash: 0xc42e0d1c40319a78f7f6cd9fa7bba3d963c958e094b755266d43e77541ba0980
-Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0x4c996079cd322d4d38d7062240610cb6420cfe3ab69d53c70410632eb4340ef5
-Threshold met (1/1). Executing on-chain...
-Executed. On-chain TX hash: 0xabc11cfecc6ecfdd9b094832051a6f493769c3b96f32d416d045836325f1ecb6
 Granted CALLER_ROLE to Netter on processors:
 ┌─────────┬──────────────────────────────────────────────┐
 │ (index) │ processor                                    │

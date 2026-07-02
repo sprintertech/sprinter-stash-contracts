@@ -480,3 +480,20 @@ Executed. On-chain TX hash: 0x7eb0f8ac07936f059b99f383b8e6932517e50e5b1eb911720f
 StashDex upgraded.
 USER_ROLE granted to 0xeEa9b38E8C54B52F7387a46A7C81173065fa5A10
 Executed. On-chain TX hash: 0x639ee7cd8d1d5b274ca35df9c9a3b6345cc4c64426a04652f07fa011903e1926
+
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Deployment ID: MVP
+Deploying Netter
+Using config for: stage, ETHEREUM
+Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+Netter: 0x56257E9a97F9404F2D7c93A04462D2f44766d9e2
+Granted CALLER_ROLE to Netter on processors:
+┌─────────┬──────────────────────────────────────────────┐
+│ (index) │ processor                                    │
+├─────────┼──────────────────────────────────────────────┤
+│ 0       │ '0xa88Ca4702797BE89b0E4D2Fa0180477352cca250' │
+│ 1       │ '0xF278c2A62EfcF3b6C39D7235F4BbA2Fcb5e64901' │
+│ 2       │ '0xAB181d2543d91d21768087c9d6792A82184110A4' │
+│ 3       │ '0xA0cE5326f2144804E75a72108231D56DE63ba0c5' │
+└─────────┴──────────────────────────────────────────────┘

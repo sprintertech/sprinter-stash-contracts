@@ -34,7 +34,7 @@ contract Processor is AccessControlUpgradeable, MulticallUpgradeable {
 
     bytes32 private constant STORAGE_LOCATION = 0x315f94a0eb28ebc9ade3d51c8bd7ef4c2011752d9ac5c2acc448e4822cfa1f00;
 
-    event Forwarded(address caller, IERC20 token);
+    event Forwarded(address caller, IERC20 token, uint256 amount);
     event Processed(address caller, IERC20 tokenIn, uint256 amountIn, uint256 amountOut);
     event MaxSlippageSet(uint256 maxSlippage);
     event AdminProcessed(address caller);
@@ -94,9 +94,13 @@ contract Processor is AccessControlUpgradeable, MulticallUpgradeable {
         _setMaxSlippage(_getStorage(), newMaxSlippage);
     }
 
-    function forward(IERC20 token) external onlyRole(CALLER_ROLE) {
-        _finalizeTransfer(token, token.balanceOf(address(this)));
-        emit Forwarded(msg.sender, token);
+    function forward(IERC20 token) external {
+        forwardAmount(token, token.balanceOf(address(this)));
+    }
+
+    function forwardAmount(IERC20 token, uint256 amount) public onlyRole(CALLER_ROLE) {
+        _finalizeTransfer(token, amount);
+        emit Forwarded(msg.sender, token, amount);
     }
 
     function redeem7540(IERC7540 token) external onlyRole(CALLER_ROLE) {

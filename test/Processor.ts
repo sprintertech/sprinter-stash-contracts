@@ -483,12 +483,53 @@ describe("Processor", function () {
       await usdc.mint(processor, 100_000000n);
 
       const tx = await processor.connect(caller).forward(tokenIn);
-      await expect(tx).to.emit(processor, "Forwarded").withArgs(caller.address, await tokenIn.getAddress());
+      await expect(tx).to.emit(processor, "Forwarded")
+        .withArgs(caller.address, await tokenIn.getAddress(), 40_000000n);
 
       expect(await tokenIn.balanceOf(receiver)).to.equal(40_000000n);
       expect(await tokenIn.balanceOf(processor)).to.equal(0n);
       expect(await usdc.balanceOf(processor)).to.equal(100_000000n);
       expect(await usdc.balanceOf(receiver)).to.equal(0n);
+    });
+  });
+
+  describe("forwardAmount", function () {
+    it("reverts AccessControlUnauthorizedAccount when caller lacks CALLER_ROLE", async function () {
+      const {processor, user, tokenIn} = await loadFixture(deployAll);
+      await expect(processor.connect(user).forwardAmount(tokenIn, 1n))
+        .to.revertedWithCustomError(processor, "AccessControlUnauthorizedAccount");
+    });
+
+    it("forwards specified amount of foreign token to RECEIVER, leaving remainder on processor", async function () {
+      const {caller, receiver, usdc, tokenIn, processor} = await loadFixture(deployAll);
+
+      await tokenIn.mint(processor, 40_000000n);
+      await usdc.mint(processor, 100_000000n);
+
+      const tx = await processor.connect(caller).forwardAmount(tokenIn, 15_000000n);
+      await expect(tx).to.emit(processor, "Forwarded")
+        .withArgs(caller.address, await tokenIn.getAddress(), 15_000000n);
+
+      expect(await tokenIn.balanceOf(receiver)).to.equal(15_000000n);
+      expect(await tokenIn.balanceOf(processor)).to.equal(25_000000n);
+      expect(await usdc.balanceOf(processor)).to.equal(100_000000n);
+      expect(await usdc.balanceOf(receiver)).to.equal(0n);
+    });
+
+    it("forwards specified amount of TARGET_ASSET to RECEIVER", async function () {
+      const {caller, receiver, usdc, tokenIn, processor} = await loadFixture(deployAll);
+
+      await usdc.mint(processor, 40_000000n);
+      await tokenIn.mint(processor, 100_000000n);
+
+      const tx = await processor.connect(caller).forwardAmount(usdc, 15_000000n);
+      await expect(tx).to.emit(processor, "Forwarded")
+        .withArgs(caller.address, await usdc.getAddress(), 15_000000n);
+
+      expect(await usdc.balanceOf(receiver)).to.equal(15_000000n);
+      expect(await usdc.balanceOf(processor)).to.equal(25_000000n);
+      expect(await tokenIn.balanceOf(processor)).to.equal(100_000000n);
+      expect(await tokenIn.balanceOf(receiver)).to.equal(0n);
     });
   });
 

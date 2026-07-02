@@ -22,6 +22,7 @@ import {main as deployStashDex} from "./deployStashDex";
 import {main as deployStashDexProcessor} from "./deployStashDexProcessor";
 import {main as upgradeStashDexProcessor} from "./upgradeStashDexProcessor";
 import {main as upgradeStashDex} from "./upgradeStashDex";
+import {main as deployNetter} from "./deployNetter";
 
 async function main() {
   console.log("Test deploy.");
@@ -63,6 +64,8 @@ async function main() {
   await upgradeStashDexProcessor();
   console.log("Test upgradeStashDex.");
   await upgradeStashDex();
+  console.log("Test deployNetter.");
+  await deployNetter();
   console.log("Test deployStandaloneRepayer.");
   process.env.STANDALONE_REPAYER_ENV = "SparkStage";
   await deployStandaloneRepayer();

@@ -1,0 +1,137 @@
+{
+  "ETHEREUM": {
+    "name": "Aave v3 Ethereum",
+    "scores": {
+      "audits": 1,
+      "centralization": 2,
+      "valueSecured": 1,
+      "longevity": 1,
+      "trustModel": 1,
+      "oracleDependency": 3
+    },
+    "riskLevel": 1,
+    "comment": "Aave v3 core audited by OpenZeppelin, Trail of Bits, PeckShield, ABDK, SigmaPrime plus Certora formal verification, with every point release re-audited. Governance: onchain Aave Governance v3 with 1/7-day executor timelocks; Emergency Guardian (4-of-7) can pause but not upgrade. TVL $9.81B supplied (DefiLlama, 2026-07-02). Live on Ethereum since 2023-01-27. Solvency depends on Chainlink feeds via AaveOracle (scored under oracles.json/AaveOracle).",
+    "sources": [
+      "https://aave.com/security",
+      "https://github.com/aave/aave-v3-core/tree/master/audits",
+      "https://aave.com/docs/ecosystem/governance",
+      "https://aave.com/docs/aave-v3/smart-contracts/acl-manager",
+      "https://api.llama.fi/protocol/aave-v3",
+      "https://cointelegraph.com/news/aave-deploys-v3-on-ethereum-after-10-months-of-testing-on-other-networks"
+    ],
+    "status": "draft",
+    "reviewers": [],
+    "lastReviewed": "2026-07-02"
+  },
+  "ARBITRUM_ONE": {
+    "name": "Aave v3 Arbitrum",
+    "scores": {
+      "audits": 1,
+      "centralization": 2,
+      "valueSecured": 2,
+      "longevity": 1,
+      "trustModel": 1,
+      "oracleDependency": 3
+    },
+    "riskLevel": 1,
+    "comment": "Same audited codebase and governance as Aave v3 Ethereum; non-Ethereum markets are administered via governance cross-chain executors. TVL $383M supplied (DefiLlama, 2026-07-02). Part of the original v3 launch on 2022-03-16.",
+    "sources": [
+      "https://aave.com/security",
+      "https://aave.com/docs/ecosystem/governance",
+      "https://api.llama.fi/protocol/aave-v3",
+      "https://www.coindesk.com/tech/2022/03/16/defi-platform-aave-lauches-v3-with-cross-chain-swaps-front-and-center"
+    ],
+    "status": "draft",
+    "reviewers": [],
+    "lastReviewed": "2026-07-02"
+  },
+  "BASE": {
+    "name": "Aave v3 Base",
+    "scores": {
+      "audits": 1,
+      "centralization": 2,
+      "valueSecured": 2,
+      "longevity": 1,
+      "trustModel": 1,
+      "oracleDependency": 3
+    },
+    "riskLevel": 1,
+    "comment": "Same audited codebase and governance as Aave v3 Ethereum. TVL $380M supplied (DefiLlama, 2026-07-02). Deployed on Base 2023-08-16 (Aave changelog).",
+    "sources": [
+      "https://aave.com/security",
+      "https://aave.com/docs/ecosystem/governance",
+      "https://api.llama.fi/protocol/aave-v3",
+      "https://aave.com/docs/resources/changelog"
+    ],
+    "status": "draft",
+    "reviewers": [],
+    "lastReviewed": "2026-07-02"
+  },
+  "OP_MAINNET": {
+    "name": "Aave v3 Optimism",
+    "scores": {
+      "audits": 1,
+      "centralization": 2,
+      "valueSecured": 4,
+      "longevity": 1,
+      "trustModel": 1,
+      "oracleDependency": 3
+    },
+    "riskLevel": 1,
+    "comment": "Same audited codebase and governance as Aave v3 Ethereum. TVL $39.8M supplied (DefiLlama, 2026-07-02) - just below the $40M band, hence valueSecured 4. Part of the original v3 launch on 2022-03-16.",
+    "sources": [
+      "https://aave.com/security",
+      "https://aave.com/docs/ecosystem/governance",
+      "https://api.llama.fi/protocol/aave-v3",
+      "https://www.coindesk.com/tech/2022/03/16/defi-platform-aave-lauches-v3-with-cross-chain-swaps-front-and-center"
+    ],
+    "status": "draft",
+    "reviewers": [],
+    "lastReviewed": "2026-07-02"
+  },
+  "POLYGON_MAINNET": {
+    "name": "Aave v3 Polygon",
+    "scores": {
+      "audits": 1,
+      "centralization": 2,
+      "valueSecured": 3,
+      "longevity": 1,
+      "trustModel": 1,
+      "oracleDependency": 3
+    },
+    "riskLevel": 1,
+    "comment": "Same audited codebase and governance as Aave v3 Ethereum. TVL $108M supplied (DefiLlama, 2026-07-02). Part of the original v3 launch on 2022-03-16.",
+    "sources": [
+      "https://aave.com/security",
+      "https://aave.com/docs/ecosystem/governance",
+      "https://api.llama.fi/protocol/aave-v3",
+      "https://www.coindesk.com/tech/2022/03/16/defi-platform-aave-lauches-v3-with-cross-chain-swaps-front-and-center"
+    ],
+    "status": "draft",
+    "reviewers": [],
+    "lastReviewed": "2026-07-02"
+  },
+  "GNOSIS_CHAIN": {
+    "name": "Aave v3 Gnosis",
+    "scores": {
+      "audits": 1,
+      "centralization": 2,
+      "valueSecured": 3,
+      "longevity": 1,
+      "trustModel": 1,
+      "oracleDependency": 3
+    },
+    "riskLevel": 1,
+    "comment": "Same audited codebase and governance as Aave v3 Ethereum. TVL $49.8M supplied (DefiLlama xDai figure, 2026-07-02). Market activated 2023-11-06 (governance proposal 357 / Aave changelog).",
+    "sources": [
+      "https://aave.com/security",
+      "https://aave.com/docs/ecosystem/governance",
+      "https://api.llama.fi/protocol/aave-v3",
+      "https://governance-v2.aave.com/governance/proposal/357/",
+      "https://aave.com/docs/resources/changelog"
+    ],
+    "status": "draft",
+    "reviewers": [],
+    "lastReviewed": "2026-07-02"
+  }
+}

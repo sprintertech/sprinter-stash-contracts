@@ -1,0 +1,188 @@
+{
+  "CCTP": {
+    "name": "Circle CCTP v1",
+    "scores": {
+      "audits": 3,
+      "centralization": 4,
+      "valueSecured": 1,
+      "longevity": 1,
+      "trustModel": 1,
+      "oracleDependency": 1
+    },
+    "riskLevel": 1,
+    "comment": "Issuer burn-and-mint with Circle attestation (Iris); no locked honeypot, so valueSecured uses volume: $110B+ cumulative v1+v2 as of 2025-11-14. Audited by ChainSecurity (confirmed report) and Halborn (secondary attribution only), hence audits 3. v1 contracts are not proxied, but Circle holds attester/pauser/rescuer roles with undisclosed key structure (centralization 4). Live since 2023-04-26. DEPRECATION: Circle announced v1 phase-out commencing 2026-07-31 - routes should migrate to CCTP_V2.",
+    "sources": [
+      "https://www.chainsecurity.com/security-audit/circle-cross-chain-transfer-protocol-cctp",
+      "https://github.com/circlefin/evm-cctp-contracts",
+      "https://developers.circle.com/cctp/references/technical-guide",
+      "https://www.circle.com/blog/cctp-version-updates",
+      "https://www.circle.com/pressroom/circle-delivers-usdc-interoperability-across-ecosystems-with-mainnet-launch-of-cross-chain-transfer-protocol"
+    ],
+    "status": "draft",
+    "reviewers": [],
+    "lastReviewed": "2026-07-02"
+  },
+  "CCTP_V2": {
+    "name": "Circle CCTP v2",
+    "scores": {
+      "audits": 3,
+      "centralization": 4,
+      "valueSecured": 1,
+      "longevity": 3,
+      "trustModel": 1,
+      "oracleDependency": 1
+    },
+    "riskLevel": 2,
+    "comment": "Issuer burn-and-mint; now the canonical CCTP. Two ChainSecurity assessments (2025-03, 2025-04, covering v2.1-2.3) but a single firm (audits 3). Unlike v1, core contracts are upgradeable proxies fully controlled by an undisclosed Circle admin; v2 adds a denylister role (centralization 4). $473M 24h volume (L2BEAT 2026-07-02), $110B+ cumulative. Mainnet since 2025-03-11 (longevity 3). Fast pre-finality transfers exist but are whitelisted and insured by Circle.",
+    "sources": [
+      "https://www.chainsecurity.com/security-audit/cctp-v2-smart-contracts-2",
+      "https://6778953.fs1.hubspotusercontent-na1.net/hubfs/6778953/CCTP/ChainSecurity_Circle_CCTP_audit_2025-07.pdf",
+      "https://github.com/circlefin/evm-cctp-contracts",
+      "https://www.circle.com/pressroom/circle-launches-next-evolution-of-cctp-to-enable-fast-cross-chain-settlement-for-crypto-capital-markets",
+      "https://l2beat.com/bridges/projects/cctp"
+    ],
+    "status": "draft",
+    "reviewers": [],
+    "lastReviewed": "2026-07-02"
+  },
+  "ACROSS": {
+    "name": "Across Protocol",
+    "scores": {
+      "audits": 1,
+      "centralization": 4,
+      "valueSecured": 3,
+      "longevity": 1,
+      "trustModel": 3,
+      "oracleDependency": 1
+    },
+    "riskLevel": 2,
+    "comment": "Intent/relayer bridge settled via UMA optimistic oracle (30-min challenge window, disputes go to UMA DVM token vote) - trustModel 3. 18 OpenZeppelin audits since 2022 covering Across and the UMA oracle, though a single firm (audits 1, noted). 3/5 Across Multisig via OptimisticGovernor (2-day challenge on proposals) but NO delay on SpokePool code upgrades and an owner haircutReserves() function (centralization 4). Value at rest is intentionally small: $44.7M TVS (L2BEAT archive 2025-12-11), $19.2M HubPool (DefiLlama 2026-07-02) - valueSecured 3; $30B+ cumulative volume, no exploit to date. Live since 2021-11-08.",
+    "sources": [
+      "https://docs.across.to/introduction/audits",
+      "https://www.openzeppelin.com/customer-stories/across",
+      "https://web.archive.org/web/20251211034303/https://l2beat.com/bridges/projects/across",
+      "https://api.llama.fi/protocol/across",
+      "https://medium.com/uma-project/a-retrospective-on-the-across-launch-and-whats-next-d2df860a9bbb"
+    ],
+    "status": "draft",
+    "reviewers": [],
+    "lastReviewed": "2026-07-02"
+  },
+  "STARGATE": {
+    "name": "Stargate v2 (LayerZero)",
+    "scores": {
+      "audits": 3,
+      "centralization": 4,
+      "valueSecured": 3,
+      "longevity": 1,
+      "trustModel": 5,
+      "oracleDependency": 1
+    },
+    "riskLevel": 2,
+    "comment": "LayerZero v2 token bridge verified by only 2 required DVNs (Stargate + Nethermind, 2/2): collusion of two parties can forge messages and either can censor - trustModel 5. The 3/6 Stargate Multisig can re-point DVN config at any time with no timelock, which L2BEAT flags as a theft vector (centralization 4). Audited by Zellic and OtterSec (audits 3). TVL $72.09M (DefiLlama 2026-07-02), $142.3M TVS (L2BEAT archive 2025-05-15) - valueSecured 3. v2 live since 2024-05-28; v1 since 2022-03. LayerZero Labs acquired Stargate in 2026 - governance in flux, re-review on completion.",
+    "sources": [
+      "https://github.com/stargate-protocol/stargate-v2/tree/main/audits",
+      "https://docs.stargate.finance/resources/security",
+      "https://web.archive.org/web/20250515061133/https://l2beat.com/bridges/projects/stargatev2",
+      "https://api.llama.fi/protocol/stargate-v2",
+      "https://medium.com/@Stargate.Finance/stargate-v2-28a18379269e",
+      "https://oakresearch.io/en/analyses/investigations/layer-zero-zro-acquires-stargate-stg-110-million-background-analysis-and-outlook"
+    ],
+    "status": "draft",
+    "reviewers": [],
+    "lastReviewed": "2026-07-02"
+  },
+  "SUPERCHAIN_STANDARD_BRIDGE": {
+    "name": "Superchain Standard Bridge (OP Stack)",
+    "scores": {
+      "audits": 1,
+      "centralization": 4,
+      "valueSecured": 1,
+      "longevity": 1,
+      "trustModel": 2,
+      "oracleDependency": 1
+    },
+    "riskLevel": 1,
+    "comment": "Canonical OP Stack rollup bridge with fault proofs (trustModel 2). Extensive multi-firm audit history: Trail of Bits, OpenZeppelin, Sigma Prime, Spearbit, Cantina, Sherlock, Runtime Verification and others, plus $2M Immunefi bounty (audits 1). Upgradeable with NO delay by 2/2 Optimism Foundation + Security Council (OP/Unichain) or Base's own nested 2/2 governance multisig - centralization 4. Guardian pauses auto-expire after 3 months. TVS: Base $11.25B, OP Mainnet $1.39B (L2BEAT 2026-07-02). OP Mainnet live since 2021.",
+    "sources": [
+      "https://docs.optimism.io/op-stack/security/audit-reports",
+      "https://github.com/ethereum-optimism/optimism/tree/develop/docs/security-reviews",
+      "https://l2beat.com/scaling/projects/optimism",
+      "https://raw.githubusercontent.com/l2beat/l2beat/main/packages/config/src/projects/base/base.ts",
+      "https://l2beat.com/scaling/tvs"
+    ],
+    "status": "draft",
+    "reviewers": [],
+    "lastReviewed": "2026-07-02"
+  },
+  "ARBITRUM_GATEWAY": {
+    "name": "Arbitrum One canonical token bridge",
+    "scores": {
+      "audits": 1,
+      "centralization": 2,
+      "valueSecured": 1,
+      "longevity": 1,
+      "trustModel": 2,
+      "oracleDependency": 1
+    },
+    "riskLevel": 1,
+    "comment": "Canonical rollup bridge on the only Stage 2 rollup: permissionless interactive fraud proofs (BoLD) with 5+ external challengers (trustModel 2). 40+ audits: ConsenSys Diligence, Trail of Bits, OpenZeppelin, ChainSecurity, Code4rena (audits 1). Regular upgrades via Arbitrum DAO with L2 (3-day) + L1 timelocks; 9-of-12 elected Security Council can act instantly in emergencies (centralization 2, noting the SC emergency path). TVS $17.63B (L2BEAT 2026-07-02). Live since 2021-05 (public 2021-08-31). No canonical-bridge fund loss on record.",
+    "sources": [
+      "https://docs.arbitrum.io/audit-reports",
+      "https://l2beat.com/scaling/projects/arbitrum",
+      "https://docs.arbitrum.foundation/concepts/security-council",
+      "https://l2beat.com/scaling/tvs",
+      "https://offchain.medium.com/mainnet-for-everyone-27ce0f67c85e"
+    ],
+    "status": "draft",
+    "reviewers": [],
+    "lastReviewed": "2026-07-02"
+  },
+  "GNOSIS_OMNIBRIDGE": {
+    "name": "Gnosis Omnibridge (AMB)",
+    "scores": {
+      "audits": 1,
+      "centralization": 4,
+      "valueSecured": 2,
+      "longevity": 1,
+      "trustModel": 4,
+      "oracleDependency": 1
+    },
+    "riskLevel": 2,
+    "comment": "Validator-set bridge: withdrawals need 4/7 signatures from identified operators (Protofire, Giveth, Kleros, GnosisDAO, CoW, Safe, Hopr) who L2BEAT notes 'can freeze bridge transactions and/or steal bridge-locked and minted assets' - trustModel 4. Governed by 8-of-15 multisig with NO upgrade delay (L2BEAT CRITICAL flag) - centralization 4. Six audits (Quantstamp x2, ChainSecurity x2, SmartDec, Peppersec) but the newest core-bridge audit is 2021 (audits 1, staleness noted). valueSecured 2 uses whole-Gnosis-chain TVS $237.42M (L2BEAT 2026-07-02) as an upper-bound proxy - Omnibridge-only figure unavailable. Live since 2020-10.",
+    "sources": [
+      "https://docs.gnosischain.com/bridges/audits",
+      "https://docs.gnosischain.com/bridges/About%20Token%20Bridges/omnibridge",
+      "https://docs.gnosischain.com/bridges/management/validators",
+      "https://l2beat.com/scaling/projects/gnosis",
+      "https://raw.githubusercontent.com/l2beat/l2beat/main/packages/config/src/projects/gnosis/gnosis.ts"
+    ],
+    "status": "draft",
+    "reviewers": [],
+    "lastReviewed": "2026-07-02"
+  },
+  "USDT0": {
+    "name": "USDT0 (Tether/Everdawn Labs, LayerZero OFT)",
+    "scores": {
+      "audits": 1,
+      "centralization": 4,
+      "valueSecured": 1,
+      "longevity": 3,
+      "trustModel": 4,
+      "oracleDependency": 1
+    },
+    "riskLevel": 2,
+    "comment": "Lock-and-mint OFT: USDT locked in an Ethereum lockbox, USDT0 minted 1:1 on destinations; messages require ALL of 3 DVNs (LayerZero, USDT0, Canary) - collusion of all three forges, any one censors (trustModel 4). Audited by ChainSecurity, Guardian, Paladin, OpenZeppelin (23 engagements), OtterSec, TonTech, Zellic (audits 1). Operated by Everdawn Labs, contracts upgradeable, admin multisig threshold and timelock UNDOCUMENTED; team demonstrated unilateral protocol-wide pause 2026-04-18 (centralization 4). $3.651B locked (DefiLlama 2026-07-02), $95B+ cumulative volume. Live since 2025-01-16 (longevity 3).",
+    "sources": [
+      "https://github.com/Everdawn-Labs/usdt0-audit-reports",
+      "https://www.openzeppelin.com/customer-stories/usdt0",
+      "https://docs.usdt0.to/technical-documentation/developer/",
+      "https://api.llama.fi/protocol/usdt0",
+      "https://www.theblock.co/post/335144/tether-taps-krakens-ink-layer-2-for-the-first-deployment-of-its-cross-chain-usdt0-stablecoin",
+      "https://support.bitfinex.com/hc/en-us/articles/48391142940057-What-are-USDT0-and-XAUT0-Bridged-Tether-tokens"
+    ],
+    "status": "draft",
+    "reviewers": [],
+    "lastReviewed": "2026-07-02"
+  }
+}

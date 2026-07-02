@@ -1,0 +1,49 @@
+{
+  "AaveOracle": {
+    "name": "Aave Oracle (Chainlink aggregation)",
+    "scores": {
+      "audits": 1,
+      "centralization": 2,
+      "valueSecured": 1,
+      "longevity": 1,
+      "trustModel": 1,
+      "oracleDependency": 3
+    },
+    "riskLevel": 1,
+    "comment": "AaveOracle.sol is part of aave-v3-core, covered by the five-firm v3 audit set plus Certora. getAssetPrice() reads a single Chainlink aggregator per asset (latestAnswer), with a fallback oracle consulted when the source is unset or returns <= 0. Price sources changeable only by governance-controlled ASSET_LISTING/POOL_ADMIN roles. Secures Aave v3 ($12.08B TVL, DefiLlama 2026-07-02), which LiquidityPoolAave depends on for health-factor and LTV checks.",
+    "sources": [
+      "https://github.com/aave/aave-v3-core/blob/master/contracts/misc/AaveOracle.sol",
+      "https://aave.com/docs/aave-v3/smart-contracts/oracles",
+      "https://aave.com/security",
+      "https://api.llama.fi/tvl/aave-v3"
+    ],
+    "status": "draft",
+    "reviewers": [],
+    "lastReviewed": "2026-07-02"
+  },
+  "PaxosOracle": {
+    "name": "PaxosOracle (hardcoded 1:1 for Paxos stablecoins)",
+    "scores": {
+      "audits": 2,
+      "centralization": 4,
+      "valueSecured": 1,
+      "longevity": 2,
+      "trustModel": 1,
+      "oracleDependency": 4
+    },
+    "riskLevel": 2,
+    "comment": "Sprinter's own contracts/PaxosOracle.sol values USDG and PYUSD at an immutable 1:1 to USDC, so the real dependency is Paxos as issuer and peg-maintainer - a depeg is NOT reflected by this oracle (oracleDependency 4). Paxos token stack audited by Trail of Bits, Zellic and Halborn (audits 2). Both tokens are proxy-upgradeable by Paxos multisigs with no documented timelock, and Paxos holds pause plus ASSET_PROTECTION_ROLE freeze/wipe power over any holder including our pools (centralization 4). PYUSD live since 2023-08-07; USDG since 2024-11-01, ~20 months, which sets longevity (2). Market caps: USDG $3.01B, PYUSD $2.75B (CoinGecko 2026-07-02). Issuers are NYDFS- (Paxos Trust) and MAS-regulated (Paxos Digital Singapore) with monthly reserve attestations.",
+    "sources": [
+      "https://github.com/paxosglobal/pyusd-contract",
+      "https://github.com/paxosglobal/usdg-contract",
+      "https://github.com/paxosglobal/paxos-token-contracts/blob/master/audits/",
+      "https://newsroom.paypal-corp.com/2023-08-07-PayPal-Launches-U-S-Dollar-Stablecoin",
+      "https://www.paxos.com/newsroom/paxos-introduces-global-dollar-usdg",
+      "https://www.coingecko.com/en/coins/global-dollar",
+      "https://www.coingecko.com/en/coins/paypal-usd"
+    ],
+    "status": "draft",
+    "reviewers": [],
+    "lastReviewed": "2026-07-02"
+  }
+}

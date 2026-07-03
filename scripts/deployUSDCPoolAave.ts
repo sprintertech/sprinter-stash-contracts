@@ -75,7 +75,7 @@ export async function main() {
       percentsToBps(LTVs),
     );
   }
-  console.log(`${id}: ${aavePool.target}`);
+  console.log(`${id}Proxy: ${aavePool.target}`);
   console.log(`${id}ProxyAdmin: ${aavePoolAdmin.target}`);
 
   await aavePool.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);

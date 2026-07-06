@@ -47,10 +47,8 @@ describe("Repayer Gnosis Omnibridge (Gnosis Chain fork)", function () {
         Domain.GNOSIS_CHAIN,
         usdce,   // assets = USDCe (primary Gnosis USDC)
         ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
         wxdai,
+        ZERO_ADDRESS,
         ZERO_ADDRESS,
         ZERO_ADDRESS,
         ZERO_ADDRESS,

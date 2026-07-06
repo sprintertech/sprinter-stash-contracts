@@ -50,8 +50,6 @@ describe("Repayer USDT0 (Unichain fork)", function () {
       await deployX("Repayer", deployer, "RepayerUnichainUSDT0", {},
         Domain.UNICHAIN,
         usdc,
-        forkNetworkConfig.CCTP!.TokenMessenger!,
-        forkNetworkConfig.CCTP!.MessageTransmitter!,
         forkNetworkConfig.AcrossV3SpokePool!,
         weth,
         forkNetworkConfig.StargateTreasurer!,

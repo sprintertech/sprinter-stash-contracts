@@ -7,8 +7,6 @@ contract TestRebalancer is Rebalancer {
     constructor(
         Domain localDomain,
         IERC20 assets,
-        address cctpTokenMessenger,
-        address cctpMessageTransmitter,
         address omnibridge,
         address gnosisUsdcxdai,
         address gnosisUsdcTransmuter,
@@ -16,7 +14,7 @@ contract TestRebalancer is Rebalancer {
         address cctpV2TokenMessenger,
         address cctpV2MessageTransmitter
     ) Rebalancer(
-        localDomain, assets, cctpTokenMessenger, cctpMessageTransmitter,
+        localDomain, assets,
         omnibridge, gnosisUsdcxdai, gnosisUsdcTransmuter, ethereumAmb,
         cctpV2TokenMessenger, cctpV2MessageTransmitter
     ) {}

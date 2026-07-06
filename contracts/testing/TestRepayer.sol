@@ -7,8 +7,6 @@ contract TestRepayer is Repayer {
     constructor(
         Domain localDomain,
         IERC20 assets,
-        address cctpTokenMessenger,
-        address cctpMessageTransmitter,
         address acrossSpokePool,
         address wrappedNativeToken,
         address stargateTreasurer,
@@ -25,8 +23,6 @@ contract TestRepayer is Repayer {
     ) Repayer(
         localDomain,
         assets,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossSpokePool,
         wrappedNativeToken,
         stargateTreasurer,

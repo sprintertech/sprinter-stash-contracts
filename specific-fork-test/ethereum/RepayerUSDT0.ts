@@ -53,8 +53,6 @@ describe("Repayer USDT0 (Ethereum fork)", function () {
       await deployX("Repayer", deployer, "RepayerEthereumUSDT0", {},
         Domain.ETHEREUM,
         usdc,
-        forkNetworkConfig.CCTP!.TokenMessenger!,
-        forkNetworkConfig.CCTP!.MessageTransmitter!,
         forkNetworkConfig.AcrossV3SpokePool!,
         weth,
         forkNetworkConfig.StargateTreasurer!,

@@ -31,12 +31,6 @@ export async function main() {
 
   assert(isAddress(config.Tokens.USDC.Address), "USDC must be an address");
   assert(isAddress(config.WrappedNativeToken), "WrappedNativeToken must be an address");
-  if (!config.CCTP) {
-    config.CCTP = {
-      TokenMessenger: ZERO_ADDRESS,
-      MessageTransmitter: ZERO_ADDRESS,
-    };
-  }
   if (!config.CCTPV2) {
     config.CCTPV2 = {
       TokenMessenger: ZERO_ADDRESS,
@@ -75,8 +69,6 @@ export async function main() {
     [
       DomainSolidity[network],
       config.Tokens.USDC.Address,
-      config.CCTP.TokenMessenger,
-      config.CCTP.MessageTransmitter,
       config.AcrossV3SpokePool,
       config.WrappedNativeToken,
       config.StargateTreasurer,

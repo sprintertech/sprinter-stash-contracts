@@ -59,8 +59,6 @@ contract Rebalancer is
     constructor(
         Domain localDomain,
         IERC20 assets,
-        address cctpTokenMessenger,
-        address cctpMessageTransmitter,
         address omnibridge,
         address gnosisUsdcxdai,
         address gnosisUsdcTransmuter,
@@ -69,8 +67,6 @@ contract Rebalancer is
         address cctpV2MessageTransmitter
     )
         CCTPV2Adapter(
-            cctpTokenMessenger,
-            cctpMessageTransmitter,
             cctpV2TokenMessenger,
             cctpV2MessageTransmitter
         )
@@ -206,9 +202,7 @@ contract Rebalancer is
             // For local we proceed to the process right away.
             _processRebalanceLOCAL(amount, destinationPool);
         } else
-        if (provider == Provider.CCTP) {
-            initiateTransferCCTP(ASSETS, amount, destinationPool, destinationDomain);
-        } else if (provider == Provider.CCTP_V2) {
+        if (provider == Provider.CCTP_V2) {
             initiateTransferCCTPV2(ASSETS, amount, destinationPool, destinationDomain);
         } else
         if (provider == Provider.GNOSIS_OMNIBRIDGE) {
@@ -225,11 +219,6 @@ contract Rebalancer is
     ) external override onlyRole(REBALANCER_ROLE) {
         require(isRouteAllowed(destinationPool, DOMAIN, Provider.LOCAL), RouteDenied());
         uint256 depositAmount = 0;
-        if (provider == Provider.CCTP) {
-            depositAmount = processTransferCCTP(
-                address(CCTP_MESSAGE_TRANSMITTER), ASSETS, destinationPool, extraData
-            );
-        } else
         if (provider == Provider.CCTP_V2) {
             depositAmount = processTransferCCTPV2(ASSETS, destinationPool, extraData);
         } else

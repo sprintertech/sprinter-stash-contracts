@@ -41,17 +41,12 @@ describe("Repayer Gnosis Omnibridge (Ethereum fork)", function () {
     assertAddress(forkNetworkConfig.Omnibridge, "ETHEREUM Omnibridge address is missing");
     assertAddress(forkNetworkConfig.GnosisAMB, "ETHEREUM GnosisAMB address is missing");
 
-    const cctpTokenMessenger = forkNetworkConfig.CCTP!.TokenMessenger!;
-    const cctpMessageTransmitter = forkNetworkConfig.CCTP!.MessageTransmitter!;
-
     const USDC_DEC = 10n ** (await usdc.decimals());
 
     const repayerImpl = (
       await deployX("Repayer", deployer, "RepayerEthereumGnosis", {},
         Domain.ETHEREUM,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         forkNetworkConfig.AcrossV3SpokePool!,
         weth,
         forkNetworkConfig.StargateTreasurer!,

@@ -503,6 +503,7 @@ export const networkConfig: NetworksConfig = {
         WBTC: tokenInfo("0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599", 8),
         USDG: tokenInfo("0xe343167631d89B6Ffc58B88d6b7fB0228795491D", 6),
         PYUSD: tokenInfo("0x6c3ea9036406852006290770BEdFcAbA0e23A0e8", 6),
+        EURe: tokenInfo("0x39b8B6385416f4cA36a20319F70D28621895279D", 18),
       },
       WrappedNativeToken: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
       IsTest: false,
@@ -536,6 +537,9 @@ export const networkConfig: NetworksConfig = {
         [LiquidityPoolUSDCStablecoinV4]: {
           [Network.UNICHAIN]: [Provider.CCTP_V2],
         },
+        [LiquidityPoolAaveUSDCProxy]: {
+          [Network.GNOSIS_CHAIN]: [Provider.GNOSIS_OMNIBRIDGE],
+        },
       },
       RepayerRoutes: {
         [LiquidityPoolAaveUSDCV4]: {
@@ -543,7 +547,6 @@ export const networkConfig: NetworksConfig = {
           Domains: {
             [Network.ARBITRUM_ONE]: [
               Provider.ACROSS,
-
               Provider.ARBITRUM_GATEWAY,
               Provider.STARGATE,
               Provider.USDT0,
@@ -562,14 +565,12 @@ export const networkConfig: NetworksConfig = {
             ],
             [Network.POLYGON_MAINNET]: [
               Provider.ACROSS,
-
               Provider.STARGATE,
               Provider.USDT0,
               Provider.CCTP_V2,
             ],
             [Network.GNOSIS_CHAIN]: [
               Provider.GNOSIS_OMNIBRIDGE,
-
               Provider.STARGATE,
             ],
           },
@@ -579,7 +580,6 @@ export const networkConfig: NetworksConfig = {
           Domains: {
             [Network.BASE]: [
               Provider.ACROSS,
-
               Provider.SUPERCHAIN_STANDARD_BRIDGE,
               Provider.CCTP_V2,
             ],
@@ -600,7 +600,6 @@ export const networkConfig: NetworksConfig = {
             ],
             [Network.OP_MAINNET]: [
               Provider.ACROSS,
-
               Provider.SUPERCHAIN_STANDARD_BRIDGE,
               Provider.CCTP_V2,
             ],
@@ -611,7 +610,6 @@ export const networkConfig: NetworksConfig = {
           Domains: {
             [Network.ARBITRUM_ONE]: [
               Provider.ACROSS,
-
               Provider.ARBITRUM_GATEWAY,
               Provider.STARGATE,
               Provider.USDT0,
@@ -624,12 +622,20 @@ export const networkConfig: NetworksConfig = {
           Domains: {
             [Network.UNICHAIN]: [
               Provider.ACROSS,
-
               Provider.STARGATE,
               Provider.USDT0,
               Provider.CCTP_V2,
             ],
           },
+        },
+        [LiquidityPoolAaveUSDCProxy]: {
+          SupportsAllTokens: true,
+          Domains: {
+            [Network.GNOSIS_CHAIN]: [
+              Provider.GNOSIS_OMNIBRIDGE,
+              Provider.STARGATE,
+            ],
+          }
         },
       },
       AavePool: {
@@ -987,6 +993,9 @@ export const networkConfig: NetworksConfig = {
           SupportsAllTokens: true,
           Domains: {
             [Network.ETHEREUM]: [Provider.ACROSS, Provider.CCTP_V2],
+            [Network.GNOSIS_CHAIN]: [
+              Provider.STARGATE,
+            ],
           },
         },
         [LiquidityPoolAaveUSDCV4]: {
@@ -1208,6 +1217,7 @@ export const networkConfig: NetworksConfig = {
         DAI: tokenInfo("0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1", 18),
         WETH: tokenInfo("0x82aF49447D8a07e3bd95BD0d56f35241523fBab1", 18),
         WBTC: tokenInfo("0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f", 8),
+        EURe: tokenInfo("0x0c06cCF38114ddfc35e07427B9424adcca9F44F8", 18),
       },
       WrappedNativeToken: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
       IsTest: false,
@@ -1242,6 +1252,9 @@ export const networkConfig: NetworksConfig = {
           SupportsAllTokens: true,
           Domains: {
             [Network.ETHEREUM]: [Provider.ACROSS, Provider.CCTP_V2],
+            [Network.GNOSIS_CHAIN]: [
+              Provider.STARGATE,
+            ],
           },
         },
         [LiquidityPoolAaveUSDCV4]: {
@@ -1457,6 +1470,7 @@ export const networkConfig: NetworksConfig = {
         USDT: tokenInfo("0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2", 6),
         DAI: tokenInfo("0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb", 18),
         WETH: tokenInfo("0x4200000000000000000000000000000000000006", 18),
+        EURe: tokenInfo("0xbf6e2966A9C3D99C9E4D069E04f7Bdb9C8aa762C", 18),
       },
       WrappedNativeToken: "0x4200000000000000000000000000000000000006",
       IsTest: false,
@@ -1509,6 +1523,9 @@ export const networkConfig: NetworksConfig = {
           SupportsAllTokens: true,
           Domains: {
             [Network.ETHEREUM]: [Provider.ACROSS, Provider.CCTP_V2],
+            [Network.GNOSIS_CHAIN]: [
+              Provider.STARGATE,
+            ],
           },
         },
         [LiquidityPoolAaveUSDCV4]: {
@@ -1692,6 +1709,7 @@ export const networkConfig: NetworksConfig = {
         DAI: tokenInfo("0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063", 18),
         WETH: tokenInfo("0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619", 18),
         WBTC: tokenInfo("0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6", 8),
+        EURe: tokenInfo("0xE0aEa583266584DafBB3f9C3211d5588c73fEa8d", 18),
       },
       WrappedNativeToken: "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270",
       IsTest: false,
@@ -1730,6 +1748,9 @@ export const networkConfig: NetworksConfig = {
           SupportsAllTokens: true,
           Domains: {
             [Network.ETHEREUM]: [Provider.ACROSS, Provider.CCTP_V2],
+            [Network.GNOSIS_CHAIN]: [
+              Provider.STARGATE,
+            ],
           },
         },
         [LiquidityPoolAaveUSDCV4]: {
@@ -1741,13 +1762,11 @@ export const networkConfig: NetworksConfig = {
             [Network.BASE]: [Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
             [Network.ARBITRUM_ONE]: [
               Provider.ACROSS,
-
               Provider.STARGATE,
               Provider.USDT0,
               Provider.CCTP_V2,
             ],
             [Network.GNOSIS_CHAIN]: [
-
               Provider.STARGATE,
             ],
           },
@@ -1932,6 +1951,9 @@ export const networkConfig: NetworksConfig = {
           SupportsAllTokens: true,
           Domains: {
             [Network.ETHEREUM]: [Provider.ACROSS, Provider.CCTP_V2],
+            [Network.GNOSIS_CHAIN]: [
+              Provider.STARGATE,
+            ],
           },
         },
         [LiquidityPoolAaveUSDCV4]: {
@@ -1954,7 +1976,6 @@ export const networkConfig: NetworksConfig = {
               Provider.CCTP_V2,
             ],
             [Network.GNOSIS_CHAIN]: [
-
               Provider.STARGATE,
             ],
           },
@@ -2067,6 +2088,9 @@ export const networkConfig: NetworksConfig = {
           SupportsAllTokens: true,
           Domains: {
             [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE],
+            [Network.GNOSIS_CHAIN]: [
+              Provider.STARGATE,
+            ],
           },
         },
         [LiquidityPoolAaveUSDCV4]: {
@@ -2192,7 +2216,7 @@ export const networkConfig: NetworksConfig = {
       USDT: tokenInfo("0x4ECaBa5870353805a9F068101A40E0f32ed605C6", 6),
       WETH: tokenInfo("0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1", 18),
       DAI: tokenInfo("0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d", 18),
-      EURe: tokenInfo("0x420CA0f9B9b604cE0fd9C18EF134C705e5Fa3430", 18),
+      EURe: tokenInfo("0x420CA0f9B9b604cE0fd9C18EF134C705e5Fa3430", 18), // EURe v2
     },
     WrappedNativeToken: "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d",
     IsTest: false,
@@ -2250,7 +2274,7 @@ export const networkConfig: NetworksConfig = {
         USDT: tokenInfo("0x4ECaBa5870353805a9F068101A40E0f32ed605C6", 6),
         WETH: tokenInfo("0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1", 18),
         DAI: tokenInfo("0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d", 18),
-        EURe: tokenInfo("0x420CA0f9B9b604cE0fd9C18EF134C705e5Fa3430", 18),
+        EURe: tokenInfo("0x420CA0f9B9b604cE0fd9C18EF134C705e5Fa3430", 18), // EURe v2
       },
       WrappedNativeToken: "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d",
       IsTest: false,
@@ -2291,7 +2315,6 @@ export const networkConfig: NetworksConfig = {
           SupportsAllTokens: true,
           Domains: {
             [Network.ARBITRUM_ONE]: [
-
               Provider.STARGATE,
             ],
           },
@@ -2321,6 +2344,7 @@ export const networkConfig: NetworksConfig = {
           "0x2a22f9c3b484c3629090FeED35F17Ff8F88f76F0": 100, // USDC
           "0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1": 75, // WETH
           "0x4ECaBa5870353805a9F068101A40E0f32ed605C6": 90, // USDT
+          "0xcB444e90D8198415266c6a2724b7900fb12FC56E": 100, // EURe v1
         },
       },
     }

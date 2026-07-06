@@ -109,3 +109,15 @@ Threshold met (1/1). Executing on-chain...
 Executed. On-chain TX hash: 0x086663576087046ecf6accd3c61a81019385763ee687149a966fdd9ececfeee7
 0x086663576087046ecf6accd3c61a81019385763ee687149a966fdd9ececfeee7
 Repayer upgraded.
+
+Deployment ID: MVP
+Deploying Aave USDC Pool
+Using config for: stage, GNOSIS_CHAIN
+Deployer        : 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+Rebalancer: 0x34Df9cD75fA0b4d8fF300AeDf7591f79dFdd61C9
+Deploying Aave USDC Liquidity Pool
+LiquidityPoolAaveUSDCProxy: 0xd73abd244837256B0F0ADCF5417950984B9964F8
+LiquidityPoolAaveUSDCProxyAdmin: 0x98b9644DB5144104C898b8fecfff3d5ae6a10705
+Access control setup complete.
+Remember to update Rebalancer and Repayer routes in the config and then onchain.

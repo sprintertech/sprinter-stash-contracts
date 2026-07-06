@@ -99,8 +99,6 @@ contract Repayer is
     constructor(
         Domain localDomain,
         IERC20 assets,
-        address cctpTokenMessenger,
-        address cctpMessageTransmitter,
         address acrossSpokePool,
         address wrappedNativeToken,
         address stargateTreasurer,
@@ -116,8 +114,6 @@ contract Repayer is
         address cctpV2MessageTransmitter
     )
         CCTPV2Adapter(
-            cctpTokenMessenger,
-            cctpMessageTransmitter,
             cctpV2TokenMessenger,
             cctpV2MessageTransmitter
         )
@@ -219,10 +215,6 @@ contract Repayer is
             // For local we proceed to the process right away.
             _processRepayLOCAL(token, amount, destinationPool);
         } else
-        if (provider == Provider.CCTP) {
-            require(token == ASSETS, InvalidToken());
-            initiateTransferCCTP(token, amount, destinationPool, destinationDomain);
-        } else
         if (provider == Provider.CCTP_V2) {
             require(token == ASSETS, InvalidToken());
             initiateTransferCCTPV2(token, amount, destinationPool, destinationDomain);
@@ -280,9 +272,6 @@ contract Repayer is
         require(isRouteAllowed(destinationPool, DOMAIN, Provider.LOCAL), RouteDenied());
         IERC20 token = ASSETS;
         uint256 amount = 0;
-        if (provider == Provider.CCTP) {
-            amount = processTransferCCTP(address(CCTP_MESSAGE_TRANSMITTER), ASSETS, destinationPool, extraData);
-        } else
         if (provider == Provider.CCTP_V2) {
             amount = processTransferCCTPV2(ASSETS, destinationPool, extraData);
         } else

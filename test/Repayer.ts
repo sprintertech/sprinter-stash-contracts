@@ -15,7 +15,7 @@ import {
 } from "../scripts/common";
 import {
   TestUSDC, TransparentUpgradeableProxy, ProxyAdmin,
-  TestLiquidityPool, Repayer, TestCCTPTokenMessenger, TestCCTPMessageTransmitter,
+  TestLiquidityPool, Repayer,
   TestCCTPV2TokenMessenger, TestCCTPV2MessageTransmitter,
   TestAcrossV3SpokePool, TestStargate, MockStargateTreasurerTrue, MockStargateTreasurerFalse,
   TestSuperchainStandardBridge, IWrappedNativeToken, TestArbitrumGatewayRouter,
@@ -69,10 +69,6 @@ describe("Repayer", function () {
       deployer,
       networkConfig.BASE.WrappedNativeToken
     )) as TestLiquidityPool;
-    const cctpTokenMessenger = (await deploy("TestCCTPTokenMessenger", deployer, {})) as TestCCTPTokenMessenger;
-    const cctpMessageTransmitter = (
-      await deploy("TestCCTPMessageTransmitter", deployer, {})
-    ) as TestCCTPMessageTransmitter;
     const cctpV2TokenMessenger = (
       await deploy("TestCCTPV2TokenMessenger", deployer, {})
     ) as TestCCTPV2TokenMessenger;
@@ -116,8 +112,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "Repayer", {},
         Domain.BASE,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -132,10 +126,10 @@ describe("Repayer", function () {
       admin,
       repayUser,
       setTokensUser,
-      [liquidityPool, liquidityPool2, liquidityPool, liquidityPool, liquidityPool],
-      [Domain.BASE, Domain.BASE, Domain.ETHEREUM, Domain.ARBITRUM_ONE, Domain.ETHEREUM],
-      [Provider.LOCAL, Provider.LOCAL, Provider.CCTP, Provider.CCTP, Provider.CCTP_V2],
-      [true, false, true, true, true],
+      [liquidityPool, liquidityPool2, liquidityPool],
+      [Domain.BASE, Domain.BASE, Domain.ETHEREUM],
+      [Provider.LOCAL, Provider.LOCAL, Provider.CCTP_V2],
+      [true, false, true],
       [
         {
           inputToken: usdc,
@@ -167,7 +161,6 @@ describe("Repayer", function () {
     return {
       deployer, admin, repayUser, user, usdc,
       USDC_DEC, eurc, EURC_DEC, eurcOwner, liquidityPool, liquidityPool2, repayer, repayerProxy, repayerAdmin,
-      cctpTokenMessenger, cctpMessageTransmitter,
       cctpV2TokenMessenger, cctpV2MessageTransmitter,
       REPAYER_ROLE, DEFAULT_ADMIN_ROLE, acrossV3SpokePool, weth,
       stargateTreasurerTrue, stargateTreasurerFalse, forkNetworkConfig, optimismBridge,
@@ -178,24 +171,19 @@ describe("Repayer", function () {
 
   it("Should have default values", async function () {
     const {liquidityPool, liquidityPool2, repayer, usdc, REPAYER_ROLE, DEFAULT_ADMIN_ROLE,
-      cctpTokenMessenger, cctpMessageTransmitter, admin, repayUser, deployer, acrossV3SpokePool,
+      admin, repayUser, deployer, acrossV3SpokePool,
       stargateTreasurerTrue, optimismBridge, baseBridge, setTokensUser, eurc,
     } = await loadFixture(deployAll);
 
     expect(await repayer.ASSETS()).to.equal(usdc.target);
-    expect(await repayer.CCTP_TOKEN_MESSENGER()).to.equal(cctpTokenMessenger.target);
-    expect(await repayer.CCTP_MESSAGE_TRANSMITTER()).to.equal(cctpMessageTransmitter.target);
     expect(await repayer.ACROSS_SPOKE_POOL()).to.equal(acrossV3SpokePool.target);
     expect(await repayer.STARGATE_TREASURER()).to.equal(stargateTreasurerTrue.target);
     expect(await repayer.OPTIMISM_STANDARD_BRIDGE()).to.equal(optimismBridge.target);
     expect(await repayer.BASE_STANDARD_BRIDGE()).to.equal(baseBridge.target);
     expect(await repayer.isRouteAllowed(liquidityPool, Domain.BASE, Provider.LOCAL)).to.be.true;
     expect(await repayer.isRouteAllowed(liquidityPool2, Domain.BASE, Provider.LOCAL)).to.be.true;
-    expect(await repayer.isRouteAllowed(liquidityPool2, Domain.BASE, Provider.CCTP)).to.be.false;
-    expect(await repayer.isRouteAllowed(liquidityPool2, Domain.ETHEREUM, Provider.CCTP)).to.be.false;
-    expect(await repayer.isRouteAllowed(liquidityPool, Domain.ETHEREUM, Provider.CCTP)).to.be.true;
-    expect(await repayer.isRouteAllowed(liquidityPool, Domain.AVALANCHE, Provider.CCTP)).to.be.false;
-    expect(await repayer.isRouteAllowed(liquidityPool, Domain.ARBITRUM_ONE, Provider.CCTP)).to.be.true;
+    expect(await repayer.isRouteAllowed(liquidityPool, Domain.ETHEREUM, Provider.CCTP_V2)).to.be.true;
+    expect(await repayer.isRouteAllowed(liquidityPool, Domain.AVALANCHE, Provider.CCTP_V2)).to.be.false;
     expect(await repayer.isRouteAllowed(liquidityPool, Domain.ETHEREUM, Provider.ACROSS)).to.be.false;
     expect(await repayer.hasRole(DEFAULT_ADMIN_ROLE, admin)).to.be.true;
     expect(await repayer.hasRole(DEFAULT_ADMIN_ROLE, deployer)).to.be.false;
@@ -207,6 +195,11 @@ describe("Repayer", function () {
     expect(await repayer.domainCCTP(Domain.ARBITRUM_ONE)).to.equal(3n);
     expect(await repayer.domainCCTP(Domain.BASE)).to.equal(6n);
     expect(await repayer.domainCCTP(Domain.POLYGON_MAINNET)).to.equal(7n);
+    expect(await repayer.domainCCTP(Domain.UNICHAIN)).to.equal(10n);
+    expect(await repayer.domainCCTP(Domain.LINEA)).to.equal(11n);
+    expect(await repayer.domainCCTP(Domain.WORLD_CHAIN)).to.equal(14n);
+    expect(await repayer.domainCCTP(Domain.HYPER_EVM)).to.equal(19n);
+    expect(await repayer.domainCCTP(Domain.INK)).to.equal(21n);
     await expect(repayer.domainCCTP(Domain.GNOSIS_CHAIN))
       .to.be.revertedWithCustomError(repayer, "UnsupportedDomain()");
     expect(await repayer.domainChainId(Domain.ETHEREUM)).to.equal(1n);
@@ -234,10 +227,10 @@ describe("Repayer", function () {
     await expect(repayer.layerZeroEndpointId(Domain.OP_SEPOLIA))
       .to.be.revertedWithCustomError(repayer, "UnsupportedDomain()");
     expect(await repayer.getAllRoutes()).to.deep.equal([
-      [liquidityPool.target, liquidityPool.target, liquidityPool.target, liquidityPool.target, liquidityPool2.target],
-      [Domain.ETHEREUM, Domain.ETHEREUM, Domain.ARBITRUM_ONE, Domain.BASE, Domain.BASE],
-      [Provider.CCTP, Provider.CCTP_V2, Provider.CCTP, Provider.LOCAL, Provider.LOCAL],
-      [true, true, true, true, false]
+      [liquidityPool.target, liquidityPool.target, liquidityPool2.target],
+      [Domain.ETHEREUM, Domain.BASE, Domain.BASE],
+      [Provider.CCTP_V2, Provider.LOCAL, Provider.LOCAL],
+      [true, true, false]
     ]);
     expect(await isOutputTokenAllowed(repayer, usdc, Domain.ETHEREUM, addressToBytes32(eurc.target))).to.be.true;
     expect(await isOutputTokenAllowed(repayer, eurc, Domain.ETHEREUM, addressToBytes32(usdc.target))).to.be.true;
@@ -260,38 +253,37 @@ describe("Repayer", function () {
       5n * USDC_DEC,
       liquidityPool,
       Domain.AVALANCHE,
-      Provider.CCTP,
+      Provider.CCTP_V2,
       "0x"
     )).to.be.revertedWithCustomError(repayer, "RouteDenied()");
     const tx = repayer.connect(admin).setRoute(
       [liquidityPool],
       [Domain.AVALANCHE],
-      [Provider.CCTP],
+      [Provider.CCTP_V2],
       [true],
       ALLOWED
     );
     await expect(tx)
       .to.emit(repayer, "SetRoute")
-      .withArgs(liquidityPool.target, Domain.AVALANCHE, Provider.CCTP, true, ALLOWED);
+      .withArgs(liquidityPool.target, Domain.AVALANCHE, Provider.CCTP_V2, true, ALLOWED);
 
     expect(await repayer.getAllRoutes()).to.deep.equal([
       [
-        liquidityPool.target, liquidityPool.target, liquidityPool.target,
-        liquidityPool.target, liquidityPool.target, liquidityPool2.target,
+        liquidityPool.target, liquidityPool.target, liquidityPool.target, liquidityPool2.target,
       ],
-      [Domain.ETHEREUM, Domain.ETHEREUM, Domain.AVALANCHE, Domain.ARBITRUM_ONE, Domain.BASE, Domain.BASE],
-      [Provider.CCTP, Provider.CCTP_V2, Provider.CCTP, Provider.CCTP, Provider.LOCAL, Provider.LOCAL],
-      [true, true, true, true, true, false],
+      [Domain.ETHEREUM, Domain.AVALANCHE, Domain.BASE, Domain.BASE],
+      [Provider.CCTP_V2, Provider.CCTP_V2, Provider.LOCAL, Provider.LOCAL],
+      [true, true, true, false],
     ]);
-    expect(await repayer.isRouteAllowed(liquidityPool, Domain.ETHEREUM, Provider.CCTP)).to.be.true;
-    expect(await repayer.isRouteAllowed(liquidityPool, Domain.AVALANCHE, Provider.CCTP)).to.be.true;
-    expect(await repayer.isRouteAllowed(liquidityPool, Domain.ARBITRUM_ONE, Provider.CCTP)).to.be.true;
+    expect(await repayer.isRouteAllowed(liquidityPool, Domain.ETHEREUM, Provider.CCTP_V2)).to.be.true;
+    expect(await repayer.isRouteAllowed(liquidityPool, Domain.AVALANCHE, Provider.CCTP_V2)).to.be.true;
+    expect(await repayer.isRouteAllowed(liquidityPool, Domain.ARBITRUM_ONE, Provider.CCTP_V2)).to.be.false;
     await repayer.connect(repayUser).initiateRepay(
       usdc,
       5n * USDC_DEC,
       liquidityPool,
       Domain.AVALANCHE,
-      Provider.CCTP,
+      Provider.CCTP_V2,
       "0x"
     );
   });
@@ -305,36 +297,36 @@ describe("Repayer", function () {
       5n * USDC_DEC,
       liquidityPool,
       Domain.ETHEREUM,
-      Provider.CCTP,
+      Provider.CCTP_V2,
       "0x"
     );
     const tx = repayer.connect(admin).setRoute(
       [liquidityPool],
       [Domain.ETHEREUM],
-      [Provider.CCTP],
+      [Provider.CCTP_V2],
       [true],
       DISALLOWED
     );
     await expect(tx)
       .to.emit(repayer, "SetRoute")
-      .withArgs(liquidityPool.target, Domain.ETHEREUM, Provider.CCTP, true, DISALLOWED);
+      .withArgs(liquidityPool.target, Domain.ETHEREUM, Provider.CCTP_V2, true, DISALLOWED);
 
     expect(await repayer.getAllRoutes()).to.deep.equal([
-      [liquidityPool.target, liquidityPool.target, liquidityPool.target, liquidityPool2.target],
-      [Domain.ETHEREUM, Domain.ARBITRUM_ONE, Domain.BASE, Domain.BASE],
-      [Provider.CCTP_V2, Provider.CCTP, Provider.LOCAL, Provider.LOCAL],
-      [true, true, true, false]
+      [liquidityPool.target, liquidityPool2.target],
+      [Domain.BASE, Domain.BASE],
+      [Provider.LOCAL, Provider.LOCAL],
+      [true, false]
     ]);
 
-    expect(await repayer.isRouteAllowed(liquidityPool, Domain.ETHEREUM, Provider.CCTP)).to.be.false;
-    expect(await repayer.isRouteAllowed(liquidityPool, Domain.AVALANCHE, Provider.CCTP)).to.be.false;
-    expect(await repayer.isRouteAllowed(liquidityPool, Domain.ARBITRUM_ONE, Provider.CCTP)).to.be.true;
+    expect(await repayer.isRouteAllowed(liquidityPool, Domain.ETHEREUM, Provider.CCTP_V2)).to.be.false;
+    expect(await repayer.isRouteAllowed(liquidityPool, Domain.AVALANCHE, Provider.CCTP_V2)).to.be.false;
+    expect(await repayer.isRouteAllowed(liquidityPool, Domain.ARBITRUM_ONE, Provider.CCTP_V2)).to.be.false;
     await expect(repayer.connect(repayUser).initiateRepay(
       usdc,
       5n * USDC_DEC,
       liquidityPool,
       Domain.ETHEREUM,
-      Provider.CCTP,
+      Provider.CCTP_V2,
       "0x"
     )).to.be.revertedWithCustomError(repayer, "RouteDenied()");
   });
@@ -348,7 +340,7 @@ describe("Repayer", function () {
     await expect(repayer.connect(admin).setRoute(
       [liquidityPool2],
       [Domain.BASE],
-      [Provider.CCTP],
+      [Provider.CCTP_V2],
       [true],
       ALLOWED
     )).to.be.revertedWithCustomError(repayer, "UnsupportedProvider()");
@@ -402,7 +394,7 @@ describe("Repayer", function () {
     await expect(repayer.connect(repayUser).setRoute(
       [liquidityPool2],
       [Domain.AVALANCHE],
-      [Provider.CCTP],
+      [Provider.CCTP_V2],
       [true],
       ALLOWED
     )).to.be.revertedWithCustomError(repayer, "AccessControlUnauthorizedAccount(address,bytes32)");
@@ -414,7 +406,7 @@ describe("Repayer", function () {
     await expect(repayer.connect(repayUser).setRoute(
       [liquidityPool],
       [Domain.ETHEREUM],
-      [Provider.CCTP],
+      [Provider.CCTP_V2],
       [true],
       DISALLOWED
     )).to.be.revertedWithCustomError(repayer, "AccessControlUnauthorizedAccount(address,bytes32)");
@@ -602,33 +594,6 @@ describe("Repayer", function () {
     )).to.be.revertedWithCustomError(repayer, "AccessControlUnauthorizedAccount(address,bytes32)");
   });
 
-  it("Should allow repayer to initiate CCTP repay", async function () {
-    const {repayer, usdc, USDC_DEC, repayUser, liquidityPool,
-      cctpTokenMessenger
-    } = await loadFixture(deployAll);
-
-    await usdc.transfer(repayer, 10n * USDC_DEC);
-    const tx = repayer.connect(repayUser).initiateRepay(
-      usdc,
-      4n * USDC_DEC,
-      liquidityPool,
-      Domain.ETHEREUM,
-      Provider.CCTP,
-      "0x"
-    );
-    await expect(tx)
-      .to.emit(repayer, "InitiateRepay")
-      .withArgs(usdc.target, 4n * USDC_DEC, liquidityPool.target, Domain.ETHEREUM, Provider.CCTP);
-    await expect(tx)
-      .to.emit(usdc, "Transfer")
-      .withArgs(repayer.target, cctpTokenMessenger.target, 4n * USDC_DEC);
-    await expect(tx)
-      .to.emit(usdc, "Transfer")
-      .withArgs(cctpTokenMessenger.target, ZERO_ADDRESS, 4n * USDC_DEC);
-
-    expect(await usdc.balanceOf(repayer)).to.equal(6n * USDC_DEC);
-  });
-
   it("Should allow repayer to initiate Across repay", async function () {
     const {repayer, usdc, USDC_DEC, admin, repayUser,
       liquidityPool, acrossV3SpokePool, eurc, user,
@@ -793,7 +758,7 @@ describe("Repayer", function () {
 
   it("Should allow repayer to initiate Across repay with SpokePool on fork", async function () {
     const {deployer, repayer, USDC_DEC, admin, repayUser, repayerAdmin, repayerProxy,
-      liquidityPool, cctpTokenMessenger, cctpMessageTransmitter, weth, stargateTreasurerTrue,
+      liquidityPool, weth, stargateTreasurerTrue,
       optimismBridge, baseBridge, setTokensUser, arbitrumGatewayRouter,
     } = await loadFixture(deployAll);
 
@@ -816,8 +781,6 @@ describe("Repayer", function () {
         {},
         Domain.BASE,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePoolFork,
         weth,
         stargateTreasurerTrue,
@@ -1012,7 +975,7 @@ describe("Repayer", function () {
 
   it("Should allow repayer to initiate Superchain Optimism repay with mock bridge", async function () {
     const {
-      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge,
       acrossV3SpokePool, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
       setTokensUser, arbitrumGatewayRouter,
       sharedEthereumOmnibridge, sharedEthereumAmb,
@@ -1025,8 +988,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "Repayer2", {},
         Domain.ETHEREUM,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -1082,7 +1043,7 @@ describe("Repayer", function () {
 
   it("Should allow repayer to initiate Superchain Base repay with mock bridge", async function () {
     const {
-      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge,
       acrossV3SpokePool, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
       setTokensUser, arbitrumGatewayRouter,
       sharedEthereumOmnibridge, sharedEthereumAmb,
@@ -1095,8 +1056,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "Repayer2", {},
         Domain.ETHEREUM,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -1152,7 +1111,7 @@ describe("Repayer", function () {
 
   it("Should revert Superchain repay if call to Standard Bridge reverts", async function () {
     const {
-      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge,
       acrossV3SpokePool, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
       setTokensUser, arbitrumGatewayRouter,
       sharedEthereumOmnibridge, sharedEthereumAmb,
@@ -1162,8 +1121,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "Repayer2", {},
         Domain.ETHEREUM,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -1218,7 +1175,7 @@ describe("Repayer", function () {
 
   it("Should revert Standard Bridge repay if native currency is sent along", async function () {
     const {
-      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge,
       acrossV3SpokePool, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
       setTokensUser, arbitrumGatewayRouter,
       sharedEthereumOmnibridge, sharedEthereumAmb,
@@ -1228,8 +1185,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "Repayer2", {},
         Domain.ETHEREUM,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -1285,7 +1240,7 @@ describe("Repayer", function () {
 
   it("Should revert Standard Bridge repay if output token is not allowed", async function () {
     const {
-      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge,
       acrossV3SpokePool, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
       setTokensUser, arbitrumGatewayRouter,
       sharedEthereumOmnibridge, sharedEthereumAmb,
@@ -1295,8 +1250,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "Repayer2", {},
         Domain.ETHEREUM,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -1377,7 +1330,7 @@ describe("Repayer", function () {
 
   it("Should NOT allow repayer to initiate Superchain Standard Bridge repay to unsupported domain", async function () {
     const {
-      USDC_DEC, usdc, admin, repayUser, liquidityPool, deployer, cctpTokenMessenger, cctpMessageTransmitter,
+      USDC_DEC, usdc, admin, repayUser, liquidityPool, deployer,
       acrossV3SpokePool, weth, stargateTreasurerTrue, optimismBridge, baseBridge,
       arbitrumGatewayRouter, sharedEthereumOmnibridge, sharedEthereumAmb, setTokensUser,
     } = await loadFixture(deployAll);
@@ -1386,8 +1339,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "Repayer4", {},
         Domain.ETHEREUM,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -1430,7 +1381,7 @@ describe("Repayer", function () {
 
   it("Should allow repayer to initiate Arbitrum Gateway repay with mock bridge", async function () {
     const {
-      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge,
       acrossV3SpokePool, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
       setTokensUser, l2TokenAddress, arbitrumGatewayRouter,
       sharedEthereumOmnibridge, sharedEthereumAmb,
@@ -1444,8 +1395,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "Repayer2", {},
         Domain.ETHEREUM,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -1509,7 +1458,7 @@ describe("Repayer", function () {
 
   it("Should revert Arbitrum Gateway repay if output token doesn't match", async function () {
     const {
-      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge,
       acrossV3SpokePool, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
       setTokensUser, arbitrumGatewayRouter,
       sharedEthereumOmnibridge, sharedEthereumAmb,
@@ -1523,8 +1472,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "Repayer2", {},
         Domain.ETHEREUM,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -1579,7 +1526,7 @@ describe("Repayer", function () {
 
   it("Should revert Arbitrum Gateway repay if call to Arbitrum Gateway reverts", async function () {
     const {
-      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge,
       acrossV3SpokePool, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
       setTokensUser, l2TokenAddress, arbitrumGatewayRouter,
       sharedEthereumOmnibridge, sharedEthereumAmb,
@@ -1590,8 +1537,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "Repayer2", {},
         Domain.ETHEREUM,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -1652,7 +1597,7 @@ describe("Repayer", function () {
 
   it("Should initiate Arbitrum Gateway repay with wrapped native currency", async function () {
     const {
-      usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+      usdc, repayUser, liquidityPool, optimismBridge,
       acrossV3SpokePool, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
       setTokensUser, l2TokenAddress,
       sharedEthereumOmnibridge, sharedEthereumAmb,
@@ -1670,8 +1615,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "Repayer2", {},
         Domain.ETHEREUM,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -1732,7 +1675,7 @@ describe("Repayer", function () {
 
   it("Should revert Arbitrum Gateway repay if output token doesn't match the gateway token", async function () {
     const {
-      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge,
       acrossV3SpokePool, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
       setTokensUser, l2TokenAddress, arbitrumGatewayRouter,
       sharedEthereumOmnibridge, sharedEthereumAmb,
@@ -1743,8 +1686,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "Repayer2", {},
         Domain.ETHEREUM,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -1807,7 +1748,7 @@ describe("Repayer", function () {
 
   it("Should revert Arbitrum Gateway repay if output token is not allowed", async function () {
     const {
-      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge,
       acrossV3SpokePool, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
       setTokensUser, arbitrumGatewayRouter,
       sharedEthereumOmnibridge, sharedEthereumAmb,
@@ -1817,8 +1758,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "Repayer2", {},
         Domain.ETHEREUM,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -1873,7 +1812,7 @@ describe("Repayer", function () {
 
   it("Should NOT allow repayer to initiate Arbitrum Gateway repay on invalid route", async function () {
     const {
-      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge,
       acrossV3SpokePool, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
       setTokensUser, arbitrumGatewayRouter, l2TokenAddress,
       sharedEthereumOmnibridge, sharedEthereumAmb,
@@ -1883,8 +1822,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "Repayer2", {},
         Domain.ETHEREUM,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -1975,7 +1912,7 @@ describe("Repayer", function () {
   });
 
   it("Should NOT initiate Arbitrum Gateway repay if destination domain is not ARBITRUM_ONE", async function () {
-    const {USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+    const {USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge,
       acrossV3SpokePool, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
       setTokensUser, arbitrumGatewayRouter, l2TokenAddress,
       sharedEthereumOmnibridge, sharedEthereumAmb} = await loadFixture(deployAll);
@@ -1984,8 +1921,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "Repayer2", {},
         Domain.ETHEREUM,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -2040,7 +1975,7 @@ describe("Repayer", function () {
 
   it("Should revert Arbitrum Gateway repay if router address is 0", async function () {
     const {
-      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge, cctpTokenMessenger, cctpMessageTransmitter,
+      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge,
       acrossV3SpokePool, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
       setTokensUser, l2TokenAddress,
       sharedEthereumOmnibridge, sharedEthereumAmb,
@@ -2050,8 +1985,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "Repayer2", {},
         Domain.ETHEREUM,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -2233,20 +2166,6 @@ describe("Repayer", function () {
     )).to.be.revertedWithCustomError(repayer, "InvalidToken()");
   });
 
-  it("Should not allow repayer to initiate repay with other token if the provider is CCTP", async function () {
-    const {repayer, repayUser, eurc, EURC_DEC, eurcOwner, liquidityPool} = await loadFixture(deployAll);
-
-    await eurc.connect(eurcOwner).transfer(repayer, 10n * EURC_DEC);
-    await expect(repayer.connect(repayUser).initiateRepay(
-      eurc,
-      4n * EURC_DEC,
-      liquidityPool,
-      Domain.ETHEREUM,
-      Provider.CCTP,
-      "0x"
-    )).to.be.revertedWithCustomError(repayer, "InvalidToken()");
-  });
-
   it("Should allow repayer to initiate repay via CCTP V2", async function () {
     const {repayer, usdc, USDC_DEC, repayUser, liquidityPool,
       cctpV2TokenMessenger
@@ -2295,6 +2214,19 @@ describe("Repayer", function () {
     expect(await usdc.balanceOf(repayer)).to.equal(0n);
   });
 
+  it("Should not allow others to process repay", async function () {
+    const {repayer, usdc, USDC_DEC, liquidityPool, user} = await loadFixture(deployAll);
+
+    const message = AbiCoder.defaultAbiCoder().encode(
+      ["address", "address", "uint256"],
+      [usdc.target, liquidityPool.target, 4n * USDC_DEC]
+    );
+    const signature = AbiCoder.defaultAbiCoder().encode(["bool", "bool"], [true, true]);
+    const extraData = AbiCoder.defaultAbiCoder().encode(["bytes", "bytes"], [message, signature]);
+    await expect(repayer.connect(user).processRepay(liquidityPool, Provider.CCTP_V2, extraData))
+      .to.be.revertedWithCustomError(repayer, "AccessControlUnauthorizedAccount");
+  });
+
   it("Should revert CCTP V2 initiate if native currency is sent along", async function () {
     const {repayer, usdc, USDC_DEC, liquidityPool, repayUser} = await loadFixture(deployAll);
 
@@ -2327,13 +2259,13 @@ describe("Repayer", function () {
 
   it("Should revert CCTP V2 initiate if TokenMessenger is zero address", async function () {
     const {deployer, admin, repayUser, setTokensUser, usdc, USDC_DEC, liquidityPool,
-      cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool, weth,
+      acrossV3SpokePool, weth,
       stargateTreasurerTrue, optimismBridge, baseBridge, arbitrumGatewayRouter,
     } = await loadFixture(deployAll);
 
     const repayerImpl = (
       await deployX("Repayer", deployer, "RepayerNoCCTPV2", {},
-        Domain.BASE, usdc, cctpTokenMessenger, cctpMessageTransmitter,
+        Domain.BASE, usdc,
         acrossV3SpokePool, weth, stargateTreasurerTrue,
         optimismBridge, baseBridge, arbitrumGatewayRouter,
         ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
@@ -2359,14 +2291,14 @@ describe("Repayer", function () {
 
   it("Should revert CCTP V2 process if MessageTransmitter is zero address", async function () {
     const {deployer, admin, repayUser, setTokensUser, usdc, USDC_DEC, liquidityPool,
-      cctpTokenMessenger, cctpMessageTransmitter, cctpV2TokenMessenger,
+      cctpV2TokenMessenger,
       acrossV3SpokePool, weth,
       stargateTreasurerTrue, optimismBridge, baseBridge, arbitrumGatewayRouter,
     } = await loadFixture(deployAll);
 
     const repayerImpl = (
       await deployX("Repayer", deployer, "RepayerNoCCTPV2Transmitter", {},
-        Domain.BASE, usdc, cctpTokenMessenger, cctpMessageTransmitter,
+        Domain.BASE, usdc,
         acrossV3SpokePool, weth, stargateTreasurerTrue,
         optimismBridge, baseBridge, arbitrumGatewayRouter,
         ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
@@ -2418,82 +2350,6 @@ describe("Repayer", function () {
     await expect(repayer.connect(repayUser).processRepay(
       liquidityPool, Provider.ARBITRUM_GATEWAY, "0x"
     )).to.be.revertedWithCustomError(repayer, "UnsupportedProvider()");
-  });
-
-  it("Should allow repayer to process repay", async function () {
-    const {repayer, usdc, USDC_DEC, liquidityPool, repayUser} = await loadFixture(deployAll);
-
-    const message = AbiCoder.defaultAbiCoder().encode(
-      ["address", "address", "uint256"],
-      [usdc.target, liquidityPool.target, 4n * USDC_DEC]
-    );
-    const signature = AbiCoder.defaultAbiCoder().encode(["bool", "bool"], [true, true]);
-    const extraData = AbiCoder.defaultAbiCoder().encode(["bytes", "bytes"], [message, signature]);
-    const tx = repayer.connect(repayUser).processRepay(liquidityPool, Provider.CCTP, extraData);
-    await expect(tx)
-      .to.emit(repayer, "ProcessRepay")
-      .withArgs(usdc.target, 4n * USDC_DEC, liquidityPool.target, Provider.CCTP);
-    await expect(tx)
-      .to.emit(usdc, "Transfer")
-      .withArgs(ZERO_ADDRESS, liquidityPool.target, 4n * USDC_DEC);
-
-    expect(await usdc.balanceOf(liquidityPool)).to.equal(4n * USDC_DEC);
-    expect(await usdc.balanceOf(repayer)).to.equal(0n);
-  });
-
-  it("Should not allow others to process repay", async function () {
-    const {repayer, usdc, USDC_DEC, liquidityPool, user} = await loadFixture(deployAll);
-
-    const message = AbiCoder.defaultAbiCoder().encode(
-      ["address", "address", "uint256"],
-      [usdc.target, liquidityPool.target, 4n * USDC_DEC]
-    );
-    const signature = AbiCoder.defaultAbiCoder().encode(["bool", "bool"], [true, true]);
-    const extraData = AbiCoder.defaultAbiCoder().encode(["bytes", "bytes"], [message, signature]);
-    await expect(repayer.connect(user).processRepay(liquidityPool, Provider.CCTP, extraData))
-      .to.be.revertedWithCustomError(repayer, "AccessControlUnauthorizedAccount(address,bytes32)");;
-  });
-
-  it("Should revert if CCTP receiveMessage reverts", async function () {
-    const {repayer, usdc, USDC_DEC, liquidityPool, repayUser} = await loadFixture(deployAll);
-
-    const message = AbiCoder.defaultAbiCoder().encode(
-      ["address", "address", "uint256"],
-      [usdc.target, liquidityPool.target, 4n * USDC_DEC]
-    );
-    const signature = AbiCoder.defaultAbiCoder().encode(["bool", "bool"], [false, true]);
-    const extraData = AbiCoder.defaultAbiCoder().encode(["bytes", "bytes"], [message, signature]);
-    await expect(repayer.connect(repayUser).processRepay(liquidityPool, Provider.CCTP, extraData))
-      .to.be.reverted;
-  });
-
-  it("Should revert if CCTP receiveMessage returned false", async function () {
-    const {repayer, usdc, USDC_DEC, liquidityPool, repayUser} = await loadFixture(deployAll);
-
-    const message = AbiCoder.defaultAbiCoder().encode(
-      ["address", "address", "uint256"],
-      [usdc.target, liquidityPool.target, 4n * USDC_DEC]
-    );
-    const signature = AbiCoder.defaultAbiCoder().encode(["bool", "bool"], [true, false]);
-    const extraData = AbiCoder.defaultAbiCoder().encode(["bytes", "bytes"], [message, signature]);
-    await expect(repayer.connect(repayUser).processRepay(liquidityPool, Provider.CCTP, extraData))
-      .to.be.revertedWithCustomError(repayer, "ProcessFailed()");
-  });
-
-  it("Should revert CCTP initiate if native currency is sent along", async function () {
-    const {repayer, usdc, USDC_DEC, liquidityPool, repayUser} = await loadFixture(deployAll);
-
-    await usdc.transfer(repayer, 10n * USDC_DEC);
-
-    await expect(repayer.connect(repayUser).initiateRepay(
-      usdc,
-      4n * USDC_DEC,
-      liquidityPool,
-      Domain.ETHEREUM,
-      Provider.CCTP,
-      "0x",
-      {value: 1n}
-    )).to.be.revertedWithCustomError(repayer, "NotPayable()");
   });
 
   it("Should perform Stargate repay with a mock pool", async function () {
@@ -2554,8 +2410,8 @@ describe("Repayer", function () {
   });
 
   it("Should revert Stargate repay if the pool is not registered", async function () {
-    const {repayer, USDC_DEC, usdc, admin, repayUser, liquidityPool, deployer, cctpTokenMessenger,
-      cctpMessageTransmitter, acrossV3SpokePool, weth, stargateTreasurerFalse, repayerAdmin, repayerProxy,
+    const {repayer, USDC_DEC, usdc, admin, repayUser, liquidityPool, deployer,
+      acrossV3SpokePool, weth, stargateTreasurerFalse, repayerAdmin, repayerProxy,
       optimismBridge, baseBridge, arbitrumGatewayRouter,
     } = await loadFixture(deployAll);
 
@@ -2574,8 +2430,6 @@ describe("Repayer", function () {
         {},
         Domain.BASE,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerFalse,
@@ -2688,7 +2542,7 @@ describe("Repayer", function () {
 
   it("Should allow repayer to initiate Stargate repay on fork and refund unspent fee", async function () {
     const {
-      repayer, USDC_DEC, admin, repayUser, liquidityPool, deployer, cctpTokenMessenger, cctpMessageTransmitter,
+      repayer, USDC_DEC, admin, repayUser, liquidityPool, deployer,
       acrossV3SpokePool, weth, repayerAdmin, repayerProxy, optimismBridge, baseBridge,
       arbitrumGatewayRouter,
     } = await loadFixture(deployAll);
@@ -2714,8 +2568,6 @@ describe("Repayer", function () {
         {},
         Domain.BASE,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurer,
@@ -2860,8 +2712,8 @@ describe("Repayer", function () {
 
   it("Should unwrap enough native tokens on initiate repay", async function () {
     const {
-      repayer, repayUser, liquidityPool, optimismBridge, usdc, cctpTokenMessenger,
-      cctpMessageTransmitter, repayerAdmin, admin, repayerProxy, deployer, baseBridge, arbitrumGatewayRouter,
+      repayer, repayUser, liquidityPool, optimismBridge, usdc,
+      repayerAdmin, admin, repayerProxy, deployer, baseBridge, arbitrumGatewayRouter,
       sharedEthereumOmnibridge, sharedEthereumAmb,
     } = await loadFixture(deployAll);
 
@@ -2883,8 +2735,6 @@ describe("Repayer", function () {
         {},
         Domain.ETHEREUM,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         ZERO_ADDRESS,
         weth,
         ZERO_ADDRESS,
@@ -3051,7 +2901,7 @@ describe("Repayer", function () {
   it("Should allow repayer to initiate Gnosis Omnibridge repay from Ethereum to Gnosis", async function () {
     const {
       USDC_DEC, usdc, repayUser, liquidityPool,
-      cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool,
+      acrossV3SpokePool,
       weth, stargateTreasurerTrue, admin, deployer,
       optimismBridge, baseBridge, arbitrumGatewayRouter, setTokensUser,
     } = await loadFixture(deployAll);
@@ -3064,8 +2914,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "Repayer2", {},
         Domain.ETHEREUM,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -3106,7 +2954,7 @@ describe("Repayer", function () {
   it("Should allow repayer to initiate Gnosis Omnibridge repay from Gnosis to Ethereum", async function () {
     const {
       USDC_DEC, usdc, repayUser, liquidityPool,
-      cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool,
+      acrossV3SpokePool,
       weth, stargateTreasurerTrue, admin, deployer,
       optimismBridge, baseBridge, arbitrumGatewayRouter, setTokensUser,
     } = await loadFixture(deployAll);
@@ -3125,8 +2973,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "Repayer2", {},
         Domain.GNOSIS_CHAIN,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -3168,7 +3014,7 @@ describe("Repayer", function () {
   it("Should swap USDCe to USDC before bridging from Gnosis to Ethereum", async function () {
     const {
       USDC_DEC, usdc, repayUser, liquidityPool,
-      cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool,
+      acrossV3SpokePool,
       weth, stargateTreasurerTrue, admin, deployer,
       optimismBridge, baseBridge, arbitrumGatewayRouter, setTokensUser,
     } = await loadFixture(deployAll);
@@ -3185,8 +3031,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "Repayer2", {},
         Domain.GNOSIS_CHAIN,
         usdc2,   // assets = USDCe → GNOSIS_USDCE = usdc2
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -3238,7 +3082,7 @@ describe("Repayer", function () {
   it("Should revert Gnosis Omnibridge repay if USDCe swap reverts", async function () {
     const {
       usdc, repayUser, liquidityPool,
-      cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool,
+      acrossV3SpokePool,
       weth, stargateTreasurerTrue, admin, deployer,
       optimismBridge, baseBridge, arbitrumGatewayRouter, setTokensUser,
     } = await loadFixture(deployAll);
@@ -3253,8 +3097,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "Repayer2", {},
         Domain.GNOSIS_CHAIN,
         usdc2,   // assets = USDCe → GNOSIS_USDCE = usdc2
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -3288,7 +3130,7 @@ describe("Repayer", function () {
   it("Should revert Gnosis Omnibridge repay if native currency is sent along", async function () {
     const {
       USDC_DEC, usdc, repayUser, liquidityPool,
-      cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool,
+      acrossV3SpokePool,
       weth, stargateTreasurerTrue, admin, deployer,
       optimismBridge, baseBridge, arbitrumGatewayRouter, setTokensUser,
     } = await loadFixture(deployAll);
@@ -3300,8 +3142,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "Repayer2", {},
         Domain.ETHEREUM,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -3332,7 +3172,7 @@ describe("Repayer", function () {
   it("Should revert Gnosis Omnibridge constructor if bridge address is 0 on Ethereum", async function () {
     const {
       usdc,
-      cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool,
+      acrossV3SpokePool,
       weth, stargateTreasurerTrue, deployer,
       optimismBridge, baseBridge, arbitrumGatewayRouter,
     } = await loadFixture(deployAll);
@@ -3342,8 +3182,6 @@ describe("Repayer", function () {
     await expect(factory.deploy(
       Domain.ETHEREUM,
       usdc,
-      cctpTokenMessenger,
-      cctpMessageTransmitter,
       acrossV3SpokePool,
       weth,
       stargateTreasurerTrue,
@@ -3357,7 +3195,7 @@ describe("Repayer", function () {
   it("Should revert Gnosis Omnibridge constructor if required addresses are 0 on Gnosis", async function () {
     const {
       usdc,
-      cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool,
+      acrossV3SpokePool,
       weth, stargateTreasurerTrue, deployer,
       optimismBridge, baseBridge, arbitrumGatewayRouter,
     } = await loadFixture(deployAll);
@@ -3370,7 +3208,7 @@ describe("Repayer", function () {
 
     const baseArgs = [
       usdc2,   // assets = USDCe
-      cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool,
+      acrossV3SpokePool,
       weth, stargateTreasurerTrue, optimismBridge, baseBridge, arbitrumGatewayRouter,
     ] as const;
 
@@ -3396,7 +3234,7 @@ describe("Repayer", function () {
   it("Should revert constructor if any Gnosis adapter address is non-zero on Base", async function () {
     const {
       usdc,
-      cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool,
+      acrossV3SpokePool,
       weth, stargateTreasurerTrue, deployer,
       optimismBridge, baseBridge, arbitrumGatewayRouter,
     } = await loadFixture(deployAll);
@@ -3405,7 +3243,7 @@ describe("Repayer", function () {
     const factory = await hre.ethers.getContractFactory("Repayer", deployer);
 
     const baseArgs = [
-      usdc, cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool,
+      usdc, acrossV3SpokePool,
       weth, stargateTreasurerTrue, optimismBridge, baseBridge, arbitrumGatewayRouter,
     ] as const;
 
@@ -3437,7 +3275,7 @@ describe("Repayer", function () {
   it("Should revert Gnosis Omnibridge repay if destination domain is wrong", async function () {
     const {
       USDC_DEC, usdc, repayUser, liquidityPool,
-      cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool,
+      acrossV3SpokePool,
       weth, stargateTreasurerTrue, admin, deployer,
       optimismBridge, baseBridge, arbitrumGatewayRouter, setTokensUser,
     } = await loadFixture(deployAll);
@@ -3449,8 +3287,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "Repayer2", {},
         Domain.ETHEREUM,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -3485,7 +3321,7 @@ describe("Repayer", function () {
   it("Should allow repayer to process Gnosis Omnibridge repay", async function () {
     const {
       USDC_DEC, usdc, repayUser, liquidityPool,
-      cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool,
+      acrossV3SpokePool,
       weth, stargateTreasurerTrue, admin, deployer,
       optimismBridge, baseBridge, arbitrumGatewayRouter, setTokensUser,
     } = await loadFixture(deployAll);
@@ -3498,8 +3334,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "Repayer2", {},
         Domain.ETHEREUM,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -3550,7 +3384,7 @@ describe("Repayer", function () {
   it("Should revert repayer processRepay with Gnosis Omnibridge with invalid token", async function () {
     const {
       USDC_DEC, usdc, repayUser, liquidityPool,
-      cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool,
+      acrossV3SpokePool,
       weth, stargateTreasurerTrue, admin, deployer,
       optimismBridge, baseBridge, arbitrumGatewayRouter, setTokensUser,
     } = await loadFixture(deployAll);
@@ -3563,8 +3397,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "Repayer2", {},
         Domain.ETHEREUM,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -3608,7 +3440,7 @@ describe("Repayer", function () {
   it("Should revert constructor if AMB or Omnibridge address is 0 on Ethereum", async function () {
     const {
       usdc,
-      cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool,
+      acrossV3SpokePool,
       weth, stargateTreasurerTrue, deployer,
       optimismBridge, baseBridge, arbitrumGatewayRouter,
     } = await loadFixture(deployAll);
@@ -3618,7 +3450,7 @@ describe("Repayer", function () {
     const factory = await hre.ethers.getContractFactory("Repayer", deployer);
 
     const baseArgs = [
-      usdc, cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool,
+      usdc, acrossV3SpokePool,
       weth, stargateTreasurerTrue, optimismBridge, baseBridge, arbitrumGatewayRouter,
     ] as const;
 
@@ -3638,7 +3470,7 @@ describe("Repayer", function () {
   it("Should revert processRepay if AMB execution fails", async function () {
     const {
       USDC_DEC, usdc, repayUser, liquidityPool,
-      cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool,
+      acrossV3SpokePool,
       weth, stargateTreasurerTrue, admin, deployer,
       optimismBridge, baseBridge, arbitrumGatewayRouter, setTokensUser,
     } = await loadFixture(deployAll);
@@ -3650,8 +3482,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "Repayer2", {},
         Domain.ETHEREUM,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -3689,7 +3519,7 @@ describe("Repayer", function () {
     // Adapter pattern (Ethereum): OFT calls transferFrom → forceApprove is triggered.
     const {
       usdc, admin, repayUser, liquidityPool, deployer,
-      cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool,
+      acrossV3SpokePool,
       weth, stargateTreasurerTrue,
       optimismBridge, baseBridge, arbitrumGatewayRouter, setTokensUser,
       sharedEthereumOmnibridge, sharedEthereumAmb,
@@ -3708,8 +3538,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "RepayerUSDT0Adapter", {},
         Domain.ETHEREUM,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -3760,7 +3588,7 @@ describe("Repayer", function () {
     // Native OFT pattern (non-Ethereum): OFT calls token.burn() → no approval needed.
     const {
       usdc, admin, repayUser, liquidityPool, deployer,
-      cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool,
+      acrossV3SpokePool,
       weth, stargateTreasurerTrue,
       optimismBridge, baseBridge, arbitrumGatewayRouter, setTokensUser,
     } = await loadFixture(deployAll);
@@ -3778,8 +3606,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "RepayerUSDT0Native", {},
         Domain.ARBITRUM_ONE,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -3829,7 +3655,7 @@ describe("Repayer", function () {
   it("Should revert USDT0 repay if token doesn't match OFT.token()", async function () {
     const {
       usdc, admin, repayUser, liquidityPool, deployer,
-      cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool,
+      acrossV3SpokePool,
       weth, stargateTreasurerTrue,
       optimismBridge, baseBridge, arbitrumGatewayRouter, setTokensUser,
       eurc, eurcOwner, EURC_DEC,
@@ -3844,8 +3670,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "RepayerUSDT0TokenMismatch", {},
         Domain.BASE,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -3882,7 +3706,7 @@ describe("Repayer", function () {
   it("Should revert USDT0 repay if OFT address is zero", async function () {
     const {
       USDC_DEC, usdc, admin, repayUser, liquidityPool, deployer,
-      cctpTokenMessenger, cctpMessageTransmitter, acrossV3SpokePool,
+      acrossV3SpokePool,
       weth, stargateTreasurerTrue,
       optimismBridge, baseBridge, arbitrumGatewayRouter, setTokensUser,
     } = await loadFixture(deployAll);
@@ -3893,8 +3717,6 @@ describe("Repayer", function () {
       await deployX("Repayer", deployer, "RepayerUSDT0Zero", {},
         Domain.BASE,
         usdc,
-        cctpTokenMessenger,
-        cctpMessageTransmitter,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
@@ -3964,7 +3786,7 @@ describe("Repayer", function () {
       const {
         deployer, admin, repayUser, user, setTokensUser,
         acrossV3SpokePool,
-        stargateTreasurerTrue, cctpTokenMessenger, cctpMessageTransmitter,
+        stargateTreasurerTrue,
         liquidityPool,
       } = await loadFixture(deployAll);
 
@@ -3988,8 +3810,6 @@ describe("Repayer", function () {
         await deployX("Repayer", deployer, "RepayerBSC", {},
           Domain.BSC,
           usdcBsc,
-          cctpTokenMessenger,
-          cctpMessageTransmitter,
           acrossV3SpokePool,
           ZERO_ADDRESS,
           stargateTreasurerTrue,
@@ -4323,7 +4143,7 @@ describe("Repayer", function () {
   });
 
   it("Should allow initiating remote repay to repayer's own address without an explicit route", async function () {
-    const {repayer, usdc, USDC_DEC, repayUser, cctpTokenMessenger} = await loadFixture(deployAll);
+    const {repayer, usdc, USDC_DEC, repayUser, cctpV2TokenMessenger} = await loadFixture(deployAll);
 
     await usdc.transfer(repayer, 10n * USDC_DEC);
     const tx = repayer.connect(repayUser).initiateRepay(
@@ -4331,18 +4151,18 @@ describe("Repayer", function () {
       4n * USDC_DEC,
       repayer,
       Domain.ETHEREUM,
-      Provider.CCTP,
+      Provider.CCTP_V2,
       "0x"
     );
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")
-      .withArgs(usdc.target, 4n * USDC_DEC, repayer.target, Domain.ETHEREUM, Provider.CCTP);
+      .withArgs(usdc.target, 4n * USDC_DEC, repayer.target, Domain.ETHEREUM, Provider.CCTP_V2);
     await expect(tx)
       .to.emit(usdc, "Transfer")
-      .withArgs(repayer.target, cctpTokenMessenger.target, 4n * USDC_DEC);
+      .withArgs(repayer.target, cctpV2TokenMessenger.target, 4n * USDC_DEC);
     await expect(tx)
       .to.emit(usdc, "Transfer")
-      .withArgs(cctpTokenMessenger.target, ZERO_ADDRESS, 4n * USDC_DEC);
+      .withArgs(cctpV2TokenMessenger.target, ZERO_ADDRESS, 4n * USDC_DEC);
 
     expect(await usdc.balanceOf(repayer)).to.equal(6n * USDC_DEC);
   });
@@ -4358,10 +4178,10 @@ describe("Repayer", function () {
     );
     const signature = AbiCoder.defaultAbiCoder().encode(["bool", "bool"], [true, true]);
     const extraData = AbiCoder.defaultAbiCoder().encode(["bytes", "bytes"], [message, signature]);
-    const tx = repayer.connect(repayUser).processRepay(repayer, Provider.CCTP, extraData);
+    const tx = repayer.connect(repayUser).processRepay(repayer, Provider.CCTP_V2, extraData);
     await expect(tx)
       .to.emit(repayer, "ProcessRepay")
-      .withArgs(usdc.target, 4n * USDC_DEC, repayer.target, Provider.CCTP);
+      .withArgs(usdc.target, 4n * USDC_DEC, repayer.target, Provider.CCTP_V2);
     await expect(tx)
       .to.emit(usdc, "Transfer")
       .withArgs(ZERO_ADDRESS, repayer.target, 4n * USDC_DEC);

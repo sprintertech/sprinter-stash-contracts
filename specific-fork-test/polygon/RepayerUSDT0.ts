@@ -50,8 +50,6 @@ describe.skip("Repayer USDT0 (Polygon fork), https://github.com/NomicFoundation/
       await deployX("Repayer", deployer, "RepayerPolygonUSDT0", {},
         Domain.POLYGON_MAINNET,
         usdc,
-        forkNetworkConfig.CCTP!.TokenMessenger!,
-        forkNetworkConfig.CCTP!.MessageTransmitter!,
         forkNetworkConfig.AcrossV3SpokePool!,
         weth,
         forkNetworkConfig.StargateTreasurer!,

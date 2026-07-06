@@ -3,25 +3,21 @@ pragma solidity 0.8.28;
 
 import {ICCTPV2TokenMessenger, ICCTPV2MessageTransmitter} from "../interfaces/ICCTPV2.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {CCTPAdapter} from "./CCTPAdapter.sol";
+import {AdapterHelper} from "./AdapterHelper.sol";
 
 /// @notice The child contract has to be deployed to the same address across chains, otherwise
 /// processTransferCCTPV2() won't work, as the same address has to call receiveMessage().
 /// Only supports CCTP V2 standard transfer (maxFee = 0, minFinalityThreshold = 2000).
-/// @dev Inherits from CCTPAdapter to share domainCCTP() and helper code, since V1 and V2 use
-/// identical CCTP domain IDs for chains supported by both protocols.
-abstract contract CCTPV2Adapter is CCTPAdapter {
+abstract contract CCTPV2Adapter is AdapterHelper {
     using SafeERC20 for IERC20;
 
     ICCTPV2TokenMessenger immutable public CCTP_V2_TOKEN_MESSENGER;
     ICCTPV2MessageTransmitter immutable public CCTP_V2_MESSAGE_TRANSMITTER;
 
     constructor(
-        address cctpTokenMessenger,
-        address cctpMessageTransmitter,
         address cctpV2TokenMessenger,
         address cctpV2MessageTransmitter
-    ) CCTPAdapter(cctpTokenMessenger, cctpMessageTransmitter) {
+    ) {
         // No check for address(0) to allow deployment on chains where CCTP V2 is not available
         CCTP_V2_TOKEN_MESSENGER = ICCTPV2TokenMessenger(cctpV2TokenMessenger);
         CCTP_V2_MESSAGE_TRANSMITTER = ICCTPV2MessageTransmitter(cctpV2MessageTransmitter);
@@ -54,6 +50,61 @@ abstract contract CCTPV2Adapter is CCTPAdapter {
         bytes calldata extraData
     ) internal returns (uint256) {
         require(address(CCTP_V2_MESSAGE_TRANSMITTER) != address(0), ZeroAddress());
-        return processTransferCCTP(address(CCTP_V2_MESSAGE_TRANSMITTER), token, destinationPool, extraData);
+        return _processTransferCCTP(address(CCTP_V2_MESSAGE_TRANSMITTER), token, destinationPool, extraData);
+    }
+
+    function _processTransferCCTP(
+        address messageTransmitter,
+        IERC20 token,
+        address destinationPool,
+        bytes calldata extraData
+    ) internal returns (uint256) {
+        uint256 balanceBefore = token.balanceOf(destinationPool);
+        (bytes memory message, bytes memory attestation) = abi.decode(extraData, (bytes, bytes));
+        bool success = ICCTPV2MessageTransmitter(messageTransmitter).receiveMessage(message, attestation);
+        require(success, ProcessFailed());
+        uint256 balanceAfter = token.balanceOf(destinationPool);
+        require(balanceAfter > balanceBefore, ProcessFailed());
+        unchecked {
+            return balanceAfter - balanceBefore;
+        }
+    }
+
+    function domainCCTP(Domain destinationDomain) public pure virtual returns (uint32) {
+        if (destinationDomain == Domain.ETHEREUM) {
+            return 0;
+        } else
+        if (destinationDomain == Domain.AVALANCHE) {
+            return 1;
+        } else
+        if (destinationDomain == Domain.OP_MAINNET) {
+            return 2;
+        } else
+        if (destinationDomain == Domain.ARBITRUM_ONE) {
+            return 3;
+        } else
+        if (destinationDomain == Domain.BASE) {
+            return 6;
+        } else
+        if (destinationDomain == Domain.POLYGON_MAINNET) {
+            return 7;
+        } else
+        if (destinationDomain == Domain.UNICHAIN) {
+            return 10;
+        } else
+        if (destinationDomain == Domain.LINEA) {
+            return 11;
+        } else
+        if (destinationDomain == Domain.WORLD_CHAIN) {
+            return 14;
+        } else
+        if (destinationDomain == Domain.HYPER_EVM) {
+            return 19;
+        } else
+        if (destinationDomain == Domain.INK) {
+            return 21;
+        } else {
+            revert UnsupportedDomain();
+        }
     }
 }

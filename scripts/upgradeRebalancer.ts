@@ -30,12 +30,6 @@ export async function main() {
   await logDeployers(false);
 
   assert(isAddress(config.Tokens.USDC.Address), "USDC must be an address");
-  if (!config.CCTP) {
-    config.CCTP = {
-      TokenMessenger: ZERO_ADDRESS,
-      MessageTransmitter: ZERO_ADDRESS,
-    };
-  }
   if (!config.CCTPV2) {
     config.CCTPV2 = {
       TokenMessenger: ZERO_ADDRESS,
@@ -56,7 +50,7 @@ export async function main() {
     rebalancerVersion,
     sender,
     [
-      DomainSolidity[network], config.Tokens.USDC.Address, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter,
+      DomainSolidity[network], config.Tokens.USDC.Address,
       config.Omnibridge, config.GnosisUSDCxDAI, config.GnosisUSDCTransmuter, config.GnosisAMB,
       config.CCTPV2.TokenMessenger, config.CCTPV2.MessageTransmitter,
     ],

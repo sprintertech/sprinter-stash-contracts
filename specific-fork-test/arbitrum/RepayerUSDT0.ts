@@ -50,8 +50,6 @@ describe.skip("Repayer USDT0 (Arbitrum fork), https://github.com/NomicFoundation
       await deployX("Repayer", deployer, "RepayerArbitrumUSDT0", {},
         Domain.ARBITRUM_ONE,
         usdc,
-        forkNetworkConfig.CCTP!.TokenMessenger!,
-        forkNetworkConfig.CCTP!.MessageTransmitter!,
         forkNetworkConfig.AcrossV3SpokePool!,
         weth,
         forkNetworkConfig.StargateTreasurer!,

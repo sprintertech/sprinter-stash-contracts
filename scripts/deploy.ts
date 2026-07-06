@@ -65,12 +65,6 @@ export async function main() {
   assertAddress(config.SignerAddress, "SignerAddress must be an address");
   assertAddress(config.WrappedNativeToken, "WrappedNativeToken must be an address");
 
-  if (!config.CCTP) {
-    config.CCTP = {
-      TokenMessenger: ZERO_ADDRESS,
-      MessageTransmitter: ZERO_ADDRESS,
-    };
-  }
   if (!config.CCTPV2) {
     config.CCTPV2 = {
       TokenMessenger: ZERO_ADDRESS,
@@ -351,7 +345,7 @@ export async function main() {
     deployerWithNonce,
     config.Admin,
     [
-      DomainSolidity[network], config.Tokens.USDC.Address, config.CCTP.TokenMessenger, config.CCTP.MessageTransmitter,
+      DomainSolidity[network], config.Tokens.USDC.Address,
       config.Omnibridge, config.GnosisUSDCxDAI, config.GnosisUSDCTransmuter, config.GnosisAMB,
       config.CCTPV2.TokenMessenger, config.CCTPV2.MessageTransmitter,
     ],
@@ -429,8 +423,6 @@ export async function main() {
       [
         DomainSolidity[network],
         config.Tokens.USDC.Address,
-        config.CCTP.TokenMessenger,
-        config.CCTP.MessageTransmitter,
         config.AcrossV3SpokePool,
         config.WrappedNativeToken,
         config.StargateTreasurer,

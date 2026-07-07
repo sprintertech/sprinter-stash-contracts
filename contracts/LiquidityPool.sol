@@ -115,8 +115,9 @@ abstract contract LiquidityPoolBase is ILiquidityPool, AccessControlUpgradeable,
     event Paused(address account);
     event Unpaused(address account);
     event Repaid(address token, uint256 amount);
-    event RepaidDirect(address indexed token, uint256 amount);
-    event BorrowDirect(address indexed account, address indexed borrowToken, uint256 amount);
+    event RepaidDirect(address token, uint256 amount);
+    event BorrowDirect(address account, address borrowToken, uint256 amount);
+    event BorrowWithRole(address account, address borrowToken, uint256 amount);
 
     modifier whenNotPaused() {
         require(!_getStorageBase().paused, EnforcedPause());
@@ -241,21 +242,28 @@ abstract contract LiquidityPoolBase is ILiquidityPool, AccessControlUpgradeable,
     /// This is callable by authorized callers and does not need MPC signatures.
     /// The contract approves the tokens for the target address.
     /// It's supposed that the target is a trusted contract that fulfills the request, performs transferFrom
-    /// of borrow tokens and guarantees to repay the tokens to the pool later.
-    /// @param borrowToken can be specified as native token address which is 0x0. In this case, the function will
-    /// borrow wrapped native token, then unwrap it and include the native value in the target call.
+    /// of borrow tokens and guarantees to deliver repayment tokens to the Repayer contract.
+    /// @param borrowToken native token is not allowed.
+    function borrowWithRole(
+      address borrowToken,
+      uint256 packedAmount
+    ) external override {
+        // Access check is performed in _borrowWithRole()
+        (uint256 totalObligation, address actualBorrowToken) = _borrowWithRole(borrowToken, packedAmount);
+        emit BorrowWithRole(_msgSender(), actualBorrowToken, totalObligation);
+    }
+
+    /// @notice Same as borrowWithRole, but expects longer debts which will be returned directly to the pool
+    /// with a repayDirect() call.
+    /// @param borrowToken native token is not allowed.
     function borrowDirect(
       address borrowToken,
       uint256 packedAmount
-    ) external override whenNotPaused() onlyDirectBorrower() {
-        (, address actualBorrowToken, uint256 amount, uint256 profit, bytes memory context) =
-            _borrow(borrowToken, packedAmount, _msgSender(), false, "");
-
-        uint256 totalObligation = amount + profit;
+    ) external override {
+        // Access check is performed in _borrowWithRole()
+        (uint256 totalObligation, address actualBorrowToken) = _borrowWithRole(borrowToken, packedAmount);
         _getStorageBase().directDebt[actualBorrowToken] += totalObligation;
-        _afterBorrowLogic(actualBorrowToken, context);
-
-        emit BorrowDirect(_msgSender(), borrowToken, totalObligation);
+        emit BorrowDirect(_msgSender(), actualBorrowToken, totalObligation);
     }
 
     /// @param borrowTokens can include a native token address which is 0x0. In this case, the function will
@@ -647,6 +655,19 @@ abstract contract LiquidityPoolBase is ILiquidityPool, AccessControlUpgradeable,
         // repaid funds is handled implicitly via the contract's balance relative to _totalDeposited
         // (see _withdrawProfitLogic for example).
         revert NotImplemented();
+    }
+
+    function _borrowWithRole(
+      address borrowToken,
+      uint256 packedAmount
+    ) internal whenNotPaused() onlyDirectBorrower() returns (uint256, address) {
+        (, address actualBorrowToken, uint256 amount, uint256 profit, bytes memory context) =
+            _borrow(borrowToken, packedAmount, _msgSender(), false, "");
+
+        uint256 totalObligation = amount + profit;
+        _afterBorrowLogic(actualBorrowToken, context);
+
+        return (totalObligation, actualBorrowToken);
     }
 
     function _repayDirect(

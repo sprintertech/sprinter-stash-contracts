@@ -171,7 +171,7 @@ describe("StashDex", function () {
       expect(await tokenB.allowance(stashDex, pool2)).to.equal(hre.ethers.MaxUint256);
     });
 
-    it("reverts OutstandingDebt when changing to a different pool while totalBorrowed is positive", async function () {
+    it("allows changing pool at any time, even with outstanding borrows", async function () {
       const {stashDex, configAdmin, deployer, admin, user, user2, tokenA, tokenB, pool, processor, USDC} =
         await loadFixture(deployAll);
       await stashDex.connect(configAdmin).setPool(tokenB, pool);
@@ -180,43 +180,10 @@ describe("StashDex", function () {
       await tokenA.connect(user).approve(stashDex, 10_000n * USDC);
       await tokenB.mint(pool, 9_997n * USDC);
       await stashDex.connect(user).swap(tokenA, tokenB, 10_000n * USDC, 9_997n * USDC, user2);
-
-      const pool2 = (await deploy("TestLiquidityPool", deployer, {}, tokenA, admin, ZERO_ADDRESS)) as TestLiquidityPool;
-      await expect(stashDex.connect(configAdmin).setPool(tokenB, pool2))
-        .to.be.revertedWithCustomError(stashDex, "OutstandingDebt");
-    });
-
-    it("allows setPool with the same pool when totalBorrowed is positive", async function () {
-      const {stashDex, configAdmin, user, user2, tokenA, tokenB, pool, processor, USDC} = await loadFixture(deployAll);
-      await stashDex.connect(configAdmin).setPool(tokenB, pool);
-      await stashDex.connect(configAdmin).setRoute({tokenIn: tokenA, tokenOut: tokenB, feeBps: 3, processor});
-      await tokenA.mint(user, 10_000n * USDC);
-      await tokenA.connect(user).approve(stashDex, 10_000n * USDC);
-      await tokenB.mint(pool, 9_997n * USDC);
-      await stashDex.connect(user).swap(tokenA, tokenB, 10_000n * USDC, 9_997n * USDC, user2);
-
-      await stashDex.connect(configAdmin).setPool(tokenB, pool);
-      expect(await stashDex.getPool(tokenB)).to.equal(pool.target);
-      expect(await stashDex.getTotalBorrowed(tokenB)).to.equal(9_997n * USDC);
-    });
-
-    it("allows changing pool after debt is fully repaid", async function () {
-      const {stashDex, configAdmin, deployer, admin, user, user2, tokenA, tokenB, pool, processor, USDC} =
-        await loadFixture(deployAll);
-      await stashDex.connect(configAdmin).setPool(tokenB, pool);
-      await stashDex.connect(configAdmin).setRoute({tokenIn: tokenA, tokenOut: tokenB, feeBps: 3, processor});
-      await tokenA.mint(user, 10_000n * USDC);
-      await tokenA.connect(user).approve(stashDex, 10_000n * USDC);
-      await tokenB.mint(pool, 9_997n * USDC);
-      await stashDex.connect(user).swap(tokenA, tokenB, 10_000n * USDC, 9_997n * USDC, user2);
-      await tokenB.mint(stashDex, 9_997n * USDC);
-      await stashDex.repay(tokenB);
-      expect(await stashDex.getTotalBorrowed(tokenB)).to.equal(0n);
 
       const pool2 = (await deploy("TestLiquidityPool", deployer, {}, tokenA, admin, ZERO_ADDRESS)) as TestLiquidityPool;
       await stashDex.connect(configAdmin).setPool(tokenB, pool2);
       expect(await stashDex.getPool(tokenB)).to.equal(pool2.target);
-      expect(await stashDex.getTotalBorrowed(tokenB)).to.equal(0n);
     });
   });
 
@@ -439,7 +406,6 @@ describe("StashDex", function () {
       await expect(tx).to.emit(stashDex, "Swapped");
       expect(await tokenA.balanceOf(processor)).to.equal(10_000n * USDC);
       expect(await tokenB.balanceOf(user)).to.equal(4_000n * USDC);
-      expect(await stashDex.getTotalBorrowed(tokenB)).to.equal(4_000n * USDC);
     });
 
     it("transfers tokenIn to processor and tokenOut to recipient, emits Swapped", async function () {
@@ -458,8 +424,6 @@ describe("StashDex", function () {
       expect(await tokenA.balanceOf(user)).to.equal(0n);
       expect(await tokenB.balanceOf(user2)).to.equal(9_997n * USDC);
       expect(await tokenB.balanceOf(pool)).to.equal(0n);
-      expect(await pool.directDebt(tokenB)).to.equal(9_997n * USDC);
-      expect(await stashDex.getTotalBorrowed(tokenB)).to.equal(9_997n * USDC);
     });
 
     it("exact fee boundary passes, one unit over reverts with InsufficientOutput", async function () {
@@ -598,88 +562,6 @@ describe("StashDex", function () {
     });
   });
 
-  describe("repay", function () {
-    it("returns early without emitting Repaid when totalBorrowed is zero", async function () {
-      const {stashDex, configAdmin, tokenA, tokenB, pool, processor, USDC} = await loadFixture(deployAll);
-      await stashDex.connect(configAdmin).setPool(tokenB, pool);
-      await stashDex.connect(configAdmin).setRoute({tokenIn: tokenA, tokenOut: tokenB, feeBps: 3, processor});
-      await tokenB.mint(stashDex, 4_000n * USDC);
-
-      const tx = await stashDex.repay(tokenB);
-      await expect(tx).to.not.emit(stashDex, "Repaid");
-      expect(await tokenB.balanceOf(stashDex)).to.equal(4_000n * USDC);
-      expect(await tokenB.balanceOf(pool)).to.equal(0n);
-      expect(await stashDex.getTotalBorrowed(tokenB)).to.equal(0n);
-    });
-
-    it("fully repays debt when balance covers it, emits Repaid", async function () {
-      const {stashDex, configAdmin, user, user2, tokenA, tokenB, pool, processor, USDC} = await loadFixture(deployAll);
-      await stashDex.connect(configAdmin).setPool(tokenB, pool);
-      await stashDex.connect(configAdmin).setRoute({tokenIn: tokenA, tokenOut: tokenB, feeBps: 3, processor});
-      await tokenA.mint(user, 10_000n * USDC);
-      await tokenA.connect(user).approve(stashDex, 10_000n * USDC);
-      await tokenB.mint(pool, 9_997n * USDC);
-      await stashDex.connect(user).swap(tokenA, tokenB, 10_000n * USDC, 9_997n * USDC, user2);
-
-      await tokenB.mint(stashDex, 9_997n * USDC);
-
-      const tx = await stashDex.repay(tokenB);
-      await expect(tx).to.emit(stashDex, "Repaid").withArgs(tokenB.target, 9_997n * USDC);
-
-      expect(await stashDex.getTotalBorrowed(tokenB)).to.equal(0n);
-      expect(await pool.directDebt(tokenB)).to.equal(0n);
-      expect(await tokenB.balanceOf(pool)).to.equal(9_997n * USDC);
-      expect(await tokenB.balanceOf(stashDex)).to.equal(0n);
-    });
-
-    it("fully repays debt when has extra balance, extra remains on dex", async function () {
-      const {stashDex, configAdmin, user, user2, tokenA, tokenB, pool, processor, USDC} = await loadFixture(deployAll);
-      await stashDex.connect(configAdmin).setPool(tokenB, pool);
-      await stashDex.connect(configAdmin).setRoute({tokenIn: tokenA, tokenOut: tokenB, feeBps: 3, processor});
-      await tokenA.mint(user, 10_000n * USDC);
-      await tokenA.connect(user).approve(stashDex, 10_000n * USDC);
-      await tokenB.mint(pool, 9_997n * USDC);
-      await stashDex.connect(user).swap(tokenA, tokenB, 10_000n * USDC, 9_997n * USDC, user2);
-
-      await tokenB.mint(stashDex, 9_997n * USDC + 4_000n * USDC);
-
-      const tx = await stashDex.repay(tokenB);
-      await expect(tx).to.emit(stashDex, "Repaid").withArgs(tokenB.target, 9_997n * USDC);
-
-      expect(await stashDex.getTotalBorrowed(tokenB)).to.equal(0n);
-      expect(await pool.directDebt(tokenB)).to.equal(0n);
-      expect(await tokenB.balanceOf(pool)).to.equal(9_997n * USDC);
-      expect(await tokenB.balanceOf(stashDex)).to.equal(4_000n * USDC);
-    });
-
-    it("partially repays debt when balance is less than debt, emits Repaid", async function () {
-      const {stashDex, configAdmin, user, user2, tokenA, tokenB, pool, processor, USDC} = await loadFixture(deployAll);
-      await stashDex.connect(configAdmin).setPool(tokenB, pool);
-      await stashDex.connect(configAdmin).setRoute({tokenIn: tokenA, tokenOut: tokenB, feeBps: 3, processor});
-      await tokenA.mint(user, 10_000n * USDC);
-      await tokenA.connect(user).approve(stashDex, 10_000n * USDC);
-      await tokenB.mint(pool, 9_997n * USDC);
-      await stashDex.connect(user).swap(tokenA, tokenB, 10_000n * USDC, 9_997n * USDC, user2);
-
-      await tokenB.mint(stashDex, 6_000n * USDC);
-
-      const tx = await stashDex.repay(tokenB);
-      await expect(tx).to.emit(stashDex, "Repaid").withArgs(tokenB.target, 6_000n * USDC);
-
-      expect(await stashDex.getTotalBorrowed(tokenB)).to.equal(3_997n * USDC);
-      expect(await pool.directDebt(tokenB)).to.equal(3_997n * USDC);
-      expect(await tokenB.balanceOf(pool)).to.equal(6_000n * USDC);
-      expect(await tokenB.balanceOf(stashDex)).to.equal(0n);
-    });
-
-    it("reverts EnforcedPause when paused", async function () {
-      const {stashDex, pauser, tokenB} = await loadFixture(deployAll);
-      await stashDex.connect(pauser).pause();
-      await expect(stashDex.repay(tokenB))
-        .to.be.revertedWithCustomError(stashDex, "EnforcedPause");
-    });
-  });
-
   describe("forward", function () {
     it("reverts AccessControlUnauthorizedAccount when caller lacks FORWARD_ROLE", async function () {
       const {stashDex, user, tokenB} = await loadFixture(deployAll);
@@ -706,52 +588,26 @@ describe("StashDex", function () {
 
       const tx = await stashDex.connect(forwarder).forward(tokenB);
       await expect(tx).to.emit(stashDex, "Forwarded").withArgs(tokenB.target, 6_000n * USDC);
-      await expect(tx).to.not.emit(stashDex, "Repaid");
 
       expect(await tokenB.balanceOf(receiver)).to.equal(6_000n * USDC);
       expect(await tokenB.balanceOf(stashDex)).to.equal(0n);
     });
 
-    it("repays debt first then forwards remainder to RECEIVER", async function () {
-      const {stashDex, forwarder, configAdmin, user, user2, tokenA, tokenB, pool, processor, receiver, USDC} =
+    it("forwards full balance to RECEIVER", async function () {
+      const {stashDex, forwarder, configAdmin, tokenA, tokenB, pool, processor, receiver, USDC} =
         await loadFixture(deployAll);
       await stashDex.connect(configAdmin).setPool(tokenB, pool);
       await stashDex.connect(configAdmin).setRoute({tokenIn: tokenA, tokenOut: tokenB, feeBps: 3, processor});
-      await tokenA.mint(user, 10_000n * USDC);
-      await tokenA.connect(user).approve(stashDex, 10_000n * USDC);
-      await tokenB.mint(pool, 9_997n * USDC);
-      await stashDex.connect(user).swap(tokenA, tokenB, 10_000n * USDC, 9_997n * USDC, user2);
-
-      await tokenB.mint(stashDex, 9_997n * USDC + 4_000n * USDC);
+      await tokenB.mint(stashDex, 4_000n * USDC);
 
       const tx = await stashDex.connect(forwarder).forward(tokenB);
-      await expect(tx).to.emit(stashDex, "Repaid").withArgs(tokenB.target, 9_997n * USDC);
       await expect(tx).to.emit(stashDex, "Forwarded").withArgs(tokenB.target, 4_000n * USDC);
 
-      expect(await stashDex.getTotalBorrowed(tokenB)).to.equal(0n);
-      expect(await pool.directDebt(tokenB)).to.equal(0n);
-      expect(await tokenB.balanceOf(pool)).to.equal(9_997n * USDC);
       expect(await tokenB.balanceOf(receiver)).to.equal(4_000n * USDC);
       expect(await tokenB.balanceOf(stashDex)).to.equal(0n);
     });
 
-    it("reverts NothingToForward when pool debt consumes the entire balance", async function () {
-      const {stashDex, forwarder, configAdmin, user, user2, tokenA, tokenB, pool, processor, USDC} =
-        await loadFixture(deployAll);
-      await stashDex.connect(configAdmin).setPool(tokenB, pool);
-      await stashDex.connect(configAdmin).setRoute({tokenIn: tokenA, tokenOut: tokenB, feeBps: 3, processor});
-      await tokenA.mint(user, 10_000n * USDC);
-      await tokenA.connect(user).approve(stashDex, 10_000n * USDC);
-      await tokenB.mint(pool, 9_997n * USDC);
-      await stashDex.connect(user).swap(tokenA, tokenB, 10_000n * USDC, 9_997n * USDC, user2);
-
-      await tokenB.mint(stashDex, 9_997n * USDC);
-
-      await expect(stashDex.connect(forwarder).forward(tokenB))
-        .to.be.revertedWithCustomError(stashDex, "NothingToForward");
-    });
-
-    it("forwards without repay when pool debt is zero", async function () {
+    it("forwards when pool is configured and balance is nonzero", async function () {
       const {stashDex, forwarder, configAdmin, tokenA, tokenB, pool, processor, receiver, USDC} =
         await loadFixture(deployAll);
       await stashDex.connect(configAdmin).setPool(tokenB, pool);
@@ -759,7 +615,6 @@ describe("StashDex", function () {
       await tokenB.mint(stashDex, 6_000n * USDC);
 
       const tx = await stashDex.connect(forwarder).forward(tokenB);
-      await expect(tx).to.not.emit(stashDex, "Repaid");
       await expect(tx).to.emit(stashDex, "Forwarded").withArgs(tokenB.target, 6_000n * USDC);
 
       expect(await tokenB.balanceOf(receiver)).to.equal(6_000n * USDC);
@@ -810,7 +665,7 @@ describe("StashDex", function () {
       expect(await stashDex.paused()).to.be.false;
     });
 
-    it("swap, repay, exchange, and forward all work again after pause then unpause", async function () {
+    it("swap, exchange, and forward all work again after pause then unpause", async function () {
       const {stashDex, configAdmin, pauser, forwarder, user, tokenA, tokenB, tokenC, pool, processor, USDC, WETH} =
         await loadFixture(deployAll);
       await stashDex.connect(configAdmin).setPool(tokenB, pool);
@@ -830,9 +685,6 @@ describe("StashDex", function () {
         BigInt(await tokenA.getAddress()), BigInt(await tokenB.getAddress()),
         10_000n * USDC, 9_997n * USDC, user
       );
-
-      await tokenB.mint(stashDex, 4_000n * USDC);
-      await stashDex.repay(tokenB);
 
       await tokenC.mint(stashDex, 1n * WETH);
       await stashDex.connect(forwarder).forward(tokenC);

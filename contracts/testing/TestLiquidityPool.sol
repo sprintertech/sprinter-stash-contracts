@@ -49,6 +49,10 @@ contract TestLiquidityPool is ILiquidityPool, AccessControl {
         return _directDebt[token];
     }
 
+    function borrowWithRole(address borrowToken, uint256 amount) external override {
+        IERC20(borrowToken).approve(msg.sender, amount);
+    }
+
     function borrowDirect(address borrowToken, uint256 amount) external override {
         _directDebt[borrowToken] += amount;
         IERC20(borrowToken).approve(msg.sender, amount);

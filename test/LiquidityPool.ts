@@ -2065,6 +2065,62 @@ describe("LiquidityPool", function () {
     });
   });
 
+  describe("borrowWithRole", function () {
+    it("Should allow DIRECT_BORROW_ROLE to borrow with role", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, usdcOwner, liquidityAdmin, directBorrower
+      } = await loadFixture(deployAll);
+      const amountLiquidity = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountLiquidity);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+        .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
+
+      const amountToBorrow = 3n * USDC_DEC;
+
+      await expect(liquidityPool.connect(directBorrower).borrowWithRole(usdc, amountToBorrow))
+        .to.emit(liquidityPool, "BorrowWithRole").withArgs(directBorrower, usdc, amountToBorrow);
+      await usdc.connect(directBorrower).transferFrom(liquidityPool, directBorrower, amountToBorrow);
+
+      expect(await usdc.balanceOf(liquidityPool)).to.eq(amountLiquidity - amountToBorrow);
+      expect(await liquidityPool.totalDeposited()).to.eq(amountLiquidity);
+      expect(await usdc.balanceOf(directBorrower)).to.eq(amountToBorrow);
+      expect(await liquidityPool.balance(usdc)).to.eq(amountLiquidity - amountToBorrow);
+      expect(await liquidityPool.directDebt(usdc)).to.eq(0n);
+    });
+
+    it("Should NOT allow to borrow with role if NOT DIRECT_BORROW_ROLE", async function () {
+      const {
+        liquidityPool, usdc, user, USDC_DEC, usdcOwner, liquidityAdmin
+      } = await loadFixture(deployAll);
+      const amountLiquidity = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountLiquidity);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+        .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
+
+      const amountToBorrow = 3n * USDC_DEC;
+
+      await expect(liquidityPool.connect(user).borrowWithRole(usdc, amountToBorrow))
+        .to.be.revertedWithCustomError(liquidityPool, "NotDirectBorrower");
+    });
+
+    it("Should NOT allow to borrow with role if paused", async function () {
+      const {
+        liquidityPool, usdc, USDC_DEC, pauser, usdcOwner, liquidityAdmin, directBorrower
+      } = await loadFixture(deployAll);
+      const amountLiquidity = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountLiquidity);
+      await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
+        .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
+      await expect(liquidityPool.connect(pauser).pause())
+        .to.emit(liquidityPool, "Paused");
+
+      const amountToBorrow = 3n * USDC_DEC;
+
+      await expect(liquidityPool.connect(directBorrower).borrowWithRole(usdc, amountToBorrow))
+        .to.be.revertedWithCustomError(liquidityPool, "EnforcedPause");
+    });
+  });
+
   describe("Signature checking", function () {
     const MAGICVALUE = "0x1626ba7e";
 

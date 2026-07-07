@@ -545,9 +545,6 @@ describe("Rebalancer", function () {
     } = await loadFixture(deployAll);
 
     await expect(rebalancer.connect(rebalanceUser).processRebalance(
-      liquidityPool, Provider.LOCAL, "0x"
-    )).to.be.revertedWithCustomError(rebalancer, "UnsupportedProvider()");
-    await expect(rebalancer.connect(rebalanceUser).processRebalance(
       liquidityPool, Provider.ACROSS, "0x"
     )).to.be.revertedWithCustomError(rebalancer, "UnsupportedProvider()");
     await expect(rebalancer.connect(rebalanceUser).processRebalance(
@@ -562,6 +559,32 @@ describe("Rebalancer", function () {
     await expect(rebalancer.connect(rebalanceUser).processRebalance(
       liquidityPool, Provider.ARBITRUM_GATEWAY, "0x"
     )).to.be.revertedWithCustomError(rebalancer, "UnsupportedProvider()");
+  });
+
+  it("Should allow rebalancer to process rebalance via LOCAL", async function () {
+    const {rebalancer, usdc, USDC, rebalanceUser, liquidityPool} = await loadFixture(deployAll);
+
+    await usdc.transfer(rebalancer, 4n * USDC);
+
+    const tx = rebalancer.connect(rebalanceUser).processRebalance(liquidityPool, Provider.LOCAL, "0x");
+    await expect(tx)
+      .to.emit(rebalancer, "ProcessRebalance")
+      .withArgs(4n * USDC, liquidityPool.target, Provider.LOCAL);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(rebalancer.target, liquidityPool.target, 4n * USDC);
+    await expect(tx)
+      .to.emit(liquidityPool, "Deposit");
+
+    expect(await usdc.balanceOf(rebalancer)).to.equal(0n);
+    expect(await usdc.balanceOf(liquidityPool)).to.equal(4n * USDC);
+  });
+
+  it("Should revert processRebalance LOCAL if balance is zero", async function () {
+    const {rebalancer, rebalanceUser, liquidityPool} = await loadFixture(deployAll);
+
+    await expect(rebalancer.connect(rebalanceUser).processRebalance(liquidityPool, Provider.LOCAL, "0x"))
+      .to.be.revertedWithCustomError(rebalancer, "ZeroAmount");
   });
 
   it("Should allow rebalancer to initiate rebalance via Gnosis Omnibridge from Ethereum to Gnosis", async function () {
@@ -602,7 +625,7 @@ describe("Rebalancer", function () {
       .withArgs(4n * USDC, liquidityPool.target, liquidityPool.target, Domain.GNOSIS_CHAIN, Provider.GNOSIS_OMNIBRIDGE);
     await expect(tx)
       .to.emit(rebalancer, "GnosisOmnibridgeTransferInitiated")
-      .withArgs(usdc.target, liquidityPool.target, 4n * USDC);
+      .withArgs(usdc.target, rebalancer.target, 4n * USDC);
     await expect(tx)
       .to.emit(usdc, "Transfer")
       .withArgs(rebalancer.target, ethereumOmnibridge.target, 4n * USDC);

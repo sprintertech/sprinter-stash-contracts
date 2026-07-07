@@ -206,7 +206,10 @@ contract Rebalancer is
             initiateTransferCCTPV2(ASSETS, amount, destinationPool, destinationDomain);
         } else
         if (provider == Provider.GNOSIS_OMNIBRIDGE) {
-            initiateTransferGnosisOmnibridge(ASSETS, amount, destinationPool, destinationDomain, DOMAIN);
+            // If destination domain is Gnosis Chain, we need to receive the tokens on the rebalancer contract
+            // so that we can later call processRebalance(destinationPool, Provider.LOCAL, 0x).
+            address receiver = destinationDomain == Domain.GNOSIS_CHAIN ? address(this) : destinationPool;
+            initiateTransferGnosisOmnibridge(ASSETS, amount, receiver, destinationDomain, DOMAIN);
         } else {
             revert UnsupportedProvider();
         }
@@ -219,6 +222,11 @@ contract Rebalancer is
     ) external override onlyRole(REBALANCER_ROLE) {
         require(isRouteAllowed(destinationPool, DOMAIN, Provider.LOCAL), RouteDenied());
         uint256 depositAmount = 0;
+        if (provider == Provider.LOCAL) {
+            depositAmount = ASSETS.balanceOf(address(this));
+            require(depositAmount > 0, ZeroAmount());
+            ASSETS.safeTransfer(destinationPool, depositAmount);
+        } else
         if (provider == Provider.CCTP_V2) {
             depositAmount = processTransferCCTPV2(ASSETS, destinationPool, extraData);
         } else

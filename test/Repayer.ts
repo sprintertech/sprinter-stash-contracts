@@ -3379,6 +3379,75 @@ describe("Repayer", function () {
     expect(await usdc.balanceOf(ethereumAmb)).to.equal(6n * USDC_DEC);
   });
 
+  it("Should allow to process repay via Gnosis Omnibridge on Gnosis Chain", async function () {
+    const {
+      USDC_DEC, usdc, repayUser, liquidityPool,
+      acrossV3SpokePool,
+      weth, stargateTreasurerTrue, admin, deployer,
+      optimismBridge, baseBridge, arbitrumGatewayRouter, setTokensUser,
+    } = await loadFixture(deployAll);
+    const amount = 4n * USDC_DEC;
+
+    // usdc2 = USDCe (ASSETS on Gnosis Chain); usdc = USDCxDAI (delivered by bridge)
+    const usdc2 = (await deploy("TestUSDC", deployer, {})) as TestUSDC;
+    const usdceSwap = (
+      await deploy("TestUSDCTransmuter", deployer, {}, usdc2.target, usdc.target)
+    ) as TestUSDCTransmuter;
+    const gnosisOmnibridge = (await deploy("TestGnosisOmnibridge", deployer, {})) as TestGnosisOmnibridge;
+
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "Repayer2", {},
+        Domain.GNOSIS_CHAIN,
+        usdc2,
+        acrossV3SpokePool,
+        weth,
+        stargateTreasurerTrue,
+        optimismBridge,
+        baseBridge,
+        arbitrumGatewayRouter,
+        gnosisOmnibridge, usdc.target, usdceSwap.target, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin, repayUser, setTokensUser,
+      // poolSupportsAllTokens=true bypasses ASSETS check in _setRoute for LOCAL route
+      [liquidityPool], [Domain.GNOSIS_CHAIN], [Provider.LOCAL], [true], [],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    // Simulate bridge delivery: USDCxDAI arrives at repayer; swap contract holds USDCe
+    await usdc.transfer(repayer, amount);
+    await usdc2.transfer(usdceSwap, 10n * USDC_DEC);
+
+    const tx = repayer.connect(repayUser).processRepay(
+      liquidityPool, Provider.GNOSIS_OMNIBRIDGE, "0x"
+    );
+    await expect(tx)
+      .to.emit(repayer, "ProcessRepay")
+      .withArgs(usdc2.target, amount, liquidityPool.target, Provider.GNOSIS_OMNIBRIDGE);
+    // USDCxDAI pulled from repayer into swap contract
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(repayer.target, usdceSwap.target, amount);
+    // USDCe delivered from swap contract to repayer
+    await expect(tx)
+      .to.emit(usdc2, "Transfer")
+      .withArgs(usdceSwap.target, repayer.target, amount);
+    // USDCe transferred from repayer to pool
+    await expect(tx)
+      .to.emit(usdc2, "Transfer")
+      .withArgs(repayer.target, liquidityPool.target, amount);
+
+    expect(await usdc.balanceOf(repayer)).to.equal(0n);
+    expect(await usdc2.balanceOf(liquidityPool)).to.equal(amount);
+    expect(await usdc2.balanceOf(usdceSwap)).to.equal(6n * USDC_DEC);
+    expect(await usdc.balanceOf(usdceSwap)).to.equal(amount);
+  });
+
   // Should revert repayer processRepay with Gnosis Omnibridge
   // of arbitrary token if target pool does not support all tokens
   it("Should revert repayer processRepay with Gnosis Omnibridge with invalid token", async function () {

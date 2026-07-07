@@ -66,10 +66,10 @@ describe("Repayer Gnosis Omnibridge (Gnosis Chain fork)", function () {
       admin,
       repayUser,
       setTokensUser,
-      [liquidityPool],
-      [Domain.ETHEREUM],
-      [Provider.GNOSIS_OMNIBRIDGE],
-      [true],
+      [liquidityPool, liquidityPool],
+      [Domain.ETHEREUM, Domain.GNOSIS_CHAIN],
+      [Provider.GNOSIS_OMNIBRIDGE, Provider.LOCAL],
+      [true, false],
       [],
     )).data;
 
@@ -89,6 +89,49 @@ describe("Repayer Gnosis Omnibridge (Gnosis Chain fork)", function () {
       REPAYER_ROLE, DEFAULT_ADMIN_ROLE, gnosisConfig,
     };
   };
+
+  it("Should allow repayer to process repay via Gnosis Omnibridge on Gnosis fork", async function () {
+    const {repayer, USDCE_DEC, usdce, repayUser, liquidityPool, gnosisConfig} = await loadFixture(deployAll);
+
+    assertAddress(gnosisConfig.GnosisUSDCxDAI, "GnosisUSDCxDAI address is missing from network config");
+    assertAddress(gnosisConfig.GnosisUSDCTransmuter, "GnosisUSDCTransmuter address is missing from network config");
+    assertAddress(
+      process.env.USDCXDAI_OWNER_GNOSIS_ADDRESS,
+      "Env variables not configured (USDCXDAI_OWNER_GNOSIS_ADDRESS missing)"
+    );
+
+    const usdcxdai = await hre.ethers.getContractAt("ERC20", gnosisConfig.GnosisUSDCxDAI!);
+    const usdcxdaiOwner = await hre.ethers.getImpersonatedSigner(process.env.USDCXDAI_OWNER_GNOSIS_ADDRESS!);
+    await setBalance(process.env.USDCXDAI_OWNER_GNOSIS_ADDRESS!, 10n ** 18n);
+
+    const amount = 4n * USDCE_DEC;
+    // Simulate bridge delivery: USDCxDAI lands on the repayer contract
+    await usdcxdai.connect(usdcxdaiOwner).transfer(repayer, amount);
+
+    const tx = await repayer.connect(repayUser).processRepay(
+      liquidityPool,
+      Provider.GNOSIS_OMNIBRIDGE,
+      "0x"
+    );
+    await expect(tx)
+      .to.emit(repayer, "ProcessRepay")
+      .withArgs(usdce.target, amount, liquidityPool.target, Provider.GNOSIS_OMNIBRIDGE);
+    // USDCxDAI moved from repayer to transmuter
+    await expect(tx)
+      .to.emit(usdcxdai, "Transfer")
+      .withArgs(repayer.target, gnosisConfig.GnosisUSDCTransmuter, amount);
+    // USDCe moved from transmuter to repayer
+    await expect(tx)
+      .to.emit(usdce, "Transfer")
+      .withArgs(gnosisConfig.GnosisUSDCTransmuter, repayer.target, amount);
+    // USDCe moved from repayer to pool
+    await expect(tx)
+      .to.emit(usdce, "Transfer")
+      .withArgs(repayer.target, liquidityPool.target, amount);
+
+    expect(await usdce.balanceOf(liquidityPool)).to.equal(amount);
+    expect(await usdcxdai.balanceOf(repayer)).to.equal(0n);
+  });
 
   it("Should allow repayer to bridge USDCe from Gnosis to Ethereum via Omnibridge on fork", async function () {
     const {repayer, USDCE_DEC, usdce, repayUser, liquidityPool, gnosisConfig} = await loadFixture(deployAll);

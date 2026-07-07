@@ -276,7 +276,7 @@ contract Repayer is
             amount = processTransferCCTPV2(ASSETS, destinationPool, extraData);
         } else
         if (provider == Provider.GNOSIS_OMNIBRIDGE) {
-            (token, amount) = processTransferGnosisOmnibridge(destinationPool, extraData);
+            (token, amount) = processTransferGnosisOmnibridge(destinationPool, DOMAIN, extraData);
             if (!_getStorage().poolSupportsAllTokens[destinationPool]) {
                 require(token == ASSETS, InvalidToken());
             }

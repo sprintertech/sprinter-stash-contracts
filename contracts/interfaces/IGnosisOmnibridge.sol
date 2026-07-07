@@ -24,4 +24,5 @@ interface IGnosisAMB {
 /// Caller must approve this contract for `amount` of USDCe before calling.
 interface IUSDCTransmuter {
     function withdraw(uint256 amount) external;
+    function deposit(uint256 amount) external;
 }

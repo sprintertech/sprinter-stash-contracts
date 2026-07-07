@@ -218,6 +218,7 @@ export async function upgradeProxyX<ContractType extends Initializable>(
     console.log(`Sending ${contractName} upgrade transaction.`);
     const upgradeTx = await targetAdmin.upgradeAndCall(proxyAddress, targetImpl, "0x");
     console.log(upgradeTx.hash);
+    await upgradeTx.wait();
     console.log(`${contractName} upgraded.`);
     const target = (await getContractAt(contractName, proxyAddress, deployer)) as ContractType;
     return {target, txRequired: false};

@@ -1696,6 +1696,54 @@ describe("LiquidityHub", function () {
       expect(await liquidityHub.totalRedeemRequest()).to.equal(10n * LP);
     });
 
+    it("claimableRedeemRequest is bounded by pool totalDeposited, not by raw balance", async function () {
+      const {liquidityHub, usdc, admin, user, liquidityPool, USDC, LP} = await loadFixture(deployAll);
+      await depositFor(liquidityHub, usdc, user, 10n * USDC);
+      await liquidityHub.connect(admin).adjustTotalAssets(10n * USDC, true);
+      // totalAssets=20, totalSupply=10 LP, rate: 1 LP = 2 USDC
+      await liquidityHub.connect(user).requestRedeem(10n * LP, user, user);
+      // pool: balance=10, totalDeposited=10; claimable = floor(10 * 10 / 20) = 5 LP
+
+      // Extra USDC sent directly to pool — balance increases but totalDeposited stays at 10
+      await usdc.transfer(liquidityPool, 6n * USDC);
+      // pool: balance=16, totalDeposited=10
+      // availableAssets = min(16, 10) = 10 USDC → _convertToShares(10) = floor(10*10/20) = 5 LP
+
+      expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(5n * LP);
+      expect(await liquidityHub.pendingRedeemRequest(0n, user)).to.equal(5n * LP);
+      expect(await liquidityHub.totalRedeemRequest()).to.equal(10n * LP);
+    });
+
+    it("maxWithdraw is bounded by pool totalDeposited, not by raw balance", async function () {
+      const {liquidityHub, usdc, admin, user, liquidityPool, USDC} = await loadFixture(deployAll);
+      await depositFor(liquidityHub, usdc, user, 10n * USDC);
+      await liquidityHub.connect(admin).adjustTotalAssets(10n * USDC, true);
+      // totalAssets=20, user has 10 LP worth 20 USDC, pool: balance=10, totalDeposited=10
+
+      // Extra USDC sent directly to pool — balance increases but totalDeposited stays at 10
+      await usdc.transfer(liquidityPool, 6n * USDC);
+      // pool: balance=16, totalDeposited=10
+      // availableAssets = min(16, 10) = 10 USDC; total = _convertToAssets(10 LP) = 20 USDC
+      // maxWithdraw = min(20, 10) = 10 USDC
+
+      expect(await liquidityHub.maxWithdraw(user)).to.equal(10n * USDC);
+    });
+
+    it("maxRedeem is bounded by pool totalDeposited, not by raw balance", async function () {
+      const {liquidityHub, usdc, admin, user, liquidityPool, USDC, LP} = await loadFixture(deployAll);
+      await depositFor(liquidityHub, usdc, user, 10n * USDC);
+      await liquidityHub.connect(admin).adjustTotalAssets(10n * USDC, true);
+      // totalAssets=20, user has 10 LP worth 20 USDC, pool: balance=10, totalDeposited=10
+
+      // Extra USDC sent directly to pool — balance increases but totalDeposited stays at 10
+      await usdc.transfer(liquidityPool, 6n * USDC);
+      // pool: balance=16, totalDeposited=10
+      // availableAssets = min(16, 10) = 10 USDC; total = _convertToAssets(10 LP) = 20 USDC > 10
+      // maxRedeem = _convertToShares(10) = floor(10 * 10 / 20) = 5 LP
+
+      expect(await liquidityHub.maxRedeem(user)).to.equal(5n * LP);
+    });
+
     it("previewRedeem and previewWithdraw unaffected by pending requests", async function () {
       const {liquidityHub, usdc, user, user2, USDC, LP} = await loadFixture(deployAll);
       await depositFor(liquidityHub, usdc, user, 10n * USDC);

@@ -10,6 +10,7 @@ contract TestLiquidityPool is ILiquidityPool, AccessControl {
     bytes32 public constant LIQUIDITY_ADMIN_ROLE = "LIQUIDITY_ADMIN_ROLE";
     IWrappedNativeToken immutable public WRAPPED_NATIVE_TOKEN;
     mapping(address => uint256) private _directDebt;
+    uint256 private _totalDeposited;
 
     event Deposit();
     event Repaid();
@@ -21,7 +22,8 @@ contract TestLiquidityPool is ILiquidityPool, AccessControl {
         WRAPPED_NATIVE_TOKEN = IWrappedNativeToken(weth);
     }
 
-    function deposit(uint256) external override {
+    function deposit(uint256 amount) external override {
+        _totalDeposited += amount;
         emit Deposit();
     }
 
@@ -142,7 +144,7 @@ contract TestLiquidityPool is ILiquidityPool, AccessControl {
         return token.balanceOf(address(this));
     }
 
-    function totalDeposited() external pure override returns (uint256) {
-        return 0;
+    function totalDeposited() external view override returns (uint256) {
+        return _totalDeposited;
     }
 }

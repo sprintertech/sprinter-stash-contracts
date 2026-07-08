@@ -277,7 +277,7 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
     function claimableRedeemRequest(uint256 /* requestId */, address controller) public view returns (uint256) {
         uint256 pending = _getStorage().redeemRequests[controller];
         if (pending == 0) return 0;
-        uint256 availableAssets = LIQUIDITY_POOL.balance(IERC20(asset()));
+        uint256 availableAssets = _availableAssets();
         uint256 availableShares = _convertToShares(availableAssets, Math.Rounding.Floor);
         return Math.min(pending, availableShares);
     }
@@ -298,7 +298,7 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
     function maxRedeem(address owner) public view override returns (uint256) {
         uint256 totalShares = balanceOf(owner) + _getStorage().redeemRequests[owner];
         uint256 total = _convertToAssets(totalShares, Math.Rounding.Floor);
-        uint256 availableAssets = LIQUIDITY_POOL.balance(IERC20(asset()));
+        uint256 availableAssets = _availableAssets();
         if (total > availableAssets) {
             return _convertToShares(availableAssets, Math.Rounding.Floor);
         }
@@ -308,7 +308,7 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
     function maxWithdraw(address owner) public view override returns (uint256) {
         uint256 totalShares = balanceOf(owner) + _getStorage().redeemRequests[owner];
         uint256 total = _convertToAssets(totalShares, Math.Rounding.Floor);
-        uint256 availableAssets = LIQUIDITY_POOL.balance(IERC20(asset()));
+        uint256 availableAssets = _availableAssets();
         return Math.min(total, availableAssets);
     }
 
@@ -403,6 +403,10 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         } else {
             return type(uint256).max / multiplier - total;
         }
+    }
+
+    function _availableAssets() internal view returns (uint256) {
+        return Math.min(LIQUIDITY_POOL.balance(IERC20(asset())), LIQUIDITY_POOL.totalDeposited());
     }
 
     function _getStorage() private pure returns (LiquidityHubStorage storage $) {

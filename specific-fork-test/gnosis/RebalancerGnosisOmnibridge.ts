@@ -111,10 +111,10 @@ describe("Rebalancer Gnosis Omnibridge (Gnosis Chain fork)", function () {
     await expect(tx)
       .to.emit(usdcxdai, "Transfer")
       .withArgs(rebalancer.target, gnosisConfig.GnosisUSDCTransmuter, amount);
-    // USDCe moved from transmuter to rebalancer
+    // USDCe minted to rebalancer
     await expect(tx)
       .to.emit(usdce, "Transfer")
-      .withArgs(gnosisConfig.GnosisUSDCTransmuter, rebalancer.target, amount);
+      .withArgs(ZERO_ADDRESS, rebalancer.target, amount);
     // USDCe moved from rebalancer to pool
     await expect(tx)
       .to.emit(usdce, "Transfer")

@@ -121,10 +121,10 @@ describe("Repayer Gnosis Omnibridge (Gnosis Chain fork)", function () {
     await expect(tx)
       .to.emit(usdcxdai, "Transfer")
       .withArgs(repayer.target, gnosisConfig.GnosisUSDCTransmuter, amount);
-    // USDCe moved from transmuter to repayer
+    // USDCe minted to repayer
     await expect(tx)
       .to.emit(usdce, "Transfer")
-      .withArgs(gnosisConfig.GnosisUSDCTransmuter, repayer.target, amount);
+      .withArgs(ZERO_ADDRESS, repayer.target, amount);
     // USDCe moved from repayer to pool
     await expect(tx)
       .to.emit(usdce, "Transfer")

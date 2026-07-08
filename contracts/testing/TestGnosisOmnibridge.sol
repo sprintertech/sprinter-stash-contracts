@@ -48,4 +48,10 @@ contract TestUSDCTransmuter is IUSDCTransmuter {
         USDCE.safeTransferFrom(msg.sender, address(this), amount);
         USDC.safeTransfer(msg.sender, amount);
     }
+
+    function deposit(uint256 amount) external override {
+        require(amount != 2000, SimulatedRevert());
+        USDC.safeTransferFrom(msg.sender, address(this), amount);
+        USDCE.safeTransfer(msg.sender, amount);
+    }
 }

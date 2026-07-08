@@ -206,10 +206,11 @@ contract Rebalancer is
             initiateTransferCCTPV2(ASSETS, amount, destinationPool, destinationDomain);
         } else
         if (provider == Provider.GNOSIS_OMNIBRIDGE) {
-            // If destination domain is Gnosis Chain, we need to receive the tokens on the rebalancer contract
-            // so that we can later call processRebalance(destinationPool, Provider.LOCAL, 0x).
-            address receiver = destinationDomain == Domain.GNOSIS_CHAIN ? address(this) : destinationPool;
-            initiateTransferGnosisOmnibridge(ASSETS, amount, receiver, destinationDomain, DOMAIN);
+            // We need to receive the tokens on the rebalancer contract
+            // so that we can later call processRebalance(destinationPool, ..., 0x), to make sure we call deposit()
+            // on the destination pool and swap tokens if needed.
+            destinationPool = address(this);
+            initiateTransferGnosisOmnibridge(ASSETS, amount, destinationPool, destinationDomain, DOMAIN);
         } else {
             revert UnsupportedProvider();
         }
@@ -232,8 +233,10 @@ contract Rebalancer is
         } else
         if (provider == Provider.GNOSIS_OMNIBRIDGE) {
             IERC20 receivedToken;
-            (receivedToken, depositAmount) = processTransferGnosisOmnibridge(destinationPool, extraData);
+            address receiver = address(this);
+            (receivedToken, depositAmount) = processTransferGnosisOmnibridge(receiver, DOMAIN, extraData);
             require(receivedToken == ASSETS, InvalidReceivedToken());
+            ASSETS.safeTransfer(destinationPool, depositAmount);
         } else {
             revert UnsupportedProvider();
         }

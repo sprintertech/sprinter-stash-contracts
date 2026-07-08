@@ -80,7 +80,6 @@ contract Repayer is
     );
 
     error ZeroAmount();
-    error InsufficientBalance();
     error RouteDenied();
     error UnsupportedProvider();
     error InvalidPoolAssets();
@@ -276,9 +275,12 @@ contract Repayer is
             amount = processTransferCCTPV2(ASSETS, destinationPool, extraData);
         } else
         if (provider == Provider.GNOSIS_OMNIBRIDGE) {
-            (token, amount) = processTransferGnosisOmnibridge(destinationPool, extraData);
+            (token, amount) = processTransferGnosisOmnibridge(address(this), DOMAIN, extraData);
             if (!_getStorage().poolSupportsAllTokens[destinationPool]) {
                 require(token == ASSETS, InvalidToken());
+            }
+            if (destinationPool != address(this)) {
+                token.safeTransfer(destinationPool, amount);
             }
         } else {
             revert UnsupportedProvider();

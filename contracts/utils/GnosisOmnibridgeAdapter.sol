@@ -22,6 +22,9 @@ abstract contract GnosisOmnibridgeAdapter is AdapterHelper {
 
     event GnosisOmnibridgeTransferInitiated(address indexed token, address indexed receiver, uint256 amount);
 
+    error InsufficientBalance();
+    error InvalidDestinationPool();
+
     constructor(
         Domain localDomain,
         address omnibridge,
@@ -34,7 +37,8 @@ abstract contract GnosisOmnibridgeAdapter is AdapterHelper {
             require(omnibridge != address(0), ZeroAddress());
             require(ethereumAmb != address(0), ZeroAddress());
             ETHEREUM_AMB = IGnosisAMB(ethereumAmb);
-        } else if (localDomain == Domain.GNOSIS_CHAIN) {
+        } else
+        if (localDomain == Domain.GNOSIS_CHAIN) {
             require(omnibridge != address(0), ZeroAddress());
             require(gnosisUsdce != address(0), ZeroAddress());
             require(gnosisUsdcxdai != address(0), ZeroAddress());
@@ -66,10 +70,13 @@ abstract contract GnosisOmnibridgeAdapter is AdapterHelper {
         require(address(OMNIBRIDGE) != address(0), ZeroAddress());
         if (localDomain == Domain.ETHEREUM) {
             require(destinationDomain == Domain.GNOSIS_CHAIN, UnsupportedDomain());
-        } else if (localDomain == Domain.GNOSIS_CHAIN) {
+        } else
+        if (localDomain == Domain.GNOSIS_CHAIN) {
             require(destinationDomain == Domain.ETHEREUM, UnsupportedDomain());
             // USDCe cannot be bridged via Omnibridge; swap to USDCxDAI first.
             if (address(token) == address(GNOSIS_USDCE)) {
+                // Must bridge to self to perform the swap on destination through process().
+                require(destinationPool == address(this), InvalidDestinationPool());
                 IUSDCTransmuter usdceSwap = GNOSIS_USDC_TRANSMUTER;
                 token.forceApprove(address(usdceSwap), amount);
                 usdceSwap.withdraw(amount);
@@ -87,6 +94,7 @@ abstract contract GnosisOmnibridgeAdapter is AdapterHelper {
     /// @notice Finalises a Gnosis Chain → Ethereum bridge transfer by submitting validator signatures
     /// to the Ethereum AMB. Must be called on Ethereum after the validators have signed the message.
     /// @param destinationPool The pool that will receive the bridged tokens.
+    /// @param localDomain The domain of the local chain (Ethereum or Gnosis Chain).
     /// @param extraData ABI-encoded (address token, bytes message, bytes signatures).
     ///   token      - the ERC20 token expected to arrive at destinationPool.
     ///   message    - the bridge message from the Gnosis Chain bridge event.
@@ -95,23 +103,36 @@ abstract contract GnosisOmnibridgeAdapter is AdapterHelper {
     /// @return amount The amount of tokens received by destinationPool.
     function processTransferGnosisOmnibridge(
         address destinationPool,
+        Domain localDomain,
         bytes calldata extraData
     ) internal returns (IERC20 token, uint256 amount) {
-        IGnosisAMB amb = ETHEREUM_AMB;
-        require(address(amb) != address(0), ZeroAddress());
+        if (localDomain == Domain.ETHEREUM) {
+            IGnosisAMB amb = ETHEREUM_AMB;
 
-        address tokenAddress;
-        bytes memory message;
-        bytes memory signatures;
-        (tokenAddress, message, signatures) = abi.decode(extraData, (address, bytes, bytes));
-        token = IERC20(tokenAddress);
+            bytes memory message;
+            bytes memory signatures;
+            (token, message, signatures) = abi.decode(extraData, (IERC20, bytes, bytes));
 
-        uint256 balanceBefore = token.balanceOf(destinationPool);
-        amb.executeSignatures(message, signatures);
-        uint256 balanceAfter = token.balanceOf(destinationPool);
+            uint256 balanceBefore = token.balanceOf(destinationPool);
+            amb.executeSignatures(message, signatures);
+            uint256 balanceAfter = token.balanceOf(destinationPool);
 
-        require(balanceAfter > balanceBefore, ProcessFailed());
-        amount = balanceAfter - balanceBefore;
+            require(balanceAfter > balanceBefore, ProcessFailed());
+            amount = balanceAfter - balanceBefore;
+        } else
+        if (localDomain == Domain.GNOSIS_CHAIN) {
+            // Only needed to process GNOSIS_USDCXDAI that arrive when USDC is sent from Ethereum.
+            amount = abi.decode(extraData, (uint256));
+            uint256 balance = GNOSIS_USDCXDAI.balanceOf(address(this));
+            require(balance >= amount, InsufficientBalance());
+            IUSDCTransmuter usdceSwap = GNOSIS_USDC_TRANSMUTER;
+            GNOSIS_USDCXDAI.forceApprove(address(usdceSwap), balance);
+            usdceSwap.deposit(balance);
+            token = GNOSIS_USDCE;
+        } else {
+            // Unreachable if domain is correct, due to constructor check.
+            revert UnsupportedDomain();
+        }
         return (token, amount);
     }
 }

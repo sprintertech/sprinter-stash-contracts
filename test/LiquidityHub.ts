@@ -105,6 +105,22 @@ describe("LiquidityHub", function () {
       .to.be.revertedWithCustomError(liquidityHub, "NotImplemented()");
   });
 
+  it("supportsInterface() returns true for IAccessControl and 3 ERC-7540/7575 interfaces", async function () {
+    const {liquidityHub} = await loadFixture(deployAll);
+
+    expect(await liquidityHub.supportsInterface("0x7965db0b")).to.be.true; // IAccessControl
+    expect(await liquidityHub.supportsInterface("0x620ee8e4")).to.be.true; // IERC7540Redeem (async redemption)
+    expect(await liquidityHub.supportsInterface("0xe3bc4e65")).to.be.true; // IERC7540Operator (operator methods)
+    expect(await liquidityHub.supportsInterface("0x2f0a18c5")).to.be.true; // ERC-7575 (share())
+    expect(await liquidityHub.supportsInterface("0xdeadbeef")).to.be.false;
+  });
+
+  it("share() returns the SHARES token address", async function () {
+    const {liquidityHub, lpToken} = await loadFixture(deployAll);
+
+    expect(await liquidityHub.share()).to.equal(lpToken.target);
+  });
+
   it("Should not allow to deploy or init with invalid values", async function () {
     const {
       lpToken, liquidityHub, usdc, liquidityPool, USDC, LP, admin, deployer

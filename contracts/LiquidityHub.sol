@@ -103,6 +103,13 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         _setAssetsLimit(newAssetsLimit);
     }
 
+    function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
+        return super.supportsInterface(interfaceId)
+            || interfaceId == 0x620ee8e4 // Asynchronous redemption
+            || interfaceId == 0xe3bc4e65 // Operator methods
+            || interfaceId == 0x2f0a18c5; // ERC-7575, share() method
+    }
+
     function adjustTotalAssets(uint256 amount, bool isIncrease) external onlyRole(ASSETS_ADJUST_ROLE) {
         LiquidityHubStorage storage $ = _getStorage();
         uint256 assets = $.totalAssets;
@@ -128,6 +135,10 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         uint256 oldLimit = $.assetsLimit;
         $.assetsLimit = newAssetsLimit;
         emit AssetsLimitSet(oldLimit, newAssetsLimit);
+    }
+
+    function share() external view returns (address shareTokenAddress) {
+        return address(SHARES);
     }
 
     function name() public pure override(IERC20Metadata, ERC20Upgradeable) returns (string memory) {

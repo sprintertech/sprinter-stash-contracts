@@ -1550,6 +1550,14 @@ describe("LiquidityHub", function () {
       expect(await liquidityHub.totalRedeemRequest()).to.equal(5n * LP);
     });
 
+    it("setOperator returns true", async function () {
+      const {liquidityHub, user, user2} = await loadFixture(deployAll);
+
+      const calldata = liquidityHub.interface.encodeFunctionData("setOperator", [user2.address, true]);
+      const result = await hre.ethers.provider.call({to: liquidityHub, data: calldata, from: user});
+      expect(result).to.equal(hre.ethers.AbiCoder.defaultAbiCoder().encode(["bool"], [true]));
+    });
+
     it("setOperator / isOperator allow third-party requestRedeem", async function () {
       const {liquidityHub, usdc, user, user2, USDC, LP} = await loadFixture(deployAll);
       await depositFor(liquidityHub, usdc, user, 10n * USDC);

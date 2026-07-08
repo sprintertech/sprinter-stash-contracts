@@ -240,9 +240,10 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         emit DepositProfit(_msgSender(), assets);
     }
 
-    function setOperator(address operator, bool approved) public {
+    function setOperator(address operator, bool approved) public returns (bool) {
         _getStorage().operators[_msgSender()][operator] = approved;
         emit OperatorSet(_msgSender(), operator, approved);
+        return true;
     }
 
     function isOperator(address controller, address operator) public view returns (bool) {

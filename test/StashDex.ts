@@ -426,7 +426,7 @@ describe("StashDex", function () {
       expect(await tokenB.balanceOf(pool)).to.equal(0n);
     });
 
-    it("exact fee boundary passes, one unit over reverts with InsufficientOutput", async function () {
+    it("exact fee boundary passes, one unit over reverts with InsufficientInput", async function () {
       const {stashDex, configAdmin, user, tokenA, tokenB, pool, processor, USDC} = await loadFixture(deployAll);
       await stashDex.connect(configAdmin).setPool(tokenB, pool);
       await stashDex.connect(configAdmin).setRoute({tokenIn: tokenA, tokenOut: tokenB, feeBps: 3, processor});
@@ -439,7 +439,7 @@ describe("StashDex", function () {
       await tokenA.mint(user, 10_000n * USDC);
       await tokenA.connect(user).approve(stashDex, 10_000n * USDC);
       await expect(stashDex.connect(user).swap(tokenA, tokenB, 10_000n * USDC, 9_998n * USDC, user))
-        .to.be.revertedWithCustomError(stashDex, "InsufficientOutput");
+        .to.be.revertedWithCustomError(stashDex, "InsufficientInput");
     });
 
     it("zero fee route: equal values pass, amountOut exceeding amountIn value by 1 unit reverts", async function () {
@@ -455,7 +455,7 @@ describe("StashDex", function () {
       await tokenA.mint(user, 6_000n * USDC);
       await tokenA.connect(user).approve(stashDex, 6_000n * USDC);
       await expect(stashDex.connect(user).swap(tokenA, tokenB, 6_000n * USDC, 6_001n * USDC, user))
-        .to.be.revertedWithCustomError(stashDex, "InsufficientOutput");
+        .to.be.revertedWithCustomError(stashDex, "InsufficientInput");
     });
 
     it("reverts EnforcedPause when paused", async function () {
@@ -480,7 +480,7 @@ describe("StashDex", function () {
       await tokenA.mint(user, 1n * USDC);
       await tokenA.connect(user).approve(stashDex, 1n * USDC);
       await expect(stashDex.connect(user).swap(tokenA, tokenC, 1n * USDC, 1n * WETH + 1n, user))
-        .to.be.revertedWithCustomError(stashDex, "InsufficientOutput");
+        .to.be.revertedWithCustomError(stashDex, "InsufficientInput");
     });
 
     it("tokenIn(18dec) to tokenOut(6dec): oracle boundary passes, one unit over reverts", async function () {
@@ -496,7 +496,7 @@ describe("StashDex", function () {
       await tokenC.mint(user, 1n * WETH);
       await tokenC.connect(user).approve(stashDex, 1n * WETH);
       await expect(stashDex.connect(user).swap(tokenC, tokenA, 1n * WETH, 1n * USDC + 1n, user))
-        .to.be.revertedWithCustomError(stashDex, "InsufficientOutput");
+        .to.be.revertedWithCustomError(stashDex, "InsufficientInput");
     });
   });
 

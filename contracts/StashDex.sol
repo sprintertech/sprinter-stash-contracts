@@ -62,7 +62,7 @@ contract StashDex is AccessControlUpgradeable {
     error ZeroAddress();
     error SameToken();
     error RouteNotAllowed();
-    error InsufficientOutput();
+    error InsufficientInput();
     error NothingToForward();
     error InvalidIndex();
     error InvalidFeeBps();
@@ -144,7 +144,7 @@ contract StashDex is AccessControlUpgradeable {
         uint256 precision = 10**12;
         uint256 valueIn = ORACLE.getAssetValue(_tokenToAssetId(tokenIn), amountIn * precision);
         uint256 valueOut = ORACLE.getAssetValue(_tokenToAssetId(tokenOut), amountOut * precision);
-        require(valueIn * (BPS - route.feeBps) >= valueOut * BPS, InsufficientOutput());
+        require(valueIn * (BPS - route.feeBps) >= valueOut * BPS, InsufficientInput());
 
         IERC20(tokenIn).safeTransferFrom(_msgSender(), route.processor, amountIn);
 

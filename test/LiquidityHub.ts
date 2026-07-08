@@ -1918,15 +1918,42 @@ describe("LiquidityHub", function () {
       await liquidityHub.connect(user).requestRedeem(6n * LP, user, user);
 
       await expect(liquidityHub.connect(user2).redeem(6n * LP, user2, user))
-        .to.be.revertedWithCustomError(liquidityHub, "Unauthorized");
+        .to.be.revertedWithCustomError(liquidityHub, "ERC20InsufficientAllowance");
       await expect(liquidityHub.connect(user2).redeem(6n * LP, user, user))
-        .to.be.revertedWithCustomError(liquidityHub, "Unauthorized");
+        .to.be.revertedWithCustomError(liquidityHub, "ERC20InsufficientAllowance");
 
       expect(await liquidityHub.balanceOf(user)).to.equal(4n * LP);
       expect(await usdc.balanceOf(user2)).to.equal(0n);
       expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(6n * LP);
       expect(await liquidityHub.pendingRedeemRequest(0n, user)).to.equal(0n);
       expect(await liquidityHub.totalRedeemRequest()).to.equal(6n * LP);
+    });
+
+    it("attacker injecting pending via requestRedeem does not block SHARES-allowance-based redeem", async function () {
+      const {liquidityHub, usdc, user, user2, user3, lpToken, USDC, LP} = await loadFixture(deployAll);
+      // user = victim, user2 = attacker, user3 = legitimate spender with allowance from user
+      await depositFor(liquidityHub, usdc, user, 10n * USDC);
+      await depositFor(liquidityHub, usdc, user2, 1n * USDC);
+
+      // user authorises user3 on SHARES — no need to setOperator on LiquidityHub
+      await lpToken.connect(user).approve(user3, 6n * LP);
+
+      // attacker burns 1 wei of their own shares and sets controller=user,
+      // injecting 1 wei into redeemRequests[user]
+      await liquidityHub.connect(user2).requestRedeem(1n, user, user2);
+      expect(await liquidityHub.totalRedeemRequest()).to.equal(1n);
+      expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(1n);
+
+      // user3 redeems 6 LP on behalf of user using SHARES allowance — must not be blocked
+      const tx = await liquidityHub.connect(user3).redeem(6n * LP, user3, user);
+      await expect(tx).to.emit(liquidityHub, "Withdraw")
+        .withArgs(user3.address, user3.address, user.address, 6n * USDC, 6n * LP);
+
+      // redeem succeeded via allowance path; attacker's 1-wei pending is untouched
+      expect(await usdc.balanceOf(user3)).to.equal(6n * USDC);
+      expect(await liquidityHub.balanceOf(user)).to.equal(4n * LP);
+      expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(1n);
+      expect(await liquidityHub.totalRedeemRequest()).to.equal(1n);
     });
 
     it("fulfilRedeem reverts if receiver did not set LiquidityHub as operator", async function () {
@@ -1937,7 +1964,7 @@ describe("LiquidityHub", function () {
       await liquidityHub.connect(user).requestRedeem(6n * LP, user, user);
 
       await expect(liquidityHub.connect(admin).fulfilRedeem([user]))
-        .to.be.revertedWithCustomError(liquidityHub, "Unauthorized");
+        .to.be.revertedWithCustomError(liquidityHub, "ERC20InsufficientAllowance");
     });
 
     it("redeem consumes pending shares first, remainder stays in redeemRequests", async function () {

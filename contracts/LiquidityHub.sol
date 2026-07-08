@@ -52,7 +52,6 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
     error AssetsLimitIsTooBig();
     error EmptyHub();
     error AssetsExceedHardLimit();
-    error Unauthorized();
 
     /// @custom:storage-location erc7201:sprinter.storage.LiquidityHub
     struct LiquidityHubStorage {
@@ -372,13 +371,16 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
     ) internal virtual override {
         LiquidityHubStorage storage $ = _getStorage();
         $.totalAssets -= assets;
-        uint256 pending = $.redeemRequests[owner];
-        uint256 fromPending = Math.min(pending, shares);
+        uint256 fromPending;
         bool ownerOrOperator = caller == owner || isOperator(owner, caller);
-        if (fromPending > 0) {
-            require(ownerOrOperator, Unauthorized());
-            $.redeemRequests[owner] = pending - fromPending;
-            $.totalRedeemRequest -= fromPending;
+        // Skip the async flow in case of allowance based redemption.
+        if (ownerOrOperator) {
+            uint256 pending = $.redeemRequests[owner];
+            fromPending = Math.min(pending, shares);
+            if (fromPending > 0) {
+                $.redeemRequests[owner] = pending - fromPending;
+                $.totalRedeemRequest -= fromPending;
+            }
         }
         uint256 fromOwner = shares - fromPending;
         if (fromOwner > 0) {

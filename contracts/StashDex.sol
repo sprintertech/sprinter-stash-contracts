@@ -7,6 +7,7 @@ import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/acce
 import {ILiquidityPool} from "./interfaces/ILiquidityPool.sol";
 import {IOracle} from "./interfaces/IOracle.sol";
 import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
+import {ORACLE_PRECISION} from "./utils/Constants.sol";
 
 /// @title StashDex — upgradeable DEX that routes swaps through Sprinter liquidity pools.
 /// @notice Accepts tokenIn from the caller and delivers tokenOut borrowed from a configured
@@ -141,9 +142,8 @@ contract StashDex is AccessControlUpgradeable {
         RouteConfig memory route = $.routes[tokenIn][tokenOut];
         require(route.allowed, RouteNotAllowed());
 
-        uint256 precision = 10**12;
-        uint256 valueIn = ORACLE.getAssetValue(_tokenToAssetId(tokenIn), amountIn * precision);
-        uint256 valueOut = ORACLE.getAssetValue(_tokenToAssetId(tokenOut), amountOut * precision);
+        uint256 valueIn = ORACLE.getAssetValue(_tokenToAssetId(tokenIn), amountIn * ORACLE_PRECISION);
+        uint256 valueOut = ORACLE.getAssetValue(_tokenToAssetId(tokenOut), amountOut * ORACLE_PRECISION);
         require(valueIn * (BPS - route.feeBps) >= valueOut * BPS, InsufficientInput());
 
         IERC20(tokenIn).safeTransferFrom(_msgSender(), route.processor, amountIn);

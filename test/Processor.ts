@@ -400,6 +400,18 @@ describe("Processor", function () {
     ).to.revertedWithCustomError(processor, "ZeroAmount");
   });
 
+  it("Should revert process4626 when vault asset() differs from TARGET_ASSET", async function () {
+    const {deployer, caller, tokenIn, processor} = await loadFixture(deployAll);
+
+    const wrongVault = (await deploy(
+      "Test4626", deployer, {}, tokenIn, "Wrong4626", "wVault",
+    )) as Test4626;
+
+    await expect(
+      processor.connect(caller).process4626(wrongVault, 1n, 1n, [])
+    ).to.revertedWithCustomError(processor, "InvalidTokenIn");
+  });
+
   it("Should verify that SubProcessor can receive native token", async function () {
     const {deployer, processor} = await loadFixture(deployAll);
 

@@ -137,6 +137,7 @@ contract Processor is AccessControlUpgradeable, MulticallUpgradeable {
         SubProcessor.Call[] calldata calls
     ) external onlyRole(CALLER_ROLE) {
         ProcessorStorage storage $ = _getStorage();
+        require(tokenIn.asset() == address(TARGET_ASSET), InvalidTokenIn());
         uint256 redeemResult = tokenIn.convertToAssets(sharesIn);
         _assertOutputAmount($, redeemResult, amountOutMin);
         _process($, tokenIn, sharesIn, amountOutMin, calls);

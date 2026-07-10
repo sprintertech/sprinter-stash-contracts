@@ -3419,7 +3419,7 @@ describe("LiquidityPoolAave", function () {
         .to.be.revertedWithCustomError(liquidityPool, "InvalidLength");
       });
 
-    it("Should revert with NothingToRepay if no direct debt", async function() {
+    it("Should silently return if no direct debt", async function() {
       const {
         liquidityPool, usdc, eurc, usdcOwner, liquidityAdmin, USDC_DEC, EURC_DEC, directBorrower
       } = await loadFixture(deployAll);
@@ -3431,9 +3431,42 @@ describe("LiquidityPoolAave", function () {
       const amountToBorrow = 3n * EURC_DEC;
 
       await eurc.connect(directBorrower).approve(liquidityPool, amountToBorrow);
-      await expect(liquidityPool.connect(directBorrower).repayDirect([eurc], [amountToBorrow]))
-        .to.be.revertedWithCustomError(liquidityPool, "NothingToRepay");
+      await liquidityPool.connect(directBorrower).repayDirect([eurc], [amountToBorrow]);
+      expect(await liquidityPool.directDebt(eurc)).to.equal(0n);
       });
+
+    it("Should repay direct debt when Aave debt is already zero", async function() {
+      const {
+        liquidityPool, usdc, eurc, usdcOwner, eurcOwner, liquidityAdmin, USDC_DEC, EURC_DEC,
+        directBorrower, eurcDebtToken, user,
+      } = await loadFixture(deployAll);
+      const amountCollateral = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
+      await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
+
+      const borrowAmount = 3n * EURC_DEC;
+
+      // borrowDirect creates both directDebt and Aave variable debt
+      await liquidityPool.connect(directBorrower).borrowDirect(eurc, borrowAmount);
+      await eurc.connect(directBorrower).transferFrom(liquidityPool, directBorrower, borrowAmount);
+      expect(await liquidityPool.directDebt(eurc)).to.equal(borrowAmount);
+
+      // Clear Aave debt entirely via regular repay; send extra EURC to cover any accrued interest
+      await eurc.connect(eurcOwner).transfer(liquidityPool, borrowAmount + EURC_DEC);
+      await liquidityPool.connect(user).repay([eurc]);
+
+      // Aave debt is now 0, but directDebt is still positive
+      expect(await eurcDebtToken.balanceOf(liquidityPool)).to.equal(0n);
+      expect(await liquidityPool.directDebt(eurc)).to.equal(borrowAmount);
+
+      // repayDirect succeeds: _executeRepay skips AAVE_POOL.repay when currentDebt == 0
+      await eurc.connect(directBorrower).approve(liquidityPool, borrowAmount);
+      const tx = liquidityPool.connect(directBorrower).repayDirect([eurc], [borrowAmount]);
+      await expect(tx).to.emit(liquidityPool, "RepaidDirect").withArgs(eurc, borrowAmount);
+
+      expect(await liquidityPool.directDebt(eurc)).to.equal(0n);
+      expect(await eurc.balanceOf(directBorrower)).to.equal(0n);
+    });
 
     it("Should withdraw accrued interest from aave with direct debt", async function () {
       const {

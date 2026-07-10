@@ -682,7 +682,7 @@ abstract contract LiquidityPoolBase is ILiquidityPool, AccessControlUpgradeable,
 
         LiquidityPoolBaseStorage storage $ = _getStorageBase();
         uint256 debt = $.directDebt[address(ASSETS)];
-        if (debt == 0) revert NothingToRepay();
+        if (debt == 0) return;
 
         uint256 repayAmount = Math.min(debt, maxAmounts[0]);
         $.directDebt[address(ASSETS)] = debt - repayAmount;

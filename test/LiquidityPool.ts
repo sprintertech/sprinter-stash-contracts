@@ -2030,7 +2030,7 @@ describe("LiquidityPool", function () {
         .to.be.revertedWithCustomError(liquidityPool, "InvalidAsset");
     });
 
-    it("Can't repay direct debt if nothing to repay", async function () {
+    it("Can repay direct debt when there is nothing to repay", async function () {
       const {
         liquidityPool, usdc, USDC_DEC, usdcOwner, liquidityAdmin, directBorrower
       } = await loadFixture(deployAll);
@@ -2039,8 +2039,8 @@ describe("LiquidityPool", function () {
       await expect(liquidityPool.connect(liquidityAdmin).deposit(amountLiquidity))
         .to.emit(liquidityPool, "Deposit").withArgs(liquidityAdmin, amountLiquidity);
 
-      await expect(liquidityPool.connect(directBorrower).repayDirect([usdc], [amountLiquidity]))
-        .to.be.revertedWithCustomError(liquidityPool, "NothingToRepay");
+      await liquidityPool.connect(directBorrower).repayDirect([usdc], [amountLiquidity]);
+      expect(await liquidityPool.directDebt(usdc)).to.equal(0n);
     });
 
     it("Can't repay direct debt if input is not same length", async function () {

@@ -4235,5 +4235,30 @@ describe("LiquidityPoolAave", function () {
       await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([eurc], user))
         .to.be.revertedWithCustomError(liquidityPool, "NoProfit");
     });
+
+    it("7: shortfall borrow for profit reverts when token LTV is exceeded", async function () {
+      const fixture = await loadFixture(deployAll);
+      const {
+        liquidityPool, usdc, eurc, usdcOwner, USDC_DEC, EURC_DEC,
+        liquidityAdmin, withdrawProfit, user,
+      } = fixture;
+
+      // $1000 collateral → defaultLTV 5% gives a ceiling of ~50 EURC.
+      const deposit = 1000n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(liquidityPool, deposit);
+      await liquidityPool.connect(liquidityAdmin).deposit(deposit);
+
+      // Borrow 40 EURC (within the 5% limit ≈ 50 EURC) so the LTV check passes.
+      // Profit of 15 EURC stays with mockTarget; pool EURC balance = 0.
+      const borrowAmount = 40n * EURC_DEC;
+      const profit = 15n * EURC_DEC;
+      await borrowEURCFromAave(fixture, borrowAmount, profit);
+
+      // withdrawProfit enters the shortfall path (balance=0 < 15 EURC profit),
+      // tries to borrow 15 EURC as shortfall → total debt = 55 EURC > ~50 EURC limit
+      // → _checkTokenLTV reverts with TokenLtvExceeded.
+      await expect(liquidityPool.connect(withdrawProfit).withdrawProfit([eurc], user))
+        .to.be.revertedWithCustomError(liquidityPool, "TokenLtvExceeded");
+    });
   });
 });

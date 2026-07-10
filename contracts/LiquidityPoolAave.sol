@@ -254,7 +254,8 @@ contract LiquidityPoolAave is LiquidityPoolBase {
         if (int256(balance) < profit) {
             uint256 shortfall = uint256(profit) - balance;
             AAVE_POOL.borrow(address(token), shortfall, INTEREST_RATE_MODE_VARIABLE, NO_REFERRAL, address(this));
-            _checkHealthFactor();
+            uint256 totalCollateralBase = _checkHealthFactor();
+            _checkTokenLTV(totalCollateralBase, address(token));
             currentDebt += shortfall;
         }
 

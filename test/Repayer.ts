@@ -2087,6 +2087,35 @@ describe("Repayer", function () {
     expect(await usdc.balanceOf(liquidityPool2)).to.equal(4n * USDC_DEC);
   });
 
+  it("Should emit ProcessRepay and increase pool balance but leave direct debt unchanged", async function () {
+    const {repayer, usdc, USDC_DEC, repayUser, deployer, liquidityPool} = await loadFixture(deployAll);
+
+    const debtAmount = 4n * USDC_DEC;
+    await liquidityPool.connect(deployer).borrowDirect(usdc, debtAmount);
+    expect(await liquidityPool.directDebt(usdc)).to.equal(debtAmount);
+
+    await usdc.transfer(repayer, debtAmount);
+
+    const tx = repayer.connect(repayUser).initiateRepay(
+      usdc,
+      debtAmount,
+      liquidityPool,
+      Domain.BASE,
+      Provider.LOCAL,
+      "0x"
+    );
+    await expect(tx)
+      .to.emit(repayer, "ProcessRepay")
+      .withArgs(usdc.target, debtAmount, liquidityPool.target, Provider.LOCAL);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(repayer.target, liquidityPool.target, debtAmount);
+
+    expect(await usdc.balanceOf(repayer)).to.equal(0n);
+    expect(await usdc.balanceOf(liquidityPool)).to.equal(debtAmount);
+    expect(await liquidityPool.directDebt(usdc)).to.equal(debtAmount);
+  });
+
   it("Should not allow repayer to initiate repay on invalid route", async function () {
     const {repayer, usdc, USDC_DEC, repayUser, liquidityPool,
     } = await loadFixture(deployAll);

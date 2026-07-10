@@ -563,6 +563,19 @@ describe("LiquidityHub", function () {
       .to.be.revertedWithCustomError(liquidityHub, "EmptyHub");
   });
 
+  it("Should revert adjustment that reduces totalAssets to 0 while totalSupply is positive", async function () {
+    const {liquidityHub, usdc, deployer, user, USDC, LP, admin} = await loadFixture(deployAll);
+
+    await usdc.connect(deployer).transfer(user, 10n * USDC);
+    await usdc.connect(user).approve(liquidityHub, 10n * USDC);
+    await liquidityHub.connect(user).deposit(10n * USDC, user);
+    expect(await liquidityHub.totalAssets()).to.equal(10n * USDC);
+    expect(await liquidityHub.totalSupply()).to.equal(10n * LP);
+
+    await expect(liquidityHub.connect(admin).adjustTotalAssets(10n * USDC, DECREASE))
+      .to.be.revertedWithCustomError(liquidityHub, "InvalidAdjustment");
+  });
+
   it("Should not allow assets adjustment if hard limit is exceeded", async function () {
     const {
       liquidityHub, usdc, deployer, user, USDC, LP, admin,

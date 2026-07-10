@@ -52,6 +52,7 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
     error AssetsLimitIsTooBig();
     error EmptyHub();
     error AssetsExceedHardLimit();
+    error InvalidAdjustment();
 
     /// @custom:storage-location erc7201:sprinter.storage.LiquidityHub
     struct LiquidityHubStorage {
@@ -120,6 +121,7 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         } else {
             newAssets = assets - amount;
         }
+        require(newAssets > 0 || totalSupply() == 0, InvalidAdjustment());
         $.totalAssets = newAssets;
         emit TotalAssetsAdjustment(assets, newAssets);
     }

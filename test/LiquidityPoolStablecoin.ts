@@ -1667,6 +1667,118 @@ describe("LiquidityPoolStablecoin", function () {
         .to.emit(liquidityPool, "BorrowDirect").withArgs(user, usdc, amountToBorrow);
     });
 
+    it("Should allow partial repayment of non-asset direct debt", async function () {
+      const {
+        liquidityPool, eurc, EURC_DEC, eurcOwner, admin, user,
+      } = await loadFixture(deployAll);
+
+      const DIRECT_BORROW_ROLE = encodeBytes32String("DIRECT_BORROW_ROLE");
+      await liquidityPool.connect(admin).grantRole(DIRECT_BORROW_ROLE, user);
+
+      const borrowAmount = 6n * EURC_DEC;
+      await eurc.connect(eurcOwner).transfer(liquidityPool, borrowAmount);
+      await liquidityPool.connect(user).borrowDirect(eurc, borrowAmount);
+      await eurc.connect(user).transferFrom(liquidityPool, user, borrowAmount);
+      expect(await liquidityPool.directDebt(eurc)).to.equal(borrowAmount);
+      expect(await eurc.balanceOf(user)).to.equal(borrowAmount);
+
+      const repayAmount = 4n * EURC_DEC;
+      await eurc.connect(user).approve(liquidityPool, repayAmount);
+      const tx = liquidityPool.connect(user).repayDirect([eurc], [repayAmount]);
+      await expect(tx).to.emit(liquidityPool, "RepaidDirect").withArgs(eurc, repayAmount);
+
+      expect(await liquidityPool.directDebt(eurc)).to.equal(borrowAmount - repayAmount);
+      expect(await eurc.balanceOf(user)).to.equal(borrowAmount - repayAmount);
+      expect(await eurc.balanceOf(liquidityPool)).to.equal(repayAmount);
+    });
+
+    it("Should reduce non-asset direct debt to zero via repayDirect", async function () {
+      const {
+        liquidityPool, eurc, EURC_DEC, eurcOwner, admin, user,
+      } = await loadFixture(deployAll);
+
+      const DIRECT_BORROW_ROLE = encodeBytes32String("DIRECT_BORROW_ROLE");
+      await liquidityPool.connect(admin).grantRole(DIRECT_BORROW_ROLE, user);
+
+      const borrowAmount = 3n * EURC_DEC;
+      await eurc.connect(eurcOwner).transfer(liquidityPool, borrowAmount);
+      await liquidityPool.connect(user).borrowDirect(eurc, borrowAmount);
+      await eurc.connect(user).transferFrom(liquidityPool, user, borrowAmount);
+      expect(await liquidityPool.directDebt(eurc)).to.equal(borrowAmount);
+      expect(await eurc.balanceOf(user)).to.equal(borrowAmount);
+
+      await eurc.connect(user).approve(liquidityPool, borrowAmount);
+      const tx = liquidityPool.connect(user).repayDirect([eurc], [borrowAmount]);
+      await expect(tx).to.emit(liquidityPool, "RepaidDirect").withArgs(eurc, borrowAmount);
+
+      expect(await liquidityPool.directDebt(eurc)).to.equal(0n);
+      expect(await eurc.balanceOf(user)).to.equal(0n);
+      expect(await eurc.balanceOf(liquidityPool)).to.equal(borrowAmount);
+    });
+
+    it("Should cap non-asset repayment at actual debt when maxAmount exceeds debt", async function () {
+      const {
+        liquidityPool, eurc, EURC_DEC, eurcOwner, admin, user,
+      } = await loadFixture(deployAll);
+
+      const DIRECT_BORROW_ROLE = encodeBytes32String("DIRECT_BORROW_ROLE");
+      await liquidityPool.connect(admin).grantRole(DIRECT_BORROW_ROLE, user);
+
+      const borrowAmount = 3n * EURC_DEC;
+      await eurc.connect(eurcOwner).transfer(liquidityPool, borrowAmount);
+      await liquidityPool.connect(user).borrowDirect(eurc, borrowAmount);
+      await eurc.connect(user).transferFrom(liquidityPool, user, borrowAmount);
+      expect(await liquidityPool.directDebt(eurc)).to.equal(borrowAmount);
+
+      const maxRepay = 5n * EURC_DEC;
+      await eurc.connect(eurcOwner).transfer(user, maxRepay - borrowAmount);
+      await eurc.connect(user).approve(liquidityPool, maxRepay);
+      const tx = liquidityPool.connect(user).repayDirect([eurc], [maxRepay]);
+      await expect(tx).to.emit(liquidityPool, "RepaidDirect").withArgs(eurc, borrowAmount);
+
+      expect(await liquidityPool.directDebt(eurc)).to.equal(0n);
+      expect(await eurc.balanceOf(user)).to.equal(maxRepay - borrowAmount);
+      expect(await eurc.balanceOf(liquidityPool)).to.equal(borrowAmount);
+    });
+
+    it("Should revert repayDirect when input arrays have different lengths", async function () {
+      const {liquidityPool, eurc, usdc, EURC_DEC, admin, user} = await loadFixture(deployAll);
+
+      const DIRECT_BORROW_ROLE = encodeBytes32String("DIRECT_BORROW_ROLE");
+      await liquidityPool.connect(admin).grantRole(DIRECT_BORROW_ROLE, user);
+
+      await expect(liquidityPool.connect(user).repayDirect([eurc, usdc], [1n * EURC_DEC]))
+        .to.be.revertedWithCustomError(liquidityPool, "InvalidLength");
+    });
+
+    it("Should skip token with zero debt in multi-token repayDirect", async function () {
+      const {
+        liquidityPool, eurc, usdc, EURC_DEC, USDC_DEC, eurcOwner, admin, user,
+      } = await loadFixture(deployAll);
+
+      const DIRECT_BORROW_ROLE = encodeBytes32String("DIRECT_BORROW_ROLE");
+      await liquidityPool.connect(admin).grantRole(DIRECT_BORROW_ROLE, user);
+
+      // Borrow EURC only — USDC has no direct debt
+      const borrowAmount = 3n * EURC_DEC;
+      await eurc.connect(eurcOwner).transfer(liquidityPool, borrowAmount);
+      await liquidityPool.connect(user).borrowDirect(eurc, borrowAmount);
+      await eurc.connect(user).transferFrom(liquidityPool, user, borrowAmount);
+      expect(await liquidityPool.directDebt(eurc)).to.equal(borrowAmount);
+      expect(await liquidityPool.directDebt(usdc)).to.equal(0n);
+
+      await eurc.connect(user).approve(liquidityPool, borrowAmount);
+      const tx = liquidityPool.connect(user).repayDirect(
+        [eurc, usdc], [borrowAmount, 1n * USDC_DEC]
+      );
+      await expect(tx).to.emit(liquidityPool, "RepaidDirect").withArgs(eurc, borrowAmount);
+
+      expect(await liquidityPool.directDebt(eurc)).to.equal(0n);
+      expect(await liquidityPool.directDebt(usdc)).to.equal(0n);
+      expect(await eurc.balanceOf(user)).to.equal(0n);
+      expect(await eurc.balanceOf(liquidityPool)).to.equal(borrowAmount);
+    });
+
     it("Should borrow a token with swap and native fill", async function () {
       // USDC is borrowed and swapped to ETH
       const {

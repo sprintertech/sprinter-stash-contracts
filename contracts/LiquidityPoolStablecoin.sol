@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {LiquidityPoolBase} from "./LiquidityPool.sol";
 import {HelperLib} from "./utils/HelperLib.sol";
@@ -12,6 +13,7 @@ import {HelperLib} from "./utils/HelperLib.sol";
 /// @notice Upgradeable.
 /// @author Tanya Bushenyova <tanya@chainsafe.io>
 contract LiquidityPoolStablecoin is LiquidityPoolBase {
+    using SafeERC20 for IERC20;
     constructor(
         address liquidityToken,
         address wrappedNativeToken
@@ -29,6 +31,23 @@ contract LiquidityPoolStablecoin is LiquidityPoolBase {
         internal pure override returns (bytes memory)
     {
         return context;
+    }
+
+    function _repayDirect(
+        address[] calldata borrowTokens,
+        uint256[] calldata maxAmounts
+    ) internal override {
+        uint256 length = HelperLib.validatePositiveLength(borrowTokens.length, maxAmounts.length);
+        LiquidityPoolBaseStorage storage $ = _getStorageBase();
+        for (uint256 i = 0; i < length; i++) {
+            address borrowToken = borrowTokens[i];
+            uint256 debt = $.directDebt[borrowToken];
+            if (debt == 0) continue;
+            uint256 repayAmount = Math.min(debt, maxAmounts[i]);
+            $.directDebt[borrowToken] = debt - repayAmount;
+            IERC20(borrowToken).safeTransferFrom(_msgSender(), address(this), repayAmount);
+            emit RepaidDirect(borrowToken, repayAmount);
+        }
     }
 
     function _withdrawProfitLogic(IERC20 token) internal override returns (uint256) {

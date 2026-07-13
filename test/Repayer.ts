@@ -2243,6 +2243,27 @@ describe("Repayer", function () {
     )).to.be.revertedWithCustomError(repayer, "RouteDenied()");
   });
 
+  it("Should revert initiateRepay for CCTP and EVERCLEAR_DEPRECATED providers", async function () {
+    const {repayer, usdc, USDC_DEC, admin, repayUser, liquidityPool} = await loadFixture(deployAll);
+
+    await usdc.transfer(repayer, 10n * USDC_DEC);
+    await repayer.connect(admin).setRoute(
+      [liquidityPool, liquidityPool],
+      [Domain.AVALANCHE, Domain.AVALANCHE],
+      [Provider.CCTP, Provider.EVERCLEAR_DEPRECATED],
+      [true, true],
+      ALLOWED
+    );
+
+    const amount = 4n * USDC_DEC;
+    await expect(repayer.connect(repayUser).initiateRepay(
+      usdc, amount, liquidityPool, Domain.AVALANCHE, Provider.CCTP, "0x"
+    )).to.be.revertedWithCustomError(repayer, "UnsupportedProvider");
+    await expect(repayer.connect(repayUser).initiateRepay(
+      usdc, amount, liquidityPool, Domain.AVALANCHE, Provider.EVERCLEAR_DEPRECATED, "0x"
+    )).to.be.revertedWithCustomError(repayer, "UnsupportedProvider");
+  });
+
   it("Should not allow repayer to initiate repay with other token if the pool doesn't support it", async function () {
     const {repayer, repayUser, eurc, EURC_DEC, eurcOwner, liquidityPool2} = await loadFixture(deployAll);
 

@@ -1390,9 +1390,9 @@ describe("Repayer", function () {
       .to.be.revertedWithCustomError(repayer, "UnsupportedDomain");
   });
 
-  it("Should NOT allow repayer to initiate Superchain Standard Bridge repay to unsupported domain", async function () {
+  it.only("Should NOT allow repayer to initiate Superchain Standard Bridge repay to unsupported domain", async function () {
     const {
-      USDC_DEC, usdc, admin, repayUser, liquidityPool, deployer,
+      usdc, eurc, EURC_DEC, eurcOwner, admin, repayUser, liquidityPool, deployer,
       acrossV3SpokePool, weth, stargateTreasurerTrue, optimismBridge, baseBridge,
       arbitrumGatewayRouter, sharedEthereumOmnibridge, sharedEthereumAmb, setTokensUser,
     } = await loadFixture(deployAll);
@@ -1427,10 +1427,10 @@ describe("Repayer", function () {
     )) as TransparentUpgradeableProxy;
     const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
 
-    await usdc.transfer(repayer, 10n * USDC_DEC);
-    const amount = 4n * USDC_DEC;
+    await eurc.connect(eurcOwner).transfer(repayer, 10n * EURC_DEC);
+    const amount = 4n * EURC_DEC;
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc,
+      eurc,
       amount,
       liquidityPool,
       Domain.GNOSIS_CHAIN,

@@ -14,8 +14,6 @@ abstract contract SuperchainStandardBridgeAdapter is AdapterHelper {
     IWrappedNativeToken immutable private WRAPPED_NATIVE_TOKEN;
     IERC20 immutable private ASSET_TOKEN;
 
-    error InvalidToken();
-
     constructor(
         address optimismStandardBridge,
         address baseStandardBridge,

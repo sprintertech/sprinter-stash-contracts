@@ -10,7 +10,7 @@ import {ETH, ZERO_ADDRESS, DEFAULT_ADMIN_ROLE} from "../scripts/common";
 import {encodeBytes32String} from "ethers";
 import {
   MockTarget, MockBorrowSwap, PublicLiquidityPool, MockSignerTrue, MockSignerFalse,
-  ERC4626Adapter, TransparentUpgradeableProxy,
+  ERC4626Adapter, TransparentUpgradeableProxy, Test4626,
 } from "../typechain-types";
 import {networkConfig} from "../network.config";
 
@@ -234,6 +234,28 @@ describe("ERC4626Adapter", function () {
       expect(await adapter.totalDeposited()).to.eq(amount + amount2);
       expect(await liquidityPool.balanceOf(adapter)).to.eq(amount + amount2);
       expect(await usdc.balanceOf(adapter)).to.eq(0);
+    });
+
+    it("Should revert depositWithPull if vault mints 0 shares", async function () {
+      const {usdc, USDC_DEC, deployer, admin, lp, usdcOwner} = await loadFixture(deployAll);
+
+      // Deploy a bare Test4626 vault whose totalAssets() reflects the real USDC balance
+      const vault = (await deploy("Test4626", deployer, {}, usdc, "Test Vault", "TV")) as Test4626;
+      const newAdapterImpl = (await deploy("ERC4626Adapter", deployer, {}, usdc, vault)) as ERC4626Adapter;
+      const adapterInit = (await newAdapterImpl.initialize.populateTransaction(admin)).data;
+      const adapterProxy = (await deploy(
+        "TransparentUpgradeableProxy", deployer, {}, newAdapterImpl, admin, adapterInit,
+      )) as TransparentUpgradeableProxy;
+      const newAdapter = (await getContractAt("ERC4626Adapter", adapterProxy, deployer)) as ERC4626Adapter;
+
+      // Donate USDC directly to the vault — inflates totalAssets without minting any shares,
+      // making 1 share worth 1000 USDC. A 999.999999 USDC deposit converts to 0 shares (rounds down).
+      await usdc.connect(usdcOwner).transfer(vault, 1000n * USDC_DEC);
+
+      const depositAmount = 999n * USDC_DEC + 999999n;
+      await usdc.connect(lp).approve(newAdapter, depositAmount);
+      await expect(newAdapter.connect(lp).depositWithPull(depositAmount))
+        .to.be.revertedWithCustomError(newAdapter, "InsufficientAmount");
     });
 
     it("Should deposit with pull if paused", async function () {

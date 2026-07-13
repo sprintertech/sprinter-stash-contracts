@@ -118,7 +118,7 @@ contract Repayer is
         )
         AcrossAdapter(acrossSpokePool)
         StargateAdapter(stargateTreasurer)
-        SuperchainStandardBridgeAdapter(optimismBridge, baseBridge, wrappedNativeToken)
+        SuperchainStandardBridgeAdapter(optimismBridge, baseBridge, wrappedNativeToken, address(assets))
         ArbitrumGatewayAdapter(arbitrumGatewayRouter)
         GnosisOmnibridgeAdapter(
             localDomain,

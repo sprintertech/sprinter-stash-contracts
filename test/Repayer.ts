@@ -973,7 +973,7 @@ describe("Repayer", function () {
     )).to.be.revertedWithCustomError(repayer, "InvalidOutputToken()");
   });
 
-  it("Should allow repayer to initiate Superchain Optimism repay with mock bridge", async function () {
+  it("Should revert Superchain repay if token is ASSETS", async function () {
     const {
       USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge,
       acrossV3SpokePool, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
@@ -1023,10 +1023,72 @@ describe("Repayer", function () {
 
     const extraData = AbiCoder.defaultAbiCoder().encode(
       ["address", "uint32", "bytes"],
+      [outputToken, minGasLimit, "0x"]
+    );
+    await expect(repayer.connect(repayUser).initiateRepay(
+      usdc,
+      amount,
+      liquidityPool,
+      Domain.OP_MAINNET,
+      Provider.SUPERCHAIN_STANDARD_BRIDGE,
+      extraData
+    )).to.be.revertedWithCustomError(repayer, "InvalidToken");
+  });
+
+  it("Should allow repayer to initiate Superchain Optimism repay with mock bridge", async function () {
+    const {
+      usdc, eurc, EURC_DEC, eurcOwner, repayUser, liquidityPool, optimismBridge,
+      acrossV3SpokePool, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
+      setTokensUser, arbitrumGatewayRouter,
+      sharedEthereumOmnibridge, sharedEthereumAmb,
+    } = await loadFixture(deployAll);
+    const amount = 4n * EURC_DEC;
+    const outputToken = networkConfig.OP_MAINNET.Tokens.USDC.Address;
+    const minGasLimit = 100000n;
+
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "Repayer2", {},
+        Domain.ETHEREUM,
+        usdc,
+        acrossV3SpokePool,
+        weth,
+        stargateTreasurerTrue,
+        optimismBridge,
+        baseBridge,
+        arbitrumGatewayRouter,
+        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb, ZERO_ADDRESS,
+        ZERO_ADDRESS, ZERO_ADDRESS,
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin,
+      repayUser,
+      setTokensUser,
+      [liquidityPool, liquidityPool],
+      [Domain.ETHEREUM, Domain.OP_MAINNET],
+      [Provider.LOCAL, Provider.SUPERCHAIN_STANDARD_BRIDGE],
+      [true, true],
+      [{
+        inputToken: eurc,
+        destinationTokens: [
+          destinationToken(Domain.OP_MAINNET, addressToBytes32(outputToken))
+        ]
+      }],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    await eurc.connect(eurcOwner).transfer(repayer, 10n * EURC_DEC);
+
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint32", "bytes"],
       [outputToken, minGasLimit, "0x1234"]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc,
+      eurc,
       amount,
       liquidityPool,
       Domain.OP_MAINNET,
@@ -1035,21 +1097,21 @@ describe("Repayer", function () {
     );
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")
-      .withArgs(usdc.target, amount, liquidityPool.target, Domain.OP_MAINNET, Provider.SUPERCHAIN_STANDARD_BRIDGE);
+      .withArgs(eurc.target, amount, liquidityPool.target, Domain.OP_MAINNET, Provider.SUPERCHAIN_STANDARD_BRIDGE);
     await expect(tx)
       .to.emit(optimismBridge, "ERC20BridgeInitiated")
-      .withArgs(usdc.target, outputToken, optimismBridge.target, liquidityPool.target, amount, "0x1234");
+      .withArgs(eurc.target, outputToken, optimismBridge.target, liquidityPool.target, amount, "0x1234");
   });
 
   it("Should allow repayer to initiate Superchain Base repay with mock bridge", async function () {
     const {
-      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge,
+      usdc, eurc, EURC_DEC, eurcOwner, repayUser, liquidityPool, optimismBridge,
       acrossV3SpokePool, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
       setTokensUser, arbitrumGatewayRouter,
       sharedEthereumOmnibridge, sharedEthereumAmb,
     } = await loadFixture(deployAll);
-    const amount = 4n * USDC_DEC;
-    const outputToken = networkConfig.BASE.Tokens.USDC.Address;
+    const amount = 4n * EURC_DEC;
+    const outputToken = networkConfig.OP_MAINNET.Tokens.USDC.Address;
     const minGasLimit = 100000n;
 
     const repayerImpl = (
@@ -1075,7 +1137,7 @@ describe("Repayer", function () {
       [Provider.LOCAL, Provider.SUPERCHAIN_STANDARD_BRIDGE],
       [true, true],
       [{
-        inputToken: usdc,
+        inputToken: eurc,
         destinationTokens: [
           destinationToken(Domain.BASE, addressToBytes32(outputToken))
         ]
@@ -1087,14 +1149,14 @@ describe("Repayer", function () {
     )) as TransparentUpgradeableProxy;
     const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
 
-    await usdc.transfer(repayer, 10n * USDC_DEC);
+    await eurc.connect(eurcOwner).transfer(repayer, 10n * EURC_DEC);
 
     const extraData = AbiCoder.defaultAbiCoder().encode(
       ["address", "uint32", "bytes"],
       [outputToken, minGasLimit, "0x1234"]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc,
+      eurc,
       amount,
       liquidityPool,
       Domain.BASE,
@@ -1103,15 +1165,15 @@ describe("Repayer", function () {
     );
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")
-      .withArgs(usdc.target, amount, liquidityPool.target, Domain.BASE, Provider.SUPERCHAIN_STANDARD_BRIDGE);
+      .withArgs(eurc.target, amount, liquidityPool.target, Domain.BASE, Provider.SUPERCHAIN_STANDARD_BRIDGE);
     await expect(tx)
       .to.emit(baseBridge, "ERC20BridgeInitiated")
-      .withArgs(usdc.target, outputToken, baseBridge.target, liquidityPool.target, amount, "0x1234");
+      .withArgs(eurc.target, outputToken, baseBridge.target, liquidityPool.target, amount, "0x1234");
   });
 
   it("Should revert Superchain repay if call to Standard Bridge reverts", async function () {
     const {
-      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge,
+      usdc, eurc, EURC_DEC, eurcOwner, repayUser, liquidityPool, optimismBridge,
       acrossV3SpokePool, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
       setTokensUser, arbitrumGatewayRouter,
       sharedEthereumOmnibridge, sharedEthereumAmb,
@@ -1140,9 +1202,9 @@ describe("Repayer", function () {
       [Provider.LOCAL, Provider.SUPERCHAIN_STANDARD_BRIDGE],
       [true, true],
       [{
-        inputToken: usdc,
+        inputToken: eurc,
         destinationTokens: [
-          destinationToken(Domain.OP_MAINNET, addressToBytes32(usdc.target))
+          destinationToken(Domain.OP_MAINNET, addressToBytes32(eurc.target))
         ]
       }],
     )).data;
@@ -1152,17 +1214,17 @@ describe("Repayer", function () {
     )) as TransparentUpgradeableProxy;
     const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
 
-    await usdc.transfer(repayer, 10n * USDC_DEC);
+    await eurc.connect(eurcOwner).transfer(repayer, 10n * EURC_DEC);
 
-    const amount = 4n * USDC_DEC;
-    const outputToken = usdc.target;
+    const amount = 4n * EURC_DEC;
+    const outputToken = eurc.target; // same as localToken → mock bridge reverts
     const minGasLimit = 100000n;
     const extraData = AbiCoder.defaultAbiCoder().encode(
       ["address", "uint32", "bytes"],
       [outputToken, minGasLimit, "0x"],
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc,
+      eurc,
       amount,
       liquidityPool,
       Domain.OP_MAINNET,
@@ -1240,7 +1302,7 @@ describe("Repayer", function () {
 
   it("Should revert Standard Bridge repay if output token is not allowed", async function () {
     const {
-      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge,
+      usdc, eurc, EURC_DEC, eurcOwner, repayUser, liquidityPool, optimismBridge,
       acrossV3SpokePool, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
       setTokensUser, arbitrumGatewayRouter,
       sharedEthereumOmnibridge, sharedEthereumAmb,
@@ -1276,9 +1338,9 @@ describe("Repayer", function () {
     )) as TransparentUpgradeableProxy;
     const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
 
-    await usdc.transfer(repayer, 10n * USDC_DEC);
+    await eurc.connect(eurcOwner).transfer(repayer, 10n * EURC_DEC);
 
-    const amount = 4n * USDC_DEC;
+    const amount = 4n * EURC_DEC;
     const outputToken = ZERO_ADDRESS;
     const minGasLimit = 100000n;
     const extraData = AbiCoder.defaultAbiCoder().encode(
@@ -1286,7 +1348,7 @@ describe("Repayer", function () {
       [outputToken, minGasLimit, "0x"],
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc,
+      eurc,
       amount,
       liquidityPool,
       Domain.OP_MAINNET,

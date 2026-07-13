@@ -1390,7 +1390,7 @@ describe("Repayer", function () {
       .to.be.revertedWithCustomError(repayer, "UnsupportedDomain");
   });
 
-  it.only("Should NOT allow repayer to initiate Superchain Standard Bridge repay to unsupported domain", async function () {
+  it("Should NOT allow repayer to initiate Superchain Standard Bridge repay to unsupported domain", async function () {
     const {
       usdc, eurc, EURC_DEC, eurcOwner, admin, repayUser, liquidityPool, deployer,
       acrossV3SpokePool, weth, stargateTreasurerTrue, optimismBridge, baseBridge,

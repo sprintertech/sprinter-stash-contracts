@@ -47,7 +47,11 @@ contract Processor is AccessControlUpgradeable, MulticallUpgradeable {
     error InvalidSlippage();
     error AlreadyInitialized();
     error DeadlineExceeded();
+    error OracleNotConfigured();
 
+    /// @param asset The ERC-20 token that vault shares are unwound into and forwarded as.
+    /// @param receiver Address that receives the unwound assets after processing.
+    /// @param oracle Price oracle used to verify process() slippage; zero address disables the process() function.
     constructor(address asset, address receiver, address oracle) {
         ERC7201Helper.validateStorageLocation(
             STORAGE_LOCATION,
@@ -144,6 +148,7 @@ contract Processor is AccessControlUpgradeable, MulticallUpgradeable {
     }
     
     /// @notice Signature is not used at the moment, but might be useful in the future.
+    /// @dev This function will only work if there is a valid oracle configured.
     function process(
         IERC20 tokenIn,
         uint256 amountIn,
@@ -152,6 +157,7 @@ contract Processor is AccessControlUpgradeable, MulticallUpgradeable {
         bytes calldata signature,
         SubProcessor.Call[] calldata calls
     ) external onlyRole(CALLER_ROLE) {
+        require(ORACLE != IOracle(address(0)), OracleNotConfigured());
         require(block.timestamp <= deadline, DeadlineExceeded());
         ProcessorStorage storage $ = _getStorage();
         _processSignature(tokenIn, amountIn, amountOutMin, deadline, signature);

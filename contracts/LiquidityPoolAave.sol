@@ -101,6 +101,9 @@ contract LiquidityPoolAave is LiquidityPoolBase {
 
     // Admin functions
 
+    /// Haveing a Default LTV configured makes all 0 LTV configurations per token use default value instead of 0.
+    /// In case some token borrowing should be restricted, either set Default LTV to 0, and configure
+    /// other token LTVs, or set LTV of the token to 1 (0.01%).
     function setBorrowTokenLTVs(
         address[] calldata tokens,
         uint32[] calldata ltvs

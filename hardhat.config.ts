@@ -589,6 +589,21 @@ task("update-stashdex-routes", "Update StashDex routes to match current network 
   const routeLabel = (tokenIn: string, tokenOut: string) =>
     `${addrToName.get(tokenIn) ?? tokenIn} → ${addrToName.get(tokenOut) ?? tokenOut}`;
 
+  // Validate that the oracle supports all tokens appearing in routes.
+  const oracleAddress = await resolveXAddress(config.StashDex.Oracle);
+  const oracleContract = await hre.ethers.getContractAt("PaxosOracle", oracleAddress);
+  const routeTokenNames = new Set<Token>(
+    config.StashDex.Routes.flatMap(({TokenIn, TokenOut}) => [TokenIn, TokenOut])
+  );
+  for (const tokenName of routeTokenNames) {
+    const tokenInfo = config.Tokens[tokenName];
+    assert(tokenInfo, `Token ${tokenName} not found in config`);
+    assert(
+      await oracleContract.isSupported(addressToBytes32(tokenInfo.Address)),
+      `Oracle at ${oracleAddress} does not support route token ${tokenName} (${tokenInfo.Address})`,
+    );
+  }
+
   // Build the universe of token addresses to probe onchain (Pools keys + Route tokens).
   const tokenAddrs = new Set<string>();
   for (const tokenName of Object.keys(config.StashDex.Pools) as Token[]) {
@@ -777,13 +792,17 @@ task("update-paxos-oracle-assets", "Synchronize PaxosOracle assets with tokens i
   const targetAddress = await resolveXAddress(args.oracle);
   const target = (await hre.ethers.getContractAt("PaxosOracle", targetAddress, admin)) as PaxosOracle;
 
-  // Desired: tokens present in StashDex.Pools.
-  const desiredTokens = (Object.keys(config.StashDex.Pools) as Token[])
-    .map(tokenName => {
-      const tokenInfo = config.Tokens[tokenName];
-      assert(tokenInfo, `Token ${tokenName} not found in config`);
-      return {TokenName: tokenName, Address: getAddress(tokenInfo.Address), Decimals: tokenInfo.Decimals};
-    });
+  // Desired: tokens present in StashDex.Pools plus all tokens appearing in routes.
+  const desiredTokenNames = new Set<Token>(Object.keys(config.StashDex.Pools) as Token[]);
+  for (const {TokenIn, TokenOut} of config.StashDex.Routes) {
+    desiredTokenNames.add(TokenIn);
+    desiredTokenNames.add(TokenOut);
+  }
+  const desiredTokens = [...desiredTokenNames].map(tokenName => {
+    const tokenInfo = config.Tokens[tokenName];
+    assert(tokenInfo, `Token ${tokenName} not found in config`);
+    return {TokenName: tokenName, Address: getAddress(tokenInfo.Address), Decimals: tokenInfo.Decimals};
+  });
 
   // All known tokens — used to detect on-chain assets that should be removed.
   const allKnownTokens = (Object.entries(config.Tokens) as [Token, {Address: string, Decimals: number} | undefined][])

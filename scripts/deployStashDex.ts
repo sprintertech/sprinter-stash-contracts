@@ -8,7 +8,7 @@ import {
 } from "./helpers";
 import {resolveXAddress} from "../test/helpers";
 import {
-  isSet, assert, assertAddress,
+  isSet, assert, assertAddress, addressToBytes32,
 } from "./common";
 import {StashDex} from "../typechain-types";
 import {
@@ -70,6 +70,20 @@ export async function main() {
       };
     })
   );
+
+  // Validate that the oracle supports all tokens appearing in routes.
+  const oracleContract = await hre.ethers.getContractAt("PaxosOracle", oracle);
+  const routeTokenNames = new Set<Token>(
+    stashDexConfig.Routes.flatMap(({TokenIn, TokenOut}) => [TokenIn, TokenOut])
+  );
+  for (const tokenName of routeTokenNames) {
+    assert(config.Tokens[tokenName], `Token ${tokenName} not found in config`);
+    const tokenAddress = config.Tokens[tokenName].Address;
+    assert(
+      await oracleContract.isSupported(addressToBytes32(tokenAddress)),
+      `Oracle at ${oracle} does not support route token ${tokenName} (${tokenAddress})`,
+    );
+  }
 
   const {target: stashDex, targetAdmin: stashDexAdmin} = await deployProxyX<StashDex>(
     verifier.deployX,

@@ -31,7 +31,7 @@ export async function main() {
 
   const oracle = await resolveXAddress(config.StashDex.Oracle);
 
-  const netter = (await verifier.deploy(
+  const netter = (await verifier.deployX(
     "Netter",
     sender,
     {},

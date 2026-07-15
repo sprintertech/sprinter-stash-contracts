@@ -10,6 +10,7 @@ import {assert, assertAddress, CREATE_X_ADDRESS, sameAddress, retry, ETH} from "
 import {setBalance} from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
 function waitForKeypress(prompt: string): Promise<void> {
+  assert(process.stdin.isTTY, "SAFE with 2+ cosigners can only be used in an interactive terminal");
   return new Promise(resolve => {
     process.stdout.write(prompt);
     if (process.stdin.isTTY) process.stdin.setRawMode(true);

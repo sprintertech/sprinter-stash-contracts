@@ -26,6 +26,8 @@ import {ILiquidityHub} from "./interfaces/ILiquidityHub.sol";
 /// 7. To withdraw/redeem on behalf, owner has to approve spender on the shares contract instead of this one.
 /// 8. The shares token could have greater decimals value than the underlying assets.
 /// @notice Upgradeable.
+/// @notice After doing an initial deposit, send a trivial amount of LP tokens to a dead address.
+/// This will make sure that share-price rate reset cannot happen in the future.
 /// @author Oleksii Matiiasevych <oleksii@chainsafe.io>
 contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgradeable {
     using Math for uint256;

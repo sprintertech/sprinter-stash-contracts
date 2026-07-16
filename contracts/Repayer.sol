@@ -254,6 +254,8 @@ contract Repayer is
             );
         } else
         if (provider == Provider.GNOSIS_OMNIBRIDGE) {
+            // When bridging USDC to Gnosis, we must bridge to self to swap USDCxDAI on Gnosis through process().
+            // It is the Repayment Service responsibility to specify Repayer itself as destination explicitly.
             initiateTransferGnosisOmnibridge(token, amount, destinationPool, destinationDomain, DOMAIN);
         } else
         if (provider == Provider.USDT0) {

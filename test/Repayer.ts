@@ -3010,7 +3010,7 @@ describe("Repayer", function () {
     )).to.be.revertedWithCustomError(repayer, "InsufficientBalance()");
   });
 
-  it("Should allow repayer to initiate Gnosis Omnibridge repay from Ethereum to Gnosis", async function () {
+  it("Should allow repayer to initiate Gnosis Omnibridge repay from Ethereum throug Repayer", async function () {
     const {
       USDC_DEC, usdc, repayUser, liquidityPool,
       acrossV3SpokePool,
@@ -3048,14 +3048,14 @@ describe("Repayer", function () {
     await usdc.transfer(repayer, 10n * USDC_DEC);
 
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc, amount, liquidityPool, Domain.GNOSIS_CHAIN, Provider.GNOSIS_OMNIBRIDGE, "0x"
+      usdc, amount, repayer, Domain.GNOSIS_CHAIN, Provider.GNOSIS_OMNIBRIDGE, "0x"
     );
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")
-      .withArgs(usdc.target, amount, liquidityPool.target, Domain.GNOSIS_CHAIN, Provider.GNOSIS_OMNIBRIDGE);
+      .withArgs(usdc.target, amount, repayer.target, Domain.GNOSIS_CHAIN, Provider.GNOSIS_OMNIBRIDGE);
     await expect(tx)
       .to.emit(repayer, "GnosisOmnibridgeTransferInitiated")
-      .withArgs(usdc.target, liquidityPool.target, amount);
+      .withArgs(usdc.target, repayer.target, amount);
     await expect(tx)
       .to.emit(usdc, "Transfer")
       .withArgs(repayer.target, ethereumOmnibridge.target, amount);
@@ -3240,7 +3240,7 @@ describe("Repayer", function () {
     expect(await usdc2.balanceOf(usdceSwap)).to.equal(0n);
   });
 
-  it("Should revert initiate Gnosis Omnibridge repay if destinationPool is not Repayer", async function () {
+  it("Should revert initiate Gnosis Omnibridge repay of ASSETS from Ethereum to pool directly", async function () {
     const {
       USDC_DEC, usdc, repayUser, liquidityPool,
       acrossV3SpokePool,
@@ -3249,28 +3249,25 @@ describe("Repayer", function () {
     } = await loadFixture(deployAll);
     const amount = 4n * USDC_DEC;
 
-    const usdc2 = (await deploy("TestUSDC", deployer, {})) as TestUSDC;
-    const usdceSwap = (
-      await deploy("TestUSDCTransmuter", deployer, {}, usdc2.target, usdc.target)
-    ) as TestUSDCTransmuter;
     const gnosisOmnibridge = (await deploy("TestGnosisOmnibridge", deployer, {})) as TestGnosisOmnibridge;
+    const ethereumAmb = (await deploy("TestGnosisAMB", deployer, {})) as TestGnosisAMB;
 
     const repayerImpl = (
       await deployX("Repayer", deployer, "Repayer2", {},
-        Domain.GNOSIS_CHAIN,
-        usdc2,
+        Domain.ETHEREUM,
+        usdc,
         acrossV3SpokePool,
         weth,
         stargateTreasurerTrue,
         optimismBridge,
         baseBridge,
         arbitrumGatewayRouter,
-        gnosisOmnibridge, usdc.target, usdceSwap.target, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+        gnosisOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
-      [liquidityPool], [Domain.ETHEREUM], [Provider.GNOSIS_OMNIBRIDGE], [true], [],
+      [liquidityPool], [Domain.GNOSIS_CHAIN], [Provider.GNOSIS_OMNIBRIDGE], [true], [],
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -3278,12 +3275,11 @@ describe("Repayer", function () {
     )) as TransparentUpgradeableProxy;
     const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
 
-    await usdc2.transfer(repayer, amount);
-    await usdc.transfer(usdceSwap, 10n * USDC_DEC);
+    await usdc.transfer(repayer, amount);
 
     // liquidityPool is not the Repayer itself — must revert
     await expect(repayer.connect(repayUser).initiateRepay(
-      usdc2, amount, liquidityPool, Domain.ETHEREUM, Provider.GNOSIS_OMNIBRIDGE, "0x"
+      usdc, amount, liquidityPool, Domain.GNOSIS_CHAIN, Provider.GNOSIS_OMNIBRIDGE, "0x"
     )).to.be.revertedWithCustomError(repayer, "InvalidDestinationPool");
   });
 

@@ -72,6 +72,10 @@ contract StashDex is AccessControlUpgradeable {
     error ExpectedPause();
     error Unauthorized();
 
+    /// @dev Will be removed in the next upgrade.
+    error NotEnoughLegacyDebt();
+    error LegacyDebtNotRepaid();
+
     modifier whenNotPaused() {
         require(!_getStorage().paused, EnforcedPause());
         _;
@@ -227,12 +231,26 @@ contract StashDex is AccessControlUpgradeable {
         emit RouteDisabled(tokenIn, tokenOut);
     }
 
+    /// @notice Temporary function to zero out the total borrowed amount for a token.
+    /// @dev Will be removed in the next upgrade.
+    function repayLegacyDebt(address token, uint96 amount) external onlyRole(FORWARD_ROLE) {
+        TokenConfig storage config = _getStorage().tokenConfig[token];
+        require(config.totalBorrowed >= amount, NotEnoughLegacyDebt());
+        address[] memory tokens = new address[](1);
+        tokens[0] = token;
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = amount;
+        config.pool.repayDirect(tokens, amounts);
+        config.totalBorrowed -= amount;
+    }
+
     function _setPool(PoolInit memory params) internal {
         require(params.token != address(0), ZeroAddress());
         require(address(params.pool) != address(0), ZeroAddress());
         TokenConfig storage config = _getStorage().tokenConfig[params.token];
         address currentPool = address(config.pool);
         if (currentPool != address(0) && currentPool != address(params.pool)) {
+            require(config.totalBorrowed == 0, LegacyDebtNotRepaid()); // Will be removed in the next upgrade.
             IERC20(params.token).forceApprove(currentPool, 0);
         }
         config.pool = params.pool;
@@ -253,6 +271,11 @@ contract StashDex is AccessControlUpgradeable {
     }
 
     // --- View helpers ---
+
+    /// @dev Will be removed in the next upgrade.
+    function getLegacyDebt(address token) external view returns (uint96) {
+        return _getStorage().tokenConfig[token].totalBorrowed;
+    }
 
     function getRoute(address tokenIn, address tokenOut) external view returns (RouteConfig memory) {
         return _getStorage().routes[tokenIn][tokenOut];

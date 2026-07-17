@@ -1,10 +1,11 @@
 import {loadFixture} from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {expect} from "chai";
 import hre from "hardhat";
-import {deploy, getContractAt, setupTests} from "./helpers";
+import {deploy, getContractAt, getCreateAddress, setupTests} from "./helpers";
 import {addressToBytes32, ZERO_ADDRESS, DEFAULT_ADMIN_ROLE} from "../scripts/common";
 import {
   TestUSDC, TestWETH, PaxosOracle, StashDex, TestLiquidityPool, TransparentUpgradeableProxy, MockBorrowSwap,
+  OldStashDex, ProxyAdmin,
 } from "../typechain-types";
 
 describe("StashDex", function () {
@@ -702,6 +703,74 @@ describe("StashDex", function () {
       await stashDex.connect(configAdmin).setPool(tokenB, pool);
       await tokenB.mint(pool, 6_000n * USDC);
       expect(await stashDex.balance(tokenB)).to.equal(6_000n * USDC);
+    });
+  });
+
+  describe("migration / upgrade", function () {
+    it("preserves legacy debt across upgrade, repays it, and allows pool switch", async function () {
+      const [deployer, admin, configAdmin, pauser, forwarder] = await hre.ethers.getSigners();
+      const USDC = 10n ** 6n;
+
+      const tokenA = (await deploy("TestUSDC", deployer)) as TestUSDC;
+      const usdcRef = (await deploy("TestUSDC", deployer)) as TestUSDC;
+      const oracle = (await deploy("PaxosOracle", deployer, {}, admin, usdcRef, [
+        {assetId: addressToBytes32(tokenA.target), decimals: 6},
+      ])) as PaxosOracle;
+      const pool = (await deploy("TestLiquidityPool", deployer, {}, tokenA, admin, ZERO_ADDRESS)) as TestLiquidityPool;
+      const pool2 = (await deploy("TestLiquidityPool", deployer, {}, tokenA, admin, ZERO_ADDRESS)) as TestLiquidityPool;
+
+      // Deploy OldStashDex as a proxy, initialising with pool for tokenA.
+      const oldImpl = (await deploy("OldStashDex", deployer, {}, oracle, deployer)) as OldStashDex;
+      const initData = (await oldImpl.initialize.populateTransaction(
+        admin, configAdmin, pauser, forwarder, [{token: tokenA, pool}], [],
+      )).data;
+      const proxy = (await deploy(
+        "TransparentUpgradeableProxy", deployer, {}, oldImpl, admin, initData,
+      )) as TransparentUpgradeableProxy;
+      const oldStashDex = (await getContractAt("OldStashDex", proxy, deployer)) as OldStashDex;
+
+      // Simulate accumulated swap debt by writing totalBorrowed directly.
+      const debtAmount = 5n * USDC;
+      await oldStashDex.setTotalBorrowed(tokenA, debtAmount);
+      await pool.borrowDirect(tokenA, debtAmount);
+      await tokenA.mint(oldStashDex, debtAmount);
+
+      // Upgrade proxy to the current StashDex implementation.
+      const proxyAdminAddress = await getCreateAddress(proxy, 1);
+      const proxyAdmin = (await getContractAt("ProxyAdmin", proxyAdminAddress, admin)) as ProxyAdmin;
+      const newImpl = (await deploy("StashDex", deployer, {}, oracle, deployer)) as StashDex;
+      await proxyAdmin.upgradeAndCall(proxy, newImpl, "0x");
+      const stashDex = (await getContractAt("StashDex", proxy, deployer)) as StashDex;
+
+      // Debt written by OldStashDex is visible through getLegacyDebt.
+      expect(await stashDex.getLegacyDebt(tokenA)).to.equal(debtAmount);
+
+      // setPool to a different pool reverts while legacy debt is non-zero.
+      await expect(stashDex.connect(configAdmin).setPool(tokenA, pool2))
+        .to.be.revertedWithCustomError(stashDex, "LegacyDebtNotRepaid");
+
+      await expect(stashDex.connect(forwarder).repayLegacyDebt(tokenA, debtAmount + 1n))
+        .to.be.revertedWithCustomError(stashDex, "NotEnoughLegacyDebt");
+
+      const partialRepayTx = await stashDex.connect(forwarder).repayLegacyDebt(tokenA, 1n);
+      await expect(partialRepayTx).to.emit(pool, "Repaid");
+      await expect(partialRepayTx).to.emit(tokenA, "Transfer").withArgs(stashDex.target, pool, 1n);
+      expect(await stashDex.getLegacyDebt(tokenA)).to.equal(debtAmount - 1n);
+      expect(await tokenA.balanceOf(pool)).to.equal(1n);
+      expect(await tokenA.balanceOf(oldStashDex)).to.equal(debtAmount - 1n);
+
+      // Repay the legacy debt (pool._directDebt is 0 so the transfer is a no-op, but totalBorrowed decrements).
+      const repayTx = stashDex.connect(forwarder).repayLegacyDebt(tokenA, debtAmount - 1n);
+      await expect(repayTx).to.emit(pool, "Repaid");
+      await expect(repayTx).to.emit(tokenA, "Transfer").withArgs(stashDex.target, pool, debtAmount - 1n);
+      expect(await stashDex.getLegacyDebt(tokenA)).to.equal(0n);
+      expect(await tokenA.balanceOf(pool)).to.equal(debtAmount);
+      expect(await tokenA.balanceOf(oldStashDex)).to.equal(0n);
+
+      // Pool switch succeeds once debt is cleared.
+      const setPoolTx = stashDex.connect(configAdmin).setPool(tokenA, pool2);
+      await expect(setPoolTx).to.emit(stashDex, "PoolSet").withArgs(tokenA.target, pool2.target);
+      expect(await stashDex.getPool(tokenA)).to.equal(pool2.target);
     });
   });
 });

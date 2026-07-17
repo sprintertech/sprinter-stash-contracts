@@ -412,6 +412,9 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         }
     }
 
+    /// @notice ILiquidityPool.balance() can underreport withdrawable assets in certain pools (eg. Aave),
+    /// if that ever causes a problem, Liquidity Pool can be changed to the simple one, that does not underreport,
+    /// or another solution could be implemented, like a specific function that returns withdrawable balance.
     function _availableAssets() internal view returns (uint256) {
         return Math.min(LIQUIDITY_POOL.balance(IERC20(asset())), LIQUIDITY_POOL.totalDeposited());
     }

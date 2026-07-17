@@ -9,6 +9,21 @@ import {HardhatNetworkConfig, HardhatRuntimeEnvironment, HttpNetworkConfig} from
 import {assert, assertAddress, CREATE_X_ADDRESS, sameAddress, retry, ETH} from "./common";
 import {setBalance} from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
+function waitForKeypress(prompt: string): Promise<void> {
+  assert(process.stdin.isTTY, "SAFE with 2+ cosigners can only be used in an interactive terminal");
+  return new Promise(resolve => {
+    process.stdout.write(prompt);
+    if (process.stdin.isTTY) process.stdin.setRawMode(true);
+    process.stdin.resume();
+    process.stdin.once("data", () => {
+      if (process.stdin.isTTY) process.stdin.setRawMode(false);
+      process.stdin.pause();
+      process.stdout.write("\n");
+      resolve();
+    });
+  });
+}
+
 export class SafeSigner extends AbstractSigner {
   private readonly protocolKit: Safe;
   private readonly apiKit: SafeApiKit;
@@ -160,12 +175,24 @@ export class SafeSigner extends AbstractSigner {
     }
 
     console.log(`Waiting for more signatures (${confirmations}/${this.threshold} confirmed).`);
-    // Return a minimal response; wait() yields null since there is no on-chain receipt yet.
-    return {
-      provider: this.provider,
-      hash: safeTxHash,
-      wait: async () => null,
-    } as TransactionResponse;
+    while (true) {
+      await waitForKeypress("Press any key to check transaction status...");
+      const pendingStatus = await this.apiKit.getTransaction(safeTxHash);
+      if (!pendingStatus.isExecuted) {
+        const current = pendingStatus.confirmations?.length ?? 0;
+        console.log(`Not yet executed. Confirmations: ${current}/${this.threshold}.`);
+        continue;
+      }
+      const txHash = pendingStatus.transactionHash;
+      assert(txHash, "Transaction marked as executed but has no on-chain hash");
+      console.log(`Transaction executed on-chain. TX hash: ${txHash}`);
+      const receipt = await this.provider!.waitForTransaction(txHash);
+      assert(receipt, `Could not get receipt for transaction ${txHash}`);
+      assert(receipt.status === 1, `On-chain transaction ${txHash} reverted`);
+      const response = await retry(() => this.provider!.getTransaction(txHash), 5000);
+      assert(response, `Could not fetch transaction ${txHash}`);
+      return response;
+    }
   }
 }
 

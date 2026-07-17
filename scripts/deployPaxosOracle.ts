@@ -25,13 +25,17 @@ export async function main() {
 
   assert(config.StashDex, "StashDex must be configured");
   const usdc = config.Tokens.USDC.Address;
-  // Register exactly the tokens that are configured as StashDex pools.
-  const paxosStablecoins: TokenInfo[] = (Object.keys(config.StashDex.Pools) as Token[])
-    .map(tokenName => {
-      const tokenInfo = config.Tokens[tokenName];
-      assert(tokenInfo, `Token ${tokenName} not found in config`);
-      return tokenInfo;
-    });
+  // Register all tokens appearing in StashDex routes (both tokenIn and tokenOut) plus pool tokens.
+  const tokenNameSet = new Set<Token>(Object.keys(config.StashDex.Pools) as Token[]);
+  for (const {TokenIn, TokenOut} of config.StashDex.Routes) {
+    tokenNameSet.add(TokenIn);
+    tokenNameSet.add(TokenOut);
+  }
+  const paxosStablecoins: TokenInfo[] = [...tokenNameSet].map(tokenName => {
+    const tokenInfo = config.Tokens[tokenName];
+    assert(tokenInfo, `Token ${tokenName} not found in config`);
+    return tokenInfo;
+  });
   console.log(`USDC: ${usdc}`);
   console.log(
     `Paxos stablecoins (1:1 to USDC): ${paxosStablecoins.map(t => t.Address).join(", ") || "none configured"}`

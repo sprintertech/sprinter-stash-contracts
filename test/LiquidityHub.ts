@@ -105,6 +105,22 @@ describe("LiquidityHub", function () {
       .to.be.revertedWithCustomError(liquidityHub, "NotImplemented()");
   });
 
+  it("supportsInterface() returns true for IAccessControl and 3 ERC-7540/7575 interfaces", async function () {
+    const {liquidityHub} = await loadFixture(deployAll);
+
+    expect(await liquidityHub.supportsInterface("0x7965db0b")).to.be.true; // IAccessControl
+    expect(await liquidityHub.supportsInterface("0x620ee8e4")).to.be.true; // IERC7540Redeem (async redemption)
+    expect(await liquidityHub.supportsInterface("0xe3bc4e65")).to.be.true; // IERC7540Operator (operator methods)
+    expect(await liquidityHub.supportsInterface("0x2f0a18c5")).to.be.true; // ERC-7575 (share())
+    expect(await liquidityHub.supportsInterface("0xdeadbeef")).to.be.false;
+  });
+
+  it("share() returns the SHARES token address", async function () {
+    const {liquidityHub, lpToken} = await loadFixture(deployAll);
+
+    expect(await liquidityHub.share()).to.equal(lpToken.target);
+  });
+
   it("Should not allow to deploy or init with invalid values", async function () {
     const {
       lpToken, liquidityHub, usdc, liquidityPool, USDC, LP, admin, deployer
@@ -545,6 +561,19 @@ describe("LiquidityHub", function () {
 
     await expect(liquidityHub.connect(admin).adjustTotalAssets(0n, INCREASE))
       .to.be.revertedWithCustomError(liquidityHub, "EmptyHub");
+  });
+
+  it("Should revert adjustment that reduces totalAssets to 0 while totalSupply is positive", async function () {
+    const {liquidityHub, usdc, deployer, user, USDC, LP, admin} = await loadFixture(deployAll);
+
+    await usdc.connect(deployer).transfer(user, 10n * USDC);
+    await usdc.connect(user).approve(liquidityHub, 10n * USDC);
+    await liquidityHub.connect(user).deposit(10n * USDC, user);
+    expect(await liquidityHub.totalAssets()).to.equal(10n * USDC);
+    expect(await liquidityHub.totalSupply()).to.equal(10n * LP);
+
+    await expect(liquidityHub.connect(admin).adjustTotalAssets(10n * USDC, DECREASE))
+      .to.be.revertedWithCustomError(liquidityHub, "InvalidAdjustment");
   });
 
   it("Should not allow assets adjustment if hard limit is exceeded", async function () {
@@ -1534,6 +1563,14 @@ describe("LiquidityHub", function () {
       expect(await liquidityHub.totalRedeemRequest()).to.equal(5n * LP);
     });
 
+    it("setOperator returns true", async function () {
+      const {liquidityHub, user, user2} = await loadFixture(deployAll);
+
+      const calldata = liquidityHub.interface.encodeFunctionData("setOperator", [user2.address, true]);
+      const result = await hre.ethers.provider.call({to: liquidityHub, data: calldata, from: user});
+      expect(result).to.equal(hre.ethers.AbiCoder.defaultAbiCoder().encode(["bool"], [true]));
+    });
+
     it("setOperator / isOperator allow third-party requestRedeem", async function () {
       const {liquidityHub, usdc, user, user2, USDC, LP} = await loadFixture(deployAll);
       await depositFor(liquidityHub, usdc, user, 10n * USDC);
@@ -1678,6 +1715,54 @@ describe("LiquidityHub", function () {
       expect(claimable).to.be.lessThan((10n * LP * 10n + 12n) / 13n);
       expect(await liquidityHub.pendingRedeemRequest(0n, user)).to.equal(10n * LP - 10n * LP * 10n / 13n);
       expect(await liquidityHub.totalRedeemRequest()).to.equal(10n * LP);
+    });
+
+    it("claimableRedeemRequest is bounded by pool totalDeposited, not by raw balance", async function () {
+      const {liquidityHub, usdc, admin, user, liquidityPool, USDC, LP} = await loadFixture(deployAll);
+      await depositFor(liquidityHub, usdc, user, 10n * USDC);
+      await liquidityHub.connect(admin).adjustTotalAssets(10n * USDC, true);
+      // totalAssets=20, totalSupply=10 LP, rate: 1 LP = 2 USDC
+      await liquidityHub.connect(user).requestRedeem(10n * LP, user, user);
+      // pool: balance=10, totalDeposited=10; claimable = floor(10 * 10 / 20) = 5 LP
+
+      // Extra USDC sent directly to pool — balance increases but totalDeposited stays at 10
+      await usdc.transfer(liquidityPool, 6n * USDC);
+      // pool: balance=16, totalDeposited=10
+      // availableAssets = min(16, 10) = 10 USDC → _convertToShares(10) = floor(10*10/20) = 5 LP
+
+      expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(5n * LP);
+      expect(await liquidityHub.pendingRedeemRequest(0n, user)).to.equal(5n * LP);
+      expect(await liquidityHub.totalRedeemRequest()).to.equal(10n * LP);
+    });
+
+    it("maxWithdraw is bounded by pool totalDeposited, not by raw balance", async function () {
+      const {liquidityHub, usdc, admin, user, liquidityPool, USDC} = await loadFixture(deployAll);
+      await depositFor(liquidityHub, usdc, user, 10n * USDC);
+      await liquidityHub.connect(admin).adjustTotalAssets(10n * USDC, true);
+      // totalAssets=20, user has 10 LP worth 20 USDC, pool: balance=10, totalDeposited=10
+
+      // Extra USDC sent directly to pool — balance increases but totalDeposited stays at 10
+      await usdc.transfer(liquidityPool, 6n * USDC);
+      // pool: balance=16, totalDeposited=10
+      // availableAssets = min(16, 10) = 10 USDC; total = _convertToAssets(10 LP) = 20 USDC
+      // maxWithdraw = min(20, 10) = 10 USDC
+
+      expect(await liquidityHub.maxWithdraw(user)).to.equal(10n * USDC);
+    });
+
+    it("maxRedeem is bounded by pool totalDeposited, not by raw balance", async function () {
+      const {liquidityHub, usdc, admin, user, liquidityPool, USDC, LP} = await loadFixture(deployAll);
+      await depositFor(liquidityHub, usdc, user, 10n * USDC);
+      await liquidityHub.connect(admin).adjustTotalAssets(10n * USDC, true);
+      // totalAssets=20, user has 10 LP worth 20 USDC, pool: balance=10, totalDeposited=10
+
+      // Extra USDC sent directly to pool — balance increases but totalDeposited stays at 10
+      await usdc.transfer(liquidityPool, 6n * USDC);
+      // pool: balance=16, totalDeposited=10
+      // availableAssets = min(16, 10) = 10 USDC; total = _convertToAssets(10 LP) = 20 USDC > 10
+      // maxRedeem = _convertToShares(10) = floor(10 * 10 / 20) = 5 LP
+
+      expect(await liquidityHub.maxRedeem(user)).to.equal(5n * LP);
     });
 
     it("previewRedeem and previewWithdraw unaffected by pending requests", async function () {
@@ -1846,15 +1931,42 @@ describe("LiquidityHub", function () {
       await liquidityHub.connect(user).requestRedeem(6n * LP, user, user);
 
       await expect(liquidityHub.connect(user2).redeem(6n * LP, user2, user))
-        .to.be.revertedWithCustomError(liquidityHub, "Unauthorized");
+        .to.be.revertedWithCustomError(liquidityHub, "ERC20InsufficientAllowance");
       await expect(liquidityHub.connect(user2).redeem(6n * LP, user, user))
-        .to.be.revertedWithCustomError(liquidityHub, "Unauthorized");
+        .to.be.revertedWithCustomError(liquidityHub, "ERC20InsufficientAllowance");
 
       expect(await liquidityHub.balanceOf(user)).to.equal(4n * LP);
       expect(await usdc.balanceOf(user2)).to.equal(0n);
       expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(6n * LP);
       expect(await liquidityHub.pendingRedeemRequest(0n, user)).to.equal(0n);
       expect(await liquidityHub.totalRedeemRequest()).to.equal(6n * LP);
+    });
+
+    it("attacker injecting pending via requestRedeem does not block SHARES-allowance-based redeem", async function () {
+      const {liquidityHub, usdc, user, user2, user3, lpToken, USDC, LP} = await loadFixture(deployAll);
+      // user = victim, user2 = attacker, user3 = legitimate spender with allowance from user
+      await depositFor(liquidityHub, usdc, user, 10n * USDC);
+      await depositFor(liquidityHub, usdc, user2, 1n * USDC);
+
+      // user authorises user3 on SHARES — no need to setOperator on LiquidityHub
+      await lpToken.connect(user).approve(user3, 6n * LP);
+
+      // attacker burns 1 wei of their own shares and sets controller=user,
+      // injecting 1 wei into redeemRequests[user]
+      await liquidityHub.connect(user2).requestRedeem(1n, user, user2);
+      expect(await liquidityHub.totalRedeemRequest()).to.equal(1n);
+      expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(1n);
+
+      // user3 redeems 6 LP on behalf of user using SHARES allowance — must not be blocked
+      const tx = await liquidityHub.connect(user3).redeem(6n * LP, user3, user);
+      await expect(tx).to.emit(liquidityHub, "Withdraw")
+        .withArgs(user3.address, user3.address, user.address, 6n * USDC, 6n * LP);
+
+      // redeem succeeded via allowance path; attacker's 1-wei pending is untouched
+      expect(await usdc.balanceOf(user3)).to.equal(6n * USDC);
+      expect(await liquidityHub.balanceOf(user)).to.equal(4n * LP);
+      expect(await liquidityHub.claimableRedeemRequest(0n, user)).to.equal(1n);
+      expect(await liquidityHub.totalRedeemRequest()).to.equal(1n);
     });
 
     it("fulfilRedeem reverts if receiver did not set LiquidityHub as operator", async function () {
@@ -1865,7 +1977,7 @@ describe("LiquidityHub", function () {
       await liquidityHub.connect(user).requestRedeem(6n * LP, user, user);
 
       await expect(liquidityHub.connect(admin).fulfilRedeem([user]))
-        .to.be.revertedWithCustomError(liquidityHub, "Unauthorized");
+        .to.be.revertedWithCustomError(liquidityHub, "ERC20InsufficientAllowance");
     });
 
     it("redeem consumes pending shares first, remainder stays in redeemRequests", async function () {

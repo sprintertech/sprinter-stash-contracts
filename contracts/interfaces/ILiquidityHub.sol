@@ -6,7 +6,7 @@ import {IManagedToken} from "./IManagedToken.sol";
 interface ILiquidityHub {
     function SHARES() external view returns (IManagedToken);
     function totalRedeemRequest() external view returns (uint256);
-    function setOperator(address operator, bool approved) external;
+    function setOperator(address operator, bool approved) external returns (bool);
     function isOperator(address owner, address operator) external view returns (bool);
     function requestRedeem(uint256 shares, address controller, address owner) external returns (uint256 requestId);
     function requestRedeemWithFulfil(uint256 shares) external returns (uint256 requestId);

@@ -22,6 +22,7 @@ interface ILiquidityPool is ILiquidityPoolBase {
         bytes calldata signature
     ) external;
     
+    function borrowWithRole(address borrowToken, uint256 amount) external;
     function borrowDirect(address borrowToken, uint256 amount) external;
 
     function borrowMany(

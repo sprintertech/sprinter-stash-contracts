@@ -7,8 +7,7 @@ import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/acce
 import {ILiquidityPool} from "./interfaces/ILiquidityPool.sol";
 import {IOracle} from "./interfaces/IOracle.sol";
 import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {ORACLE_PRECISION} from "./utils/Constants.sol";
 
 /// @title StashDex — upgradeable DEX that routes swaps through Sprinter liquidity pools.
 /// @notice Accepts tokenIn from the caller and delivers tokenOut borrowed from a configured
@@ -17,7 +16,6 @@ import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 /// @author Sprinter
 contract StashDex is AccessControlUpgradeable {
     using SafeERC20 for IERC20;
-    using SafeCast for uint256;
 
     bytes32 public constant CONFIG_ROLE = "CONFIG_ROLE";
     bytes32 public constant PAUSER_ROLE = "PAUSER_ROLE";
@@ -38,7 +36,7 @@ contract StashDex is AccessControlUpgradeable {
     // pool (20 bytes) + totalBorrowed (12 bytes) = 32 bytes = one storage slot
     struct TokenConfig {
         ILiquidityPool pool;
-        uint96 totalBorrowed;
+        uint96 totalBorrowed; // @custom:storage-deprecated — no longer tracked; kept for storage layout
     }
 
     struct PoolInit {
@@ -65,15 +63,18 @@ contract StashDex is AccessControlUpgradeable {
     error ZeroAddress();
     error SameToken();
     error RouteNotAllowed();
-    error InsufficientOutput();
+    error InsufficientInput();
     error NothingToForward();
     error InvalidIndex();
     error InvalidFeeBps();
-    error OutstandingDebt();
     error PoolNotConfigured();
     error EnforcedPause();
     error ExpectedPause();
     error Unauthorized();
+
+    /// @dev Will be removed in the next upgrade.
+    error NotEnoughLegacyDebt();
+    error LegacyDebtNotRepaid();
 
     modifier whenNotPaused() {
         require(!_getStorage().paused, EnforcedPause());
@@ -91,7 +92,6 @@ contract StashDex is AccessControlUpgradeable {
         uint256 amountOut,
         address recipient
     );
-    event Repaid(address token, uint256 amount);
     event Forwarded(address token, uint256 amount);
     event Paused(address account);
     event Unpaused(address account);
@@ -146,17 +146,15 @@ contract StashDex is AccessControlUpgradeable {
         RouteConfig memory route = $.routes[tokenIn][tokenOut];
         require(route.allowed, RouteNotAllowed());
 
-        uint256 precision = 10**12;
-        uint256 valueIn = ORACLE.getAssetValue(_tokenToAssetId(tokenIn), amountIn * precision);
-        uint256 valueOut = ORACLE.getAssetValue(_tokenToAssetId(tokenOut), amountOut * precision);
-        require(valueIn * (BPS - route.feeBps) >= valueOut * BPS, InsufficientOutput());
+        uint256 valueIn = ORACLE.getAssetValue(_tokenToAssetId(tokenIn), amountIn * ORACLE_PRECISION);
+        uint256 valueOut = ORACLE.getAssetValue(_tokenToAssetId(tokenOut), amountOut * ORACLE_PRECISION);
+        require(valueIn * (BPS - route.feeBps) >= valueOut * BPS, InsufficientInput());
 
         IERC20(tokenIn).safeTransferFrom(_msgSender(), route.processor, amountIn);
 
         TokenConfig storage tc = $.tokenConfig[tokenOut];
         require(address(tc.pool) != address(0), PoolNotConfigured());
-        tc.pool.borrowDirect(tokenOut, amountOut);
-        tc.totalBorrowed += amountOut.toUint96();
+        tc.pool.borrowWithRole(tokenOut, amountOut);
         IERC20(tokenOut).safeTransferFrom(address(tc.pool), recipient, amountOut);
 
         emit Swapped(tokenIn, tokenOut, amountIn, amountOut, recipient);
@@ -183,31 +181,8 @@ contract StashDex is AccessControlUpgradeable {
         exchange(indexIn, indexOut, amountIn, amountOut, _msgSender());
     }
 
-    /// @notice Repay the liquidity pool for token if debt is outstanding, using this contract's balance.
-    function repay(address token) public whenNotPaused() {
-        TokenConfig storage config = _getStorage().tokenConfig[token];
-        uint256 debt = config.totalBorrowed;
-        if (debt == 0) return;
-
-        uint256 available = IERC20(token).balanceOf(address(this));
-        uint256 repayAmount = Math.min(debt, available);
-        if (repayAmount == 0) return;
-        config.totalBorrowed = uint96(debt - repayAmount);
-
-        address[] memory tokens = new address[](1);
-        uint256[] memory amounts = new uint256[](1);
-        tokens[0] = token;
-        amounts[0] = repayAmount;
-
-        config.pool.repayDirect(tokens, amounts);
-        emit Repaid(token, repayAmount);
-    }
-
-    /// @notice Repay the pool if configured, then transfer any remaining balance to RECEIVER.
+    /// @notice Transfer any balance to RECEIVER.
     function forward(address token) external onlyRole(FORWARD_ROLE) whenNotPaused() {
-        if (address(_getStorage().tokenConfig[token].pool) != address(0)) {
-            repay(token);
-        }
         uint256 amount = IERC20(token).balanceOf(address(this));
         require(amount > 0, NothingToForward());
         IERC20(token).safeTransfer(RECEIVER, amount);
@@ -256,13 +231,26 @@ contract StashDex is AccessControlUpgradeable {
         emit RouteDisabled(tokenIn, tokenOut);
     }
 
+    /// @notice Temporary function to zero out the total borrowed amount for a token.
+    /// @dev Will be removed in the next upgrade.
+    function repayLegacyDebt(address token, uint96 amount) external onlyRole(FORWARD_ROLE) {
+        TokenConfig storage config = _getStorage().tokenConfig[token];
+        require(config.totalBorrowed >= amount, NotEnoughLegacyDebt());
+        address[] memory tokens = new address[](1);
+        tokens[0] = token;
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = amount;
+        config.pool.repayDirect(tokens, amounts);
+        config.totalBorrowed -= amount;
+    }
+
     function _setPool(PoolInit memory params) internal {
         require(params.token != address(0), ZeroAddress());
         require(address(params.pool) != address(0), ZeroAddress());
         TokenConfig storage config = _getStorage().tokenConfig[params.token];
         address currentPool = address(config.pool);
         if (currentPool != address(0) && currentPool != address(params.pool)) {
-            require(config.totalBorrowed == 0, OutstandingDebt());
+            require(config.totalBorrowed == 0, LegacyDebtNotRepaid()); // Will be removed in the next upgrade.
             IERC20(params.token).forceApprove(currentPool, 0);
         }
         config.pool = params.pool;
@@ -284,16 +272,17 @@ contract StashDex is AccessControlUpgradeable {
 
     // --- View helpers ---
 
+    /// @dev Will be removed in the next upgrade.
+    function getLegacyDebt(address token) external view returns (uint96) {
+        return _getStorage().tokenConfig[token].totalBorrowed;
+    }
+
     function getRoute(address tokenIn, address tokenOut) external view returns (RouteConfig memory) {
         return _getStorage().routes[tokenIn][tokenOut];
     }
 
     function getPool(address token) external view returns (ILiquidityPool) {
         return _getStorage().tokenConfig[token].pool;
-    }
-
-    function getTotalBorrowed(address token) external view returns (uint256) {
-        return _getStorage().tokenConfig[token].totalBorrowed;
     }
 
     function _indexToAddress(uint256 index) internal pure returns (address) {

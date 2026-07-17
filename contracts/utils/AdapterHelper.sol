@@ -15,6 +15,7 @@ abstract contract AdapterHelper is IRoute {
     error SlippageTooHigh();
     error NotPayable();
     error InvalidOutputToken();
+    error InvalidToken();
 
     modifier notPayable() {
         require(msg.value == 0, NotPayable());

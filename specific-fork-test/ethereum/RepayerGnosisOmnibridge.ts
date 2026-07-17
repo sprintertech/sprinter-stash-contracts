@@ -90,7 +90,7 @@ describe("Repayer Gnosis Omnibridge (Ethereum fork)", function () {
   };
 
   it("Should allow repayer to initiate Gnosis Omnibridge repay from Ethereum to Gnosis on fork", async function () {
-    const {repayer, USDC_DEC, usdc, repayUser, liquidityPool, forkNetworkConfig} = await loadFixture(deployAll);
+    const {repayer, USDC_DEC, usdc, repayUser, forkNetworkConfig} = await loadFixture(deployAll);
 
     assertAddress(
       process.env.USDC_OWNER_ETH_ADDRESS,
@@ -109,17 +109,17 @@ describe("Repayer Gnosis Omnibridge (Ethereum fork)", function () {
     const tx = repayer.connect(repayUser).initiateRepay(
       usdc,
       amount,
-      liquidityPool,
+      repayer,
       Domain.GNOSIS_CHAIN,
       Provider.GNOSIS_OMNIBRIDGE,
       "0x"
     );
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")
-      .withArgs(usdc.target, amount, liquidityPool.target, Domain.GNOSIS_CHAIN, Provider.GNOSIS_OMNIBRIDGE);
+      .withArgs(usdc.target, amount, repayer.target, Domain.GNOSIS_CHAIN, Provider.GNOSIS_OMNIBRIDGE);
     await expect(tx)
       .to.emit(repayer, "GnosisOmnibridgeTransferInitiated")
-      .withArgs(usdc.target, liquidityPool.target, amount);
+      .withArgs(usdc.target, repayer.target, amount);
     await expect(tx)
       .to.emit(usdc, "Transfer")
       .withArgs(repayer.target, ethereumOmnibridge, amount);

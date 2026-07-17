@@ -26,6 +26,8 @@ import {ILiquidityHub} from "./interfaces/ILiquidityHub.sol";
 /// 7. To withdraw/redeem on behalf, owner has to approve spender on the shares contract instead of this one.
 /// 8. The shares token could have greater decimals value than the underlying assets.
 /// @notice Upgradeable.
+/// @notice After doing an initial deposit, send a trivial amount of LP tokens to a dead address.
+/// This will make sure that share-price rate reset cannot happen in the future.
 /// @author Oleksii Matiiasevych <oleksii@chainsafe.io>
 contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgradeable {
     using Math for uint256;
@@ -52,7 +54,7 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
     error AssetsLimitIsTooBig();
     error EmptyHub();
     error AssetsExceedHardLimit();
-    error Unauthorized();
+    error InvalidAdjustment();
 
     /// @custom:storage-location erc7201:sprinter.storage.LiquidityHub
     struct LiquidityHubStorage {
@@ -103,6 +105,13 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         _setAssetsLimit(newAssetsLimit);
     }
 
+    function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
+        return super.supportsInterface(interfaceId)
+            || interfaceId == 0x620ee8e4 // Asynchronous redemption
+            || interfaceId == 0xe3bc4e65 // Operator methods
+            || interfaceId == 0x2f0a18c5; // ERC-7575, share() method
+    }
+
     function adjustTotalAssets(uint256 amount, bool isIncrease) external onlyRole(ASSETS_ADJUST_ROLE) {
         LiquidityHubStorage storage $ = _getStorage();
         uint256 assets = $.totalAssets;
@@ -114,6 +123,7 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         } else {
             newAssets = assets - amount;
         }
+        require(newAssets > 0 || totalSupply() == 0, InvalidAdjustment());
         $.totalAssets = newAssets;
         emit TotalAssetsAdjustment(assets, newAssets);
     }
@@ -128,6 +138,10 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         uint256 oldLimit = $.assetsLimit;
         $.assetsLimit = newAssetsLimit;
         emit AssetsLimitSet(oldLimit, newAssetsLimit);
+    }
+
+    function share() external view returns (address shareTokenAddress) {
+        return address(SHARES);
     }
 
     function name() public pure override(IERC20Metadata, ERC20Upgradeable) returns (string memory) {
@@ -229,9 +243,10 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         emit DepositProfit(_msgSender(), assets);
     }
 
-    function setOperator(address operator, bool approved) public {
+    function setOperator(address operator, bool approved) public returns (bool) {
         _getStorage().operators[_msgSender()][operator] = approved;
         emit OperatorSet(_msgSender(), operator, approved);
+        return true;
     }
 
     function isOperator(address controller, address operator) public view returns (bool) {
@@ -266,7 +281,7 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
     function claimableRedeemRequest(uint256 /* requestId */, address controller) public view returns (uint256) {
         uint256 pending = _getStorage().redeemRequests[controller];
         if (pending == 0) return 0;
-        uint256 availableAssets = LIQUIDITY_POOL.balance(IERC20(asset()));
+        uint256 availableAssets = _availableAssets();
         uint256 availableShares = _convertToShares(availableAssets, Math.Rounding.Floor);
         return Math.min(pending, availableShares);
     }
@@ -287,7 +302,7 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
     function maxRedeem(address owner) public view override returns (uint256) {
         uint256 totalShares = balanceOf(owner) + _getStorage().redeemRequests[owner];
         uint256 total = _convertToAssets(totalShares, Math.Rounding.Floor);
-        uint256 availableAssets = LIQUIDITY_POOL.balance(IERC20(asset()));
+        uint256 availableAssets = _availableAssets();
         if (total > availableAssets) {
             return _convertToShares(availableAssets, Math.Rounding.Floor);
         }
@@ -297,7 +312,7 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
     function maxWithdraw(address owner) public view override returns (uint256) {
         uint256 totalShares = balanceOf(owner) + _getStorage().redeemRequests[owner];
         uint256 total = _convertToAssets(totalShares, Math.Rounding.Floor);
-        uint256 availableAssets = LIQUIDITY_POOL.balance(IERC20(asset()));
+        uint256 availableAssets = _availableAssets();
         return Math.min(total, availableAssets);
     }
 
@@ -360,13 +375,16 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
     ) internal virtual override {
         LiquidityHubStorage storage $ = _getStorage();
         $.totalAssets -= assets;
-        uint256 pending = $.redeemRequests[owner];
-        uint256 fromPending = Math.min(pending, shares);
+        uint256 fromPending;
         bool ownerOrOperator = caller == owner || isOperator(owner, caller);
-        if (fromPending > 0) {
-            require(ownerOrOperator, Unauthorized());
-            $.redeemRequests[owner] = pending - fromPending;
-            $.totalRedeemRequest -= fromPending;
+        // Skip the async flow in case of allowance based redemption.
+        if (ownerOrOperator) {
+            uint256 pending = $.redeemRequests[owner];
+            fromPending = Math.min(pending, shares);
+            if (fromPending > 0) {
+                $.redeemRequests[owner] = pending - fromPending;
+                $.totalRedeemRequest -= fromPending;
+            }
         }
         uint256 fromOwner = shares - fromPending;
         if (fromOwner > 0) {
@@ -392,6 +410,13 @@ contract LiquidityHub is ILiquidityHub, ERC4626Upgradeable, AccessControlUpgrade
         } else {
             return type(uint256).max / multiplier - total;
         }
+    }
+
+    /// @notice ILiquidityPool.balance() can underreport withdrawable assets in certain pools (eg. Aave),
+    /// if that ever causes a problem, Liquidity Pool can be changed to the simple one, that does not underreport,
+    /// or another solution could be implemented, like a specific function that returns withdrawable balance.
+    function _availableAssets() internal view returns (uint256) {
+        return Math.min(LIQUIDITY_POOL.balance(IERC20(asset())), LIQUIDITY_POOL.totalDeposited());
     }
 
     function _getStorage() private pure returns (LiquidityHubStorage storage $) {

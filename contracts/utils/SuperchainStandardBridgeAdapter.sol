@@ -12,16 +12,19 @@ abstract contract SuperchainStandardBridgeAdapter is AdapterHelper {
     ISuperchainStandardBridge immutable public OPTIMISM_STANDARD_BRIDGE;
     ISuperchainStandardBridge immutable public BASE_STANDARD_BRIDGE;
     IWrappedNativeToken immutable private WRAPPED_NATIVE_TOKEN;
+    IERC20 immutable private ASSET_TOKEN;
 
     constructor(
         address optimismStandardBridge,
         address baseStandardBridge,
-        address wrappedNativeToken
+        address wrappedNativeToken,
+        address assetToken
     ) {
         // No check for address(0) to allow deployment on chains where Standard Bridge is not available
         OPTIMISM_STANDARD_BRIDGE = ISuperchainStandardBridge(optimismStandardBridge);
         BASE_STANDARD_BRIDGE = ISuperchainStandardBridge(baseStandardBridge);
         WRAPPED_NATIVE_TOKEN = IWrappedNativeToken(wrappedNativeToken);
+        ASSET_TOKEN = IERC20(assetToken);
     }
 
     function initiateTransferSuperchainStandardBridge(
@@ -35,6 +38,7 @@ abstract contract SuperchainStandardBridgeAdapter is AdapterHelper {
     ) internal notPayable {
         // We are only interested in fast L1->L2 bridging, because the reverse is slow.
         require(localDomain == Domain.ETHEREUM, UnsupportedDomain());
+        require(token != ASSET_TOKEN, InvalidToken());
         ISuperchainStandardBridge standardBridge;
         if (destinationDomain == Domain.OP_MAINNET) {
             standardBridge = OPTIMISM_STANDARD_BRIDGE;

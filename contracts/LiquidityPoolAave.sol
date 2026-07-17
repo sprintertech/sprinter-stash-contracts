@@ -101,6 +101,9 @@ contract LiquidityPoolAave is LiquidityPoolBase {
 
     // Admin functions
 
+    /// Having a Default LTV configured makes all 0 LTV configurations per token use default value instead of 0.
+    /// In case some token borrowing should be restricted, either set Default LTV to 0, and configure
+    /// other token LTVs, or set LTV of the token to 1 (0.01%).
     function setBorrowTokenLTVs(
         address[] calldata tokens,
         uint32[] calldata ltvs
@@ -254,7 +257,8 @@ contract LiquidityPoolAave is LiquidityPoolBase {
         if (int256(balance) < profit) {
             uint256 shortfall = uint256(profit) - balance;
             AAVE_POOL.borrow(address(token), shortfall, INTEREST_RATE_MODE_VARIABLE, NO_REFERRAL, address(this));
-            _checkHealthFactor();
+            uint256 totalCollateralBase = _checkHealthFactor();
+            _checkTokenLTV(totalCollateralBase, address(token));
             currentDebt += shortfall;
         }
 
@@ -318,41 +322,40 @@ contract LiquidityPoolAave is LiquidityPoolBase {
         uint256[] calldata maxAmounts
     ) internal override {
         uint256 length = HelperLib.validatePositiveLength(borrowTokens.length, maxAmounts.length);
-        bool success;
         for (uint256 i = 0; i < length; i++) {
-            success = _repayTokenDirect(borrowTokens[i], maxAmounts[i]) || success;
+            _repayTokenDirect(borrowTokens[i], maxAmounts[i]);
         }
-        require(success, NothingToRepay());
     }
 
     function _repayTokenDirect(address borrowToken, uint256 maxRepayAmount)
         internal
-        returns(bool success)
     {
         address vdToken = AAVE_POOL.getReserveData(borrowToken).variableDebtTokenAddress;
-        if (vdToken == address(0)) return false;
+        if (vdToken == address(0)) return;
 
         LiquidityPoolBaseStorage storage $ = _getStorageBase();
         uint256 outstandingDebt = $.directDebt[borrowToken];
         uint256 repayAmount = Math.min(outstandingDebt, maxRepayAmount);
-        if (repayAmount == 0) return false;
+        if (repayAmount == 0) return;
 
         unchecked { $.directDebt[borrowToken] = outstandingDebt - repayAmount; }
         IERC20(borrowToken).safeTransferFrom(_msgSender(), address(this), repayAmount);
         _executeRepay(borrowToken, repayAmount);
 
         emit RepaidDirect(borrowToken, repayAmount);
-        return true;
     }
 
     function _executeRepay(address borrowToken, uint256 repayAmount) private returns(uint256 repaidAmount) {
         address vdToken = AAVE_POOL.getReserveData(borrowToken).variableDebtTokenAddress;
-        (, uint256 accruedDebt) = _processDebtSnapshot(IERC20(borrowToken), IERC20(vdToken), 0);
+        (uint256 currentDebt, uint256 accruedDebt) = _processDebtSnapshot(IERC20(borrowToken), IERC20(vdToken), 0);
         if (accruedDebt > 0) {
             _getStorageBase().accruedProfit[borrowToken] -= int256(accruedDebt);
         }
-        IERC20(borrowToken).forceApprove(address(AAVE_POOL), repayAmount);
-        repaidAmount = AAVE_POOL.repay(borrowToken, repayAmount, 2, address(this));
+        repayAmount = Math.min(repayAmount, currentDebt);
+        if (repayAmount > 0) {
+            IERC20(borrowToken).forceApprove(address(AAVE_POOL), repayAmount);
+            repaidAmount = AAVE_POOL.repay(borrowToken, repayAmount, 2, address(this));
+        }
         _getStorage().debtSnapshot[borrowToken] = HelperLib.balanceOfThis(vdToken);
     }
 

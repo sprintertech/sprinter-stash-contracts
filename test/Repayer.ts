@@ -973,7 +973,7 @@ describe("Repayer", function () {
     )).to.be.revertedWithCustomError(repayer, "InvalidOutputToken()");
   });
 
-  it("Should allow repayer to initiate Superchain Optimism repay with mock bridge", async function () {
+  it("Should revert Superchain repay if token is ASSETS", async function () {
     const {
       USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge,
       acrossV3SpokePool, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
@@ -1023,10 +1023,72 @@ describe("Repayer", function () {
 
     const extraData = AbiCoder.defaultAbiCoder().encode(
       ["address", "uint32", "bytes"],
+      [outputToken, minGasLimit, "0x"]
+    );
+    await expect(repayer.connect(repayUser).initiateRepay(
+      usdc,
+      amount,
+      liquidityPool,
+      Domain.OP_MAINNET,
+      Provider.SUPERCHAIN_STANDARD_BRIDGE,
+      extraData
+    )).to.be.revertedWithCustomError(repayer, "InvalidToken");
+  });
+
+  it("Should allow repayer to initiate Superchain Optimism repay with mock bridge", async function () {
+    const {
+      usdc, eurc, EURC_DEC, eurcOwner, repayUser, liquidityPool, optimismBridge,
+      acrossV3SpokePool, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
+      setTokensUser, arbitrumGatewayRouter,
+      sharedEthereumOmnibridge, sharedEthereumAmb,
+    } = await loadFixture(deployAll);
+    const amount = 4n * EURC_DEC;
+    const outputToken = networkConfig.OP_MAINNET.Tokens.USDC.Address;
+    const minGasLimit = 100000n;
+
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "Repayer2", {},
+        Domain.ETHEREUM,
+        usdc,
+        acrossV3SpokePool,
+        weth,
+        stargateTreasurerTrue,
+        optimismBridge,
+        baseBridge,
+        arbitrumGatewayRouter,
+        sharedEthereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, sharedEthereumAmb, ZERO_ADDRESS,
+        ZERO_ADDRESS, ZERO_ADDRESS,
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin,
+      repayUser,
+      setTokensUser,
+      [liquidityPool, liquidityPool],
+      [Domain.ETHEREUM, Domain.OP_MAINNET],
+      [Provider.LOCAL, Provider.SUPERCHAIN_STANDARD_BRIDGE],
+      [true, true],
+      [{
+        inputToken: eurc,
+        destinationTokens: [
+          destinationToken(Domain.OP_MAINNET, addressToBytes32(outputToken))
+        ]
+      }],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    await eurc.connect(eurcOwner).transfer(repayer, 10n * EURC_DEC);
+
+    const extraData = AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint32", "bytes"],
       [outputToken, minGasLimit, "0x1234"]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc,
+      eurc,
       amount,
       liquidityPool,
       Domain.OP_MAINNET,
@@ -1035,21 +1097,21 @@ describe("Repayer", function () {
     );
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")
-      .withArgs(usdc.target, amount, liquidityPool.target, Domain.OP_MAINNET, Provider.SUPERCHAIN_STANDARD_BRIDGE);
+      .withArgs(eurc.target, amount, liquidityPool.target, Domain.OP_MAINNET, Provider.SUPERCHAIN_STANDARD_BRIDGE);
     await expect(tx)
       .to.emit(optimismBridge, "ERC20BridgeInitiated")
-      .withArgs(usdc.target, outputToken, optimismBridge.target, liquidityPool.target, amount, "0x1234");
+      .withArgs(eurc.target, outputToken, optimismBridge.target, liquidityPool.target, amount, "0x1234");
   });
 
   it("Should allow repayer to initiate Superchain Base repay with mock bridge", async function () {
     const {
-      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge,
+      usdc, eurc, EURC_DEC, eurcOwner, repayUser, liquidityPool, optimismBridge,
       acrossV3SpokePool, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
       setTokensUser, arbitrumGatewayRouter,
       sharedEthereumOmnibridge, sharedEthereumAmb,
     } = await loadFixture(deployAll);
-    const amount = 4n * USDC_DEC;
-    const outputToken = networkConfig.BASE.Tokens.USDC.Address;
+    const amount = 4n * EURC_DEC;
+    const outputToken = networkConfig.OP_MAINNET.Tokens.USDC.Address;
     const minGasLimit = 100000n;
 
     const repayerImpl = (
@@ -1075,7 +1137,7 @@ describe("Repayer", function () {
       [Provider.LOCAL, Provider.SUPERCHAIN_STANDARD_BRIDGE],
       [true, true],
       [{
-        inputToken: usdc,
+        inputToken: eurc,
         destinationTokens: [
           destinationToken(Domain.BASE, addressToBytes32(outputToken))
         ]
@@ -1087,14 +1149,14 @@ describe("Repayer", function () {
     )) as TransparentUpgradeableProxy;
     const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
 
-    await usdc.transfer(repayer, 10n * USDC_DEC);
+    await eurc.connect(eurcOwner).transfer(repayer, 10n * EURC_DEC);
 
     const extraData = AbiCoder.defaultAbiCoder().encode(
       ["address", "uint32", "bytes"],
       [outputToken, minGasLimit, "0x1234"]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc,
+      eurc,
       amount,
       liquidityPool,
       Domain.BASE,
@@ -1103,15 +1165,15 @@ describe("Repayer", function () {
     );
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")
-      .withArgs(usdc.target, amount, liquidityPool.target, Domain.BASE, Provider.SUPERCHAIN_STANDARD_BRIDGE);
+      .withArgs(eurc.target, amount, liquidityPool.target, Domain.BASE, Provider.SUPERCHAIN_STANDARD_BRIDGE);
     await expect(tx)
       .to.emit(baseBridge, "ERC20BridgeInitiated")
-      .withArgs(usdc.target, outputToken, baseBridge.target, liquidityPool.target, amount, "0x1234");
+      .withArgs(eurc.target, outputToken, baseBridge.target, liquidityPool.target, amount, "0x1234");
   });
 
   it("Should revert Superchain repay if call to Standard Bridge reverts", async function () {
     const {
-      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge,
+      usdc, eurc, EURC_DEC, eurcOwner, repayUser, liquidityPool, optimismBridge,
       acrossV3SpokePool, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
       setTokensUser, arbitrumGatewayRouter,
       sharedEthereumOmnibridge, sharedEthereumAmb,
@@ -1140,9 +1202,9 @@ describe("Repayer", function () {
       [Provider.LOCAL, Provider.SUPERCHAIN_STANDARD_BRIDGE],
       [true, true],
       [{
-        inputToken: usdc,
+        inputToken: eurc,
         destinationTokens: [
-          destinationToken(Domain.OP_MAINNET, addressToBytes32(usdc.target))
+          destinationToken(Domain.OP_MAINNET, addressToBytes32(eurc.target))
         ]
       }],
     )).data;
@@ -1152,17 +1214,17 @@ describe("Repayer", function () {
     )) as TransparentUpgradeableProxy;
     const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
 
-    await usdc.transfer(repayer, 10n * USDC_DEC);
+    await eurc.connect(eurcOwner).transfer(repayer, 10n * EURC_DEC);
 
-    const amount = 4n * USDC_DEC;
-    const outputToken = usdc.target;
+    const amount = 4n * EURC_DEC;
+    const outputToken = eurc.target; // same as localToken → mock bridge reverts
     const minGasLimit = 100000n;
     const extraData = AbiCoder.defaultAbiCoder().encode(
       ["address", "uint32", "bytes"],
       [outputToken, minGasLimit, "0x"],
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc,
+      eurc,
       amount,
       liquidityPool,
       Domain.OP_MAINNET,
@@ -1240,7 +1302,7 @@ describe("Repayer", function () {
 
   it("Should revert Standard Bridge repay if output token is not allowed", async function () {
     const {
-      USDC_DEC, usdc, repayUser, liquidityPool, optimismBridge,
+      usdc, eurc, EURC_DEC, eurcOwner, repayUser, liquidityPool, optimismBridge,
       acrossV3SpokePool, weth, stargateTreasurerTrue, admin, deployer, baseBridge,
       setTokensUser, arbitrumGatewayRouter,
       sharedEthereumOmnibridge, sharedEthereumAmb,
@@ -1276,9 +1338,9 @@ describe("Repayer", function () {
     )) as TransparentUpgradeableProxy;
     const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
 
-    await usdc.transfer(repayer, 10n * USDC_DEC);
+    await eurc.connect(eurcOwner).transfer(repayer, 10n * EURC_DEC);
 
-    const amount = 4n * USDC_DEC;
+    const amount = 4n * EURC_DEC;
     const outputToken = ZERO_ADDRESS;
     const minGasLimit = 100000n;
     const extraData = AbiCoder.defaultAbiCoder().encode(
@@ -1286,7 +1348,7 @@ describe("Repayer", function () {
       [outputToken, minGasLimit, "0x"],
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc,
+      eurc,
       amount,
       liquidityPool,
       Domain.OP_MAINNET,
@@ -1330,7 +1392,7 @@ describe("Repayer", function () {
 
   it("Should NOT allow repayer to initiate Superchain Standard Bridge repay to unsupported domain", async function () {
     const {
-      USDC_DEC, usdc, admin, repayUser, liquidityPool, deployer,
+      usdc, eurc, EURC_DEC, eurcOwner, admin, repayUser, liquidityPool, deployer,
       acrossV3SpokePool, weth, stargateTreasurerTrue, optimismBridge, baseBridge,
       arbitrumGatewayRouter, sharedEthereumOmnibridge, sharedEthereumAmb, setTokensUser,
     } = await loadFixture(deployAll);
@@ -1365,10 +1427,10 @@ describe("Repayer", function () {
     )) as TransparentUpgradeableProxy;
     const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
 
-    await usdc.transfer(repayer, 10n * USDC_DEC);
-    const amount = 4n * USDC_DEC;
+    await eurc.connect(eurcOwner).transfer(repayer, 10n * EURC_DEC);
+    const amount = 4n * EURC_DEC;
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc,
+      eurc,
       amount,
       liquidityPool,
       Domain.GNOSIS_CHAIN,
@@ -2087,6 +2149,35 @@ describe("Repayer", function () {
     expect(await usdc.balanceOf(liquidityPool2)).to.equal(4n * USDC_DEC);
   });
 
+  it("Should emit ProcessRepay and increase pool balance but leave direct debt unchanged", async function () {
+    const {repayer, usdc, USDC_DEC, repayUser, deployer, liquidityPool} = await loadFixture(deployAll);
+
+    const debtAmount = 4n * USDC_DEC;
+    await liquidityPool.connect(deployer).borrowDirect(usdc, debtAmount);
+    expect(await liquidityPool.directDebt(usdc)).to.equal(debtAmount);
+
+    await usdc.transfer(repayer, debtAmount);
+
+    const tx = repayer.connect(repayUser).initiateRepay(
+      usdc,
+      debtAmount,
+      liquidityPool,
+      Domain.BASE,
+      Provider.LOCAL,
+      "0x"
+    );
+    await expect(tx)
+      .to.emit(repayer, "ProcessRepay")
+      .withArgs(usdc.target, debtAmount, liquidityPool.target, Provider.LOCAL);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(repayer.target, liquidityPool.target, debtAmount);
+
+    expect(await usdc.balanceOf(repayer)).to.equal(0n);
+    expect(await usdc.balanceOf(liquidityPool)).to.equal(debtAmount);
+    expect(await liquidityPool.directDebt(usdc)).to.equal(debtAmount);
+  });
+
   it("Should not allow repayer to initiate repay on invalid route", async function () {
     const {repayer, usdc, USDC_DEC, repayUser, liquidityPool,
     } = await loadFixture(deployAll);
@@ -2150,6 +2241,27 @@ describe("Repayer", function () {
       Provider.CCTP,
       "0x"
     )).to.be.revertedWithCustomError(repayer, "RouteDenied()");
+  });
+
+  it("Should revert initiateRepay for CCTP and EVERCLEAR_DEPRECATED providers", async function () {
+    const {repayer, usdc, USDC_DEC, admin, repayUser, liquidityPool} = await loadFixture(deployAll);
+
+    await usdc.transfer(repayer, 10n * USDC_DEC);
+    await repayer.connect(admin).setRoute(
+      [liquidityPool, liquidityPool],
+      [Domain.AVALANCHE, Domain.AVALANCHE],
+      [Provider.CCTP, Provider.EVERCLEAR_DEPRECATED],
+      [true, true],
+      ALLOWED
+    );
+
+    const amount = 4n * USDC_DEC;
+    await expect(repayer.connect(repayUser).initiateRepay(
+      usdc, amount, liquidityPool, Domain.AVALANCHE, Provider.CCTP, "0x"
+    )).to.be.revertedWithCustomError(repayer, "UnsupportedProvider");
+    await expect(repayer.connect(repayUser).initiateRepay(
+      usdc, amount, liquidityPool, Domain.AVALANCHE, Provider.EVERCLEAR_DEPRECATED, "0x"
+    )).to.be.revertedWithCustomError(repayer, "UnsupportedProvider");
   });
 
   it("Should not allow repayer to initiate repay with other token if the pool doesn't support it", async function () {
@@ -2898,7 +3010,7 @@ describe("Repayer", function () {
     )).to.be.revertedWithCustomError(repayer, "InsufficientBalance()");
   });
 
-  it("Should allow repayer to initiate Gnosis Omnibridge repay from Ethereum to Gnosis", async function () {
+  it("Should allow repayer to initiate Gnosis Omnibridge repay from Ethereum throug Repayer", async function () {
     const {
       USDC_DEC, usdc, repayUser, liquidityPool,
       acrossV3SpokePool,
@@ -2936,14 +3048,14 @@ describe("Repayer", function () {
     await usdc.transfer(repayer, 10n * USDC_DEC);
 
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc, amount, liquidityPool, Domain.GNOSIS_CHAIN, Provider.GNOSIS_OMNIBRIDGE, "0x"
+      usdc, amount, repayer, Domain.GNOSIS_CHAIN, Provider.GNOSIS_OMNIBRIDGE, "0x"
     );
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")
-      .withArgs(usdc.target, amount, liquidityPool.target, Domain.GNOSIS_CHAIN, Provider.GNOSIS_OMNIBRIDGE);
+      .withArgs(usdc.target, amount, repayer.target, Domain.GNOSIS_CHAIN, Provider.GNOSIS_OMNIBRIDGE);
     await expect(tx)
       .to.emit(repayer, "GnosisOmnibridgeTransferInitiated")
-      .withArgs(usdc.target, liquidityPool.target, amount);
+      .withArgs(usdc.target, repayer.target, amount);
     await expect(tx)
       .to.emit(usdc, "Transfer")
       .withArgs(repayer.target, ethereumOmnibridge.target, amount);
@@ -3054,16 +3166,17 @@ describe("Repayer", function () {
     await usdc2.transfer(repayer, 10n * USDC_DEC);
     await usdc.transfer(usdceSwap, 10n * USDC_DEC);
 
+    // destinationPool must be the Repayer itself when bridging ASSETS (USDCe) from Gnosis to Ethereum
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc2, amount, liquidityPool, Domain.ETHEREUM, Provider.GNOSIS_OMNIBRIDGE, "0x"
+      usdc2, amount, repayer, Domain.ETHEREUM, Provider.GNOSIS_OMNIBRIDGE, "0x"
     );
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")
-      .withArgs(usdc2.target, amount, liquidityPool.target, Domain.ETHEREUM, Provider.GNOSIS_OMNIBRIDGE);
-    // Event emits USDC (after swap), not USDCe
+      .withArgs(usdc2.target, amount, repayer.target, Domain.ETHEREUM, Provider.GNOSIS_OMNIBRIDGE);
+    // Event emits USDC (after swap), not USDCe; receiver is the Repayer on Ethereum
     await expect(tx)
       .to.emit(repayer, "GnosisOmnibridgeTransferInitiated")
-      .withArgs(usdc.target, liquidityPool.target, amount);
+      .withArgs(usdc.target, repayer.target, amount);
     // USDCe moved from repayer to swap contract
     await expect(tx)
       .to.emit(usdc2, "Transfer")
@@ -3121,10 +3234,53 @@ describe("Repayer", function () {
     await usdc2.transfer(repayer, badAmount);
 
     await expect(repayer.connect(repayUser).initiateRepay(
-      usdc2, badAmount, liquidityPool, Domain.ETHEREUM, Provider.GNOSIS_OMNIBRIDGE, "0x"
+      usdc2, badAmount, repayer, Domain.ETHEREUM, Provider.GNOSIS_OMNIBRIDGE, "0x"
     )).to.be.reverted;
     expect(await usdc2.balanceOf(repayer)).to.equal(badAmount);
     expect(await usdc2.balanceOf(usdceSwap)).to.equal(0n);
+  });
+
+  it("Should revert initiate Gnosis Omnibridge repay of ASSETS from Ethereum to pool directly", async function () {
+    const {
+      USDC_DEC, usdc, repayUser, liquidityPool,
+      acrossV3SpokePool,
+      weth, stargateTreasurerTrue, admin, deployer,
+      optimismBridge, baseBridge, arbitrumGatewayRouter, setTokensUser,
+    } = await loadFixture(deployAll);
+    const amount = 4n * USDC_DEC;
+
+    const gnosisOmnibridge = (await deploy("TestGnosisOmnibridge", deployer, {})) as TestGnosisOmnibridge;
+    const ethereumAmb = (await deploy("TestGnosisAMB", deployer, {})) as TestGnosisAMB;
+
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "Repayer2", {},
+        Domain.ETHEREUM,
+        usdc,
+        acrossV3SpokePool,
+        weth,
+        stargateTreasurerTrue,
+        optimismBridge,
+        baseBridge,
+        arbitrumGatewayRouter,
+        gnosisOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin, repayUser, setTokensUser,
+      [liquidityPool], [Domain.GNOSIS_CHAIN], [Provider.GNOSIS_OMNIBRIDGE], [true], [],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    await usdc.transfer(repayer, amount);
+
+    // liquidityPool is not the Repayer itself — must revert
+    await expect(repayer.connect(repayUser).initiateRepay(
+      usdc, amount, liquidityPool, Domain.GNOSIS_CHAIN, Provider.GNOSIS_OMNIBRIDGE, "0x"
+    )).to.be.revertedWithCustomError(repayer, "InvalidDestinationPool");
   });
 
   it("Should revert Gnosis Omnibridge repay if native currency is sent along", async function () {
@@ -3358,7 +3514,7 @@ describe("Repayer", function () {
 
     const message = AbiCoder.defaultAbiCoder().encode(
       ["address", "address", "uint256"],
-      [usdc.target, liquidityPool.target, amount]
+      [usdc.target, repayer.target, amount]
     );
     const signatures = AbiCoder.defaultAbiCoder().encode(["bool"], [true]);
     const extraData = AbiCoder.defaultAbiCoder().encode(
@@ -3374,9 +3530,258 @@ describe("Repayer", function () {
       .withArgs(usdc.target, amount, liquidityPool.target, Provider.GNOSIS_OMNIBRIDGE);
     await expect(tx)
       .to.emit(usdc, "Transfer")
-      .withArgs(ethereumAmb.target, liquidityPool.target, amount);
+      .withArgs(ethereumAmb.target, repayer.target, amount);
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(repayer.target, liquidityPool.target, amount);
     expect(await usdc.balanceOf(liquidityPool)).to.equal(amount);
     expect(await usdc.balanceOf(ethereumAmb)).to.equal(6n * USDC_DEC);
+  });
+
+  it("Should allow to process repay via Gnosis Omnibridge on Gnosis Chain", async function () {
+    const {
+      USDC_DEC, usdc, repayUser, liquidityPool,
+      acrossV3SpokePool,
+      weth, stargateTreasurerTrue, admin, deployer,
+      optimismBridge, baseBridge, arbitrumGatewayRouter, setTokensUser,
+    } = await loadFixture(deployAll);
+    const amount = 4n * USDC_DEC;
+
+    // usdc2 = USDCe (ASSETS on Gnosis Chain); usdc = USDCxDAI (delivered by bridge)
+    const usdc2 = (await deploy("TestUSDC", deployer, {})) as TestUSDC;
+    const usdceSwap = (
+      await deploy("TestUSDCTransmuter", deployer, {}, usdc2.target, usdc.target)
+    ) as TestUSDCTransmuter;
+    const gnosisOmnibridge = (await deploy("TestGnosisOmnibridge", deployer, {})) as TestGnosisOmnibridge;
+
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "Repayer2", {},
+        Domain.GNOSIS_CHAIN,
+        usdc2,
+        acrossV3SpokePool,
+        weth,
+        stargateTreasurerTrue,
+        optimismBridge,
+        baseBridge,
+        arbitrumGatewayRouter,
+        gnosisOmnibridge, usdc.target, usdceSwap.target, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin, repayUser, setTokensUser,
+      // poolSupportsAllTokens=true bypasses ASSETS check in _setRoute for LOCAL route
+      [liquidityPool], [Domain.GNOSIS_CHAIN], [Provider.LOCAL], [true], [],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    // Simulate bridge delivery: USDCxDAI arrives at repayer; swap contract holds USDCe
+    await usdc.transfer(repayer, amount);
+    await usdc2.transfer(usdceSwap, 10n * USDC_DEC);
+
+    const extraData = AbiCoder.defaultAbiCoder().encode(["uint256"], [amount]);
+    const tx = repayer.connect(repayUser).processRepay(
+      liquidityPool, Provider.GNOSIS_OMNIBRIDGE, extraData
+    );
+    await expect(tx)
+      .to.emit(repayer, "ProcessRepay")
+      .withArgs(usdc2.target, amount, liquidityPool.target, Provider.GNOSIS_OMNIBRIDGE);
+    // USDCxDAI pulled from repayer into swap contract
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(repayer.target, usdceSwap.target, amount);
+    // USDCe delivered from swap contract to repayer
+    await expect(tx)
+      .to.emit(usdc2, "Transfer")
+      .withArgs(usdceSwap.target, repayer.target, amount);
+    // USDCe transferred from repayer to pool
+    await expect(tx)
+      .to.emit(usdc2, "Transfer")
+      .withArgs(repayer.target, liquidityPool.target, amount);
+
+    expect(await usdc.balanceOf(repayer)).to.equal(0n);
+    expect(await usdc2.balanceOf(liquidityPool)).to.equal(amount);
+    expect(await usdc2.balanceOf(usdceSwap)).to.equal(6n * USDC_DEC);
+    expect(await usdc.balanceOf(usdceSwap)).to.equal(amount);
+  });
+
+  it("Should keep USDCe on Repayer when destinationPool is Repayer itself", async function () {
+    const {
+      USDC_DEC, usdc, repayUser,
+      acrossV3SpokePool,
+      weth, stargateTreasurerTrue, admin, deployer,
+      optimismBridge, baseBridge, arbitrumGatewayRouter, setTokensUser,
+    } = await loadFixture(deployAll);
+    const amount = 4n * USDC_DEC;
+
+    const usdc2 = (await deploy("TestUSDC", deployer, {})) as TestUSDC;
+    const usdceSwap = (
+      await deploy("TestUSDCTransmuter", deployer, {}, usdc2.target, usdc.target)
+    ) as TestUSDCTransmuter;
+    const gnosisOmnibridge = (await deploy("TestGnosisOmnibridge", deployer, {})) as TestGnosisOmnibridge;
+
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "Repayer2", {},
+        Domain.GNOSIS_CHAIN,
+        usdc2,
+        acrossV3SpokePool,
+        weth,
+        stargateTreasurerTrue,
+        optimismBridge,
+        baseBridge,
+        arbitrumGatewayRouter,
+        gnosisOmnibridge, usdc.target, usdceSwap.target, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+      )
+    ) as Repayer;
+    // No pool route needed — isRouteAllowed(repayer, ...) auto-passes when pool == address(this)
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin, repayUser, setTokensUser, [], [], [], [], [],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    await usdc.transfer(repayer, amount);
+    await usdc2.transfer(usdceSwap, 10n * USDC_DEC);
+
+    const extraData = AbiCoder.defaultAbiCoder().encode(["uint256"], [amount]);
+    const tx = repayer.connect(repayUser).processRepay(
+      repayer, Provider.GNOSIS_OMNIBRIDGE, extraData
+    );
+    await expect(tx)
+      .to.emit(repayer, "ProcessRepay")
+      .withArgs(usdc2.target, amount, repayer.target, Provider.GNOSIS_OMNIBRIDGE);
+    // USDCxDAI swapped to USDCe
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(repayer.target, usdceSwap.target, amount);
+    await expect(tx)
+      .to.emit(usdc2, "Transfer")
+      .withArgs(usdceSwap.target, repayer.target, amount);
+
+    // No transfer to pool — USDCe stays on Repayer
+    expect(await usdc.balanceOf(repayer)).to.equal(0n);
+    expect(await usdc2.balanceOf(repayer)).to.equal(amount);
+    expect(await usdc2.balanceOf(usdceSwap)).to.equal(6n * USDC_DEC);
+    expect(await usdc.balanceOf(usdceSwap)).to.equal(amount);
+  });
+
+  it("Should swap all USDCxDAI but deliver only extraData amount to pool", async function () {
+    const {
+      USDC_DEC, usdc, repayUser, liquidityPool,
+      acrossV3SpokePool,
+      weth, stargateTreasurerTrue, admin, deployer,
+      optimismBridge, baseBridge, arbitrumGatewayRouter, setTokensUser,
+    } = await loadFixture(deployAll);
+    const amount = 4n * USDC_DEC;
+
+    const usdc2 = (await deploy("TestUSDC", deployer, {})) as TestUSDC;
+    const usdceSwap = (
+      await deploy("TestUSDCTransmuter", deployer, {}, usdc2.target, usdc.target)
+    ) as TestUSDCTransmuter;
+    const gnosisOmnibridge = (await deploy("TestGnosisOmnibridge", deployer, {})) as TestGnosisOmnibridge;
+
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "Repayer2", {},
+        Domain.GNOSIS_CHAIN,
+        usdc2,
+        acrossV3SpokePool,
+        weth,
+        stargateTreasurerTrue,
+        optimismBridge,
+        baseBridge,
+        arbitrumGatewayRouter,
+        gnosisOmnibridge, usdc.target, usdceSwap.target, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin, repayUser, setTokensUser,
+      [liquidityPool], [Domain.GNOSIS_CHAIN], [Provider.LOCAL], [true], [],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    // 10 USDCxDAI delivered, but only 4 is the intended repay amount
+    await usdc.transfer(repayer, 10n * USDC_DEC);
+    await usdc2.transfer(usdceSwap, 10n * USDC_DEC);
+
+    const extraData = AbiCoder.defaultAbiCoder().encode(["uint256"], [amount]);
+    const tx = repayer.connect(repayUser).processRepay(
+      liquidityPool, Provider.GNOSIS_OMNIBRIDGE, extraData
+    );
+    await expect(tx)
+      .to.emit(repayer, "ProcessRepay")
+      .withArgs(usdc2.target, amount, liquidityPool.target, Provider.GNOSIS_OMNIBRIDGE);
+    // ALL 10 USDCxDAI swapped to USDCe
+    await expect(tx)
+      .to.emit(usdc, "Transfer")
+      .withArgs(repayer.target, usdceSwap.target, 10n * USDC_DEC);
+    await expect(tx)
+      .to.emit(usdc2, "Transfer")
+      .withArgs(usdceSwap.target, repayer.target, 10n * USDC_DEC);
+    // Only 4 USDCe delivered to pool; 6 stays in repayer
+    await expect(tx)
+      .to.emit(usdc2, "Transfer")
+      .withArgs(repayer.target, liquidityPool.target, amount);
+
+    expect(await usdc.balanceOf(repayer)).to.equal(0n);
+    expect(await usdc2.balanceOf(repayer)).to.equal(6n * USDC_DEC);
+    expect(await usdc2.balanceOf(liquidityPool)).to.equal(amount);
+    expect(await usdc2.balanceOf(usdceSwap)).to.equal(0n);
+    expect(await usdc.balanceOf(usdceSwap)).to.equal(10n * USDC_DEC);
+  });
+
+  it("Should revert processRepay if GNOSIS_USDCXDAI balance is insufficient", async function () {
+    const {
+      USDC_DEC, usdc, repayUser, liquidityPool,
+      acrossV3SpokePool,
+      weth, stargateTreasurerTrue, admin, deployer,
+      optimismBridge, baseBridge, arbitrumGatewayRouter, setTokensUser,
+    } = await loadFixture(deployAll);
+    const amount = 4n * USDC_DEC;
+
+    const usdc2 = (await deploy("TestUSDC", deployer, {})) as TestUSDC;
+    const usdceSwap = (
+      await deploy("TestUSDCTransmuter", deployer, {}, usdc2.target, usdc.target)
+    ) as TestUSDCTransmuter;
+    const gnosisOmnibridge = (await deploy("TestGnosisOmnibridge", deployer, {})) as TestGnosisOmnibridge;
+
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "Repayer2", {},
+        Domain.GNOSIS_CHAIN,
+        usdc2,
+        acrossV3SpokePool,
+        weth,
+        stargateTreasurerTrue,
+        optimismBridge,
+        baseBridge,
+        arbitrumGatewayRouter,
+        gnosisOmnibridge, usdc.target, usdceSwap.target, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin, repayUser, setTokensUser,
+      [liquidityPool], [Domain.GNOSIS_CHAIN], [Provider.LOCAL], [true], [],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    // No USDCxDAI in repayer — balance is 0 but amount in extraData is 4
+    const extraData = AbiCoder.defaultAbiCoder().encode(["uint256"], [amount]);
+    await expect(repayer.connect(repayUser).processRepay(
+      liquidityPool, Provider.GNOSIS_OMNIBRIDGE, extraData
+    )).to.be.revertedWithCustomError(repayer, "InsufficientBalance");
   });
 
   // Should revert repayer processRepay with Gnosis Omnibridge
@@ -3422,7 +3827,7 @@ describe("Repayer", function () {
 
     const message = AbiCoder.defaultAbiCoder().encode(
       ["address", "address", "uint256"],
-      [usdc2.target, liquidityPool.target, amount]
+      [usdc2.target, repayer.target, amount]
     );
     const signatures = AbiCoder.defaultAbiCoder().encode(["bool"], [true]);
     const extraData = AbiCoder.defaultAbiCoder().encode(

@@ -80,7 +80,6 @@ contract Repayer is
     );
 
     error ZeroAmount();
-    error InsufficientBalance();
     error RouteDenied();
     error UnsupportedProvider();
     error InvalidPoolAssets();
@@ -119,7 +118,7 @@ contract Repayer is
         )
         AcrossAdapter(acrossSpokePool)
         StargateAdapter(stargateTreasurer)
-        SuperchainStandardBridgeAdapter(optimismBridge, baseBridge, wrappedNativeToken)
+        SuperchainStandardBridgeAdapter(optimismBridge, baseBridge, wrappedNativeToken, address(assets))
         ArbitrumGatewayAdapter(arbitrumGatewayRouter)
         GnosisOmnibridgeAdapter(
             localDomain,
@@ -255,6 +254,8 @@ contract Repayer is
             );
         } else
         if (provider == Provider.GNOSIS_OMNIBRIDGE) {
+            // When bridging USDC to Gnosis, we must bridge to self to swap USDCxDAI on Gnosis through process().
+            // It is the Repayment Service responsibility to specify Repayer itself as destination explicitly.
             initiateTransferGnosisOmnibridge(token, amount, destinationPool, destinationDomain, DOMAIN);
         } else
         if (provider == Provider.USDT0) {
@@ -276,9 +277,12 @@ contract Repayer is
             amount = processTransferCCTPV2(ASSETS, destinationPool, extraData);
         } else
         if (provider == Provider.GNOSIS_OMNIBRIDGE) {
-            (token, amount) = processTransferGnosisOmnibridge(destinationPool, extraData);
+            (token, amount) = processTransferGnosisOmnibridge(address(this), DOMAIN, extraData);
             if (!_getStorage().poolSupportsAllTokens[destinationPool]) {
                 require(token == ASSETS, InvalidToken());
+            }
+            if (destinationPool != address(this)) {
+                token.safeTransfer(destinationPool, amount);
             }
         } else {
             revert UnsupportedProvider();

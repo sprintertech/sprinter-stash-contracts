@@ -5,6 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {IOracle} from "./interfaces/IOracle.sol";
 import {IProcessor} from "./interfaces/IProcessor.sol";
+import {ORACLE_PRECISION} from "./utils/Constants.sol";
 
 /// @title Netter — nets two Processor balances against each other at oracle fair value.
 /// @notice Instead of selling tokens on the open market, two processors can swap their
@@ -48,9 +49,8 @@ contract Netter is AccessControl {
         IERC20 assetA = processorA.TARGET_ASSET();
         IERC20 assetB = processorB.TARGET_ASSET();
 
-        uint256 precision = 10**12;
-        uint256 valueA = ORACLE.getAssetValue(_toAssetId(assetA), amountFromB * precision);
-        uint256 valueB = ORACLE.getAssetValue(_toAssetId(assetB), amountFromA * precision);
+        uint256 valueA = ORACLE.getAssetValue(_toAssetId(assetA), amountFromB * ORACLE_PRECISION);
+        uint256 valueB = ORACLE.getAssetValue(_toAssetId(assetB), amountFromA * ORACLE_PRECISION);
         require(valueA == valueB, ValuesNotEqual());
 
         processorA.forwardAmount(assetB, amountFromA);

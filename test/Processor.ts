@@ -400,6 +400,18 @@ describe("Processor", function () {
     ).to.revertedWithCustomError(processor, "ZeroAmount");
   });
 
+  it("Should revert process4626 when vault asset() differs from TARGET_ASSET", async function () {
+    const {deployer, caller, tokenIn, processor} = await loadFixture(deployAll);
+
+    const wrongVault = (await deploy(
+      "Test4626", deployer, {}, tokenIn, "Wrong4626", "wVault",
+    )) as Test4626;
+
+    await expect(
+      processor.connect(caller).process4626(wrongVault, 1n, 1n, [])
+    ).to.revertedWithCustomError(processor, "InvalidTokenIn");
+  });
+
   it("Should verify that SubProcessor can receive native token", async function () {
     const {deployer, processor} = await loadFixture(deployAll);
 
@@ -534,7 +546,7 @@ describe("Processor", function () {
   });
 
   describe("process", function () {
-    it("reverts when oracle is zero address", async function () {
+    it("reverts with OracleNotConfigured when oracle is zero address", async function () {
       const {deployer, admin, caller, config, usdc, tokenIn, receiver} = await loadFixture(deployAll);
 
       const zeroOracleImpl = (await deploy("Processor", deployer, {}, usdc, receiver, ZERO_ADDRESS)) as Processor;
@@ -547,10 +559,9 @@ describe("Processor", function () {
       await tokenIn.mint(zeroOracleProcessor, 100_000000n);
       const deadline = 2000000000n;
 
-      // Calling getAssetValue on address(0) reverts — ABI decoder fails on empty return data
       await expect(
         zeroOracleProcessor.connect(caller).process(tokenIn, 100_000000n, 97_000000n, deadline, "0x", [])
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(zeroOracleProcessor, "OracleNotConfigured");
     });
 
     it("forwards TARGET_ASSET to RECEIVER and emits Processed", async function () {

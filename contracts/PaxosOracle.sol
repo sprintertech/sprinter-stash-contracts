@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IOracle} from "./interfaces/IOracle.sol";
+import {ORACLE_PRECISION} from "./utils/Constants.sol";
 
 /// @title Oracle valuing Paxos-issued stablecoins (USDG, PYUSD) at a hardcoded 1:1 ratio to USDC.
 /// @author Sprinter
@@ -38,6 +39,7 @@ contract PaxosOracle is IOracle, AccessControl {
     error AssetAlreadySupported(bytes32 assetId);
     error AssetNotSupported(bytes32 assetId);
     error DecimalsTooLarge(uint8 decimals);
+    error UnsupportedUSDCDecimals(uint8 decimals);
 
     /// @param admin Super-admin able to add/remove supported stablecoins.
     /// @param usdc Address of the USDC token, used as the value denomination (its decimals).
@@ -48,6 +50,7 @@ contract PaxosOracle is IOracle, AccessControl {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         USDC = IERC20Metadata(usdc);
         USDC_DECIMALS = IERC20Metadata(usdc).decimals();
+        require(10**USDC_DECIMALS*ORACLE_PRECISION >= 10**MAX_DECIMALS, UnsupportedUSDCDecimals(USDC_DECIMALS));
         for (uint256 i = 0; i < initialAssets.length; ++i) {
             _addAsset(initialAssets[i].assetId, initialAssets[i].decimals);
         }

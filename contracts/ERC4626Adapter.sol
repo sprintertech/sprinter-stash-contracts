@@ -44,6 +44,7 @@ contract ERC4626Adapter is ILiquidityPoolBase, AccessControlUpgradeable {
     error ExpectedPause();
     error NoProfit();
     error InvalidToken();
+    error InsufficientAmount();
 
     constructor(address assets, address targetVault) {
         ERC7201Helper.validateStorageLocation(STORAGE_LOCATION, "sprinter.storage.ERC4626Adapter");
@@ -131,7 +132,8 @@ contract ERC4626Adapter is ILiquidityPoolBase, AccessControlUpgradeable {
 
     function _deposit(address caller, uint256 amount) private {
         ASSETS.forceApprove(address(TARGET_VAULT), amount);
-        TARGET_VAULT.deposit(amount, address(this));
+        uint256 shares = TARGET_VAULT.deposit(amount, address(this));
+        require(shares > 0, InsufficientAmount());
         _getStorage().totalDeposited += amount;
         emit Deposit(caller, amount);
     }

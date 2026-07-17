@@ -8,7 +8,7 @@ import {
 } from "./helpers";
 import {addressToBytes32, ZERO_ADDRESS, DEFAULT_ADMIN_ROLE} from "../scripts/common";
 import {
-  TestUSDC, TestWETH, PaxosOracle,
+  TestUSDC, TestUSDC5, TestWETH, PaxosOracle,
 } from "../typechain-types";
 
 describe("PaxosOracle", function () {
@@ -159,5 +159,16 @@ describe("PaxosOracle", function () {
       .to.be.revertedWithCustomError(factory, "ZeroAddress");
     await expect(factory.deploy(admin.address, usdc.target, [usdgAsset, usdgAsset]))
       .to.be.revertedWithCustomError(factory, "AssetAlreadySupported");
+  });
+
+  it("Should revert deployment if USDC has 5 or fewer decimals", async function () {
+    const {deployer, admin} = await loadFixture(deployAll);
+
+    const factory = await hre.ethers.getContractFactory("PaxosOracle", deployer);
+    const usdc5 = (await hre.ethers.deployContract("TestUSDC5", deployer)) as TestUSDC5;
+
+    await expect(factory.deploy(admin.address, usdc5.target, []))
+      .to.be.revertedWithCustomError(factory, "UnsupportedUSDCDecimals")
+      .withArgs(5n);
   });
 });

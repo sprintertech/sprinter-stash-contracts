@@ -14,8 +14,6 @@ abstract contract USDT0Adapter is LayerZeroHelper {
     /// On all other chains it is an OUpgradeable (burns/mints USDT0 directly — no approval needed).
     IOFT immutable public USDT0_OFT;
 
-    error InvalidToken();
-
     event USDT0Transfer(address token, address receiver, uint32 dstEid, uint256 amount);
 
     constructor(address usdt0Oft) {

@@ -1,7 +1,7 @@
 import {
   loadFixture, setBalance, setCode
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import {expect} from "chai";
+import {assert, expect} from "chai";
 import hre from "hardhat";
 import {AbiCoder} from "ethers";
 import {
@@ -134,7 +134,9 @@ describe("Repayer", function () {
         {
           inputToken: dai,
           destinationTokens: [
-            destinationToken(Domain.ARBITRUM_ONE, addressToBytes32(networkConfig.ARBITRUM_ONE.Tokens.DAI!.Address))
+            destinationToken(Domain.ARBITRUM_ONE, addressToBytes32(networkConfig.ARBITRUM_ONE.Tokens.DAI!.Address)),
+            destinationToken(Domain.OP_MAINNET, addressToBytes32(networkConfig.OP_MAINNET.Tokens.DAI!.Address)),
+            destinationToken(Domain.BASE, addressToBytes32(networkConfig.BASE.Tokens.DAI!.Address)),
           ]
         },
         {
@@ -172,27 +174,29 @@ describe("Repayer", function () {
   };
 
   it("Should allow repayer to initiate Optimism repay on fork", async function () {
-    const {repayer, USDC_DEC, usdc, repayUser, liquidityPool, optimismStandardBridge} = await loadFixture(deployAll);
+    const {repayer, dai, repayUser, liquidityPool, optimismStandardBridge} = await loadFixture(deployAll);
 
-    assertAddress(process.env.USDC_OWNER_ETH_ADDRESS, "Env variables not configured (USDC_OWNER_ETH_ADDRESS missing)");
-    const USDC_OWNER_ETH_ADDRESS = process.env.USDC_OWNER_ETH_ADDRESS;
-    const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ETH_ADDRESS);
-    await setBalance(USDC_OWNER_ETH_ADDRESS, 10n ** 18n);
+    assertAddress(process.env.DAI_OWNER_ETH_ADDRESS, "Env variables not configured (DAI_OWNER_ETH_ADDRESS missing)");
+    assert(networkConfig.OP_MAINNET.Tokens.DAI, "DAI is not configured for OP_MAINNET config");
+    assertAddress(networkConfig.OP_MAINNET.Tokens.DAI.Address, "DAI is not configured for OP_MAINNET config");
+    const DAI_OWNER_ETH_ADDRESS = process.env.DAI_OWNER_ETH_ADDRESS;
+    const daiOwner = await hre.ethers.getImpersonatedSigner(DAI_OWNER_ETH_ADDRESS);
+    await setBalance(DAI_OWNER_ETH_ADDRESS, 10n ** 18n);
 
     expect(await repayer.OPTIMISM_STANDARD_BRIDGE())
       .to.equal(optimismStandardBridge.target);
 
-    await usdc.connect(usdcOwner).transfer(repayer, 10n * USDC_DEC);
+    await dai.connect(daiOwner).transfer(repayer, 10n * ETH);
 
-    const amount = 4n * USDC_DEC;
-    const outputToken = networkConfig.OP_MAINNET.Tokens.USDC.Address;
+    const amount = 4n * ETH;
+    const outputToken = networkConfig.OP_MAINNET.Tokens.DAI.Address;
     const minGasLimit = 100000n;
     const extraData = AbiCoder.defaultAbiCoder().encode(
       ["address", "uint32", "bytes"],
       [outputToken, minGasLimit, "0x1234"]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc,
+      dai,
       amount,
       liquidityPool,
       Domain.OP_MAINNET,
@@ -201,14 +205,14 @@ describe("Repayer", function () {
     );
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")
-      .withArgs(usdc.target, amount, liquidityPool.target, Domain.OP_MAINNET, Provider.SUPERCHAIN_STANDARD_BRIDGE);
+      .withArgs(dai.target, amount, liquidityPool.target, Domain.OP_MAINNET, Provider.SUPERCHAIN_STANDARD_BRIDGE);
     await expect(tx)
-      .to.emit(usdc, "Transfer")
+      .to.emit(dai, "Transfer")
       .withArgs(repayer.target, optimismStandardBridge.target, amount);
     await expect(tx)
       .to.emit(optimismStandardBridge, "ERC20BridgeInitiated")
       .withArgs(
-        usdc,
+        dai,
         outputToken,
         repayer,
         liquidityPool,
@@ -252,27 +256,29 @@ describe("Repayer", function () {
   });
 
   it("Should allow repayer to initiate Base repay on fork", async function () {
-    const {repayer, USDC_DEC, usdc, repayUser, liquidityPool, baseStandardBridge} = await loadFixture(deployAll);
+    const {repayer, dai, repayUser, liquidityPool, baseStandardBridge} = await loadFixture(deployAll);
 
-    assertAddress(process.env.USDC_OWNER_ETH_ADDRESS, "Env variables not configured (USDC_OWNER_ETH_ADDRESS missing)");
-    const USDC_OWNER_ETH_ADDRESS = process.env.USDC_OWNER_ETH_ADDRESS;
-    const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ETH_ADDRESS);
-    await setBalance(USDC_OWNER_ETH_ADDRESS, 10n ** 18n);
+    assertAddress(process.env.DAI_OWNER_ETH_ADDRESS, "Env variables not configured (DAI_OWNER_ETH_ADDRESS missing)");
+    assert(networkConfig.BASE.Tokens.DAI, "DAI is not configured for BASE config");
+    assertAddress(networkConfig.BASE.Tokens.DAI.Address, "DAI is not configured for BASE config");
+    const DAI_OWNER_ETH_ADDRESS = process.env.DAI_OWNER_ETH_ADDRESS;
+    const daiOwner = await hre.ethers.getImpersonatedSigner(DAI_OWNER_ETH_ADDRESS);
+    await setBalance(DAI_OWNER_ETH_ADDRESS, 10n ** 18n);
 
     expect(await repayer.BASE_STANDARD_BRIDGE())
       .to.equal(baseStandardBridge.target);
 
-    await usdc.connect(usdcOwner).transfer(repayer, 10n * USDC_DEC);
+    await dai.connect(daiOwner).transfer(repayer, 10n * ETH);
 
-    const amount = 4n * USDC_DEC;
-    const outputToken = networkConfig.BASE.Tokens.USDC.Address;
+    const amount = 4n * ETH;
+    const outputToken = networkConfig.BASE.Tokens.DAI.Address;
     const minGasLimit = 100000n;
     const extraData = AbiCoder.defaultAbiCoder().encode(
       ["address", "uint32", "bytes"],
       [outputToken, minGasLimit, "0x1234"]
     );
     const tx = repayer.connect(repayUser).initiateRepay(
-      usdc,
+      dai,
       amount,
       liquidityPool,
       Domain.BASE,
@@ -281,14 +287,14 @@ describe("Repayer", function () {
     );
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")
-      .withArgs(usdc.target, amount, liquidityPool.target, Domain.BASE, Provider.SUPERCHAIN_STANDARD_BRIDGE);
+      .withArgs(dai.target, amount, liquidityPool.target, Domain.BASE, Provider.SUPERCHAIN_STANDARD_BRIDGE);
     await expect(tx)
-      .to.emit(usdc, "Transfer")
+      .to.emit(dai, "Transfer")
       .withArgs(repayer.target, baseStandardBridge.target, amount);
     await expect(tx)
       .to.emit(baseStandardBridge, "ERC20BridgeInitiated")
       .withArgs(
-        usdc,
+        dai,
         outputToken,
         repayer,
         liquidityPool,

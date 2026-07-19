@@ -9,7 +9,7 @@ import {
   logDeployers,
 } from "./helpers";
 import {createSender} from "./safe";
-import {getDeployProxyXAddress, resolveProxyXAddress, resolveXAddress} from "../test/helpers";
+import {resolveProxyXAddress, resolveXAddress} from "../test/helpers";
 import {isSet, assert, assertAddress} from "./common";
 import {StashDexProcessor} from "../typechain-types";
 import {Network, NetworkConfig, Token} from "../network.config";
@@ -43,12 +43,12 @@ export async function main() {
   assert(config.StashDex, "StashDex must be in config");
 
   const id = `StashDexProcessor${targetAsset}`;
-  const processorAddress = await getDeployProxyXAddress(id);
-  const stashDexAddress = await resolveProxyXAddress("StashStablecoinDex");
+  const processorAddress = await resolveProxyXAddress(id);
+  const repayerAddress = await resolveProxyXAddress("Repayer");
   const oracleAddress = await resolveXAddress(config.StashDex.Oracle);
 
   console.log(`${id} proxy: ${processorAddress}`);
-  console.log(`StashDex: ${stashDexAddress}`);
+  console.log(`Receiver(Repayer): ${repayerAddress}`);
   console.log(`Oracle: ${oracleAddress}`);
   console.log(`Processor token: ${tokenInfo.Address}`);
 
@@ -57,7 +57,7 @@ export async function main() {
     processorAddress,
     "StashDexProcessor",
     sender,
-    [tokenInfo.Address, stashDexAddress, oracleAddress],
+    [tokenInfo.Address, repayerAddress, oracleAddress],
     id,
   );
 

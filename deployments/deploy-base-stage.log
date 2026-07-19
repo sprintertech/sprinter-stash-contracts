@@ -175,3 +175,19 @@ Threshold met (1/1). Executing on-chain...
 Executed. On-chain TX hash: 0xa22750d8fae5003e73537e96c99a965ba1b39113edf252eb98f153704bcb2403
 0xa22750d8fae5003e73537e96c99a965ba1b39113edf252eb98f153704bcb2403
 Rebalancer upgraded.
+
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Deployment ID: MVP
+Upgrade ID: AUDIT_5
+Upgrading Liquidity Hub
+Using config for: stage, BASE
+Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+Liquidity Pool: 0x4e13849d29a9a7A200196DC16722ddeb67b6e769
+New LiquidityHub implementation deployed to 0xc244E517473bcf393d37E89F135437558c952B64
+Sending LiquidityHub upgrade transaction.
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0x8885133c90a512bb6276c066cdb25588d725ed634bf0e49f9e8f115c26ea118e
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0xbe3c979c400b4a1ec455070765bc70b3860ba119dca5fe1114cca0b4b0a0fb56
+0xbe3c979c400b4a1ec455070765bc70b3860ba119dca5fe1114cca0b4b0a0fb56
+LiquidityHub upgraded.

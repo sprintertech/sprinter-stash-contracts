@@ -151,3 +151,18 @@ Threshold met (1/1). Executing on-chain...
 Executed. On-chain TX hash: 0xb619d0610b1df927ad1222c194c480c99432d55717348c92580166bd621716d5
 0xb619d0610b1df927ad1222c194c480c99432d55717348c92580166bd621716d5
 Rebalancer upgraded.
+
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Deployment ID: MVP
+Upgrade ID: AUDIT_5
+Upgrading LiquidityPoolAaveUSDC
+Using config for: stage, GNOSIS_CHAIN
+Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+New LiquidityPoolAave implementation deployed to 0x8A7656C253A3819D6B4A877625e6903fc23cF973
+Sending LiquidityPoolAave upgrade transaction.
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0x263cea729afa23b55386ca0b48fb2028a8e10e590fbd4f3f18b279813808eeeb
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0xd0af832255fe69608ff2f5bb89bf049c12b58d9e47c07f359e3371526c82ff1e
+0xd0af832255fe69608ff2f5bb89bf049c12b58d9e47c07f359e3371526c82ff1e
+LiquidityPoolAave upgraded.

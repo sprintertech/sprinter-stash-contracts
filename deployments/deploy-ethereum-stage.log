@@ -603,3 +603,18 @@ Threshold met (1/1). Executing on-chain...
 Executed. On-chain TX hash: 0x2c2cbd1f3ce387ebb554632ea90cec53d5d61073f443d7dd4fa5e6987c7d944f
 0x2c2cbd1f3ce387ebb554632ea90cec53d5d61073f443d7dd4fa5e6987c7d944f
 Rebalancer upgraded.
+
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Deployment ID: MVP
+Upgrade ID: AUDIT_5
+Upgrading LiquidityPoolAaveUSDC
+Using config for: stage, ETHEREUM
+Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+New LiquidityPoolAave implementation deployed to 0x8A7656C253A3819D6B4A877625e6903fc23cF973
+Sending LiquidityPoolAave upgrade transaction.
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0xe7f6cde5a95e35d83aeb38eabced076cb28947d84d072b6506f89660e8f497ce
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0x494b60a4239aef39c7de855ee43d16d321f065aa3816822411d48bda0f826224
+0x494b60a4239aef39c7de855ee43d16d321f065aa3816822411d48bda0f826224
+LiquidityPoolAave upgraded.

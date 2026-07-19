@@ -169,8 +169,11 @@ export class SafeSigner extends AbstractSigner {
       const execResult = await retry(() => this.protocolKit.executeTransaction(signedTx), 3000);
       const txHash = execResult.hash;
       console.log(`Executed. On-chain TX hash: ${txHash}`);
-      const response = await retry(() => this.provider!.getTransaction(txHash), 5000);
-      assert(response, `Could not fetch transaction ${txHash}`);
+      const response = await retry(async () => {
+        const result = await this.provider!.getTransaction(txHash);
+        assert(result, `Could not fetch transaction ${txHash}`);
+        return result;
+      }, 5000);
       return response;
     }
 

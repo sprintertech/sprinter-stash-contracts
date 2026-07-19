@@ -149,3 +149,33 @@ To finalize upgrade send the following transaction from ProxyAdmin owner: 0xA8ee
 To: 0xcB33De00942f1004F59B2346d3891864DecEF14C
 Value: 0
 Data: 0x9623609d00000000000000000000000034df9cd75fa0b4d8ff300aedf7591f79dfdd61c9000000000000000000000000c00332d2f359edd3dcab6cea252d40d95ba5834500000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000
+
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Deployment ID: MVP
+Upgrade ID: AUDIT_5
+Upgrading Repayer
+Using config for: stage, UNICHAIN
+Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+New Repayer implementation deployed to 0x08Eaa4F8eB7477fd0a6a3ebF19B87714B980Be9F
+Sending Repayer upgrade transaction.
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0x9a1864d3397bb0f74cdd8913b92115d17848a87170721c149430424355aa862d
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0x74ba76d994eb5c10364c5f43a0933ffaec370bed47eef9f4bfb3f8ea92e3e5de
+0x74ba76d994eb5c10364c5f43a0933ffaec370bed47eef9f4bfb3f8ea92e3e5de
+Repayer upgraded.
+
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Deployment ID: MVP
+Upgrade ID: AUDIT_5
+Upgrading Rebalancer
+Using config for: stage, UNICHAIN
+Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+New Rebalancer implementation deployed to 0xbE53e670b109Ed7Ff07a9a469Ef127Db83427016
+Sending Rebalancer upgrade transaction.
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0x913e4b9d5ebf6262f7e42c8b334489c45c976e7b4f782fcd215c91af3222d805
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0x408c7975da10017b38eaac804ac66934eaa85ab1e7a46df97105f627c949a170
+0x408c7975da10017b38eaac804ac66934eaa85ab1e7a46df97105f627c949a170
+Rebalancer upgraded.

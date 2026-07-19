@@ -105,6 +105,8 @@
     "upgrade-rebalancer-polygon-stage": "DEPLOY_TYPE=STAGE hardhat run ./scripts/upgradeRebalancer.ts --network POLYGON_MAINNET",
     "upgrade-rebalancer-unichain": "hardhat run ./scripts/upgradeRebalancer.ts --network UNICHAIN",
     "upgrade-rebalancer-unichain-stage": "DEPLOY_TYPE=STAGE hardhat run ./scripts/upgradeRebalancer.ts --network UNICHAIN",
+    "upgrade-rebalancer-gnosis": "hardhat run ./scripts/upgradeRebalancer.ts --network GNOSIS_CHAIN",
+    "upgrade-rebalancer-gnosis-stage": "DEPLOY_TYPE=STAGE hardhat run ./scripts/upgradeRebalancer.ts --network GNOSIS_CHAIN",
     "upgrade-repayer-basesepolia": "hardhat run ./scripts/upgradeRepayer.ts --network BASE_SEPOLIA",
     "upgrade-repayer-base": "hardhat run ./scripts/upgradeRepayer.ts --network BASE",
     "upgrade-repayer-ethereum": "hardhat run ./scripts/upgradeRepayer.ts --network ETHEREUM",

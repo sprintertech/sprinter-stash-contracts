@@ -171,6 +171,7 @@ type DeployXFunction = (
   txParams: object,
   params: any[],
   id: string,
+  contractVerificationName?: string,
 ) => Promise<BaseContract>;
 
 export async function deployProxyX<ContractType extends Initializable>(
@@ -183,9 +184,10 @@ export async function deployProxyX<ContractType extends Initializable>(
   id: string = contractName,
   verifier?: Verifier,
   contractsDeployedInInit: number = 0,
+  contractVerificationName?: string,
 ): Promise<{target: ContractType; targetAdmin: ProxyAdmin;}> {
   const targetImpl = (
-    await deployFunc(contractName, deployer, {}, contructorArgs, "Implementation" + id)
+    await deployFunc(contractName, deployer, {}, contructorArgs, "Implementation" + id, contractVerificationName)
   ) as ContractType;
   const targetInit = (await targetImpl.initialize.populateTransaction(...initArgs)).data;
   const targetProxy = (await deployFunc(
@@ -207,9 +209,10 @@ export async function upgradeProxyX<ContractType extends Initializable>(
   deployer: Signer,
   contructorArgs: any[] = [],
   id: string = contractName,
+  contractVerificationName?: string,
 ): Promise<{target?: ContractType; txRequired: boolean}> {
   const targetImpl = (
-    await deployFunc(contractName, deployer, {}, contructorArgs, "Implementation" + id)
+    await deployFunc(contractName, deployer, {}, contructorArgs, "Implementation" + id, contractVerificationName)
   ) as ContractType;
   console.log(`New ${contractName} implementation deployed to ${await resolveAddress(targetImpl)}`);
   const targetAdmin = await getProxyXAdmin(await resolveAddress(proxyAddress), deployer);

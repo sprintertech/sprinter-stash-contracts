@@ -618,3 +618,97 @@ Threshold met (1/1). Executing on-chain...
 Executed. On-chain TX hash: 0x494b60a4239aef39c7de855ee43d16d321f065aa3816822411d48bda0f826224
 0x494b60a4239aef39c7de855ee43d16d321f065aa3816822411d48bda0f826224
 LiquidityPoolAave upgraded.
+
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Deployment ID: MVP
+Upgrade ID: AUDIT_5
+Upgrading USDC StashDex Processor
+Using config for: stage, ETHEREUM
+Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+StashDexProcessorUSDC proxy: 0xF278c2A62EfcF3b6C39D7235F4BbA2Fcb5e64901
+Receiver(Repayer): 0x697ECA1cae710FA0348e2173900e6C09b180C35b
+Oracle: 0x4666013984fD7a624aa8BFADD0E95456870dADEc
+Processor token: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+New StashDexProcessor implementation deployed to 0x64E0aE458b5116416AD19ebCeCeDBbBF7f1b6248
+Sending StashDexProcessor upgrade transaction.
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0x7e825e9a2ba11e0546674cdab5bb8875784b376e7179297359d10d0e24475cce
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0x82621dd4950ee64539fa112fb88aba992d5778b221e3158b6317a335575c5ef1
+0x82621dd4950ee64539fa112fb88aba992d5778b221e3158b6317a335575c5ef1
+StashDexProcessor upgraded.
+
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Deployment ID: MVP
+Upgrade ID: AUDIT_5
+Upgrading USDG StashDex Processor
+Using config for: stage, ETHEREUM
+Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+StashDexProcessorUSDG proxy: 0xAB181d2543d91d21768087c9d6792A82184110A4
+Receiver(Repayer): 0x697ECA1cae710FA0348e2173900e6C09b180C35b
+Oracle: 0x4666013984fD7a624aa8BFADD0E95456870dADEc
+Processor token: 0xe343167631d89B6Ffc58B88d6b7fB0228795491D
+New StashDexProcessor implementation deployed to 0x9476b3b5F8740D5ee4958C9Bc95d7A81bF6C7eC2
+Sending StashDexProcessor upgrade transaction.
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0xfe686d4bb4447bd68f9d3e5dae1fef9c4713bd0eb28c368ee79e05c1bd9c1413
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0x07c7376643da24460d3c1bf86364e531cef46d7fe3f9457d2453c73b6d4b278d
+0x07c7376643da24460d3c1bf86364e531cef46d7fe3f9457d2453c73b6d4b278d
+StashDexProcessor upgraded.
+
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Deployment ID: MVP
+Upgrade ID: AUDIT_5
+Upgrading USDT StashDex Processor
+Using config for: stage, ETHEREUM
+Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+StashDexProcessorUSDT proxy: 0xA0cE5326f2144804E75a72108231D56DE63ba0c5
+Receiver(Repayer): 0x697ECA1cae710FA0348e2173900e6C09b180C35b
+Oracle: 0x4666013984fD7a624aa8BFADD0E95456870dADEc
+Processor token: 0xdAC17F958D2ee523a2206206994597C13D831ec7
+New StashDexProcessor implementation deployed to 0xe153970c579Dd2F9C025CE4E46951D76daf48779
+Sending StashDexProcessor upgrade transaction.
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0x9ee58c8c61984883f3f4ed57e1aa0611b324250363a9c6af1cfee2493f29a0f4
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0xf34055d62da133565b98411dddf167a2418de2400a23942f7f131aaff3200e49
+0xf34055d62da133565b98411dddf167a2418de2400a23942f7f131aaff3200e49
+StashDexProcessor upgraded.
+
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Deployment ID: MVP
+Upgrade ID: AUDIT_5
+Upgrading PYUSD StashDex Processor
+Using config for: stage, ETHEREUM
+Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+StashDexProcessorPYUSD proxy: 0xa88Ca4702797BE89b0E4D2Fa0180477352cca250
+Receiver(Repayer): 0x697ECA1cae710FA0348e2173900e6C09b180C35b
+Oracle: 0x4666013984fD7a624aa8BFADD0E95456870dADEc
+Processor token: 0x6c3ea9036406852006290770BEdFcAbA0e23A0e8
+New StashDexProcessor implementation deployed to 0xC9c27Fe14E582D8C74d694C16DCcE1F546f5E3A0
+Sending StashDexProcessor upgrade transaction.
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0x5dd5b6f853d650749eb2a65b324488ecf86d4292b82d5f61ece8ff6e128a492b
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0x7476fec4d75a83a62f9c50548d844fc4d3c3ef9888761f58d0c066b7a41d76ba
+0x7476fec4d75a83a62f9c50548d844fc4d3c3ef9888761f58d0c066b7a41d76ba
+StashDexProcessor upgraded.
+
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Deployment ID: MVP
+Upgrade ID: AUDIT_5
+Upgrading StashDex
+Using config for: stage, ETHEREUM
+Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+StashStablecoinDex proxy: 0x125Bf891F832c3A1422E24f4Ca7ef314c0858740
+Oracle: 0x4666013984fD7a624aa8BFADD0E95456870dADEc
+Receiver: 0x697ECA1cae710FA0348e2173900e6C09b180C35b
+New StashDex implementation deployed to 0x627c03FDEeEe973907aA5B9a8A43B3daF9f1E66D
+Sending StashDex upgrade transaction.
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0xd336c3443c089fcb8771abf2d07de12e01e86e0d17eea4133c1c49c06770570d
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0xf835ec6638f995b803827e8ab4da3158f2be417947754e2dcbe1c079ed7ef3ee
+0xf835ec6638f995b803827e8ab4da3158f2be417947754e2dcbe1c079ed7ef3ee
+StashDex upgraded.

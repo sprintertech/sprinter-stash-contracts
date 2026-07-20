@@ -9,8 +9,8 @@ import {
   logDeployers,
 } from "./helpers";
 import {createSender} from "./safe";
-import {resolveProxyXAddress, resolveXAddress} from "../test/helpers";
-import {isSet, assert, assertAddress} from "./common";
+import {getContractAt, resolveProxyXAddress, resolveXAddress} from "../test/helpers";
+import {isSet, assert, assertAddress, sameAddress} from "./common";
 import {StashDexProcessor} from "../typechain-types";
 import {Network, NetworkConfig, Token} from "../network.config";
 
@@ -46,7 +46,9 @@ export async function main() {
   const processorAddress = await resolveProxyXAddress(id);
   const repayerAddress = await resolveProxyXAddress("Repayer");
   const oracleAddress = await resolveXAddress(config.StashDex.Oracle);
+  const processor = (await getContractAt("StashDexProcessor", processorAddress)) as StashDexProcessor;
 
+  assert(sameAddress(tokenInfo.Address, await processor.TARGET_ASSET()), "Target asset mismatch");
   console.log(`${id} proxy: ${processorAddress}`);
   console.log(`Receiver(Repayer): ${repayerAddress}`);
   console.log(`Oracle: ${oracleAddress}`);
@@ -59,6 +61,7 @@ export async function main() {
     sender,
     [tokenInfo.Address, repayerAddress, oracleAddress],
     id,
+    "contracts/StashDexProcessor.sol:StashDexProcessor",
   );
 
   await verifier.verify(process.env.VERIFY === "true");

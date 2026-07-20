@@ -11,7 +11,7 @@ import {
   sleep, assert, assertAddress, DomainSolidity, addressToBytes32, bytes32ToToken, SolidityDomain
 } from "./common";
 import {
-  networkConfig, Network, NetworkConfig, StandaloneRepayerEnv, StandaloneRepayerConfig,
+  prodNetworkConfig, stageNetworkConfig, Network, NetworkConfig, StandaloneRepayerEnv, StandaloneRepayerConfig,
   repayerConfig, DEFAULT_PROXY_TYPE,
   Provider,
   LiquidityPoolAaveUSDCVersions,
@@ -314,28 +314,15 @@ export async function addLocalPools(
   }
 }
 
-export function getNetworkConfigsForCurrentEnv(config: NetworkConfig): PartialNetworksConfig {
-  const networkConfigs: PartialNetworksConfig = {};
-  let isTest = false;
-  let isStage = false;
-  if (config.IsTest) {
-    isTest = true;
-  } else if (process.env.DEPLOY_TYPE === "STAGE") {
-    isStage = true;
+export function getNetworkConfigsForCurrentEnv(): PartialNetworksConfig {
+  if (process.env.DEPLOY_TYPE === "STAGE") {
+    return stageNetworkConfig;
   }
-  for (const network of Object.values(Network)) {
-    if (isTest === networkConfig[network].IsTest) {
-      networkConfigs[network] = networkConfig[network];
-    }
-    if (isStage && networkConfig[network].Stage) {
-      networkConfigs[network] = networkConfig[network].Stage;
-    }
-  }
-  return networkConfigs;
+  return prodNetworkConfig;
 }
 
 export function getInputOutputTokens(network: Network, config: NetworkConfig) {
-  const envConfigs = getNetworkConfigsForCurrentEnv(config);
+  const envConfigs = getNetworkConfigsForCurrentEnv();
   const inputOutputTokens: Repayer.InputOutputTokenStruct[] = [];
   for (const [tokenSymbol, token] of Object.entries(config.Tokens) as [Token, TokenInfo][]) {
     const inputToken: Repayer.InputOutputTokenStruct = {
@@ -386,10 +373,10 @@ export async function getNetworkConfig() {
   if (hre.network.name === "hardhat" && Object.values(Network).includes(process.env.DRY_RUN as Network)) {
     message += "dry run, ";
     network = process.env.DRY_RUN as Network;
-    config = networkConfig[network];
+    config = prodNetworkConfig[network];
   } else if (Object.values(Network).includes(hre.network.name as Network)) {
     network = hre.network.name as Network;
-    config = networkConfig[network];
+    config = prodNetworkConfig[network];
   }
   if (config! && network!) {
     if (process.env.DEPLOY_TYPE === "STAGE") {
@@ -398,9 +385,9 @@ export async function getNetworkConfig() {
         `DEPLOYER_ADDRESS(${process.env.DEPLOYER_ADDRESS}) must match
          STAGE_DEPLOYER_ADDRESS(${process.env.STAGE_DEPLOYER_ADDRESS})`
       );
-      assert(config.Stage, "Stage config must be defined");
+      assert(stageNetworkConfig[network], "Stage config must be defined");
       message += "stage, ";
-      config = config.Stage;
+      config = stageNetworkConfig[network]!;
     } else {
       assert(
         process.env.DEPLOYER_ADDRESS !== process.env.STAGE_DEPLOYER_ADDRESS,
@@ -418,7 +405,7 @@ export async function getHardhatNetworkConfig() {
   const network = Network.BASE;
   const [deployer, opsAdmin, superAdmin, mpc] = await hre.ethers.getSigners();
   process.env.DEPLOYER_ADDRESS = await resolveAddress(deployer);
-  const config = networkConfig[network];
+  const config = prodNetworkConfig[network];
   config.ChainId = 31337;
   assert(config.Hub, "Hub must be in config");
   config.Hub.AssetsAdjuster = superAdmin.address;

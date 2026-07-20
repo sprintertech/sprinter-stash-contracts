@@ -59,7 +59,7 @@ export async function main() {
   if (!config.USDT0OFT) config.USDT0OFT = ZERO_ADDRESS;
 
   const repayerAddress = await getDeployProxyXAddress("Repayer");
-  const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
+  const repayerVersion = "Repayer";
 
   await upgradeProxyX<Repayer>(
     verifier.deployX,

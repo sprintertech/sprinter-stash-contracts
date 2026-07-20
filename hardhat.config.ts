@@ -1,7 +1,7 @@
 import {HardhatUserConfig, task, types} from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import {
-  networkConfig, Network, Provider, Token,
+  prodNetworkConfig as networkConfig, Network, Provider, Token,
 } from "./network.config";
 import {TypedDataDomain, AbiCoder, toNumber, dataSlice, getAddress, parseEther} from "ethers";
 import {
@@ -1153,26 +1153,6 @@ const config: HardhatUserConfig = {
       url: process.env.AVALANCHE_RPC || "https://avalanche-c-chain-rpc.publicnode.com",
       accounts,
     },
-    [Network.BASE_SEPOLIA]: {
-      chainId: networkConfig.BASE_SEPOLIA.ChainId,
-      url: process.env.BASE_SEPOLIA_RPC || "https://sepolia.base.org",
-      accounts,
-    },
-    [Network.ETHEREUM_SEPOLIA]: {
-      chainId: networkConfig.ETHEREUM_SEPOLIA.ChainId,
-      url: process.env.ETHEREUM_SEPOLIA_RPC || "",
-      accounts,
-    },
-    [Network.ARBITRUM_SEPOLIA]: {
-      chainId: networkConfig.ARBITRUM_SEPOLIA.ChainId,
-      url: process.env.ARBITRUM_SEPOLIA_RPC || "https://sepolia-rollup.arbitrum.io/rpc",
-      accounts,
-    },
-    [Network.OP_SEPOLIA]: {
-      chainId: networkConfig.OP_SEPOLIA.ChainId,
-      url: process.env.OP_SEPOLIA_RPC || "https://sepolia.optimism.io",
-      accounts,
-    },
     [Network.BASE]: {
       chainId: networkConfig.BASE.ChainId,
       url: process.env.BASE_RPC || "https://base-mainnet.public.blastapi.io",
@@ -1280,14 +1260,6 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY || "",
     customChains: [
-      {
-        network: "opSepolia",
-        chainId: networkConfig.OP_SEPOLIA.ChainId,
-        urls: {
-          apiURL: "https://api-sepolia-optimism.etherscan.io/api",
-          browserURL: "https://sepolia-optimism.etherscan.io"
-        },
-      },
       {
         network: "unichain",
         chainId: networkConfig.UNICHAIN.ChainId,

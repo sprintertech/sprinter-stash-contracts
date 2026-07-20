@@ -18,7 +18,7 @@ import {
   TestCCTPV2TokenMessenger, TestCCTPV2MessageTransmitter,
   TestGnosisOmnibridge, TestGnosisAMB, TestUSDCTransmuter,
 } from "../typechain-types";
-import {networkConfig} from "../network.config";
+import {prodNetworkConfig as networkConfig} from "../network.config";
 
 const ALLOWED = true;
 const DISALLOWED = false;

@@ -42,7 +42,7 @@ export async function main() {
   if (!config.GnosisAMB) config.GnosisAMB = ZERO_ADDRESS;
 
   const rebalancerAddress = await getDeployProxyXAddress("Rebalancer");
-  const rebalancerVersion = config.IsTest ? "TestRebalancer" : "Rebalancer";
+  const rebalancerVersion = "Rebalancer";
 
   await upgradeProxyX<Rebalancer>(
     verifier.deployX,

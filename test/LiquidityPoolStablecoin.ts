@@ -12,7 +12,7 @@ import {
   MockTarget, MockBorrowSwap, LiquidityPoolStablecoin, CensoredTransferFromMulticall,
   MockSignerTrue, MockSignerFalse, TransparentUpgradeableProxy,
 } from "../typechain-types";
-import {networkConfig} from "../network.config";
+import {prodNetworkConfig as networkConfig} from "../network.config";
 
 async function now() {
   return BigInt(await time.latest());

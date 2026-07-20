@@ -108,3 +108,33 @@ Threshold met (1/1). Executing on-chain...
 Executed. On-chain TX hash: 0xba4a38f43a798e94893120e2d91466146af1eb82f906b4369396671bfdc8e15e
 0xba4a38f43a798e94893120e2d91466146af1eb82f906b4369396671bfdc8e15e
 Repayer upgraded.
+
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Deployment ID: MVP
+Upgrade ID: AUDIT_5
+Upgrading Repayer
+Using config for: stage, OP_MAINNET
+Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+New Repayer implementation deployed to 0x08Eaa4F8eB7477fd0a6a3ebF19B87714B980Be9F
+Sending Repayer upgrade transaction.
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0xf687ac1693469fab588110c3586bc5a09eb82b351c527379c52f910cf3d91955
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0xadcb7b1f99a604f6dee4b52772c6e2d843d9edf714dd7b1e2afd2c0523828e56
+0xadcb7b1f99a604f6dee4b52772c6e2d843d9edf714dd7b1e2afd2c0523828e56
+Repayer upgraded.
+
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Deployment ID: MVP
+Upgrade ID: AUDIT_5
+Upgrading Rebalancer
+Using config for: stage, OP_MAINNET
+Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+New Rebalancer implementation deployed to 0xbE53e670b109Ed7Ff07a9a469Ef127Db83427016
+Sending Rebalancer upgrade transaction.
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0x29a4f6967dcca420e851b2dd9f76b8742e23269112be8e083dd3a7e6681f4ac1
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0x08f77eb178a0f1463a1ce02227d14a8f2c06a4b4684361b51625cb3ba2f8b2f0
+0x08f77eb178a0f1463a1ce02227d14a8f2c06a4b4684361b51625cb3ba2f8b2f0
+Rebalancer upgraded.

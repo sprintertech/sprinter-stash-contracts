@@ -37,6 +37,7 @@ export async function main() {
   await logDeployers();
 
   assert(config.AavePool, "Aave pool is not configured");
+  assertAddress(config.AavePool.AaveAddressesProvider, "AaveAddressesProvider must be an address");
   assertAddress(config.Admin, "Admin must be an address");
   assertAddress(config.WithdrawProfit, "WithdrawProfit must be an address");
   assertAddress(config.Pauser, "Pauser must be an address");

@@ -88,3 +88,18 @@ Threshold met (1/1). Executing on-chain...
 Executed. On-chain TX hash: 0x9b40becf771cd4d5622abacc8b77228641900635ed6cb708943104c39e9b48ae
 0x9b40becf771cd4d5622abacc8b77228641900635ed6cb708943104c39e9b48ae
 Repayer upgraded.
+
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Deployment ID: MVP
+Upgrade ID: AUDIT_5
+Upgrading Repayer
+Using config for: stage, BSC
+Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+New Repayer implementation deployed to 0x08Eaa4F8eB7477fd0a6a3ebF19B87714B980Be9F
+Sending Repayer upgrade transaction.
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0x6af98e148e20e9f1ff7bfe7b329c3569c3e952b729fcf87e689a2df27dfa83e9
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0xe15004f8b898b471a4ca4e2ae5253f6b614ccb8013e2f2db3183b80ad8e19450
+0xe15004f8b898b471a4ca4e2ae5253f6b614ccb8013e2f2db3183b80ad8e19450
+Repayer upgraded.

@@ -14,7 +14,7 @@ import {
 import {Repayer} from "../typechain-types";
 import {
   Network, StandaloneRepayerConfig, StandaloneRepayerEnv, Provider,
-  networkConfig,
+  prodNetworkConfig,
 } from "../network.config";
 
 export async function main() {
@@ -42,7 +42,7 @@ export async function main() {
 
   await logDeployers();
 
-  assertAddress(networkConfig[network].Tokens.USDC.Address, "USDC must be an address");
+  assertAddress(prodNetworkConfig[network].Tokens.USDC.Address, "USDC must be an address");
   assertAddress(config.Admin, "Admin must be an address");
   assert(config.RepayerCallers.length > 0, "RepayerCallers must not be empty");
   config.RepayerCallers.forEach(el => assertAddress(el, "Each RepayerCaller must be an address"));
@@ -89,8 +89,8 @@ export async function main() {
   if (!config.GnosisAMB) config.GnosisAMB = ZERO_ADDRESS;
   if (!config.USDT0OFT) config.USDT0OFT = ZERO_ADDRESS;
 
-  const inputOutputTokens = getInputOutputTokens(network, networkConfig[network]);
-  const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
+  const inputOutputTokens = getInputOutputTokens(network, prodNetworkConfig[network]);
+  const repayerVersion = "Repayer";
 
   const {target: repayer, targetAdmin: repayerAdmin} = await deployProxyX<Repayer>(
     verifier.deployX,
@@ -99,7 +99,7 @@ export async function main() {
     config.Admin,
     [
       DomainSolidity[network],
-      networkConfig[network].Tokens.USDC.Address,
+      prodNetworkConfig[network].Tokens.USDC.Address,
       config.AcrossV3SpokePool,
       config.WrappedNativeToken,
       config.StargateTreasurer,

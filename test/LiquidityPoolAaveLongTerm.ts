@@ -12,7 +12,7 @@ import {encodeBytes32String, AbiCoder, hashMessage, Wallet} from "ethers";
 import {
   MockTarget, MockBorrowSwap, LiquidityPoolAaveLongTerm, MockSignerTrue, MockSignerFalse, TransparentUpgradeableProxy,
 } from "../typechain-types";
-import {networkConfig} from "../network.config";
+import {prodNetworkConfig as networkConfig} from "../network.config";
 
 async function now() {
   return BigInt(await time.latest());

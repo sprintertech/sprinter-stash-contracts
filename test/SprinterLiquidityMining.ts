@@ -13,7 +13,7 @@ import {
   TestUSDC, SprinterUSDCLPShare, LiquidityHub, TransparentUpgradeableProxy, ProxyAdmin,
   TestLiquidityPool, SprinterLiquidityMining,
 } from "../typechain-types";
-import {networkConfig} from "../network.config";
+import {prodNetworkConfig as networkConfig} from "../network.config";
 
 const DAY = 60n * 60n * 24n;
 const MONTH = 30n * DAY;

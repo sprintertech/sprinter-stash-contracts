@@ -14,7 +14,7 @@ import {
   TransparentUpgradeableProxy, ProxyAdmin,
   TestLiquidityPool, Rebalancer,
 } from "../../typechain-types";
-import {networkConfig} from "../../network.config";
+import {prodNetworkConfig as networkConfig} from "../../network.config";
 
 describe("Rebalancer Gnosis Omnibridge (Gnosis Chain fork)", function () {
   const deployAll = async () => {

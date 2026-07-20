@@ -67,6 +67,8 @@ export const ProviderSolidity = {
   CCTP_V2: 9n,
 };
 
+// Domain IDs 6-11 are reserved on the Solidity side for testnets (ETHEREUM_SEPOLIA, AVALANCHE_FUJI,
+// OP_SEPOLIA, ARBITRUM_SEPOLIA, BASE_SEPOLIA, POLYGON_AMOY) which have no TS-side Network entries.
 export const DomainSolidity = {
   ETHEREUM: 0n,
   AVALANCHE: 1n,
@@ -74,12 +76,6 @@ export const DomainSolidity = {
   ARBITRUM_ONE: 3n,
   BASE: 4n,
   POLYGON_MAINNET: 5n,
-  ETHEREUM_SEPOLIA: 6n,
-  AVALANCHE_FUJI: 7n,
-  OP_SEPOLIA: 8n,
-  ARBITRUM_SEPOLIA: 9n,
-  BASE_SEPOLIA: 10n,
-  POLYGON_AMOY: 11n,
   UNICHAIN: 12n,
   BSC: 13n,
   LINEA: 14n,
@@ -96,12 +92,6 @@ export const SolidityDomain: { [n: number]: Network } = {
   3: Network.ARBITRUM_ONE,
   4: Network.BASE,
   5: Network.POLYGON_MAINNET,
-  6: Network.ETHEREUM_SEPOLIA,
-  7: Network.AVALANCHE_FUJI,
-  8: Network.OP_SEPOLIA,
-  9: Network.ARBITRUM_SEPOLIA,
-  10: Network.BASE_SEPOLIA,
-  11: Network.POLYGON_AMOY,
   12: Network.UNICHAIN,
   13: Network.BSC,
   14: Network.LINEA,

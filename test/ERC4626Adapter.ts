@@ -12,7 +12,7 @@ import {
   MockTarget, MockBorrowSwap, PublicLiquidityPool, MockSignerTrue, MockSignerFalse,
   ERC4626Adapter, TransparentUpgradeableProxy, Test4626,
 } from "../typechain-types";
-import {networkConfig} from "../network.config";
+import {prodNetworkConfig as networkConfig} from "../network.config";
 
 const ERC4626Deposit = "deposit(uint256,address)";
 

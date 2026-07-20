@@ -14,7 +14,7 @@ import {
   TransparentUpgradeableProxy, ProxyAdmin,
   TestLiquidityPool, Repayer,
 } from "../../typechain-types";
-import {networkConfig} from "../../network.config";
+import {prodNetworkConfig as networkConfig} from "../../network.config";
 
 describe.skip("Repayer USDT0 (Polygon fork), https://github.com/NomicFoundation/edr/issues/1214", function () {
   const deployAll = async () => {

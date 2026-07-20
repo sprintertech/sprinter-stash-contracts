@@ -84,7 +84,7 @@ export async function main() {
   if (!config.USDT0OFT) config.USDT0OFT = ZERO_ADDRESS;
 
   const inputOutputTokens = getInputOutputTokens(network, config);
-  const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
+  const repayerVersion = "Repayer";
 
   const {target: repayer, targetAdmin: repayerAdmin} = await deployProxyX<Repayer>(
     verifier.deployX,

@@ -14,7 +14,7 @@ import {
   TransparentUpgradeableProxy, ProxyAdmin,
   TestLiquidityPool, Repayer,
 } from "../../typechain-types";
-import {networkConfig} from "../../network.config";
+import {prodNetworkConfig as networkConfig} from "../../network.config";
 
 describe("Repayer Gnosis Omnibridge (Ethereum fork)", function () {
   const deployAll = async () => {

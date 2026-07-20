@@ -22,7 +22,7 @@ import {
   TestGnosisOmnibridge, TestGnosisAMB, TestUSDCTransmuter,
   TestUSDT0, TestUSDT0OFTAdapter, TestUSDT0OFTNative,
 } from "../typechain-types";
-import {networkConfig} from "../network.config";
+import {prodNetworkConfig as networkConfig} from "../network.config";
 
 const ALLOWED = true;
 const DISALLOWED = false;
@@ -212,7 +212,8 @@ describe("Repayer", function () {
     expect(await repayer.domainChainId(Domain.BSC)).to.equal(56n);
     expect(await repayer.domainChainId(Domain.LINEA)).to.equal(59144n);
     expect(await repayer.domainChainId(Domain.GNOSIS_CHAIN)).to.equal(100n);
-    await expect(repayer.domainChainId(Domain.OP_SEPOLIA))
+    // 8n is a reserved Solidity Domain slot (formerly OP_SEPOLIA) with no configured route.
+    await expect(repayer.domainChainId(8n))
       .to.be.revertedWithCustomError(repayer, "UnsupportedDomain()");
     expect(await repayer.layerZeroEndpointId(Domain.ETHEREUM)).to.equal(30101n);
     expect(await repayer.layerZeroEndpointId(Domain.AVALANCHE)).to.equal(30106n);
@@ -224,7 +225,8 @@ describe("Repayer", function () {
     expect(await repayer.layerZeroEndpointId(Domain.BSC)).to.equal(30102n);
     expect(await repayer.layerZeroEndpointId(Domain.LINEA)).to.equal(30183n);
     expect(await repayer.layerZeroEndpointId(Domain.GNOSIS_CHAIN)).to.equal(30145n);
-    await expect(repayer.layerZeroEndpointId(Domain.OP_SEPOLIA))
+    // 8n is a reserved Solidity Domain slot (formerly OP_SEPOLIA) with no configured route.
+    await expect(repayer.layerZeroEndpointId(8n))
       .to.be.revertedWithCustomError(repayer, "UnsupportedDomain()");
     expect(await repayer.getAllRoutes()).to.deep.equal([
       [liquidityPool.target, liquidityPool.target, liquidityPool2.target],

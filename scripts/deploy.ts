@@ -335,7 +335,7 @@ export async function main() {
   }
 
   assert(mainPool, "Main pool is not defined");
-  const rebalancerVersion = config.IsTest ? "TestRebalancer" : "Rebalancer";
+  const rebalancerVersion = "Rebalancer";
 
   rebalancerRoutes.Pools = await resolveXAddresses(rebalancerRoutes.Pools, false);
 
@@ -398,7 +398,7 @@ export async function main() {
     await erc4626AdapterUSDC!.grantRole(PAUSER_ROLE, config.Pauser);
   }
 
-  const repayerVersion = config.IsTest ? "TestRepayer" : "Repayer";
+  const repayerVersion = "Repayer";
 
   repayerRoutes.Pools = await resolveXAddresses(repayerRoutes.Pools || [], false);
   const inputOutputTokens = getInputOutputTokens(network, config);

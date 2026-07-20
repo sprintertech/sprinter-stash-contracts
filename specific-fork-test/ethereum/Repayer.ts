@@ -17,7 +17,7 @@ import {
   TransparentUpgradeableProxy, ProxyAdmin,
   TestLiquidityPool, Repayer,
 } from "../../typechain-types";
-import {networkConfig} from "../../network.config";
+import {prodNetworkConfig as networkConfig} from "../../network.config";
 
 describe("Repayer", function () {
   const deployAll = async () => {

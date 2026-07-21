@@ -40,7 +40,6 @@ contract Repayer is
     using EnumerableSet for EnumerableSet.AddressSet;
 
     Domain immutable public DOMAIN;
-    IERC20 immutable public ASSETS;
     bytes32 constant internal REPAYER_ROLE = "REPAYER_ROLE";
     bytes32 constant internal SET_TOKENS_ROLE = "SET_TOKENS_ROLE";
     IWrappedNativeToken immutable public WRAPPED_NATIVE_TOKEN;
@@ -49,9 +48,10 @@ contract Repayer is
     struct RepayerStorage {
         mapping(address pool => BitMaps.BitMap) allowedRoutes;
         EnumerableSet.AddressSet knownPools;
-        mapping(address pool => bool) poolSupportsAllTokens;
+        mapping(address pool => bool) poolSupportsAllTokens; // Deprecated.
         mapping(address inputToken =>
             mapping(bytes32 outputToken => InputOutputTokenData)) inputOutputTokens;
+        mapping(address pool => IERC20 token) poolOnlySupportsToken;
     }
 
     bytes32 private constant STORAGE_LOCATION = 0xa6615d19cc0b2a17ee46271ca76cd3f303efb9bf682e7eb5c4e7290e895cde00;
@@ -60,7 +60,7 @@ contract Repayer is
         address destinationPool,
         Domain destinationDomain,
         Provider provider,
-        bool poolSupportsAllTokens,
+        IERC20 onlySupportedToken,
         bool isAllowed
     );
     event InitiateRepay(
@@ -97,7 +97,7 @@ contract Repayer is
 
     constructor(
         Domain localDomain,
-        IERC20 assets,
+        IERC20 usdc,
         address acrossSpokePool,
         address wrappedNativeToken,
         address stargateTreasurer,
@@ -113,17 +113,18 @@ contract Repayer is
         address cctpV2MessageTransmitter
     )
         CCTPV2Adapter(
+            usdc,
             cctpV2TokenMessenger,
             cctpV2MessageTransmitter
         )
         AcrossAdapter(acrossSpokePool)
         StargateAdapter(stargateTreasurer)
-        SuperchainStandardBridgeAdapter(optimismBridge, baseBridge, wrappedNativeToken, address(assets))
+        SuperchainStandardBridgeAdapter(optimismBridge, baseBridge, wrappedNativeToken, address(usdc))
         ArbitrumGatewayAdapter(arbitrumGatewayRouter)
         GnosisOmnibridgeAdapter(
             localDomain,
             omnibridge,
-            address(assets),
+            address(usdc),
             gnosisUsdcxdai,
             gnosisUsdceSwap,
             ethereumAmb
@@ -134,9 +135,7 @@ contract Repayer is
             STORAGE_LOCATION,
             "sprinter.storage.Repayer"
         );
-        require(address(assets) != address(0), ZeroAddress());
         DOMAIN = localDomain;
-        ASSETS = assets;
         WRAPPED_NATIVE_TOKEN = IWrappedNativeToken(wrappedNativeToken);
         _disableInitializers();
     }
@@ -152,13 +151,13 @@ contract Repayer is
         address[] calldata pools,
         Domain[] calldata domains,
         Provider[] calldata providers,
-        bool[] calldata poolSupportsAllTokens,
+        IERC20[] calldata poolOnlySupportsToken,
         InputOutputToken[] calldata inputOutputTokens
     ) external initializer() {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(REPAYER_ROLE, repayer);
         _grantRole(SET_TOKENS_ROLE, setTokens);
-        _setRoute(pools, domains, providers, poolSupportsAllTokens, true);
+        _setRoute(pools, domains, providers, poolOnlySupportsToken, true);
         _setInputOutputTokens(inputOutputTokens, true);
     }
 
@@ -166,10 +165,10 @@ contract Repayer is
         address[] calldata pools,
         Domain[] calldata domains,
         Provider[] calldata providers,
-        bool[] calldata poolSupportsAllTokens,
+        IERC20[] calldata poolOnlySupportsToken,
         bool isAllowed
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _setRoute(pools, domains, providers, poolSupportsAllTokens, isAllowed);
+        _setRoute(pools, domains, providers, poolOnlySupportsToken, isAllowed);
     }
 
     function setInputOutputTokens(
@@ -204,8 +203,9 @@ contract Repayer is
 
         RepayerStorage storage $ = _getStorage();
 
-        if (!$.poolSupportsAllTokens[destinationPool]) {
-            require(token == ASSETS, InvalidToken());
+        IERC20 onlySupportedToken = $.poolOnlySupportsToken[destinationPool];
+        if (onlySupportedToken != IERC20(address(0))) {
+            require(token == onlySupportedToken, InvalidToken());
         }
 
         if (provider == Provider.LOCAL) {
@@ -215,7 +215,6 @@ contract Repayer is
             _processRepayLOCAL(token, amount, destinationPool);
         } else
         if (provider == Provider.CCTP_V2) {
-            require(token == ASSETS, InvalidToken());
             initiateTransferCCTPV2(token, amount, destinationPool, destinationDomain);
         } else
         if (provider == Provider.ACROSS) {
@@ -271,21 +270,22 @@ contract Repayer is
         bytes calldata extraData
     ) external override onlyRole(REPAYER_ROLE) {
         require(isRouteAllowed(destinationPool, DOMAIN, Provider.LOCAL), RouteDenied());
-        IERC20 token = ASSETS;
+        IERC20 token;
         uint256 amount = 0;
         if (provider == Provider.CCTP_V2) {
-            amount = processTransferCCTPV2(ASSETS, destinationPool, extraData);
+            (token, amount) = processTransferCCTPV2(destinationPool, extraData);
         } else
         if (provider == Provider.GNOSIS_OMNIBRIDGE) {
             (token, amount) = processTransferGnosisOmnibridge(address(this), DOMAIN, extraData);
-            if (!_getStorage().poolSupportsAllTokens[destinationPool]) {
-                require(token == ASSETS, InvalidToken());
-            }
             if (destinationPool != address(this)) {
                 token.safeTransfer(destinationPool, amount);
             }
         } else {
             revert UnsupportedProvider();
+        }
+        IERC20 onlySupportedToken = _getStorage().poolOnlySupportsToken[destinationPool];
+        if (onlySupportedToken != IERC20(address(0))) {
+            require(token == onlySupportedToken, InvalidToken());
         }
 
         emit ProcessRepay(token, amount, destinationPool, provider);
@@ -304,23 +304,23 @@ contract Repayer is
         address[] calldata pools,
         Domain[] calldata domains,
         Provider[] calldata providers,
-        bool[] calldata poolSupportsAllTokens,
+        IERC20[] calldata poolOnlySupportsToken,
         bool isAllowed
     ) internal {
         RepayerStorage storage $ = _getStorage();
         require(pools.length == domains.length, InvalidLength());
         require(pools.length == providers.length, InvalidLength());
-        require(pools.length == poolSupportsAllTokens.length, InvalidLength());
+        require(pools.length == poolOnlySupportsToken.length, InvalidLength());
         for (uint256 i = 0; i < pools.length; ++i) {
             address pool = pools[i];
             Domain domain = domains[i];
             Provider provider = providers[i];
-            bool supportsAllTokens = poolSupportsAllTokens[i];
+            IERC20 onlySupportedToken = poolOnlySupportsToken[i];
             require(pool != address(0), ZeroAddress());
             if (domain == DOMAIN) {
                 require(provider == Provider.LOCAL, UnsupportedProvider());
-                if (!supportsAllTokens) {
-                    require(ILiquidityPool(pool).ASSETS() == ASSETS, InvalidPoolAssets());
+                if (onlySupportedToken != IERC20(address(0))) {
+                    require(ILiquidityPool(pool).ASSETS() == onlySupportedToken, InvalidPoolAssets());
                 }
             } else {
                 require(provider != Provider.LOCAL, UnsupportedProvider());
@@ -329,8 +329,8 @@ contract Repayer is
             if (isAllowed) {
                 $.knownPools.add(pool);
             }
-            $.poolSupportsAllTokens[pool] = supportsAllTokens;
-            emit SetRoute(pool, domain, provider, supportsAllTokens, isAllowed);
+            $.poolOnlySupportsToken[pool] = onlySupportedToken;
+            emit SetRoute(pool, domain, provider, onlySupportedToken, isAllowed);
         }
     }
 
@@ -367,7 +367,7 @@ contract Repayer is
             address[] memory pools,
             Domain[] memory domains,
             Provider[] memory providers,
-            bool[] memory poolSupportsAllTokens
+            IERC20[] memory poolOnlySupportsToken
         ) 
     {
         RepayerStorage storage $ = _getStorage();
@@ -378,7 +378,7 @@ contract Repayer is
         pools = new address[](totalRoutes);
         domains = new Domain[](totalRoutes);
         providers = new Provider[](totalRoutes);
-        poolSupportsAllTokens = new bool[](totalRoutes);
+        poolOnlySupportsToken = new IERC20[](totalRoutes);
         uint256 resultLength = 0;
         for (uint256 p = 0; p < totalPools; ++p) {
             address pool = $.knownPools.at(p);
@@ -388,7 +388,7 @@ contract Repayer is
                         pools[resultLength] = pool;
                         domains[resultLength] = Domain(d);
                         providers[resultLength] = Provider(pr);
-                        poolSupportsAllTokens[resultLength] = $.poolSupportsAllTokens[pool];
+                        poolOnlySupportsToken[resultLength] = $.poolOnlySupportsToken[pool];
                         ++resultLength;
                     }
                 }
@@ -398,9 +398,9 @@ contract Repayer is
             mstore(pools, resultLength)
             mstore(domains, resultLength)
             mstore(providers, resultLength)
-            mstore(poolSupportsAllTokens, resultLength)
+            mstore(poolOnlySupportsToken, resultLength)
         }
-        return (pools, domains, providers, poolSupportsAllTokens);
+        return (pools, domains, providers, poolOnlySupportsToken);
     }
 
     function _toIndex(Domain domain, Provider provider) internal pure returns (uint256) {

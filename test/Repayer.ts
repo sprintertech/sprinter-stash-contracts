@@ -129,7 +129,7 @@ describe("Repayer", function () {
       [liquidityPool, liquidityPool2, liquidityPool],
       [Domain.BASE, Domain.BASE, Domain.ETHEREUM],
       [Provider.LOCAL, Provider.LOCAL, Provider.CCTP_V2],
-      [true, false, true],
+      [ZERO_ADDRESS, usdc.target, ZERO_ADDRESS],
       [
         {
           inputToken: usdc,
@@ -175,7 +175,7 @@ describe("Repayer", function () {
       stargateTreasurerTrue, optimismBridge, baseBridge, setTokensUser, eurc,
     } = await loadFixture(deployAll);
 
-    expect(await repayer.ASSETS()).to.equal(usdc.target);
+    expect(await repayer.CCTP_V2_ONLY_SUPPORTED_TOKEN()).to.equal(usdc.target);
     expect(await repayer.ACROSS_SPOKE_POOL()).to.equal(acrossV3SpokePool.target);
     expect(await repayer.STARGATE_TREASURER()).to.equal(stargateTreasurerTrue.target);
     expect(await repayer.OPTIMISM_STANDARD_BRIDGE()).to.equal(optimismBridge.target);
@@ -232,7 +232,7 @@ describe("Repayer", function () {
       [liquidityPool.target, liquidityPool.target, liquidityPool2.target],
       [Domain.ETHEREUM, Domain.BASE, Domain.BASE],
       [Provider.CCTP_V2, Provider.LOCAL, Provider.LOCAL],
-      [true, true, false]
+      [ZERO_ADDRESS, ZERO_ADDRESS, usdc.target]
     ]);
     expect(await isOutputTokenAllowed(repayer, usdc, Domain.ETHEREUM, addressToBytes32(eurc.target))).to.be.true;
     expect(await isOutputTokenAllowed(repayer, eurc, Domain.ETHEREUM, addressToBytes32(usdc.target))).to.be.true;
@@ -262,12 +262,12 @@ describe("Repayer", function () {
       [liquidityPool],
       [Domain.AVALANCHE],
       [Provider.CCTP_V2],
-      [true],
+      [ZERO_ADDRESS],
       ALLOWED
     );
     await expect(tx)
       .to.emit(repayer, "SetRoute")
-      .withArgs(liquidityPool.target, Domain.AVALANCHE, Provider.CCTP_V2, true, ALLOWED);
+      .withArgs(liquidityPool.target, Domain.AVALANCHE, Provider.CCTP_V2, ZERO_ADDRESS, ALLOWED);
 
     expect(await repayer.getAllRoutes()).to.deep.equal([
       [
@@ -275,7 +275,7 @@ describe("Repayer", function () {
       ],
       [Domain.ETHEREUM, Domain.AVALANCHE, Domain.BASE, Domain.BASE],
       [Provider.CCTP_V2, Provider.CCTP_V2, Provider.LOCAL, Provider.LOCAL],
-      [true, true, true, false],
+      [ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, usdc.target],
     ]);
     expect(await repayer.isRouteAllowed(liquidityPool, Domain.ETHEREUM, Provider.CCTP_V2)).to.be.true;
     expect(await repayer.isRouteAllowed(liquidityPool, Domain.AVALANCHE, Provider.CCTP_V2)).to.be.true;
@@ -306,18 +306,18 @@ describe("Repayer", function () {
       [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.CCTP_V2],
-      [true],
+      [ZERO_ADDRESS],
       DISALLOWED
     );
     await expect(tx)
       .to.emit(repayer, "SetRoute")
-      .withArgs(liquidityPool.target, Domain.ETHEREUM, Provider.CCTP_V2, true, DISALLOWED);
+      .withArgs(liquidityPool.target, Domain.ETHEREUM, Provider.CCTP_V2, ZERO_ADDRESS, DISALLOWED);
 
     expect(await repayer.getAllRoutes()).to.deep.equal([
       [liquidityPool.target, liquidityPool2.target],
       [Domain.BASE, Domain.BASE],
       [Provider.LOCAL, Provider.LOCAL],
-      [true, false]
+      [ZERO_ADDRESS, usdc.target]
     ]);
 
     expect(await repayer.isRouteAllowed(liquidityPool, Domain.ETHEREUM, Provider.CCTP_V2)).to.be.false;
@@ -334,7 +334,7 @@ describe("Repayer", function () {
   });
 
   it("Should not allow admin to enable invalid routes", async function () {
-    const {repayer, admin, liquidityPool2, deployer} = await loadFixture(deployAll);
+    const {repayer, admin, liquidityPool2, deployer, usdc} = await loadFixture(deployAll);
     const liquidityPool3 = (await deploy(
       "TestLiquidityPool", deployer, {}, admin, admin, networkConfig.BASE.WrappedNativeToken
     )) as TestLiquidityPool;
@@ -343,49 +343,49 @@ describe("Repayer", function () {
       [liquidityPool2],
       [Domain.BASE],
       [Provider.CCTP_V2],
-      [true],
+      [ZERO_ADDRESS],
       ALLOWED
     )).to.be.revertedWithCustomError(repayer, "UnsupportedProvider()");
     await expect(repayer.connect(admin).setRoute(
       [liquidityPool2],
       [Domain.ETHEREUM],
       [Provider.LOCAL],
-      [true],
+      [ZERO_ADDRESS],
       ALLOWED
     )).to.be.revertedWithCustomError(repayer, "UnsupportedProvider()");
     await expect(repayer.connect(admin).setRoute(
       [liquidityPool3],
       [Domain.BASE],
       [Provider.LOCAL],
-      [false],
+      [usdc.target],
       ALLOWED
     )).to.be.revertedWithCustomError(repayer, "InvalidPoolAssets()");
     await expect(repayer.connect(admin).setRoute(
       [liquidityPool2, liquidityPool2],
       [Domain.BASE],
       [Provider.LOCAL],
-      [true],
+      [ZERO_ADDRESS],
       ALLOWED
     )).to.be.revertedWithCustomError(repayer, "InvalidLength()");
     await expect(repayer.connect(admin).setRoute(
       [liquidityPool2],
       [Domain.BASE],
       [Provider.LOCAL, Provider.LOCAL],
-      [true],
+      [ZERO_ADDRESS],
       ALLOWED
     )).to.be.revertedWithCustomError(repayer, "InvalidLength()");
     await expect(repayer.connect(admin).setRoute(
       [liquidityPool2],
       [Domain.BASE],
       [Provider.LOCAL],
-      [true, true],
+      [ZERO_ADDRESS, ZERO_ADDRESS],
       ALLOWED
     )).to.be.revertedWithCustomError(repayer, "InvalidLength()");
     await expect(repayer.connect(admin).setRoute(
       [ZERO_ADDRESS],
       [Domain.BASE],
       [Provider.LOCAL],
-      [true],
+      [ZERO_ADDRESS],
       ALLOWED
     )).to.be.revertedWithCustomError(repayer, "ZeroAddress()");
   });
@@ -397,7 +397,7 @@ describe("Repayer", function () {
       [liquidityPool2],
       [Domain.AVALANCHE],
       [Provider.CCTP_V2],
-      [true],
+      [ZERO_ADDRESS],
       ALLOWED
     )).to.be.revertedWithCustomError(repayer, "AccessControlUnauthorizedAccount(address,bytes32)");
   });
@@ -409,7 +409,7 @@ describe("Repayer", function () {
       [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.CCTP_V2],
-      [true],
+      [ZERO_ADDRESS],
       DISALLOWED
     )).to.be.revertedWithCustomError(repayer, "AccessControlUnauthorizedAccount(address,bytes32)");
   });
@@ -424,7 +424,7 @@ describe("Repayer", function () {
       [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.ACROSS],
-      [true],
+      [ZERO_ADDRESS],
       ALLOWED
     );
 
@@ -504,7 +504,7 @@ describe("Repayer", function () {
       [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.ACROSS],
-      [true],
+      [ZERO_ADDRESS],
       ALLOWED
     );
 
@@ -607,7 +607,7 @@ describe("Repayer", function () {
       [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.ACROSS],
-      [true],
+      [ZERO_ADDRESS],
       ALLOWED
     );
     const amount = 4n * USDC_DEC;
@@ -661,7 +661,7 @@ describe("Repayer", function () {
       [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.ACROSS],
-      [true],
+      [ZERO_ADDRESS],
       ALLOWED
     );
     const amount = 4n * EURC_DEC;
@@ -715,7 +715,7 @@ describe("Repayer", function () {
       [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.ACROSS],
-      [true],
+      [ZERO_ADDRESS],
       ALLOWED
     );
     const amount = 4n * EURC_DEC;
@@ -804,7 +804,7 @@ describe("Repayer", function () {
       [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.ACROSS],
-      [true],
+      [ZERO_ADDRESS],
       ALLOWED
     );
 
@@ -867,7 +867,7 @@ describe("Repayer", function () {
       [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.ACROSS],
-      [true],
+      [ZERO_ADDRESS],
       ALLOWED
     );
     const amount = 4n * EURC_DEC;
@@ -897,7 +897,7 @@ describe("Repayer", function () {
       [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.ACROSS],
-      [true],
+      [ZERO_ADDRESS],
       ALLOWED
     );
     const amount = 4n * EURC_DEC;
@@ -926,7 +926,7 @@ describe("Repayer", function () {
       [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.ACROSS],
-      [true],
+      [ZERO_ADDRESS],
       ALLOWED
     );
     const amount = 4n * EURC_DEC;
@@ -956,7 +956,7 @@ describe("Repayer", function () {
       [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.ACROSS],
-      [true],
+      [ZERO_ADDRESS],
       ALLOWED
     );
     const amount = 4n * EURC_DEC;
@@ -1007,7 +1007,7 @@ describe("Repayer", function () {
       [liquidityPool, liquidityPool],
       [Domain.ETHEREUM, Domain.OP_MAINNET],
       [Provider.LOCAL, Provider.SUPERCHAIN_STANDARD_BRIDGE],
-      [true, true],
+      [ZERO_ADDRESS, ZERO_ADDRESS],
       [{
         inputToken: usdc,
         destinationTokens: [
@@ -1069,7 +1069,7 @@ describe("Repayer", function () {
       [liquidityPool, liquidityPool],
       [Domain.ETHEREUM, Domain.OP_MAINNET],
       [Provider.LOCAL, Provider.SUPERCHAIN_STANDARD_BRIDGE],
-      [true, true],
+      [ZERO_ADDRESS, ZERO_ADDRESS],
       [{
         inputToken: eurc,
         destinationTokens: [
@@ -1137,7 +1137,7 @@ describe("Repayer", function () {
       [liquidityPool, liquidityPool],
       [Domain.ETHEREUM, Domain.BASE],
       [Provider.LOCAL, Provider.SUPERCHAIN_STANDARD_BRIDGE],
-      [true, true],
+      [ZERO_ADDRESS, ZERO_ADDRESS],
       [{
         inputToken: eurc,
         destinationTokens: [
@@ -1202,7 +1202,7 @@ describe("Repayer", function () {
       [liquidityPool, liquidityPool],
       [Domain.ETHEREUM, Domain.OP_MAINNET],
       [Provider.LOCAL, Provider.SUPERCHAIN_STANDARD_BRIDGE],
-      [true, true],
+      [ZERO_ADDRESS, ZERO_ADDRESS],
       [{
         inputToken: eurc,
         destinationTokens: [
@@ -1266,7 +1266,7 @@ describe("Repayer", function () {
       [liquidityPool, liquidityPool],
       [Domain.ETHEREUM, Domain.OP_MAINNET],
       [Provider.LOCAL, Provider.SUPERCHAIN_STANDARD_BRIDGE],
-      [true, true],
+      [ZERO_ADDRESS, ZERO_ADDRESS],
       [{
         inputToken: usdc,
         destinationTokens: [
@@ -1331,7 +1331,7 @@ describe("Repayer", function () {
       [liquidityPool, liquidityPool],
       [Domain.ETHEREUM, Domain.OP_MAINNET],
       [Provider.LOCAL, Provider.SUPERCHAIN_STANDARD_BRIDGE],
-      [true, true],
+      [ZERO_ADDRESS, ZERO_ADDRESS],
       [],
     )).data;
     const repayerProxy = (await deployX(
@@ -1370,7 +1370,7 @@ describe("Repayer", function () {
       [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.SUPERCHAIN_STANDARD_BRIDGE],
-      [true],
+      [ZERO_ADDRESS],
       ALLOWED
     );
     const amount = 4n * USDC_DEC;
@@ -1420,7 +1420,7 @@ describe("Repayer", function () {
       [liquidityPool, liquidityPool],
       [Domain.ETHEREUM, Domain.GNOSIS_CHAIN],
       [Provider.LOCAL, Provider.SUPERCHAIN_STANDARD_BRIDGE],
-      [true, true],
+      [ZERO_ADDRESS, ZERO_ADDRESS],
       [],
     )).data;
     const repayerProxy = (await deployX(
@@ -1476,7 +1476,7 @@ describe("Repayer", function () {
       [liquidityPool, liquidityPool],
       [Domain.ETHEREUM, Domain.ARBITRUM_ONE],
       [Provider.LOCAL, Provider.ARBITRUM_GATEWAY],
-      [true, true],
+      [ZERO_ADDRESS, ZERO_ADDRESS],
       [{
         inputToken: usdc,
         destinationTokens: [
@@ -1553,7 +1553,7 @@ describe("Repayer", function () {
       [liquidityPool, liquidityPool],
       [Domain.ETHEREUM, Domain.ARBITRUM_ONE],
       [Provider.LOCAL, Provider.ARBITRUM_GATEWAY],
-      [true, true],
+      [ZERO_ADDRESS, ZERO_ADDRESS],
       [{
         inputToken: usdc,
         destinationTokens: [
@@ -1618,7 +1618,7 @@ describe("Repayer", function () {
       [liquidityPool, liquidityPool],
       [Domain.ETHEREUM, Domain.ARBITRUM_ONE],
       [Provider.LOCAL, Provider.ARBITRUM_GATEWAY],
-      [true, true],
+      [ZERO_ADDRESS, ZERO_ADDRESS],
       [{
         inputToken: usdc,
         destinationTokens: [
@@ -1696,7 +1696,7 @@ describe("Repayer", function () {
       [liquidityPool, liquidityPool],
       [Domain.ETHEREUM, Domain.ARBITRUM_ONE],
       [Provider.LOCAL, Provider.ARBITRUM_GATEWAY],
-      [true, true],
+      [ZERO_ADDRESS, ZERO_ADDRESS],
       [{
         inputToken: weth,
         destinationTokens: [
@@ -1769,7 +1769,7 @@ describe("Repayer", function () {
       [liquidityPool, liquidityPool],
       [Domain.ETHEREUM, Domain.ARBITRUM_ONE],
       [Provider.LOCAL, Provider.ARBITRUM_GATEWAY],
-      [true, true],
+      [ZERO_ADDRESS, ZERO_ADDRESS],
       [{
         inputToken: usdc,
         destinationTokens: [
@@ -1839,7 +1839,7 @@ describe("Repayer", function () {
       [liquidityPool, liquidityPool],
       [Domain.ETHEREUM, Domain.ARBITRUM_ONE],
       [Provider.LOCAL, Provider.ARBITRUM_GATEWAY],
-      [true, true],
+      [ZERO_ADDRESS, ZERO_ADDRESS],
       [],
     )).data;
     const repayerProxy = (await deployX(
@@ -1903,7 +1903,7 @@ describe("Repayer", function () {
       [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.LOCAL],
-      [true],
+      [ZERO_ADDRESS],
       [],
     )).data;
     const repayerProxy = (await deployX(
@@ -1945,7 +1945,7 @@ describe("Repayer", function () {
       [liquidityPool],
       [Domain.ARBITRUM_ONE],
       [Provider.ARBITRUM_GATEWAY],
-      [true],
+      [ZERO_ADDRESS],
       ALLOWED
     );
 
@@ -2002,7 +2002,7 @@ describe("Repayer", function () {
       [liquidityPool, liquidityPool],
       [Domain.ETHEREUM, Domain.BASE],
       [Provider.LOCAL, Provider.ARBITRUM_GATEWAY],
-      [true, true],
+      [ZERO_ADDRESS, ZERO_ADDRESS],
       [],
     )).data;
     const repayerProxy = (await deployX(
@@ -2066,7 +2066,7 @@ describe("Repayer", function () {
       [liquidityPool, liquidityPool],
       [Domain.ETHEREUM, Domain.ARBITRUM_ONE],
       [Provider.LOCAL, Provider.ARBITRUM_GATEWAY],
-      [true, true],
+      [ZERO_ADDRESS, ZERO_ADDRESS],
       [],
     )).data;
     const repayerProxy = (await deployX(
@@ -2253,7 +2253,7 @@ describe("Repayer", function () {
       [liquidityPool, liquidityPool],
       [Domain.AVALANCHE, Domain.AVALANCHE],
       [Provider.CCTP, Provider.EVERCLEAR_DEPRECATED],
-      [true, true],
+      [ZERO_ADDRESS, ZERO_ADDRESS],
       ALLOWED
     );
 
@@ -2389,7 +2389,7 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
       [liquidityPool, liquidityPool], [Domain.BASE, Domain.AVALANCHE],
-      [Provider.LOCAL, Provider.CCTP_V2], [true, true], []
+      [Provider.LOCAL, Provider.CCTP_V2], [ZERO_ADDRESS, ZERO_ADDRESS], []
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayerNoCCTPV2", {},
@@ -2422,7 +2422,7 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
       [liquidityPool, liquidityPool], [Domain.BASE, Domain.AVALANCHE],
-      [Provider.LOCAL, Provider.CCTP_V2], [true, true], []
+      [Provider.LOCAL, Provider.CCTP_V2], [ZERO_ADDRESS, ZERO_ADDRESS], []
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer,
@@ -2480,7 +2480,7 @@ describe("Repayer", function () {
       [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.STARGATE],
-      [true],
+      [ZERO_ADDRESS],
       ALLOWED
     );
     const amount = 4n * USDC_DEC;
@@ -2563,7 +2563,7 @@ describe("Repayer", function () {
       [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.STARGATE],
-      [true],
+      [ZERO_ADDRESS],
       ALLOWED
     );
     const amount = 4n * USDC_DEC;
@@ -2599,7 +2599,7 @@ describe("Repayer", function () {
       [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.STARGATE],
-      [true],
+      [ZERO_ADDRESS],
       ALLOWED
     );
 
@@ -2635,7 +2635,7 @@ describe("Repayer", function () {
       [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.STARGATE],
-      [true],
+      [ZERO_ADDRESS],
       ALLOWED
     );
     const amount = 4n * EURC_DEC;
@@ -2703,7 +2703,7 @@ describe("Repayer", function () {
       [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.STARGATE],
-      [true],
+      [ZERO_ADDRESS],
       ALLOWED
     );
     const amount = 400n * USDC_DEC;
@@ -2765,7 +2765,7 @@ describe("Repayer", function () {
       [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.STARGATE],
-      [true],
+      [ZERO_ADDRESS],
       ALLOWED
     );
     const amount = 4n * USDC_DEC;
@@ -2867,7 +2867,7 @@ describe("Repayer", function () {
       [liquidityPool],
       [Domain.OP_MAINNET],
       [Provider.SUPERCHAIN_STANDARD_BRIDGE],
-      [true],
+      [ZERO_ADDRESS],
       ALLOWED
     );
 
@@ -3039,7 +3039,7 @@ describe("Repayer", function () {
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
-      [liquidityPool], [Domain.GNOSIS_CHAIN], [Provider.GNOSIS_OMNIBRIDGE], [true], [],
+      [liquidityPool], [Domain.GNOSIS_CHAIN], [Provider.GNOSIS_OMNIBRIDGE], [ZERO_ADDRESS], [],
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -3098,7 +3098,7 @@ describe("Repayer", function () {
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
-      [liquidityPool], [Domain.ETHEREUM], [Provider.GNOSIS_OMNIBRIDGE], [true], [],
+      [liquidityPool], [Domain.ETHEREUM], [Provider.GNOSIS_OMNIBRIDGE], [ZERO_ADDRESS], [],
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -3156,7 +3156,7 @@ describe("Repayer", function () {
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
-      [liquidityPool], [Domain.ETHEREUM], [Provider.GNOSIS_OMNIBRIDGE], [true], [],
+      [liquidityPool], [Domain.ETHEREUM], [Provider.GNOSIS_OMNIBRIDGE], [ZERO_ADDRESS], [],
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -3223,7 +3223,7 @@ describe("Repayer", function () {
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
-      [liquidityPool], [Domain.ETHEREUM], [Provider.GNOSIS_OMNIBRIDGE], [true], [],
+      [liquidityPool], [Domain.ETHEREUM], [Provider.GNOSIS_OMNIBRIDGE], [ZERO_ADDRESS], [],
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -3269,7 +3269,7 @@ describe("Repayer", function () {
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
-      [liquidityPool], [Domain.GNOSIS_CHAIN], [Provider.GNOSIS_OMNIBRIDGE], [true], [],
+      [liquidityPool], [Domain.GNOSIS_CHAIN], [Provider.GNOSIS_OMNIBRIDGE], [ZERO_ADDRESS], [],
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -3311,7 +3311,7 @@ describe("Repayer", function () {
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
-      [liquidityPool], [Domain.GNOSIS_CHAIN], [Provider.GNOSIS_OMNIBRIDGE], [true], [],
+      [liquidityPool], [Domain.GNOSIS_CHAIN], [Provider.GNOSIS_OMNIBRIDGE], [ZERO_ADDRESS], [],
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -3459,7 +3459,7 @@ describe("Repayer", function () {
       [liquidityPool, liquidityPool],
       [Domain.GNOSIS_CHAIN, Domain.ARBITRUM_ONE],
       [Provider.GNOSIS_OMNIBRIDGE, Provider.GNOSIS_OMNIBRIDGE],
-      [true, true],
+      [ZERO_ADDRESS, ZERO_ADDRESS],
       [],
     )).data;
     const repayerProxy = (await deployX(
@@ -3503,7 +3503,7 @@ describe("Repayer", function () {
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
-      [liquidityPool], [Domain.ETHEREUM], [Provider.LOCAL], [true], [],
+      [liquidityPool], [Domain.ETHEREUM], [Provider.LOCAL], [ZERO_ADDRESS], [],
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -3572,7 +3572,7 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
       // poolSupportsAllTokens=true bypasses ASSETS check in _setRoute for LOCAL route
-      [liquidityPool], [Domain.GNOSIS_CHAIN], [Provider.LOCAL], [true], [],
+      [liquidityPool], [Domain.GNOSIS_CHAIN], [Provider.LOCAL], [ZERO_ADDRESS], [],
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -3703,7 +3703,7 @@ describe("Repayer", function () {
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
-      [liquidityPool], [Domain.GNOSIS_CHAIN], [Provider.LOCAL], [true], [],
+      [liquidityPool], [Domain.GNOSIS_CHAIN], [Provider.LOCAL], [ZERO_ADDRESS], [],
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -3771,7 +3771,7 @@ describe("Repayer", function () {
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
-      [liquidityPool], [Domain.GNOSIS_CHAIN], [Provider.LOCAL], [true], [],
+      [liquidityPool], [Domain.GNOSIS_CHAIN], [Provider.LOCAL], [ZERO_ADDRESS], [],
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -3815,7 +3815,7 @@ describe("Repayer", function () {
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
-      [liquidityPool], [Domain.ETHEREUM], [Provider.LOCAL], [false], [],
+      [liquidityPool], [Domain.ETHEREUM], [Provider.LOCAL], [usdc.target], [],
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -3900,7 +3900,7 @@ describe("Repayer", function () {
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
-      [liquidityPool], [Domain.ETHEREUM], [Provider.LOCAL], [true], [],
+      [liquidityPool], [Domain.ETHEREUM], [Provider.LOCAL], [ZERO_ADDRESS], [],
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -3957,7 +3957,7 @@ describe("Repayer", function () {
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
-      [liquidityPool], [Domain.ARBITRUM_ONE], [Provider.USDT0], [true], [],
+      [liquidityPool], [Domain.ARBITRUM_ONE], [Provider.USDT0], [ZERO_ADDRESS], [],
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayerUSDT0Adapter", {},
@@ -4025,7 +4025,7 @@ describe("Repayer", function () {
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
-      [liquidityPool], [Domain.ETHEREUM], [Provider.USDT0], [true], [],
+      [liquidityPool], [Domain.ETHEREUM], [Provider.USDT0], [ZERO_ADDRESS], [],
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayerUSDT0Native", {},
@@ -4089,7 +4089,7 @@ describe("Repayer", function () {
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
-      [liquidityPool], [Domain.ETHEREUM], [Provider.USDT0], [true], [],
+      [liquidityPool], [Domain.ETHEREUM], [Provider.USDT0], [ZERO_ADDRESS], [],
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayerUSDT0TokenMismatch", {},
@@ -4135,7 +4135,7 @@ describe("Repayer", function () {
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
-      [liquidityPool], [Domain.ETHEREUM], [Provider.USDT0], [true], [],
+      [liquidityPool], [Domain.ETHEREUM], [Provider.USDT0], [ZERO_ADDRESS], [],
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayerUSDT0Zero", {},
@@ -4231,7 +4231,7 @@ describe("Repayer", function () {
         [liquidityPool],
         [Domain.ETHEREUM],
         [Provider.ACROSS],
-        [true],
+        [ZERO_ADDRESS],
         [
           {
             inputToken: usdcBsc,

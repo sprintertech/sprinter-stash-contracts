@@ -35,13 +35,14 @@ abstract contract GnosisOmnibridgeAdapter is AdapterHelper {
         address gnosisUsdcTransmuter,
         address ethereumAmb
     ) {
-        require(localUSDC != address(0), ZeroAddress());
         if (localDomain == Domain.ETHEREUM) {
+            require(localUSDC != address(0), ZeroAddress());
             require(omnibridge != address(0), ZeroAddress());
             require(ethereumAmb != address(0), ZeroAddress());
             ETHEREUM_AMB = IGnosisAMB(ethereumAmb);
         } else
         if (localDomain == Domain.GNOSIS_CHAIN) {
+            require(localUSDC != address(0), ZeroAddress());
             require(omnibridge != address(0), ZeroAddress());
             require(gnosisUsdcxdai != address(0), ZeroAddress());
             require(gnosisUsdcTransmuter != address(0), ZeroAddress());

@@ -74,7 +74,7 @@ describe("Repayer USDT0 (Ethereum fork)", function () {
       [liquidityPool],
       [Domain.ARBITRUM_ONE],
       [Provider.USDT0],
-      [true],
+      [ZERO_ADDRESS],
       [],
     )).data;
 

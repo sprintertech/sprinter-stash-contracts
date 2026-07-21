@@ -11,7 +11,7 @@ interface IRebalancer is IRoute {
         Domain destinationDomain,
         Provider provider,
         bytes calldata extraData
-    ) external;
+    ) external payable;
 
     function processRebalance(
         address destinationPool,

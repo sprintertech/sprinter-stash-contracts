@@ -11,14 +11,17 @@ import {AdapterHelper} from "./AdapterHelper.sol";
 abstract contract CCTPV2Adapter is AdapterHelper {
     using SafeERC20 for IERC20;
 
+    IERC20 immutable public CCTP_V2_ONLY_SUPPORTED_TOKEN;
     ICCTPV2TokenMessenger immutable public CCTP_V2_TOKEN_MESSENGER;
     ICCTPV2MessageTransmitter immutable public CCTP_V2_MESSAGE_TRANSMITTER;
 
     constructor(
+        IERC20 onlySupportedToken,
         address cctpV2TokenMessenger,
         address cctpV2MessageTransmitter
     ) {
         // No check for address(0) to allow deployment on chains where CCTP V2 is not available
+        CCTP_V2_ONLY_SUPPORTED_TOKEN = onlySupportedToken;
         CCTP_V2_TOKEN_MESSENGER = ICCTPV2TokenMessenger(cctpV2TokenMessenger);
         CCTP_V2_MESSAGE_TRANSMITTER = ICCTPV2MessageTransmitter(cctpV2MessageTransmitter);
     }
@@ -29,6 +32,7 @@ abstract contract CCTPV2Adapter is AdapterHelper {
         address destinationPool,
         Domain destinationDomain
     ) internal notPayable {
+        require(token == CCTP_V2_ONLY_SUPPORTED_TOKEN, InvalidToken());
         require(address(CCTP_V2_TOKEN_MESSENGER) != address(0), ZeroAddress());
         token.forceApprove(address(CCTP_V2_TOKEN_MESSENGER), amount);
         // Standard transfer: maxFee = 0, minFinalityThreshold = 2000 (hard finality, no fast-transfer fee).
@@ -45,28 +49,26 @@ abstract contract CCTPV2Adapter is AdapterHelper {
     }
 
     function processTransferCCTPV2(
-        IERC20 token,
         address destinationPool,
         bytes calldata extraData
-    ) internal returns (uint256) {
+    ) internal returns (IERC20, uint256) {
         require(address(CCTP_V2_MESSAGE_TRANSMITTER) != address(0), ZeroAddress());
-        return _processTransferCCTP(address(CCTP_V2_MESSAGE_TRANSMITTER), token, destinationPool, extraData);
+        return _processTransferCCTP(address(CCTP_V2_MESSAGE_TRANSMITTER), destinationPool, extraData);
     }
 
     function _processTransferCCTP(
         address messageTransmitter,
-        IERC20 token,
         address destinationPool,
         bytes calldata extraData
-    ) internal returns (uint256) {
-        uint256 balanceBefore = token.balanceOf(destinationPool);
+    ) internal returns (IERC20, uint256) {
+        uint256 balanceBefore = CCTP_V2_ONLY_SUPPORTED_TOKEN.balanceOf(destinationPool);
         (bytes memory message, bytes memory attestation) = abi.decode(extraData, (bytes, bytes));
         bool success = ICCTPV2MessageTransmitter(messageTransmitter).receiveMessage(message, attestation);
         require(success, ProcessFailed());
-        uint256 balanceAfter = token.balanceOf(destinationPool);
+        uint256 balanceAfter = CCTP_V2_ONLY_SUPPORTED_TOKEN.balanceOf(destinationPool);
         require(balanceAfter > balanceBefore, ProcessFailed());
         unchecked {
-            return balanceAfter - balanceBefore;
+            return (CCTP_V2_ONLY_SUPPORTED_TOKEN, balanceAfter - balanceBefore);
         }
     }
 

@@ -10,6 +10,7 @@ import {ILiquidityPoolBase} from "./interfaces/ILiquidityPoolBase.sol";
 import {IRebalancer} from "./interfaces/IRebalancer.sol";
 import {CCTPV2Adapter} from "./utils/CCTPV2Adapter.sol";
 import {GnosisOmnibridgeAdapter} from "./utils/GnosisOmnibridgeAdapter.sol";
+import {USDT0Adapter} from "./utils/USDT0Adapter.sol";
 
 /// @title Facilitates liquidity movement between Liquidity Pools on same/different chains.
 /// Routes, which is a destination pool/domain and a bridging provider, have to be approved by admin.
@@ -21,7 +22,8 @@ contract Rebalancer is
     IRebalancer,
     AccessControlUpgradeable,
     CCTPV2Adapter,
-    GnosisOmnibridgeAdapter
+    GnosisOmnibridgeAdapter,
+    USDT0Adapter
 {
     using SafeERC20 for IERC20;
     using BitMaps for BitMaps.BitMap;
@@ -59,25 +61,29 @@ contract Rebalancer is
     constructor(
         Domain localDomain,
         IERC20 assets,
+        IERC20 usdc,
         address omnibridge,
         address gnosisUsdcxdai,
         address gnosisUsdcTransmuter,
         address ethereumAmb,
+        address usdt0Oft,
         address cctpV2TokenMessenger,
         address cctpV2MessageTransmitter
     )
         CCTPV2Adapter(
+            usdc,
             cctpV2TokenMessenger,
             cctpV2MessageTransmitter
         )
         GnosisOmnibridgeAdapter(
             localDomain,
             omnibridge,
-            address(assets),
+            address(usdc),
             gnosisUsdcxdai,
             gnosisUsdcTransmuter,
             ethereumAmb
         )
+        USDT0Adapter(usdt0Oft)
     {
         ERC7201Helper.validateStorageLocation(
             STORAGE_LOCATION,
@@ -186,7 +192,7 @@ contract Rebalancer is
         Domain destinationDomain,
         Provider provider,
         bytes calldata /*extraData*/
-    ) external override onlyRole(REBALANCER_ROLE) {
+    ) external payable override onlyRole(REBALANCER_ROLE) {
         require(amount > 0, ZeroAmount());
         require(isRouteAllowed(sourcePool, DOMAIN, Provider.LOCAL), RouteDenied());
         require(isRouteAllowed(destinationPool, destinationDomain, provider), RouteDenied());
@@ -211,6 +217,10 @@ contract Rebalancer is
             // on the destination pool and swap tokens if needed.
             destinationPool = address(this);
             initiateTransferGnosisOmnibridge(ASSETS, amount, destinationPool, destinationDomain, DOMAIN);
+        } else
+        if (provider == Provider.USDT0) {
+            destinationPool = address(this);
+            initiateTransferUSDT0(ASSETS, amount, destinationPool, destinationDomain, DOMAIN, _msgSender());
         } else {
             revert UnsupportedProvider();
         }
@@ -222,24 +232,25 @@ contract Rebalancer is
         bytes calldata extraData
     ) external override onlyRole(REBALANCER_ROLE) {
         require(isRouteAllowed(destinationPool, DOMAIN, Provider.LOCAL), RouteDenied());
+        IERC20 receivedToken;
         uint256 depositAmount = 0;
         if (provider == Provider.LOCAL) {
             depositAmount = ASSETS.balanceOf(address(this));
             require(depositAmount > 0, ZeroAmount());
+            receivedToken = ASSETS;
             ASSETS.safeTransfer(destinationPool, depositAmount);
         } else
         if (provider == Provider.CCTP_V2) {
-            depositAmount = processTransferCCTPV2(ASSETS, destinationPool, extraData);
+            (receivedToken, depositAmount) = processTransferCCTPV2(destinationPool, extraData);
         } else
         if (provider == Provider.GNOSIS_OMNIBRIDGE) {
-            IERC20 receivedToken;
             address receiver = address(this);
             (receivedToken, depositAmount) = processTransferGnosisOmnibridge(receiver, DOMAIN, extraData);
-            require(receivedToken == ASSETS, InvalidReceivedToken());
-            ASSETS.safeTransfer(destinationPool, depositAmount);
+            receivedToken.safeTransfer(destinationPool, depositAmount);
         } else {
             revert UnsupportedProvider();
         }
+        require(receivedToken == ASSETS, InvalidReceivedToken());
         ILiquidityPoolBase(destinationPool).deposit(depositAmount);
 
         emit ProcessRebalance(depositAmount, destinationPool, provider);

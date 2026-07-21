@@ -198,14 +198,14 @@ abstract contract LiquidityPoolBase is ILiquidityPool, AccessControlUpgradeable,
     /// Supplying amount less than the actual increase will result in the extra funds being treated as profit.
     /// Supplying amount greater than the actual increase will result in the future profits treated as deposit.
     function deposit(uint256 amount) external virtual override onlyRole(LIQUIDITY_ADMIN_ROLE) {
-        // called after receiving deposit in USDC
+        // called after receiving ASSETS
         uint256 newBalance = HelperLib.balanceOfThis(ASSETS);
         require(newBalance >= amount, NotEnoughToDeposit());
         _deposit(_msgSender(), amount);
     }
 
     function depositWithPull(uint256 amount) external virtual override {
-        // pulls USDC from the sender
+        // pulls ASSETS from the sender
         ASSETS.safeTransferFrom(_msgSender(), address(this), amount);
         _deposit(_msgSender(), amount);
     }

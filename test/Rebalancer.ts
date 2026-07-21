@@ -60,7 +60,7 @@ describe("Rebalancer", function () {
 
     const rebalancerImpl = (
       await deployX("Rebalancer", deployer, "Rebalancer", {},
-        Domain.BASE, usdc, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+        Domain.BASE, usdc, usdc, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
         cctpV2TokenMessenger, cctpV2MessageTransmitter,
       )
     ) as Rebalancer;
@@ -376,7 +376,7 @@ describe("Rebalancer", function () {
 
     const rebalancerImpl = (
       await deployX("Rebalancer", deployer, "RebalancerNoCCTPV2", {},
-        Domain.BASE, usdc, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+        Domain.BASE, usdc, usdc, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
         ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Rebalancer;
@@ -404,7 +404,7 @@ describe("Rebalancer", function () {
 
     const rebalancerImpl = (
       await deployX("Rebalancer", deployer, "RebalancerNoCCTPV2Transmitter", {},
-        Domain.BASE, usdc, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+        Domain.BASE, usdc, usdc, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
         cctpV2TokenMessenger, ZERO_ADDRESS,
       )
     ) as Rebalancer;
@@ -606,7 +606,7 @@ describe("Rebalancer", function () {
 
     const rebalancerImpl = (
       await deployX("Rebalancer", deployer, "RebalancerGnosis", {},
-        Domain.GNOSIS_CHAIN, usdc2, gnosisOmnibridge, usdc, usdceSwap, ZERO_ADDRESS,
+        Domain.GNOSIS_CHAIN, usdc2, usdc2, gnosisOmnibridge, usdc, usdceSwap, ZERO_ADDRESS, ZERO_ADDRESS,
         ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Rebalancer;
@@ -676,7 +676,7 @@ describe("Rebalancer", function () {
 
     const rebalancerImpl = (
       await deployX("Rebalancer", deployer, "RebalancerGnosis2", {},
-        Domain.GNOSIS_CHAIN, usdc2, gnosisOmnibridge, usdc, usdceSwap, ZERO_ADDRESS,
+        Domain.GNOSIS_CHAIN, usdc2, usdc2, gnosisOmnibridge, usdc, usdceSwap, ZERO_ADDRESS, ZERO_ADDRESS,
         ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Rebalancer;
@@ -740,7 +740,7 @@ describe("Rebalancer", function () {
 
     const rebalancerImpl = (
       await deployX("Rebalancer", deployer, "RebalancerGnosis3", {},
-        Domain.GNOSIS_CHAIN, usdc2, gnosisOmnibridge, usdc, usdceSwap, ZERO_ADDRESS,
+        Domain.GNOSIS_CHAIN, usdc2, usdc2, gnosisOmnibridge, usdc, usdceSwap, ZERO_ADDRESS, ZERO_ADDRESS,
         ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Rebalancer;
@@ -803,7 +803,7 @@ describe("Rebalancer", function () {
 
     const rebalancerImpl = (
       await deployX("Rebalancer", deployer, "RebalancerGnosis4", {},
-        Domain.GNOSIS_CHAIN, usdc2, gnosisOmnibridge, usdc, usdceSwap, ZERO_ADDRESS,
+        Domain.GNOSIS_CHAIN, usdc2, usdc2, gnosisOmnibridge, usdc, usdceSwap, ZERO_ADDRESS, ZERO_ADDRESS,
         ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Rebalancer;
@@ -835,7 +835,7 @@ describe("Rebalancer", function () {
 
     const rebalancerImpl = (
       await deployX("Rebalancer", deployer, "Rebalancer2", {},
-        Domain.ETHEREUM, usdc, ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb,
+        Domain.ETHEREUM, usdc, usdc, ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb, ZERO_ADDRESS,
         ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Rebalancer;
@@ -881,7 +881,7 @@ describe("Rebalancer", function () {
 
     const rebalancerImpl = (
       await deployX("Rebalancer", deployer, "Rebalancer2", {},
-        Domain.ETHEREUM, usdc, ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb,
+        Domain.ETHEREUM, usdc, usdc, ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb, ZERO_ADDRESS,
         ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Rebalancer;
@@ -938,7 +938,7 @@ describe("Rebalancer", function () {
 
     const rebalancerImpl = (
       await deployX("Rebalancer", deployer, "Rebalancer2", {},
-        Domain.ETHEREUM, usdc, ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb,
+        Domain.ETHEREUM, usdc, usdc, ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb, ZERO_ADDRESS,
         ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Rebalancer;

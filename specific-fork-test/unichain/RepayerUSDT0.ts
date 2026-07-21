@@ -68,7 +68,7 @@ describe("Repayer USDT0 (Unichain fork)", function () {
       [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.USDT0],
-      [true],
+      [ZERO_ADDRESS],
       [],
     )).data;
 

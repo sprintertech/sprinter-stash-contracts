@@ -68,7 +68,7 @@ describe("Repayer Gnosis Omnibridge (Ethereum fork)", function () {
       [liquidityPool],
       [Domain.GNOSIS_CHAIN],
       [Provider.GNOSIS_OMNIBRIDGE],
-      [true],
+      [ZERO_ADDRESS],
       [],
     )).data;
 

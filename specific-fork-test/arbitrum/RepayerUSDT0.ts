@@ -68,7 +68,7 @@ describe.skip("Repayer USDT0 (Arbitrum fork), https://github.com/NomicFoundation
       [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.USDT0],
-      [true],
+      [ZERO_ADDRESS],
       [],
     )).data;
 

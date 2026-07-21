@@ -5,11 +5,11 @@ import {
 } from "./network.config";
 import {TypedDataDomain, AbiCoder, toNumber, dataSlice, getAddress, parseEther} from "ethers";
 import {
-  LiquidityPoolAave, PaxosOracle, Rebalancer, Repayer, StashDex,
+  LiquidityPoolAave, PaxosOracle, Rebalancer, Repayer, StashDex, ILiquidityPool,
 } from "./typechain-types";
 import {
   assert, isSet, ProviderSolidity, DomainSolidity, CCTPDomain, SolidityDomain, SolidityProvider,
-  DEFAULT_ADMIN_ROLE, assertAddress, addressToBytes32,
+  DEFAULT_ADMIN_ROLE, assertAddress, addressToBytes32, ZERO_ADDRESS,
   sameAddress,
 } from "./scripts/common";
 import "hardhat-ignore-warnings";
@@ -30,6 +30,16 @@ async function loadScriptHelpers() {
 
 function sortRoutes(routes: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens?: boolean}[]): void {
   routes.sort((a, b) => `${a.Pool}${a.Domain}${a.Provider}`.localeCompare(`${b.Pool}${b.Domain}${b.Provider}`));
+}
+
+// A pool that "supports all tokens" accepts any repaid token (onlySupportedToken == address(0));
+// otherwise it is restricted to its own ASSETS, mirroring the old poolSupportsAllTokens boolean.
+async function resolveOnlySupportedToken(
+  hre: any, pool: string, supportsAllTokens: boolean
+): Promise<string> {
+  if (supportsAllTokens) return ZERO_ADDRESS;
+  const poolContract = (await hre.ethers.getContractAt("ILiquidityPool", pool)) as ILiquidityPool;
+  return await poolContract.ASSETS.staticCall();
 }
 
 task("grant-role", "Grant some role on some AccessControl")
@@ -309,10 +319,13 @@ task("set-routes-repayer", "Update Repayer config")
   });
   const supportsAllTokens = args.supportsalltokens?.split(",") || [];
   const supportsAllTokensBool = supportsAllTokens.map(el => el.toString() === "true");
+  const onlySupportedToken = await Promise.all(
+    pools.map((pool, i) => resolveOnlySupportedToken(hre, pool, supportsAllTokensBool[i]))
+  );
 
-  await target.setRoute(pools, domainsSolidity, providersSolidity, supportsAllTokensBool, args.allowed);
+  await target.setRoute(pools, domainsSolidity, providersSolidity, onlySupportedToken, args.allowed);
   console.log(`Following routes are ${args.allowed ? "" : "dis"}allowed on ${targetAddress}.`);
-  console.table({domains, providers, allTokens: supportsAllTokensBool});
+  console.table({domains, providers, onlySupportedToken});
 });
 
 task("update-routes-repayer", "Update Repayer routes based on current network config")
@@ -333,24 +346,26 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
   const targetAddress = await resolveProxyXAddress(args.repayer);
   const target = (await hre.ethers.getContractAt("Repayer", targetAddress, admin)) as Repayer;
   const onchainRoutes = await target.getAllRoutes();
-  const onchainConfig: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens: boolean}[] = [];
+  const onchainConfig: {Pool: string, Domain: Network, Provider: Provider, OnlySupportedToken: string}[] = [];
   for (let i = 0; i < onchainRoutes.pools.length; i++) {
     onchainConfig.push({
       Pool: getAddress(onchainRoutes.pools[i]),
       Domain: SolidityDomain[Number(onchainRoutes.domains[i])],
       Provider: SolidityProvider[Number(onchainRoutes.providers[i])],
-      SupportsAllTokens: onchainRoutes.poolSupportsAllTokens[i],
+      OnlySupportedToken: getAddress(onchainRoutes.poolOnlySupportsToken[i]),
     });
   }
-  const localConfig: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens: boolean}[] = [];
+  const localConfig: {Pool: string, Domain: Network, Provider: Provider, OnlySupportedToken: string}[] = [];
   for (const [pool, domainProviders] of Object.entries(config.RepayerRoutes || {})) {
+    const poolAddress = await resolveXAddress(pool, false);
+    const onlySupportedToken = await resolveOnlySupportedToken(hre, poolAddress, domainProviders.SupportsAllTokens);
     for (const [domain, providers] of Object.entries(domainProviders.Domains) as [Network, Provider[]][]) {
       for (const provider of providers) {
         localConfig.push({
-          Pool: await resolveXAddress(pool, false),
+          Pool: poolAddress,
           Domain: domain,
           Provider: provider,
-          SupportsAllTokens: domainProviders.SupportsAllTokens,
+          OnlySupportedToken: getAddress(onlySupportedToken),
         });
       }
     }
@@ -368,31 +383,31 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
     el2.Pool === el.Pool &&
     el2.Domain === el.Domain &&
     el2.Provider === el.Provider &&
-    el2.SupportsAllTokens === el.SupportsAllTokens
+    el2.OnlySupportedToken === el.OnlySupportedToken
   ));
   const toDeny = onchainConfig.filter(el => !localConfig.some(el2 =>
     el2.Pool === el.Pool &&
     el2.Domain === el.Domain &&
     el2.Provider === el.Provider &&
-    el2.SupportsAllTokens === el.SupportsAllTokens
+    el2.OnlySupportedToken === el.OnlySupportedToken
   ));
 
   const hasRole = await target.hasRole(DEFAULT_ADMIN_ROLE, admin);
 
-  // Calling deny first so that allow overrides incorrect SupportsAllTokens flag.
+  // Calling deny first so that allow overrides an incorrect OnlySupportedToken.
   if (toDeny.length > 0) {
     const toDenyParams = toDeny.map(el => ({
       pools: el.Pool,
       domains: DomainSolidity[el.Domain],
       providers: ProviderSolidity[el.Provider],
-      supportsAllTokens: el.SupportsAllTokens,
+      onlySupportedToken: el.OnlySupportedToken,
     }));
     if (hasRole && (args.action === "deny" || args.action === "both")) {
       await (await target.setRoute(
         toDenyParams.map(el => el.pools),
         toDenyParams.map(el => el.domains),
         toDenyParams.map(el => el.providers),
-        toDenyParams.map(el => el.supportsAllTokens),
+        toDenyParams.map(el => el.onlySupportedToken),
         false
       )).wait();
       console.log(`Following routes are now denied on ${targetAddress}.`);
@@ -412,7 +427,7 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
         toDenyParams.map(el => el.pools),
         toDenyParams.map(el => el.domains),
         toDenyParams.map(el => el.providers),
-        toDenyParams.map(el => el.supportsAllTokens),
+        toDenyParams.map(el => el.onlySupportedToken),
         false
       );
       console.log(`Raw data: ${denyTx.data}`);
@@ -426,14 +441,14 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
       pools: el.Pool,
       domains: DomainSolidity[el.Domain],
       providers: ProviderSolidity[el.Provider],
-      supportsAllTokens: el.SupportsAllTokens,
+      onlySupportedToken: el.OnlySupportedToken,
     }));
     if (hasRole && (args.action === "allow" || args.action === "both")) {
       await (await target.setRoute(
         toAllowParams.map(el => el.pools),
         toAllowParams.map(el => el.domains),
         toAllowParams.map(el => el.providers),
-        toAllowParams.map(el => el.supportsAllTokens),
+        toAllowParams.map(el => el.onlySupportedToken),
         true
       )).wait();
       console.log(`Following routes are now allowed on ${targetAddress}.`);
@@ -453,7 +468,7 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
         toAllowParams.map(el => el.pools),
         toAllowParams.map(el => el.domains),
         toAllowParams.map(el => el.providers),
-        toAllowParams.map(el => el.supportsAllTokens),
+        toAllowParams.map(el => el.onlySupportedToken),
         true
       );
       console.log(`Raw data: ${allowTx.data}`);

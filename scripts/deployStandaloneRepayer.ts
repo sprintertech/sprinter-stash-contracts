@@ -48,15 +48,25 @@ export async function main() {
   config.RepayerCallers.forEach(el => assertAddress(el, "Each RepayerCaller must be an address"));
   assertAddress(config.WrappedNativeToken, "WrappedNativeToken must be an address");
 
-  const repayerRoutes: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens: boolean}[] = [];
+  const repayerRoutes: {Pool: string, Domain: Network, Provider: Provider, OnlySupportedToken: string}[] = [];
+  // Repayer tokens are used from the general network config, not the standalone repayer config.
+  const tokens = prodNetworkConfig[network].Tokens;
   for (const [pool, domainProviders] of Object.entries(config.RepayerRoutes || {})) {
     for (const [domain, providers] of Object.entries(domainProviders.Domains) as [Network, Provider[]][]) {
       for (const provider of providers) {
+        let onlySupportedToken = ZERO_ADDRESS;
+        if (domainProviders.OnlySupportedToken) {
+          assert(
+            tokens[domainProviders.OnlySupportedToken],
+            `Token ${domainProviders.OnlySupportedToken} is not found in the network config`
+          );
+          onlySupportedToken = tokens[domainProviders.OnlySupportedToken]!.Address;
+        }
         repayerRoutes.push({
           Pool: await resolveXAddress(pool, false),
           Domain: domain,
           Provider: provider,
-          SupportsAllTokens: domainProviders.SupportsAllTokens,
+          OnlySupportedToken: onlySupportedToken,
         });
       }
     }
@@ -121,7 +131,7 @@ export async function main() {
       repayerRoutes.map(el => el.Pool),
       repayerRoutes.map(el => DomainSolidity[el.Domain]),
       repayerRoutes.map(el => ProviderSolidity[el.Provider]),
-      repayerRoutes.map(el => el.SupportsAllTokens),
+      repayerRoutes.map(el => el.OnlySupportedToken),
       inputOutputTokens,
     ],
     id,

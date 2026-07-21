@@ -1,5 +1,5 @@
 import {
-  loadFixture, setBalance, setCode
+  loadFixture, mine, setBalance, setCode
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {expect} from "chai";
 import hre from "hardhat";
@@ -16,8 +16,11 @@ import {
 } from "../../typechain-types";
 import {prodNetworkConfig as networkConfig} from "../../network.config";
 
-describe.skip("Repayer USDT0 (Arbitrum fork), https://github.com/NomicFoundation/edr/issues/1214", function () {
+describe("Repayer USDT0 (Arbitrum fork)", function () {
   const deployAll = async () => {
+    // Mining a block before doing any calls (eth_call) fixes the issue:
+    // https://github.com/NomicFoundation/edr/issues/1214
+    await mine();
     const [deployer, admin, repayUser, setTokensUser] = await hre.ethers.getSigners();
     await setCode(repayUser.address, "0x00");
 
@@ -90,6 +93,7 @@ describe.skip("Repayer USDT0 (Arbitrum fork), https://github.com/NomicFoundation
   };
 
   it("Should allow repayer to bridge USDT0 from Arbitrum to Ethereum via USDT0 OFT on fork", async function () {
+    this.timeout(80000);
     const {repayer, USDT0_DEC, usdt0Token, repayUser, liquidityPool} = await loadFixture(deployAll);
 
     assertAddress(

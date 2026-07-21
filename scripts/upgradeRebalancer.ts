@@ -40,6 +40,7 @@ export async function main() {
   if (!config.GnosisUSDCxDAI) config.GnosisUSDCxDAI = ZERO_ADDRESS;
   if (!config.GnosisUSDCTransmuter) config.GnosisUSDCTransmuter = ZERO_ADDRESS;
   if (!config.GnosisAMB) config.GnosisAMB = ZERO_ADDRESS;
+  if (!config.USDT0OFT) config.USDT0OFT = ZERO_ADDRESS;
 
   const rebalancerAddress = await getDeployProxyXAddress("Rebalancer");
   const rebalancerVersion = "Rebalancer";
@@ -50,9 +51,9 @@ export async function main() {
     rebalancerVersion,
     sender,
     [
-      DomainSolidity[network], config.Tokens.USDC.Address,
+      DomainSolidity[network], config.Tokens.USDC.Address, config.Tokens.USDC.Address,
       config.Omnibridge, config.GnosisUSDCxDAI, config.GnosisUSDCTransmuter, config.GnosisAMB,
-      config.CCTPV2.TokenMessenger, config.CCTPV2.MessageTransmitter,
+      config.USDT0OFT, config.CCTPV2.TokenMessenger, config.CCTPV2.MessageTransmitter,
     ],
     "Rebalancer",
   );

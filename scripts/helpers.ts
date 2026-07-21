@@ -8,7 +8,7 @@ import {
   TransparentUpgradeableProxy, ProxyAdmin, Repayer,
 } from "../typechain-types";
 import {
-  sleep, assert, assertAddress, DomainSolidity, addressToBytes32, bytes32ToToken, SolidityDomain
+  sleep, assert, assertAddress, DomainSolidity, addressToBytes32, bytes32ToToken, SolidityDomain, ZERO_ADDRESS,
 } from "./common";
 import {
   prodNetworkConfig, stageNetworkConfig, Network, NetworkConfig, StandaloneRepayerEnv, StandaloneRepayerConfig,
@@ -254,14 +254,15 @@ export async function getProxyXAdmin(idOrAddress: string, signer?: Signer): Prom
 export async function addLocalPool(
   condition: any,
   network: Network,
-  routes: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens?: boolean}[],
+  routes: {Pool: string, Domain: Network, Provider: Provider, OnlySupportedToken?: string}[],
   versions: (typeof LiquidityPoolUSDCVersions)
     | (typeof LiquidityPoolAaveUSDCVersions)
     | (typeof LiquidityPoolUSDCStablecoinVersions)
     | (typeof LiquidityPoolAaveUSDCLongTermVersions)
     | (typeof ERC4626AdapterUSDCVersions),
-  supportsAllTokens: boolean,
-  poolName: string,
+    config: NetworkConfig,
+    poolName: string,
+    onlySupportedToken?: Token,
 ): Promise<void> {
   if (condition) {
     let pool = "";
@@ -274,11 +275,19 @@ export async function addLocalPool(
       }
     }
     assertAddress(pool, `${poolName} pool not found`);
+    let onlySupportedTokenAddress = ZERO_ADDRESS;
+    if (onlySupportedToken) {
+      assert(
+        config.Tokens[onlySupportedToken],
+        `Token ${onlySupportedToken} is not found in the network config`
+      );
+      onlySupportedTokenAddress = config.Tokens[onlySupportedToken]!.Address;
+    }
     routes.push({
       Pool: pool,
       Domain: network,
       Provider: Provider.LOCAL,
-      SupportsAllTokens: supportsAllTokens,
+      OnlySupportedToken: onlySupportedTokenAddress,
     });
   }
 }
@@ -286,20 +295,23 @@ export async function addLocalPool(
 export async function addLocalPools(
   config: NetworkConfig,
   network: Network,
-  routes: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens?: boolean}[],
+  routes: {Pool: string, Domain: Network, Provider: Provider, OnlySupportedToken?: string}[],
   isRebalancer: boolean = true,
 ): Promise<void> {
   await addLocalPool(
-    config.AavePoolLongTerm, network, routes, LiquidityPoolAaveUSDCLongTermVersions, true, "Aave USDC Long Term"
+    config.AavePoolLongTerm, network, routes, LiquidityPoolAaveUSDCLongTermVersions,
+    config, "Aave USDC Long Term"
   );
-  await addLocalPool(config.AavePool, network, routes, LiquidityPoolAaveUSDCVersions, true, "Aave USDC");
-  await addLocalPool(config.USDCPool, network, routes, LiquidityPoolUSDCVersions, false, "USDC");
+  await addLocalPool(config.AavePool, network, routes, LiquidityPoolAaveUSDCVersions, config, "Aave USDC");
+  await addLocalPool(config.USDCPool, network, routes, LiquidityPoolUSDCVersions, config, "USDC", Token.USDC);
   await addLocalPool(
-    config.USDCStablecoinPool, network, routes, LiquidityPoolUSDCStablecoinVersions, true, "USDC stablecoin"
+    config.USDCStablecoinPool, network, routes, LiquidityPoolUSDCStablecoinVersions,
+    config, "USDC stablecoin"
   );
   if (isRebalancer) {
     await addLocalPool(
-      config.ERC4626AdapterUSDCTargetVault, network, routes, ERC4626AdapterUSDCVersions, false, "ERC4626 Adapter USDC"
+      config.ERC4626AdapterUSDCTargetVault, network, routes, ERC4626AdapterUSDCVersions,
+      config, "ERC4626 Adapter USDC", Token.USDC
     );
   }
   if (config.ActiveLegacyPools) {
@@ -308,7 +320,7 @@ export async function addLocalPools(
         Pool: await resolveXAddress(pool),
         Domain: network,
         Provider: Provider.LOCAL,
-        SupportsAllTokens: supportsAllTokens,
+        OnlySupportedToken: supportsAllTokens ? ZERO_ADDRESS : config.Tokens.USDC.Address,
       });
     }
   }

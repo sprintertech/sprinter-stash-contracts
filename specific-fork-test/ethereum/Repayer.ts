@@ -117,7 +117,7 @@ describe("Repayer", function () {
         Provider.ARBITRUM_GATEWAY,
         Provider.CCTP_V2,
       ],
-      [ZERO_ADDRESS, usdc.target, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS],
+      [ZERO_ADDRESS, usdc, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS],
       [
         {
           inputToken: usdc,

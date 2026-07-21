@@ -59,7 +59,7 @@ export interface RebalancerRoutesConfig {
 
 export interface RepayerRoutesConfig {
   [Pool: string]: {
-    SupportsAllTokens: boolean;
+    OnlySupportedToken?: Token; // Omit to accept any repaid token.
     Domains: {
       [Domain in Network]?: Provider[];
     };

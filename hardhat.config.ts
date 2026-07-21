@@ -5,7 +5,7 @@ import {
 } from "./network.config";
 import {TypedDataDomain, AbiCoder, toNumber, dataSlice, getAddress, parseEther} from "ethers";
 import {
-  LiquidityPoolAave, PaxosOracle, Rebalancer, Repayer, StashDex, ILiquidityPool,
+  LiquidityPoolAave, PaxosOracle, Rebalancer, Repayer, StashDex,
 } from "./typechain-types";
 import {
   assert, isSet, ProviderSolidity, DomainSolidity, CCTPDomain, SolidityDomain, SolidityProvider,
@@ -28,18 +28,10 @@ async function loadScriptHelpers() {
   return await import("./scripts/helpers");
 }
 
-function sortRoutes(routes: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens?: boolean}[]): void {
+function sortRoutes(
+  routes: {Pool: string, Domain: Network, Provider: Provider, OnlySupportedToken?: string}[]
+): void {
   routes.sort((a, b) => `${a.Pool}${a.Domain}${a.Provider}`.localeCompare(`${b.Pool}${b.Domain}${b.Provider}`));
-}
-
-// A pool that "supports all tokens" accepts any repaid token (onlySupportedToken == address(0));
-// otherwise it is restricted to its own ASSETS, mirroring the old poolSupportsAllTokens boolean.
-async function resolveOnlySupportedToken(
-  hre: any, pool: string, supportsAllTokens: boolean
-): Promise<string> {
-  if (supportsAllTokens) return ZERO_ADDRESS;
-  const poolContract = (await hre.ethers.getContractAt("ILiquidityPool", pool)) as ILiquidityPool;
-  return await poolContract.ASSETS.staticCall();
 }
 
 task("grant-role", "Grant some role on some AccessControl")
@@ -287,14 +279,17 @@ task("set-routes-repayer", "Update Repayer config")
 .addParam("pools", "Comma separated list of Liquidity Pool ids or addresses")
 .addParam("domains", "Comma separated list of domain names")
 .addParam("providers", "Comma separated list of provider names")
-.addParam("supportsalltokens", "Comma separated bool flags whether the pool supports all tokens")
+.addParam(
+  "onlysupportedtokens",
+  "Comma separated list of token ids or addresses each pool is restricted to (empty entry = accepts all tokens)"
+)
 .addOptionalParam("allowed", "Allowed or denied", true, types.boolean)
 .setAction(async (args: {
   repayer: string,
   pools: string,
   domains: string,
   providers: string,
-  supportsalltokens: string,
+  onlysupportedtokens: string,
   allowed: boolean,
 }, hre) => {
   const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
@@ -317,10 +312,9 @@ task("set-routes-repayer", "Update Repayer config")
     assert(Object.values(Provider).includes(el as Provider), `Invalid provider ${el}`);
     return ProviderSolidity[el as Provider];
   });
-  const supportsAllTokens = args.supportsalltokens?.split(",") || [];
-  const supportsAllTokensBool = supportsAllTokens.map(el => el.toString() === "true");
+  const targetOnlySupportedTokens = args.onlysupportedtokens?.split(",") || [];
   const onlySupportedToken = await Promise.all(
-    pools.map((pool, i) => resolveOnlySupportedToken(hre, pool, supportsAllTokensBool[i]))
+    targetOnlySupportedTokens.map(el => el.trim() ? resolveXAddress(el, false) : ZERO_ADDRESS)
   );
 
   await target.setRoute(pools, domainsSolidity, providersSolidity, onlySupportedToken, args.allowed);
@@ -358,7 +352,14 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
   const localConfig: {Pool: string, Domain: Network, Provider: Provider, OnlySupportedToken: string}[] = [];
   for (const [pool, domainProviders] of Object.entries(config.RepayerRoutes || {})) {
     const poolAddress = await resolveXAddress(pool, false);
-    const onlySupportedToken = await resolveOnlySupportedToken(hre, poolAddress, domainProviders.SupportsAllTokens);
+    let onlySupportedToken = ZERO_ADDRESS;
+    if (domainProviders.OnlySupportedToken) {
+      assert(
+        config.Tokens[domainProviders.OnlySupportedToken],
+        `Token ${domainProviders.OnlySupportedToken} is not found in the network config`
+      );
+      onlySupportedToken = config.Tokens[domainProviders.OnlySupportedToken]!.Address;
+    }
     for (const [domain, providers] of Object.entries(domainProviders.Domains) as [Network, Provider[]][]) {
       for (const provider of providers) {
         localConfig.push({

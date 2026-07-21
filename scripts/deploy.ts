@@ -94,11 +94,11 @@ export async function main() {
     }
   }
 
-  const repayerRoutes: {Pools: string[], Domains: Network[], Providers: Provider[], SupportsAllTokens: boolean[]} = {
+  const repayerRoutes: {Pools: string[], Domains: Network[], Providers: Provider[], OnlySupportedTokens: string[]} = {
     Pools: [],
     Domains: [],
     Providers: [],
-    SupportsAllTokens: [],
+    OnlySupportedTokens: [],
   };
   if (config.RepayerRoutes) {
     for (const [pool, domainProviders] of Object.entries(config.RepayerRoutes)) {
@@ -107,7 +107,15 @@ export async function main() {
           repayerRoutes.Pools.push(pool);
           repayerRoutes.Domains.push(domain as Network);
           repayerRoutes.Providers.push(provider);
-          repayerRoutes.SupportsAllTokens.push(domainProviders.SupportsAllTokens);
+          let onlySupportedToken = ZERO_ADDRESS;
+          if (domainProviders.OnlySupportedToken) {
+            assert(
+              config.Tokens[domainProviders.OnlySupportedToken],
+              `Token ${domainProviders.OnlySupportedToken} is not found in the network config`
+            );
+            onlySupportedToken = config.Tokens[domainProviders.OnlySupportedToken]!.Address;
+          }
+          repayerRoutes.OnlySupportedTokens.push(onlySupportedToken);
         }
       }
     }
@@ -172,7 +180,7 @@ export async function main() {
     repayerRoutes.Pools.push(await aavePoolLongTerm.getAddress());
     repayerRoutes.Domains.push(network);
     repayerRoutes.Providers.push(Provider.LOCAL);
-    repayerRoutes.SupportsAllTokens.push(true);
+    repayerRoutes.OnlySupportedTokens.push(ZERO_ADDRESS);
 
     mainPool = aavePoolLongTerm;
   }
@@ -213,7 +221,7 @@ export async function main() {
     repayerRoutes.Pools.push(await aavePool.getAddress());
     repayerRoutes.Domains.push(network);
     repayerRoutes.Providers.push(Provider.LOCAL);
-    repayerRoutes.SupportsAllTokens.push(true);
+    repayerRoutes.OnlySupportedTokens.push(ZERO_ADDRESS);
 
     if (!mainPool) {
       mainPool = aavePool;
@@ -245,7 +253,7 @@ export async function main() {
     repayerRoutes.Pools.push(await usdcPool.getAddress());
     repayerRoutes.Domains.push(network);
     repayerRoutes.Providers.push(Provider.LOCAL);
-    repayerRoutes.SupportsAllTokens.push(false);
+    repayerRoutes.OnlySupportedTokens.push(config.Tokens.USDC.Address);
 
     if (!mainPool) {
       mainPool = usdcPool;
@@ -278,7 +286,7 @@ export async function main() {
     repayerRoutes.Pools.push(await usdcStablecoinPool.getAddress());
     repayerRoutes.Domains.push(network);
     repayerRoutes.Providers.push(Provider.LOCAL);
-    repayerRoutes.SupportsAllTokens.push(true);
+    repayerRoutes.OnlySupportedTokens.push(ZERO_ADDRESS);
 
     if ((!config.AavePool) && (!config.USDCPool)) {
       mainPool = usdcStablecoinPool;
@@ -345,9 +353,9 @@ export async function main() {
     deployerWithNonce,
     config.Admin,
     [
-      DomainSolidity[network], config.Tokens.USDC.Address,
+      DomainSolidity[network], config.Tokens.USDC.Address, config.Tokens.USDC.Address,
       config.Omnibridge, config.GnosisUSDCxDAI, config.GnosisUSDCTransmuter, config.GnosisAMB,
-      config.CCTPV2.TokenMessenger, config.CCTPV2.MessageTransmitter,
+      config.USDT0OFT, config.CCTPV2.TokenMessenger, config.CCTPV2.MessageTransmitter,
     ],
     [
       config.Admin,
@@ -444,7 +452,7 @@ export async function main() {
         repayerRoutes.Pools,
         repayerRoutes.Domains.map(el => DomainSolidity[el]),
         repayerRoutes.Providers.map(el => ProviderSolidity[el]),
-        repayerRoutes.SupportsAllTokens,
+        repayerRoutes.OnlySupportedTokens,
         inputOutputTokens,
       ],
       repayerId,
@@ -582,7 +590,7 @@ export async function main() {
         Pool: repayerRoutes.Pools[i],
         Domain: repayerRoutes.Domains[i],
         Provider: repayerRoutes.Providers[i],
-        SupportsAllTokens: repayerRoutes.SupportsAllTokens[i],
+        OnlySupportedToken: repayerRoutes.OnlySupportedTokens[i],
       });
     }
     console.table(transposedRoutes);

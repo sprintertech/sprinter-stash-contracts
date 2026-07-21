@@ -69,7 +69,7 @@ describe("Repayer Gnosis Omnibridge (Gnosis Chain fork)", function () {
       [liquidityPool, liquidityPool],
       [Domain.ETHEREUM, Domain.GNOSIS_CHAIN],
       [Provider.GNOSIS_OMNIBRIDGE, Provider.LOCAL],
-      [ZERO_ADDRESS, usdce.target],
+      [ZERO_ADDRESS, usdce],
       [],
     )).data;
 

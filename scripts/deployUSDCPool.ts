@@ -6,7 +6,7 @@ import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers, de
 import {resolveProxyXAddress, toBytes32} from "../test/helpers";
 import {isSet, assert, DEFAULT_ADMIN_ROLE, sameAddress} from "./common";
 import {LiquidityPool, ProxyAdmin} from "../typechain-types";
-import {Network, NetworkConfig, LiquidityPoolUSDCVersions} from "../network.config";
+import {Network, NetworkConfig, Token, LiquidityPoolUSDCVersions} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -32,7 +32,9 @@ export async function main() {
     id += "-DeployTest";
   }
 
-  assert(config.USDCPool, "USDC pool is not configured");
+  const usdcConfig = config.MainAssets[Token.USDC];
+  assert(usdcConfig, "USDC config is not found in the network config");
+  assert(usdcConfig.BasicPool, "USDC pool is not configured");
 
   const rebalancer = await resolveProxyXAddress("Rebalancer");
   console.log(`Rebalancer: ${rebalancer}`);
@@ -52,13 +54,13 @@ export async function main() {
   console.log(`${id}: ${usdcPool.target}`);
   console.log(`${id}ProxyAdmin: ${usdcPoolAdmin.target}`);
 
-  await usdcPool!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
-  await usdcPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
+  await usdcPool.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
+  await usdcPool.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
   let lastTx = await usdcPool!.grantRole(PAUSER_ROLE, config.Pauser);
 
   if (!sameAddress(deployer.address, config.Admin)) {
-    await usdcPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-    lastTx = await usdcPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    await usdcPool.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
+    lastTx = await usdcPool.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
   }
 
   await verifier.verify(process.env.VERIFY === "true");

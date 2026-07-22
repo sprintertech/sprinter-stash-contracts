@@ -18,7 +18,7 @@ import {
   ProxyAdmin, PublicLiquidityPool, ERC4626Adapter, AccessControl,
 } from "../typechain-types";
 import {
-  Network, Provider, NetworkConfig,
+  Network, Provider, NetworkConfig, Token,
   LiquidityPoolAaveUSDCVersions,
   LiquidityPoolAaveUSDCLongTermVersions,
   LiquidityPoolUSDCVersions,
@@ -52,8 +52,13 @@ export async function main() {
 
   await logDeployers();
 
-  assert(config.AavePool! || config.AavePoolLongTerm! || config.USDCPool! || config.USDCStablecoinPool!,
-    "At least one pool should be present.");
+  const usdcConfig = config.MainAssets[Token.USDC];
+  assert(usdcConfig, "USDC config is not found in the network config");
+
+  assert(
+    usdcConfig.AavePool || usdcConfig.AavePoolLongTerm || usdcConfig.BasicPool || usdcConfig.StablecoinPool,
+    "At least one pool should be present."
+  );
   assertAddress(config.Tokens.USDC.Address, "USDC must be an address");
   assertAddress(config.Admin, "Admin must be an address");
   assertAddress(config.WithdrawProfit, "WithdrawProfit must be an address");
@@ -72,9 +77,9 @@ export async function main() {
     };
   }
 
-  if (config.Hub) {
-    assert(config.Hub.Tiers.length > 0, "Empty liquidity mining tiers configuration.");
-    assert(config.Hub.AssetsLimit <= MaxUint256 / 10n ** 12n, "Assets limit is too high");
+  if (usdcConfig.Hub) {
+    assert(usdcConfig.Hub.Tiers.length > 0, "Empty liquidity mining tiers configuration.");
+    assert(usdcConfig.Hub.AssetsLimit <= MaxUint256 / 10n ** 12n, "Assets limit is too high");
   }
 
   const rebalancerRoutes: {Pools: string[], Domains: Network[], Providers: Provider[]} = {
@@ -82,8 +87,8 @@ export async function main() {
     Domains: [],
     Providers: [],
   };
-  if (config.RebalancerRoutes) {
-    for (const [pool, domainProviders] of Object.entries(config.RebalancerRoutes)) {
+  if (usdcConfig.RebalancerRoutes) {
+    for (const [pool, domainProviders] of Object.entries(usdcConfig.RebalancerRoutes)) {
       for (const [domain, providers] of Object.entries(domainProviders)) {
         for (const provider of providers) {
           rebalancerRoutes.Pools.push(pool);
@@ -145,10 +150,10 @@ export async function main() {
   let mainPool: AccessControl | undefined = undefined;
   let aavePoolLongTerm: LiquidityPoolAaveLongTerm;
   let aavePoolLongTermAdmin: ProxyAdmin;
-  if (config.AavePoolLongTerm) {
+  if (usdcConfig.AavePoolLongTerm) {
     const id = LiquidityPoolAaveUSDCLongTermVersions[0];
-    const minHealthFactor = BigInt(config.AavePoolLongTerm.MinHealthFactor) * 10000n / 100n;
-    const defaultLTV = BigInt(config.AavePoolLongTerm.DefaultLTV) * 10000n / 100n;
+    const minHealthFactor = BigInt(usdcConfig.AavePoolLongTerm.MinHealthFactor) * 10000n / 100n;
+    const defaultLTV = BigInt(usdcConfig.AavePoolLongTerm.DefaultLTV) * 10000n / 100n;
     console.log("Deploying AAVE Liquidity Pool Long Term");
     ({target: aavePoolLongTerm, targetAdmin: aavePoolLongTermAdmin} =
       await deployProxyX<LiquidityPoolAaveLongTerm>(
@@ -156,15 +161,15 @@ export async function main() {
         "LiquidityPoolAaveLongTerm",
         deployerWithNonce,
         config.Admin,
-        [config.Tokens.USDC.Address, config.AavePoolLongTerm.AaveAddressesProvider, config.WrappedNativeToken],
+        [config.Tokens.USDC.Address, usdcConfig.AavePoolLongTerm.AaveAddressesProvider, config.WrappedNativeToken],
         [deployer, config.MpcAddress, config.SignerAddress, minHealthFactor, defaultLTV],
         id,
         verifier,
       ));
 
-    if (config.AavePoolLongTerm.TokenLTVs) {
-      const tokens = Object.keys(config.AavePoolLongTerm.TokenLTVs);
-      const LTVs = Object.values(config.AavePoolLongTerm.TokenLTVs);
+    if (usdcConfig.AavePoolLongTerm.TokenLTVs) {
+      const tokens = Object.keys(usdcConfig.AavePoolLongTerm.TokenLTVs);
+      const LTVs = Object.values(usdcConfig.AavePoolLongTerm.TokenLTVs);
       await aavePoolLongTerm.setBorrowTokenLTVs(
         tokens,
         percentsToBps(LTVs),
@@ -187,25 +192,25 @@ export async function main() {
 
   let aavePool: LiquidityPoolAave;
   let aavePoolAdmin: ProxyAdmin;
-  if (config.AavePool) {
+  if (usdcConfig.AavePool) {
     const id = LiquidityPoolAaveUSDCVersions[0];
-    const minHealthFactor = BigInt(config.AavePool.MinHealthFactor) * 10000n / 100n;
-    const defaultLTV = BigInt(config.AavePool.DefaultLTV) * 10000n / 100n;
+    const minHealthFactor = BigInt(usdcConfig.AavePool.MinHealthFactor) * 10000n / 100n;
+    const defaultLTV = BigInt(usdcConfig.AavePool.DefaultLTV) * 10000n / 100n;
     console.log("Deploying AAVE Liquidity Pool");
     ({target: aavePool, targetAdmin: aavePoolAdmin} = await deployProxyX<LiquidityPoolAave>(
       verifier.deployX,
       "LiquidityPoolAave",
       deployerWithNonce,
       config.Admin,
-      [config.Tokens.USDC.Address, config.AavePool.AaveAddressesProvider, config.WrappedNativeToken],
+      [config.Tokens.USDC.Address, usdcConfig.AavePool.AaveAddressesProvider, config.WrappedNativeToken],
       [deployer, config.MpcAddress, config.SignerAddress, minHealthFactor, defaultLTV],
       id,
       verifier,
     ));
 
-    if (config.AavePool.TokenLTVs) {
-      const tokens = Object.keys(config.AavePool.TokenLTVs);
-      const LTVs = Object.values(config.AavePool.TokenLTVs);
+    if (usdcConfig.AavePool.TokenLTVs) {
+      const tokens = Object.keys(usdcConfig.AavePool.TokenLTVs);
+      const LTVs = Object.values(usdcConfig.AavePool.TokenLTVs);
       await aavePool.setBorrowTokenLTVs(
         tokens,
         percentsToBps(LTVs),
@@ -230,7 +235,7 @@ export async function main() {
 
   let usdcPool: LiquidityPool;
   let usdcPoolAdmin: ProxyAdmin;
-  if (config.USDCPool) {
+  if (usdcConfig.BasicPool) {
     const id = LiquidityPoolUSDCVersions[0];
     console.log("Deploying USDC Liquidity Pool");
     ({target: usdcPool, targetAdmin: usdcPoolAdmin} = await deployProxyX<LiquidityPool>(
@@ -262,7 +267,7 @@ export async function main() {
 
   let usdcStablecoinPool: LiquidityPoolStablecoin;
   let usdcStablecoinPoolAdmin: ProxyAdmin;
-  if (config.USDCStablecoinPool) {
+  if (usdcConfig.StablecoinPool) {
     const id = LiquidityPoolUSDCStablecoinVersions[0];
     console.log("Deploying USDC Stablecoin Liquidity Pool");
     ({target: usdcStablecoinPool, targetAdmin: usdcStablecoinPoolAdmin} =
@@ -288,15 +293,15 @@ export async function main() {
     repayerRoutes.Providers.push(Provider.LOCAL);
     repayerRoutes.OnlySupportedTokens.push(ZERO_ADDRESS);
 
-    if ((!config.AavePool) && (!config.USDCPool)) {
+    if ((!usdcConfig.AavePool) && (!usdcConfig.BasicPool)) {
       mainPool = usdcStablecoinPool;
     }
   }
 
   let usdcPublicPool: PublicLiquidityPool;
   let usdcPublicPoolAdmin: ProxyAdmin;
-  if (config.USDCPublicPool) {
-    assertAddress(config.USDCPublicPool.FeeSetter, "FeeSetter must be an address");
+  if (usdcConfig.PublicPool) {
+    assertAddress(usdcConfig.PublicPool.FeeSetter, "FeeSetter must be an address");
     const id = LiquidityPoolPublicUSDCVersions[0];
     console.log("Deploying USDC Public Liquidity Pool");
     ({target: usdcPublicPool, targetAdmin: usdcPublicPoolAdmin} = await deployProxyX<PublicLiquidityPool>(
@@ -306,8 +311,8 @@ export async function main() {
       config.Admin,
       [config.Tokens.USDC.Address, config.WrappedNativeToken],
       [deployer, config.MpcAddress, config.SignerAddress,
-        config.USDCPublicPool.Name, config.USDCPublicPool.Symbol,
-        config.USDCPublicPool.ProtocolFeeRate * 10000 / 100],
+        usdcConfig.PublicPool.Name, usdcConfig.PublicPool.Symbol,
+        usdcConfig.PublicPool.ProtocolFeeRate * 10000 / 100],
       id,
       verifier,
     ));
@@ -317,9 +322,9 @@ export async function main() {
 
   let erc4626AdapterUSDC: ERC4626Adapter;
   let erc4626AdapterUSDCAdmin: ProxyAdmin;
-  if (config.ERC4626AdapterUSDCTargetVault) {
+  if (usdcConfig.ERC4626AdapterTargetVault) {
     const id = ERC4626AdapterUSDCVersions[0];
-    const targetVault = await resolveXAddress(config.ERC4626AdapterUSDCTargetVault);
+    const targetVault = await resolveXAddress(usdcConfig.ERC4626AdapterTargetVault);
     console.log(`Target Vault: ${targetVault}`);
 
     console.log("Deploying ERC4626 Adapter USDC");
@@ -368,39 +373,39 @@ export async function main() {
     verifier,
   );
 
-  if (config.AavePoolLongTerm) {
+  if (usdcConfig.AavePoolLongTerm) {
     await aavePoolLongTerm!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
     await aavePoolLongTerm!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
     await aavePoolLongTerm!.grantRole(PAUSER_ROLE, config.Pauser);
-    await aavePoolLongTerm!.grantRole(BORROW_LONG_TERM_ROLE, config.AavePoolLongTerm.BorrowLongTermAdmin);
-    await aavePoolLongTerm!.grantRole(REPAYER_ROLE, config.AavePoolLongTerm.RepayCaller);
+    await aavePoolLongTerm!.grantRole(BORROW_LONG_TERM_ROLE, usdcConfig.AavePoolLongTerm.BorrowLongTermAdmin);
+    await aavePoolLongTerm!.grantRole(REPAYER_ROLE, usdcConfig.AavePoolLongTerm.RepayCaller);
   }
 
-  if (config.AavePool) {
+  if (usdcConfig.AavePool) {
     await aavePool!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
     await aavePool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
     await aavePool!.grantRole(PAUSER_ROLE, config.Pauser);
   }
 
-  if (config.USDCPool) {
+  if (usdcConfig.BasicPool) {
     await usdcPool!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
     await usdcPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
     await usdcPool!.grantRole(PAUSER_ROLE, config.Pauser);
   }
 
-  if (config.USDCStablecoinPool) {
+  if (usdcConfig.StablecoinPool) {
     await usdcStablecoinPool!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
     await usdcStablecoinPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
     await usdcStablecoinPool!.grantRole(PAUSER_ROLE, config.Pauser);
   }
 
-  if (config.USDCPublicPool) {
+  if (usdcConfig.PublicPool) {
     await usdcPublicPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
     await usdcPublicPool!.grantRole(PAUSER_ROLE, config.Pauser);
-    await usdcPublicPool!.grantRole(FEE_SETTER_ROLE, config.USDCPublicPool.FeeSetter);
+    await usdcPublicPool!.grantRole(FEE_SETTER_ROLE, usdcConfig.PublicPool.FeeSetter);
   }
 
-  if (config.ERC4626AdapterUSDCTargetVault) {
+  if (usdcConfig.ERC4626AdapterTargetVault) {
     await erc4626AdapterUSDC!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
     await erc4626AdapterUSDC!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
     await erc4626AdapterUSDC!.grantRole(PAUSER_ROLE, config.Pauser);
@@ -462,9 +467,9 @@ export async function main() {
   }
 
 
-  if (config.Hub) {
-    const tiers = config.Hub!.Tiers;
-    const assetsLimit = BigInt(config.Hub!.AssetsLimit) * 10n ** 6n;
+  if (usdcConfig.Hub) {
+    const tiers = usdcConfig.Hub!.Tiers;
+    const assetsLimit = BigInt(usdcConfig.Hub!.AssetsLimit) * 10n ** 6n;
 
     const liquidityHubAddress = await verifier.predictDeployProxyXAddress("LiquidityHub", deployer);
     const lpToken = (await verifier.deployX(
@@ -485,9 +490,9 @@ export async function main() {
       [
         config.Tokens.USDC.Address,
         config.Admin,
-        config.Hub.AssetsAdjuster,
-        config.Hub.DepositProfit,
-        config.Hub.AssetsLimitSetter,
+        usdcConfig.Hub.AssetsAdjuster,
+        usdcConfig.Hub.DepositProfit,
+        usdcConfig.Hub.AssetsLimitSetter,
         assetsLimit
       ],
       "LiquidityHub",
@@ -504,10 +509,10 @@ export async function main() {
     console.log(`SprinterUSDCLPShare: ${lpToken.target}`);
     console.log(`LiquidityHub: ${liquidityHub.target}`);
     console.log(`LiquidityHubProxyAdmin: ${liquidityHubAdmin.target}`);
-    console.log(`LiquidityHub Adjuster: ${config.Hub!.AssetsAdjuster}`);
-    console.log(`LiquidityHub DepositProfit: ${config.Hub!.DepositProfit}`);
-    console.log(`LiquidityHub AssetsLimitSetter: ${config.Hub!.AssetsLimitSetter}`);
-    console.log(`LiquidityHub Assets Limit: ${config.Hub!.AssetsLimit}`);
+    console.log(`LiquidityHub Adjuster: ${usdcConfig.Hub!.AssetsAdjuster}`);
+    console.log(`LiquidityHub DepositProfit: ${usdcConfig.Hub!.DepositProfit}`);
+    console.log(`LiquidityHub AssetsLimitSetter: ${usdcConfig.Hub!.AssetsLimitSetter}`);
+    console.log(`LiquidityHub Assets Limit: ${usdcConfig.Hub!.AssetsLimit}`);
     console.log(`SprinterLiquidityMining: ${liquidityMining.target}`);
     console.log("Tiers:");
     console.table(tiers.map(el => {
@@ -517,32 +522,32 @@ export async function main() {
   }
 
   if (!sameAddress(deployer.address, config.Admin)) {
-    if (config.AavePoolLongTerm) {
+    if (usdcConfig.AavePoolLongTerm) {
       await aavePoolLongTerm!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
       await aavePoolLongTerm!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
     }
 
-    if (config.AavePool) {
+    if (usdcConfig.AavePool) {
       await aavePool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
       await aavePool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
     }
 
-    if (config.USDCPool) {
+    if (usdcConfig.BasicPool) {
       await usdcPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
       await usdcPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
     }
 
-    if (config.USDCStablecoinPool) {
+    if (usdcConfig.StablecoinPool) {
       await usdcStablecoinPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
       await usdcStablecoinPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
     }
 
-    if (config.USDCPublicPool) {
+    if (usdcConfig.PublicPool) {
       await usdcPublicPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
       await usdcPublicPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
     }
 
-    if (config.ERC4626AdapterUSDCTargetVault) {
+    if (usdcConfig.ERC4626AdapterTargetVault) {
       await erc4626AdapterUSDC!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
       await erc4626AdapterUSDC!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
     }

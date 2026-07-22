@@ -134,6 +134,20 @@ interface HubConfig {
   | (typeof LiquidityPoolAaveUSDCLongTermVersions)[number];
 }
 
+// Per-main-asset configuration (e.g. MainAssets.USDC, MainAssets.USDT) — most pool/route
+// configuration is specific to which token a given set of Liquidity Pools use as their main asset.
+export interface MainAssetConfig {
+  Hub?: HubConfig;
+  RebalancerRoutes?: RebalancerRoutesConfig;
+  AavePool?: AavePoolConfig;
+  AavePoolLongTerm?: AavePoolLongTermConfig;
+  BasicPool?: boolean;
+  StablecoinPool?: boolean;
+  PublicPool?: PublicPoolConfig;
+  ERC4626AdapterTargetVault?: string;
+  ActiveLegacyPools?: ActiveLegacyPoolConfig;
+}
+
 export type TokenInfo = {
   Address: string;
   Decimals: number;
@@ -170,7 +184,6 @@ export interface NetworkConfig {
     [Token.PYUSD]?: TokenInfo;
   };
   WrappedNativeToken: string;
-  RebalancerRoutes?: RebalancerRoutesConfig;
   RepayerRoutes?: RepayerRoutesConfig;
   Admin: string; // Every contracts admin/owner.
   WithdrawProfit: string;
@@ -180,14 +193,10 @@ export interface NetworkConfig {
   SetInputOutputTokens: string;
   MpcAddress: string;
   SignerAddress: string;
-  Hub?: HubConfig;
-  AavePool?: AavePoolConfig;
-  AavePoolLongTerm?: AavePoolLongTermConfig;
-  USDCPool?: boolean;
-  USDCStablecoinPool?: boolean;
-  USDCPublicPool?: PublicPoolConfig;
-  ERC4626AdapterUSDCTargetVault?: string;
-  ActiveLegacyPools?: ActiveLegacyPoolConfig;
+  // Configuration specific to which token a set of Liquidity Pools use as their main asset.
+  MainAssets: {
+    [key in Token]?: MainAssetConfig;
+  };
   StashDex?: StashDexConfig;
 }
 

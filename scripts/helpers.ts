@@ -298,24 +298,26 @@ export async function addLocalPools(
   routes: {Pool: string, Domain: Network, Provider: Provider, OnlySupportedToken?: string}[],
   isRebalancer: boolean = true,
 ): Promise<void> {
+  const usdcConfig = config.MainAssets[Token.USDC];
+  assert(usdcConfig, "USDC config is not found in the network config");
   await addLocalPool(
-    config.AavePoolLongTerm, network, routes, LiquidityPoolAaveUSDCLongTermVersions,
+    usdcConfig.AavePoolLongTerm, network, routes, LiquidityPoolAaveUSDCLongTermVersions,
     config, "Aave USDC Long Term"
   );
-  await addLocalPool(config.AavePool, network, routes, LiquidityPoolAaveUSDCVersions, config, "Aave USDC");
-  await addLocalPool(config.USDCPool, network, routes, LiquidityPoolUSDCVersions, config, "USDC", Token.USDC);
+  await addLocalPool(usdcConfig.AavePool, network, routes, LiquidityPoolAaveUSDCVersions, config, "Aave USDC");
+  await addLocalPool(usdcConfig.BasicPool, network, routes, LiquidityPoolUSDCVersions, config, "USDC", Token.USDC);
   await addLocalPool(
-    config.USDCStablecoinPool, network, routes, LiquidityPoolUSDCStablecoinVersions,
+    usdcConfig.StablecoinPool, network, routes, LiquidityPoolUSDCStablecoinVersions,
     config, "USDC stablecoin"
   );
   if (isRebalancer) {
     await addLocalPool(
-      config.ERC4626AdapterUSDCTargetVault, network, routes, ERC4626AdapterUSDCVersions,
+      usdcConfig.ERC4626AdapterTargetVault, network, routes, ERC4626AdapterUSDCVersions,
       config, "ERC4626 Adapter USDC", Token.USDC
     );
   }
-  if (config.ActiveLegacyPools) {
-    for (const [pool, supportsAllTokens] of Object.entries(config.ActiveLegacyPools) as [string, boolean][]) {
+  if (usdcConfig.ActiveLegacyPools) {
+    for (const [pool, supportsAllTokens] of Object.entries(usdcConfig.ActiveLegacyPools) as [string, boolean][]) {
       routes.push({
         Pool: await resolveXAddress(pool),
         Domain: network,
@@ -419,10 +421,12 @@ export async function getHardhatNetworkConfig() {
   process.env.DEPLOYER_ADDRESS = await resolveAddress(deployer);
   const config = prodNetworkConfig[network];
   config.ChainId = 31337;
-  assert(config.Hub, "Hub must be in config");
-  config.Hub.AssetsAdjuster = superAdmin.address;
-  config.Hub.DepositProfit = opsAdmin.address;
-  config.Hub.AssetsLimitSetter = opsAdmin.address;
+  const usdcConfig = config.MainAssets[Token.USDC];
+  assert(usdcConfig, "USDC config is not found in the network config");
+  assert(usdcConfig.Hub, "Hub must be in config");
+  usdcConfig.Hub.AssetsAdjuster = superAdmin.address;
+  usdcConfig.Hub.DepositProfit = opsAdmin.address;
+  usdcConfig.Hub.AssetsLimitSetter = opsAdmin.address;
   config.Admin = superAdmin.address;
   config.WithdrawProfit = opsAdmin.address;
   config.Pauser = opsAdmin.address;
@@ -430,26 +434,26 @@ export async function getHardhatNetworkConfig() {
   config.RepayerCaller = opsAdmin.address;
   config.MpcAddress = mpc.address;
   config.SignerAddress = opsAdmin.address;
-  config.USDCStablecoinPool = true;
-  if (!config.AavePoolLongTerm) {
-    if (config.AavePool) {
-      config.AavePoolLongTerm = {
-        ...config.AavePool,
+  usdcConfig.StablecoinPool = true;
+  if (!usdcConfig.AavePoolLongTerm) {
+    if (usdcConfig.AavePool) {
+      usdcConfig.AavePoolLongTerm = {
+        ...usdcConfig.AavePool,
         BorrowLongTermAdmin: opsAdmin.address,
         RepayCaller: opsAdmin.address,
       };
     }
   }
-  if (!config.USDCPublicPool) {
-    config.USDCPublicPool = {
+  if (!usdcConfig.PublicPool) {
+    usdcConfig.PublicPool = {
       Name: "Public Liquidity Pool USDC",
       Symbol: "PLPUSDC",
       ProtocolFeeRate: 20,
       FeeSetter: opsAdmin.address,
     };
   }
-  if (!config.ERC4626AdapterUSDCTargetVault) {
-    config.ERC4626AdapterUSDCTargetVault = LiquidityPoolPublicUSDCVersions.at(-1);
+  if (!usdcConfig.ERC4626AdapterTargetVault) {
+    usdcConfig.ERC4626AdapterTargetVault = LiquidityPoolPublicUSDCVersions.at(-1);
   }
   if (!config.StashDex) {
     config.StashDex = {

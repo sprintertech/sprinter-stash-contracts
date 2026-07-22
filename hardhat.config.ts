@@ -164,7 +164,8 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
     });
   }
   const localConfig: {Pool: string, Domain: Network, Provider: Provider}[] = [];
-  for (const [pool, domainProviders] of Object.entries(config.RebalancerRoutes || {})) {
+  const usdcConfig = config.MainAssets[Token.USDC];
+  for (const [pool, domainProviders] of Object.entries(usdcConfig?.RebalancerRoutes || {})) {
     for (const [domain, providers] of Object.entries(domainProviders) as [Network, Provider[]][]) {
       for (const provider of providers) {
         localConfig.push({

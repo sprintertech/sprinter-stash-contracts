@@ -12,7 +12,7 @@ import {encodeBytes32String, AbiCoder, hashMessage, Wallet} from "ethers";
 import {
   MockTarget, MockBorrowSwap, LiquidityPoolAaveLongTerm, MockSignerTrue, MockSignerFalse, TransparentUpgradeableProxy,
 } from "../typechain-types";
-import {prodNetworkConfig as networkConfig} from "../network.config";
+import {prodNetworkConfig as networkConfig, Token} from "../network.config";
 
 async function now() {
   return BigInt(await time.latest());
@@ -43,7 +43,7 @@ describe("LiquidityPoolAaveLongTerm", function () {
 
     const forkNetworkConfig = networkConfig.BASE;
 
-    const AAVE_POOL_PROVIDER = forkNetworkConfig.AavePool!.AaveAddressesProvider;
+    const AAVE_POOL_PROVIDER = forkNetworkConfig.MainAssets[Token.USDC]!.AavePool!.AaveAddressesProvider;
     const aavePoolAddressesProvider = await hre.ethers.getContractAt("IAavePoolAddressesProvider", AAVE_POOL_PROVIDER);
     const aavePoolAddress = await aavePoolAddressesProvider.getPool();
     const aavePool = await hre.ethers.getContractAt("IAavePool", aavePoolAddress);

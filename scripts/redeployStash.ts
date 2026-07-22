@@ -5,7 +5,7 @@ import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers} fr
 import {resolveProxyXAddress} from "../test/helpers";
 import {isSet, assert} from "./common";
 import {SprinterLiquidityMining} from "../typechain-types";
-import {Network, NetworkConfig} from "../network.config";
+import {Network, NetworkConfig, Token} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -26,11 +26,13 @@ export async function main() {
 
   await logDeployers();
 
-  assert(config.Hub, "Must be a network with a hub");
+  const usdcConfig = config.MainAssets[Token.USDC];
+  assert(usdcConfig, "USDC main asset config must be in config");
+  assert(usdcConfig.Hub, "Must be a network with a hub");
 
   const liquidityHub = await resolveProxyXAddress("LiquidityHub");
 
-  const tiers = config.Hub!.Tiers;
+  const tiers = usdcConfig.Hub.Tiers;
   const liquidityMining = (
     await verifier.deployX("SprinterLiquidityMining", deployer, {}, [config.Admin, liquidityHub, tiers])
   ) as SprinterLiquidityMining;

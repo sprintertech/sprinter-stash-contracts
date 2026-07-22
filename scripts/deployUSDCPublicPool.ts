@@ -6,7 +6,7 @@ import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers, de
 import {toBytes32} from "../test/helpers";
 import {isSet, assert, DEFAULT_ADMIN_ROLE, sameAddress, assertAddress} from "./common";
 import {PublicLiquidityPool, ProxyAdmin} from "../typechain-types";
-import {Network, NetworkConfig, LiquidityPoolPublicUSDCVersions} from "../network.config";
+import {Network, NetworkConfig, Token, LiquidityPoolPublicUSDCVersions} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -32,9 +32,11 @@ export async function main() {
 
   await logDeployers();
 
-  assert(config.USDCPublicPool, "USDC public pool is not configured");
+  const usdcConfig = config.MainAssets[Token.USDC];
+  assert(usdcConfig, "USDC config is not found in the network config");
+  assert(usdcConfig.PublicPool, "USDC public pool is not configured");
   assertAddress(config.SignerAddress, "SignerAddress must be an address");
-  assertAddress(config.USDCPublicPool.FeeSetter, "FeeSetter must be an address");
+  assertAddress(usdcConfig.PublicPool.FeeSetter, "FeeSetter must be an address");
 
   console.log("Deploying USDC Public Liquidity Pool");
   const {
@@ -47,8 +49,8 @@ export async function main() {
       config.Admin,
       [config.Tokens.USDC.Address, config.WrappedNativeToken],
       [deployer, config.MpcAddress, config.SignerAddress,
-        config.USDCPublicPool.Name, config.USDCPublicPool.Symbol,
-        config.USDCPublicPool.ProtocolFeeRate * 10000 / 100],
+        usdcConfig.PublicPool.Name, usdcConfig.PublicPool.Symbol,
+        usdcConfig.PublicPool.ProtocolFeeRate * 10000 / 100],
       id,
       verifier,
     );
@@ -57,7 +59,7 @@ export async function main() {
 
   await usdcPublicPool.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
   await usdcPublicPool.grantRole(PAUSER_ROLE, config.Pauser);
-  let lastTx = await usdcPublicPool.grantRole(FEE_SETTER_ROLE, config.USDCPublicPool.FeeSetter);
+  let lastTx = await usdcPublicPool.grantRole(FEE_SETTER_ROLE, usdcConfig.PublicPool.FeeSetter);
 
   if (!sameAddress(deployer.address, config.Admin)) {
     await usdcPublicPool.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);

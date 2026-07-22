@@ -6,7 +6,7 @@ import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers, de
 import {resolveProxyXAddress, toBytes32, resolveXAddress} from "../test/helpers";
 import {isSet, assert, DEFAULT_ADMIN_ROLE, sameAddress} from "./common";
 import {ERC4626Adapter, ProxyAdmin} from "../typechain-types";
-import {Network, NetworkConfig, ERC4626AdapterUSDCVersions} from "../network.config";
+import {Network, NetworkConfig, Token, ERC4626AdapterUSDCVersions} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -31,12 +31,14 @@ export async function main() {
   }
   await logDeployers();
 
-  assert(config.ERC4626AdapterUSDCTargetVault, "ERC4626AdapterUSDCTargetVault must be configured");
+  const usdcConfig = config.MainAssets[Token.USDC];
+  assert(usdcConfig, "USDC config is not found in the network config");
+  assert(usdcConfig.ERC4626AdapterTargetVault, "ERC4626AdapterTargetVault must be configured");
 
   const rebalancer = await resolveProxyXAddress("Rebalancer");
   console.log(`Rebalancer: ${rebalancer}`);
 
-  const targetVault = await resolveXAddress(config.ERC4626AdapterUSDCTargetVault);
+  const targetVault = await resolveXAddress(usdcConfig.ERC4626AdapterTargetVault);
   console.log(`Target Vault: ${targetVault}`);
 
   console.log("Deploying ERC4626 Adapter USDC");

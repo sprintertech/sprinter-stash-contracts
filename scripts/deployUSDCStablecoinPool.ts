@@ -6,7 +6,7 @@ import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers, de
 import {resolveProxyXAddress, toBytes32} from "../test/helpers";
 import {isSet, assert, DEFAULT_ADMIN_ROLE, sameAddress} from "./common";
 import {LiquidityPoolStablecoin, ProxyAdmin} from "../typechain-types";
-import {Network, NetworkConfig, LiquidityPoolUSDCStablecoinVersions} from "../network.config";
+import {Network, NetworkConfig, Token, LiquidityPoolUSDCStablecoinVersions} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -32,7 +32,9 @@ export async function main() {
 
   await logDeployers();
 
-  assert(config.USDCStablecoinPool, "USDC stablecoin pool is not configured");
+  const usdcConfig = config.MainAssets[Token.USDC];
+  assert(usdcConfig, "USDC config is not found in the network config");
+  assert(usdcConfig.StablecoinPool, "USDC stablecoin pool is not configured");
 
   const rebalancer = await resolveProxyXAddress("Rebalancer");
   console.log(`Rebalancer: ${rebalancer}`);

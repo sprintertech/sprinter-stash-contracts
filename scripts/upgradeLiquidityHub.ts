@@ -6,7 +6,7 @@ import {createSender} from "./safe";
 import {getDeployProxyXAddress, getContractAt, resolveXAddress} from "../test/helpers";
 import {isSet, assert} from "./common";
 import {LiquidityHub} from "../typechain-types";
-import {Network, NetworkConfig} from "../network.config";
+import {Network, NetworkConfig, Token} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -28,7 +28,9 @@ export async function main() {
 
   await logDeployers(false);
 
-  assert(config.Hub, "LiquidityHub must be defined");
+  const usdcConfig = config.MainAssets[Token.USDC];
+  assert(usdcConfig, "USDC main asset config must be in config");
+  assert(usdcConfig.Hub, "LiquidityHub must be defined");
 
   const liquidityHubAddress = await getDeployProxyXAddress("LiquidityHub");
 
@@ -37,8 +39,8 @@ export async function main() {
 
   let liquidityPool = await liquidityHub.LIQUIDITY_POOL();
 
-  if (config.Hub.Pool) {
-    liquidityPool = await resolveXAddress(config.Hub.Pool);
+  if (usdcConfig.Hub.Pool) {
+    liquidityPool = await resolveXAddress(usdcConfig.Hub.Pool);
   }
   console.log(`Liquidity Pool: ${liquidityPool}`);
 

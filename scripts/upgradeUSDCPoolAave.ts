@@ -6,7 +6,7 @@ import {createSender} from "./safe";
 import {resolveProxyXAddress, getContractAt} from "../test/helpers";
 import {isSet, assert, sameAddress} from "./common";
 import {LiquidityPoolAave} from "../typechain-types";
-import {LiquidityPoolAaveUSDC, Network, NetworkConfig} from "../network.config";
+import {LiquidityPoolAaveUSDC, Network, NetworkConfig, Token} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -28,7 +28,9 @@ export async function main() {
 
   await logDeployers(false);
 
-  assert(config.AavePool, "AavePool must be defined in config");
+  const usdcConfig = config.MainAssets[Token.USDC];
+  assert(usdcConfig, "USDC main asset config must be in config");
+  assert(usdcConfig.AavePool, "AavePool must be defined in config");
 
   const poolAddress = await resolveProxyXAddress(LiquidityPoolAaveUSDC);
 
@@ -38,7 +40,7 @@ export async function main() {
   const wrappedNativeToken = await pool.WRAPPED_NATIVE_TOKEN();
   assert(sameAddress(usdcAddress, config.Tokens.USDC.Address), "USDC address mismatch");
   assert(
-    sameAddress(aaveAddressesProvider, config.AavePool.AaveAddressesProvider),
+    sameAddress(aaveAddressesProvider, usdcConfig.AavePool.AaveAddressesProvider),
     "AaveAddressesProvider address mismatch",
   );
   assert(sameAddress(wrappedNativeToken, config.WrappedNativeToken), "WrappedNativeToken address mismatch");

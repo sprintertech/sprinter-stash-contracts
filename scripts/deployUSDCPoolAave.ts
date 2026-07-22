@@ -4,11 +4,12 @@ import hre from "hardhat";
 import {NonceManager} from "ethers";
 import {
   getVerifier, getHardhatNetworkConfig, getNetworkConfig, percentsToBps, logDeployers, deployProxyX,
+  getMainAsset, idWithMainAsset,
 } from "./helpers";
 import {resolveProxyXAddress, resolveXAddress, toBytes32} from "../test/helpers";
 import {isSet, assert, assertAddress, DEFAULT_ADMIN_ROLE, sameAddress} from "./common";
 import {LiquidityPoolAave, ProxyAdmin} from "../typechain-types";
-import {Network, NetworkConfig, Token, LiquidityPoolAaveUSDCVersions} from "../network.config";
+import {Network, NetworkConfig, LiquidityPoolAaveId} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -23,11 +24,10 @@ export async function main() {
   const verifier = getVerifier(process.env.DEPLOY_ID);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
 
-  let id = LiquidityPoolAaveUSDCVersions[0];
+  let id = LiquidityPoolAaveId;
 
   let network: Network;
   let config: NetworkConfig;
-  console.log("Deploying Aave USDC Pool");
   ({network, config} = await getNetworkConfig());
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
@@ -36,43 +36,42 @@ export async function main() {
 
   await logDeployers();
 
-  const usdcConfig = config.MainAssets[Token.USDC];
-  assert(usdcConfig, "USDC config is not found in the network config");
-  assert(usdcConfig.AavePool, "Aave pool is not configured");
-  assertAddress(usdcConfig.AavePool.AaveAddressesProvider, "AaveAddressesProvider must be an address");
+  const {mainAsset, mainAssetConfig, mainAssetInfo} = getMainAsset(config);
+  assert(mainAssetConfig.AavePool, `${mainAsset} Aave pool is not configured`);
+  assertAddress(mainAssetConfig.AavePool.AaveAddressesProvider, "AaveAddressesProvider must be an address");
   assertAddress(config.Admin, "Admin must be an address");
   assertAddress(config.WithdrawProfit, "WithdrawProfit must be an address");
   assertAddress(config.Pauser, "Pauser must be an address");
-  assertAddress(config.Tokens.USDC.Address, "USDC must be an address");
   assertAddress(config.MpcAddress, "MpcAddress must be an address");
   assertAddress(config.WrappedNativeToken, "WrappedNativeToken must be an address");
   assertAddress(config.SignerAddress, "SignerAddress must be an address");
   let directBorrowCaller = "";
-  if (usdcConfig.AavePool.DirectBorrowCaller) {
-    directBorrowCaller = await resolveXAddress(usdcConfig.AavePool.DirectBorrowCaller, false);
+  if (mainAssetConfig.AavePool.DirectBorrowCaller) {
+    directBorrowCaller = await resolveXAddress(mainAssetConfig.AavePool.DirectBorrowCaller, false);
   }
+  id = idWithMainAsset(mainAsset, id);
+  console.log(`Deploying ${id}`);
 
-  const rebalancer = await resolveProxyXAddress("Rebalancer");
+  const rebalancer = await resolveProxyXAddress(idWithMainAsset(mainAsset, "Rebalancer"));
   console.log(`Rebalancer: ${rebalancer}`);
 
-  console.log("Deploying Aave USDC Liquidity Pool");
-  const minHealthFactor = BigInt(usdcConfig.AavePool.MinHealthFactor) * 10000n / 100n;
-  const defaultLTV = BigInt(usdcConfig.AavePool.DefaultLTV) * 10000n / 100n;
+  const minHealthFactor = BigInt(mainAssetConfig.AavePool.MinHealthFactor) * 10000n / 100n;
+  const defaultLTV = BigInt(mainAssetConfig.AavePool.DefaultLTV) * 10000n / 100n;
   const {target: aavePool, targetAdmin: aavePoolAdmin}: {target: LiquidityPoolAave; targetAdmin: ProxyAdmin} =
     await deployProxyX<LiquidityPoolAave>(
       verifier.deployX,
       "LiquidityPoolAave",
       deployerWithNonce,
       config.Admin,
-      [config.Tokens.USDC.Address, usdcConfig.AavePool.AaveAddressesProvider, config.WrappedNativeToken],
+      [mainAssetInfo.Address, mainAssetConfig.AavePool.AaveAddressesProvider, config.WrappedNativeToken],
       [deployer, config.MpcAddress, config.SignerAddress, minHealthFactor, defaultLTV],
       id,
       verifier,
     );
 
-  if (usdcConfig.AavePool.TokenLTVs) {
-    const tokens = Object.keys(usdcConfig.AavePool.TokenLTVs);
-    const LTVs = Object.values(usdcConfig.AavePool.TokenLTVs);
+  if (mainAssetConfig.AavePool.TokenLTVs) {
+    const tokens = Object.keys(mainAssetConfig.AavePool.TokenLTVs);
+    const LTVs = Object.values(mainAssetConfig.AavePool.TokenLTVs);
     await aavePool.setBorrowTokenLTVs(
       tokens,
       percentsToBps(LTVs),

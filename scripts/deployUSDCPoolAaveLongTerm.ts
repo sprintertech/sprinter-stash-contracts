@@ -4,11 +4,12 @@ import hre from "hardhat";
 import {NonceManager} from "ethers";
 import {
   getVerifier, getHardhatNetworkConfig, getNetworkConfig, percentsToBps, logDeployers, deployProxyX,
+  getMainAsset, idWithMainAsset,
 } from "./helpers";
 import {resolveProxyXAddress, toBytes32} from "../test/helpers";
 import {isSet, assert, assertAddress, DEFAULT_ADMIN_ROLE, sameAddress} from "./common";
 import {LiquidityPoolAaveLongTerm, ProxyAdmin} from "../typechain-types";
-import {Network, NetworkConfig, Token, LiquidityPoolAaveUSDCLongTermVersions} from "../network.config";
+import {Network, NetworkConfig, LiquidityPoolAaveLongTermId} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -24,11 +25,10 @@ export async function main() {
   const verifier = getVerifier(process.env.DEPLOY_ID);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
 
-  let id = LiquidityPoolAaveUSDCLongTermVersions[0];
+  let id = LiquidityPoolAaveLongTermId;
 
   let network: Network;
   let config: NetworkConfig;
-  console.log("Deploying Aave USDC Long Term Pool");
   ({network, config} = await getNetworkConfig());
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
@@ -37,25 +37,24 @@ export async function main() {
 
   await logDeployers();
 
-  const usdcConfig = config.MainAssets[Token.USDC];
-  assert(usdcConfig, "USDC config is not found in the network config");
-  assert(usdcConfig.AavePoolLongTerm, "Aave pool long term is not configured");
+  const {mainAsset, mainAssetConfig, mainAssetInfo} = getMainAsset(config);
+  assert(mainAssetConfig.AavePoolLongTerm, `${mainAsset} Aave pool long term is not configured`);
   assertAddress(config.Admin, "Admin must be an address");
   assertAddress(config.WithdrawProfit, "WithdrawProfit must be an address");
   assertAddress(config.Pauser, "Pauser must be an address");
-  assertAddress(config.Tokens.USDC.Address, "USDC must be an address");
   assertAddress(config.MpcAddress, "MpcAddress must be an address");
   assertAddress(config.WrappedNativeToken, "WrappedNativeToken must be an address");
   assertAddress(config.SignerAddress, "SignerAddress must be an address");
-  assertAddress(usdcConfig.AavePoolLongTerm.BorrowLongTermAdmin, "BorrowLongTermAdmin must be an address");
-  assertAddress(usdcConfig.AavePoolLongTerm.RepayCaller, "RepayCaller must be an address");
-
-  const rebalancer = await resolveProxyXAddress("Rebalancer");
+  assertAddress(mainAssetConfig.AavePoolLongTerm.BorrowLongTermAdmin, "BorrowLongTermAdmin must be an address");
+  assertAddress(mainAssetConfig.AavePoolLongTerm.RepayCaller, "RepayCaller must be an address");
+  id = idWithMainAsset(mainAsset, id);
+  console.log(`Deploying ${id}`);
+  
+  const rebalancer = await resolveProxyXAddress(idWithMainAsset(mainAsset, "Rebalancer"));
   console.log(`Rebalancer: ${rebalancer}`);
 
-  console.log("Deploying Aave USDC Long Term Liquidity Pool");
-  const minHealthFactor = BigInt(usdcConfig.AavePoolLongTerm.MinHealthFactor) * 10000n / 100n;
-  const defaultLTV = BigInt(usdcConfig.AavePoolLongTerm.DefaultLTV) * 10000n / 100n;
+  const minHealthFactor = BigInt(mainAssetConfig.AavePoolLongTerm.MinHealthFactor) * 10000n / 100n;
+  const defaultLTV = BigInt(mainAssetConfig.AavePoolLongTerm.DefaultLTV) * 10000n / 100n;
   const {
     target: aavePoolLongTerm, targetAdmin: aavePoolLongTermAdmin,
   }: {target: LiquidityPoolAaveLongTerm; targetAdmin: ProxyAdmin} =
@@ -64,29 +63,32 @@ export async function main() {
       "LiquidityPoolAaveLongTerm",
       deployerWithNonce,
       config.Admin,
-      [config.Tokens.USDC.Address, usdcConfig.AavePoolLongTerm.AaveAddressesProvider, config.WrappedNativeToken],
+      [
+        mainAssetInfo.Address, mainAssetConfig.AavePoolLongTerm.AaveAddressesProvider,
+        config.WrappedNativeToken,
+      ],
       [deployer, config.MpcAddress, config.SignerAddress, minHealthFactor, defaultLTV],
       id,
       verifier,
     );
 
-  if (usdcConfig.AavePoolLongTerm.TokenLTVs) {
-    const tokens = Object.keys(usdcConfig.AavePoolLongTerm.TokenLTVs);
-    const LTVs = Object.values(usdcConfig.AavePoolLongTerm.TokenLTVs);
+  if (mainAssetConfig.AavePoolLongTerm.TokenLTVs) {
+    const tokens = Object.keys(mainAssetConfig.AavePoolLongTerm.TokenLTVs);
+    const LTVs = Object.values(mainAssetConfig.AavePoolLongTerm.TokenLTVs);
     await aavePoolLongTerm.setBorrowTokenLTVs(
       tokens,
       percentsToBps(LTVs),
     );
   }
-  console.log(`${id}: ${aavePoolLongTerm.target}`);
+  console.log(`${id}Proxy: ${aavePoolLongTerm.target}`);
   console.log(`${id}ProxyAdmin: ${aavePoolLongTermAdmin.target}`);
 
   await aavePoolLongTerm.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
   await aavePoolLongTerm.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
   await aavePoolLongTerm.grantRole(PAUSER_ROLE, config.Pauser);
-  await aavePoolLongTerm.grantRole(BORROW_LONG_TERM_ROLE, usdcConfig.AavePoolLongTerm.BorrowLongTermAdmin);
-  await aavePoolLongTerm.grantRole(REPAYER_ROLE, usdcConfig.AavePoolLongTerm.BorrowLongTermAdmin);
-  let lastTx = await aavePoolLongTerm.grantRole(REPAYER_ROLE, usdcConfig.AavePoolLongTerm.RepayCaller);
+  await aavePoolLongTerm.grantRole(BORROW_LONG_TERM_ROLE, mainAssetConfig.AavePoolLongTerm.BorrowLongTermAdmin);
+  await aavePoolLongTerm.grantRole(REPAYER_ROLE, mainAssetConfig.AavePoolLongTerm.BorrowLongTermAdmin);
+  let lastTx = await aavePoolLongTerm.grantRole(REPAYER_ROLE, mainAssetConfig.AavePoolLongTerm.RepayCaller);
 
   if (!sameAddress(deployer.address, config.Admin)) {
     await aavePoolLongTerm.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);

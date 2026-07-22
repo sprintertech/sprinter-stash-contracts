@@ -2,8 +2,9 @@ import {HardhatUserConfig, task, types} from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import {
   prodNetworkConfig as networkConfig, Network, Provider, Token,
+  LiquidityPoolAaveId,
 } from "./network.config";
-import {TypedDataDomain, AbiCoder, toNumber, dataSlice, getAddress, parseEther} from "ethers";
+import {TypedDataDomain, AbiCoder, toNumber, dataSlice, getAddress, parseEther, isAddress} from "ethers";
 import {
   LiquidityPoolAave, PaxosOracle, Rebalancer, Repayer, StashDex,
 } from "./typechain-types";
@@ -49,10 +50,16 @@ task("grant-role", "Grant some role on some AccessControl")
 });
 
 task("set-default-ltv", "Update Liquidity Pool config")
-.addOptionalParam("pool", "Liquidity Pool proxy address or id", "LiquidityPoolAaveUSDC", types.string)
+.addOptionalParam("pool", "Liquidity Pool proxy address or id", LiquidityPoolAaveId, types.string)
 .addOptionalParam("ltv", "New default LTV value, where 10000 is 100%", 2000n, types.bigint)
 .setAction(async ({pool, ltv}: {pool: string, ltv: bigint}, hre) => {
   const {resolveXAddress} = await loadTestHelpers();
+  const {getNetworkConfig, getMainAsset, idWithMainAsset} = await loadScriptHelpers();
+  if (!isAddress(pool)) {
+    const {config} = await getNetworkConfig();
+    const {mainAsset} = getMainAsset(config);
+    pool = idWithMainAsset(mainAsset, pool);
+  }
   const [sender] = await hre.ethers.getSigners();
   const admin = await createSender(hre, sender);
 
@@ -66,9 +73,15 @@ task("set-default-ltv", "Update Liquidity Pool config")
 task("set-token-ltvs", "Update Liquidity Pool config")
 .addParam("tokens", "Comma separated list of tokens to update LTV for")
 .addParam("ltvs", "Comma separated list of new LTV values where 10000 is 100%")
-.addOptionalParam("pool", "Liquidity Pool proxy address or id", "LiquidityPoolAaveUSDC", types.string)
+.addOptionalParam("pool", "Liquidity Pool proxy address or id", LiquidityPoolAaveId, types.string)
 .setAction(async (args: {tokens: string, ltvs: string, pool: string}, hre) => {
   const {resolveXAddress} = await loadTestHelpers();
+  const {getNetworkConfig, getMainAsset, idWithMainAsset} = await loadScriptHelpers();
+  if (!isAddress(args.pool)) {
+    const {config} = await getNetworkConfig();
+    const {mainAsset} = getMainAsset(config);
+    args.pool = idWithMainAsset(mainAsset, args.pool);
+  }
   const [sender] = await hre.ethers.getSigners();
   const admin = await createSender(hre, sender);
 
@@ -84,10 +97,16 @@ task("set-token-ltvs", "Update Liquidity Pool config")
 });
 
 task("set-min-health-factor", "Update Liquidity Pool config")
-.addOptionalParam("pool", "Liquidity Pool proxy address or id", "LiquidityPoolAaveUSDC", types.string)
+.addOptionalParam("pool", "Liquidity Pool proxy address or id", LiquidityPoolAaveId, types.string)
 .addOptionalParam("healthfactor", "New min health factor value, where 10000 is 1", 50000n, types.bigint)
 .setAction(async ({pool, healthfactor}: {pool: string, healthfactor: bigint}, hre) => {
   const {resolveXAddress} = await loadTestHelpers();
+  const {getNetworkConfig, getMainAsset, idWithMainAsset} = await loadScriptHelpers();
+  if (!isAddress(pool)) {
+    const {config} = await getNetworkConfig();
+    const {mainAsset} = getMainAsset(config);
+    pool = idWithMainAsset(mainAsset, pool);
+  }
   const [sender] = await hre.ethers.getSigners();
   const admin = await createSender(hre, sender);
 
@@ -112,7 +131,12 @@ task("set-routes-rebalancer", "Update Rebalancer config")
   allowed: boolean,
 }, hre) => {
   const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
-
+  const {getNetworkConfig, getMainAsset, idWithMainAsset} = await loadScriptHelpers();
+  if (!isAddress(args.rebalancer)) {
+    const {config} = await getNetworkConfig();
+    const {mainAsset} = getMainAsset(config);
+    args.rebalancer = idWithMainAsset(mainAsset, "Rebalancer");
+  }
   const [sender] = await hre.ethers.getSigners();
   const admin = await createSender(hre, sender);
 
@@ -145,12 +169,15 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
   action: string,
 }, hre) => {
   const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
-  const {getNetworkConfig, addLocalPools} = await loadScriptHelpers();
+  const {getNetworkConfig, addLocalPools, getMainAsset, idWithMainAsset} = await loadScriptHelpers();
   const {network, config} = await getNetworkConfig();
-
+  
   const [sender] = await hre.ethers.getSigners();
   const admin = await createSender(hre, sender);
-
+  const {mainAsset, mainAssetConfig} = getMainAsset(config);
+  if (!isAddress(args.rebalancer)) {
+    args.rebalancer = idWithMainAsset(mainAsset, "Rebalancer");
+  }
   assert(["allow", "deny", "both"].includes(args.action), "Invalid action");
   const targetAddress = await resolveProxyXAddress(args.rebalancer);
   const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, admin)) as Rebalancer;
@@ -164,8 +191,7 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
     });
   }
   const localConfig: {Pool: string, Domain: Network, Provider: Provider}[] = [];
-  const usdcConfig = config.MainAssets[Token.USDC];
-  for (const [pool, domainProviders] of Object.entries(usdcConfig?.RebalancerRoutes || {})) {
+  for (const [pool, domainProviders] of Object.entries(mainAssetConfig?.RebalancerRoutes || {})) {
     for (const [domain, providers] of Object.entries(domainProviders) as [Network, Provider[]][]) {
       for (const provider of providers) {
         localConfig.push({
@@ -906,7 +932,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
 // By default produces a new nonce every 10 seconds.
 .addOptionalParam("nonce", "Reuse protection nonce", BigInt(Date.now()) / 1000n / 10n, types.bigint)
 .addOptionalParam("deadline", "Expiry protection timestamp", 2000000000n, types.bigint)
-.addOptionalParam("pool", "Liquidity Pool address or id", "LiquidityPoolAaveUSDC", types.string)
+.addOptionalParam("pool", "Liquidity Pool address or id", LiquidityPoolAaveId, types.string)
 .setAction(async (args: {
   caller: string,
   token?: string,
@@ -918,7 +944,12 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
   pool: string,
 }, hre) => {
   const {resolveXAddress} = await loadTestHelpers();
-  const config = networkConfig[hre.network.name as Network];
+  const {getNetworkConfig, getMainAsset, idWithMainAsset} = await loadScriptHelpers();
+  const {config} = await getNetworkConfig();
+  const {mainAsset, mainAssetInfo} = getMainAsset(config);
+  if (!isAddress(args.pool)) {
+    args.pool = idWithMainAsset(mainAsset, args.pool);
+  }
 
   const [signer] = await hre.ethers.getSigners();
 
@@ -946,7 +977,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
   };
 
   const token = await hre.ethers.getContractAt("IERC20", hre.ethers.ZeroAddress, signer);
-  const borrowToken = args.token || config.Tokens.USDC.Address;
+  const borrowToken = args.token || mainAssetInfo.Address;
   const amount = args.amount;
   const target = args.target || borrowToken;
   const data = args.data || (await token.transfer.populateTransaction(signer, amount)).data;

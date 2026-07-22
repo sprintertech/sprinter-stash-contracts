@@ -35,7 +35,11 @@ export async function main() {
   }
 
   await logDeployers();
-  assertAddress(config.Tokens.USDC.Address, "USDC must be an address");
+  let usdcAddress = ZERO_ADDRESS;
+  if (config.Tokens.USDC) {
+    usdcAddress = config.Tokens.USDC.Address;
+    assertAddress(usdcAddress, "USDC must have an address");
+  }
   assertAddress(config.Admin, "Admin must be an address");
   assertAddress(config.RepayerCaller, "RepayerCaller must be an address");
   assertAddress(config.SetInputOutputTokens, "SetInputOutputTokens must be an address");
@@ -101,7 +105,7 @@ export async function main() {
     config.Admin,
     [
       DomainSolidity[network],
-      config.Tokens.USDC.Address,
+      usdcAddress,
       config.AcrossV3SpokePool,
       config.WrappedNativeToken,
       config.StargateTreasurer,

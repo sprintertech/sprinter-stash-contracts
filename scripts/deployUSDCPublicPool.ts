@@ -2,11 +2,14 @@ import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {NonceManager} from "ethers";
-import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers, deployProxyX} from "./helpers";
+import {
+  getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers, deployProxyX, getMainAsset,
+  idWithMainAsset,
+} from "./helpers";
 import {toBytes32} from "../test/helpers";
 import {isSet, assert, DEFAULT_ADMIN_ROLE, sameAddress, assertAddress} from "./common";
 import {PublicLiquidityPool, ProxyAdmin} from "../typechain-types";
-import {Network, NetworkConfig, Token, LiquidityPoolPublicUSDCVersions} from "../network.config";
+import {Network, NetworkConfig, LiquidityPoolPublicId} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -19,51 +22,49 @@ export async function main() {
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
   const verifier = getVerifier(process.env.DEPLOY_ID);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
-  let id = LiquidityPoolPublicUSDCVersions[0];
+  let id = LiquidityPoolPublicId;
 
   let network: Network;
   let config: NetworkConfig;
-  console.log("Deploying USDC Public Pool");
   ({network, config} = await getNetworkConfig());
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
     id += "-DeployTest";
   }
-
   await logDeployers();
 
-  const usdcConfig = config.MainAssets[Token.USDC];
-  assert(usdcConfig, "USDC config is not found in the network config");
-  assert(usdcConfig.PublicPool, "USDC public pool is not configured");
+  const {mainAsset, mainAssetConfig, mainAssetInfo} = getMainAsset(config);
+  assert(mainAssetConfig.PublicPool, `${mainAsset} public pool is not configured`);
   assertAddress(config.SignerAddress, "SignerAddress must be an address");
-  assertAddress(usdcConfig.PublicPool.FeeSetter, "FeeSetter must be an address");
+  assertAddress(mainAssetConfig.PublicPool.FeeSetter, "FeeSetter must be an address");
+  id = idWithMainAsset(mainAsset, id);
+  console.log(`Deploying ${id}`);
 
-  console.log("Deploying USDC Public Liquidity Pool");
   const {
-    target: usdcPublicPool, targetAdmin: usdcPublicPoolAdmin,
+    target: publicPool, targetAdmin: publicPoolAdmin,
   }: {target: PublicLiquidityPool; targetAdmin: ProxyAdmin} =
     await deployProxyX<PublicLiquidityPool>(
       verifier.deployX,
       "PublicLiquidityPool",
       deployerWithNonce,
       config.Admin,
-      [config.Tokens.USDC.Address, config.WrappedNativeToken],
+      [mainAssetInfo.Address, config.WrappedNativeToken],
       [deployer, config.MpcAddress, config.SignerAddress,
-        usdcConfig.PublicPool.Name, usdcConfig.PublicPool.Symbol,
-        usdcConfig.PublicPool.ProtocolFeeRate * 10000 / 100],
+        mainAssetConfig.PublicPool.Name, mainAssetConfig.PublicPool.Symbol,
+        mainAssetConfig.PublicPool.ProtocolFeeRate * 10000 / 100],
       id,
       verifier,
     );
-  console.log(`${id}: ${usdcPublicPool.target}`);
-  console.log(`${id}ProxyAdmin: ${usdcPublicPoolAdmin.target}`);
+  console.log(`${id}Proxy: ${publicPool.target}`);
+  console.log(`${id}ProxyAdmin: ${publicPoolAdmin.target}`);
 
-  await usdcPublicPool.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
-  await usdcPublicPool.grantRole(PAUSER_ROLE, config.Pauser);
-  let lastTx = await usdcPublicPool.grantRole(FEE_SETTER_ROLE, usdcConfig.PublicPool.FeeSetter);
+  await publicPool.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
+  await publicPool.grantRole(PAUSER_ROLE, config.Pauser);
+  let lastTx = await publicPool.grantRole(FEE_SETTER_ROLE, mainAssetConfig.PublicPool.FeeSetter);
 
   if (!sameAddress(deployer.address, config.Admin)) {
-    await usdcPublicPool.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-    lastTx = await usdcPublicPool.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    await publicPool.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
+    lastTx = await publicPool.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
   }
 
   await verifier.verify(process.env.VERIFY === "true");

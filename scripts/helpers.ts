@@ -18,14 +18,37 @@ import {
   LiquidityPoolUSDCVersions,
   LiquidityPoolUSDCStablecoinVersions,
   LiquidityPoolAaveUSDCLongTermVersions,
-  LiquidityPoolPublicUSDCVersions,
   ERC4626AdapterUSDCVersions,
   PartialNetworksConfig,
   Token,
   TokenInfo,
   RepayerProxy, USDCStashDexProcessorProxy,
   LiquidityPoolAaveUSDCProxy, LiquidityPoolUSDCProxy,
+  MainAssetConfig,
+  LiquidityPoolPublicProxy,
+  LiquidityPoolId,
+  LiquidityPoolAaveId,
+  LiquidityPoolAaveLongTermId,
+  LiquidityPoolStablecoinId,
+  ERC4626AdapterId,
 } from "../network.config";
+
+// The token that Liquidity Pools/Hub/Rebalancer are denominated in for this deployment,
+// e.g. "USDC" or "USDT". Set via the MAIN_ASSET env variable.
+export function getMainAsset(config: NetworkConfig): {
+  mainAsset: Token, mainAssetConfig: MainAssetConfig, mainAssetInfo: TokenInfo
+} {
+  const token = process.env.MAIN_ASSET;
+  assert(token, "MAIN_ASSET must be set");
+  const mainAsset = token as Token;
+  assert(Object.values(Token).includes(mainAsset), `Invalid MAIN_ASSET: ${mainAsset}`);
+  const mainAssetConfig = config.MainAssets[mainAsset];
+  assert(mainAssetConfig, `${mainAsset} main asset config must be in config`);
+  const mainAssetInfo = config.Tokens[mainAsset];
+  assert(mainAssetInfo, `${mainAsset} token must be in config`);
+  assertAddress(mainAssetInfo.Address, `${mainAsset} token address must be an address`);
+  return {mainAsset: mainAsset, mainAssetConfig, mainAssetInfo};
+}
 
 export async function resolveAddresses(input: any[]): Promise<any[]> {
   return await Promise.all(input.map(async (el) => {
@@ -251,7 +274,7 @@ export async function getProxyXAdmin(idOrAddress: string, signer?: Signer): Prom
   return (await getContractAt("ProxyAdmin", adminAddress, signer)) as ProxyAdmin;
 }
 
-export async function addLocalPool(
+export async function addLocalPoolUSDC(
   condition: any,
   network: Network,
   routes: {Pool: string, Domain: Network, Provider: Provider, OnlySupportedToken?: string}[],
@@ -260,9 +283,9 @@ export async function addLocalPool(
     | (typeof LiquidityPoolUSDCStablecoinVersions)
     | (typeof LiquidityPoolAaveUSDCLongTermVersions)
     | (typeof ERC4626AdapterUSDCVersions),
-    config: NetworkConfig,
-    poolName: string,
-    onlySupportedToken?: Token,
+  config: NetworkConfig,
+  poolName: string,
+  onlySupportedToken?: Token,
 ): Promise<void> {
   if (condition) {
     let pool = "";
@@ -292,38 +315,98 @@ export async function addLocalPool(
   }
 }
 
+export async function addLocalPoolProxy(
+  condition: any,
+  network: Network,
+  routes: {Pool: string, Domain: Network, Provider: Provider, OnlySupportedToken?: string}[],
+  id: string,
+  config: NetworkConfig,
+  onlySupportedToken?: Token,
+): Promise<void> {
+  if (condition) {
+    const pool = await resolveProxyXAddress(id);
+    let onlySupportedTokenAddress = ZERO_ADDRESS;
+    if (onlySupportedToken) {
+      assert(
+        config.Tokens[onlySupportedToken],
+        `Token ${onlySupportedToken} is not found in the network config`
+      );
+      onlySupportedTokenAddress = config.Tokens[onlySupportedToken].Address;
+    }
+    routes.push({
+      Pool: pool,
+      Domain: network,
+      Provider: Provider.LOCAL,
+      OnlySupportedToken: onlySupportedTokenAddress,
+    });
+  }
+}
+
 export async function addLocalPools(
   config: NetworkConfig,
   network: Network,
   routes: {Pool: string, Domain: Network, Provider: Provider, OnlySupportedToken?: string}[],
   isRebalancer: boolean = true,
 ): Promise<void> {
-  const usdcConfig = config.MainAssets[Token.USDC];
-  assert(usdcConfig, "USDC config is not found in the network config");
-  await addLocalPool(
-    usdcConfig.AavePoolLongTerm, network, routes, LiquidityPoolAaveUSDCLongTermVersions,
-    config, "Aave USDC Long Term"
-  );
-  await addLocalPool(usdcConfig.AavePool, network, routes, LiquidityPoolAaveUSDCVersions, config, "Aave USDC");
-  await addLocalPool(usdcConfig.BasicPool, network, routes, LiquidityPoolUSDCVersions, config, "USDC", Token.USDC);
-  await addLocalPool(
-    usdcConfig.StablecoinPool, network, routes, LiquidityPoolUSDCStablecoinVersions,
-    config, "USDC stablecoin"
-  );
+  const {mainAsset} = getMainAsset(config);
+  let mainAssets = Object.entries(config.MainAssets) as [Token, MainAssetConfig][];
+  // If isRebalancer only add mainAsset pools.
   if (isRebalancer) {
-    await addLocalPool(
-      usdcConfig.ERC4626AdapterTargetVault, network, routes, ERC4626AdapterUSDCVersions,
-      config, "ERC4626 Adapter USDC", Token.USDC
-    );
+    mainAssets = mainAssets.filter(([token]) => token === mainAsset);
   }
-  if (usdcConfig.ActiveLegacyPools) {
-    for (const [pool, supportsAllTokens] of Object.entries(usdcConfig.ActiveLegacyPools) as [string, boolean][]) {
-      routes.push({
-        Pool: await resolveXAddress(pool),
-        Domain: network,
-        Provider: Provider.LOCAL,
-        OnlySupportedToken: supportsAllTokens ? ZERO_ADDRESS : config.Tokens.USDC.Address,
-      });
+  // Otherwise local pools for all main assets.
+  for (const [token, tokenConfig] of mainAssets) {
+    if (token === Token.USDC) {
+      // USDC still has active not upgradable pools, so uses multi version approach.
+      await addLocalPoolUSDC(
+        tokenConfig.AavePoolLongTerm, network, routes, LiquidityPoolAaveUSDCLongTermVersions,
+        config, "Aave USDC Long Term"
+      );
+      await addLocalPoolUSDC(tokenConfig.AavePool, network, routes, LiquidityPoolAaveUSDCVersions, config, "Aave USDC");
+      await addLocalPoolUSDC(
+        tokenConfig.BasicPool, network, routes, LiquidityPoolUSDCVersions, config, "USDC", token
+      );
+      await addLocalPoolUSDC(
+        tokenConfig.StablecoinPool, network, routes, LiquidityPoolUSDCStablecoinVersions,
+        config, "USDC stablecoin"
+      );
+      if (isRebalancer) {
+        await addLocalPoolUSDC(
+          tokenConfig.ERC4626AdapterTargetVault, network, routes, ERC4626AdapterUSDCVersions,
+          config, "ERC4626 Adapter USDC", token
+        );
+      }
+    } else {
+      await addLocalPoolProxy(
+        tokenConfig.BasicPool, network, routes, idWithMainAsset(token, LiquidityPoolId), config, token
+      );
+      await addLocalPoolProxy(
+        tokenConfig.AavePool, network, routes, idWithMainAsset(token, LiquidityPoolAaveId), config
+      );
+      await addLocalPoolProxy(
+        tokenConfig.AavePoolLongTerm, network, routes, idWithMainAsset(token, LiquidityPoolAaveLongTermId), config
+      );
+      await addLocalPoolProxy(
+        tokenConfig.StablecoinPool, network, routes, idWithMainAsset(token, LiquidityPoolStablecoinId), config
+      );
+      if (isRebalancer) {
+        await addLocalPoolProxy(
+          tokenConfig.ERC4626AdapterTargetVault, network, routes, idWithMainAsset(token, ERC4626AdapterId),
+          config, token
+        );
+      }
+    }
+    const legacyPools = tokenConfig.ActiveLegacyPools;
+    if (legacyPools) {
+      for (const [pool, supportsAllTokens] of Object.entries(legacyPools) as [string, boolean][]) {
+        assert(config.Tokens[token], `Token ${token} not found in config`);
+        routes.push({
+          Pool: await resolveXAddress(pool),
+          Domain: network,
+          Provider: Provider.LOCAL,
+          OnlySupportedToken: supportsAllTokens ? ZERO_ADDRESS : config.Tokens[token].Address,
+        });
+      }
     }
   }
 }
@@ -421,12 +504,11 @@ export async function getHardhatNetworkConfig() {
   process.env.DEPLOYER_ADDRESS = await resolveAddress(deployer);
   const config = prodNetworkConfig[network];
   config.ChainId = 31337;
-  const usdcConfig = config.MainAssets[Token.USDC];
-  assert(usdcConfig, "USDC config is not found in the network config");
-  assert(usdcConfig.Hub, "Hub must be in config");
-  usdcConfig.Hub.AssetsAdjuster = superAdmin.address;
-  usdcConfig.Hub.DepositProfit = opsAdmin.address;
-  usdcConfig.Hub.AssetsLimitSetter = opsAdmin.address;
+  const {mainAsset, mainAssetConfig} = getMainAsset(config);
+  assert(mainAssetConfig.Hub, "Hub must be in config");
+  mainAssetConfig.Hub.AssetsAdjuster = superAdmin.address;
+  mainAssetConfig.Hub.DepositProfit = opsAdmin.address;
+  mainAssetConfig.Hub.AssetsLimitSetter = opsAdmin.address;
   config.Admin = superAdmin.address;
   config.WithdrawProfit = opsAdmin.address;
   config.Pauser = opsAdmin.address;
@@ -434,26 +516,26 @@ export async function getHardhatNetworkConfig() {
   config.RepayerCaller = opsAdmin.address;
   config.MpcAddress = mpc.address;
   config.SignerAddress = opsAdmin.address;
-  usdcConfig.StablecoinPool = true;
-  if (!usdcConfig.AavePoolLongTerm) {
-    if (usdcConfig.AavePool) {
-      usdcConfig.AavePoolLongTerm = {
-        ...usdcConfig.AavePool,
+  mainAssetConfig.StablecoinPool = true;
+  if (!mainAssetConfig.AavePoolLongTerm) {
+    if (mainAssetConfig.AavePool) {
+      mainAssetConfig.AavePoolLongTerm = {
+        ...mainAssetConfig.AavePool,
         BorrowLongTermAdmin: opsAdmin.address,
         RepayCaller: opsAdmin.address,
       };
     }
   }
-  if (!usdcConfig.PublicPool) {
-    usdcConfig.PublicPool = {
-      Name: "Public Liquidity Pool USDC",
-      Symbol: "PLPUSDC",
+  if (!mainAssetConfig.PublicPool) {
+    mainAssetConfig.PublicPool = {
+      Name: `Public Liquidity Pool ${mainAsset}`,
+      Symbol: `PLP${mainAsset}`,
       ProtocolFeeRate: 20,
       FeeSetter: opsAdmin.address,
     };
   }
-  if (!usdcConfig.ERC4626AdapterTargetVault) {
-    usdcConfig.ERC4626AdapterTargetVault = LiquidityPoolPublicUSDCVersions.at(-1);
+  if (!mainAssetConfig.ERC4626AdapterTargetVault) {
+    mainAssetConfig.ERC4626AdapterTargetVault = idWithMainAsset(mainAsset, LiquidityPoolPublicProxy);
   }
   if (!config.StashDex) {
     config.StashDex = {
@@ -526,4 +608,15 @@ export async function logDeployers(mustMatch: boolean = true) {
       "Deployer address must match DEPLOYER_ADDRESS for new deployments",
     );
   }
+}
+
+export function idWithMainAsset(mainAsset: Token, id: string): string {
+  assert(id !== "Repayer", "Repayer is common for all main assets");
+  // Historically USDC main asset didn't use suffixes on every contract id.
+  if (mainAsset === Token.USDC) {
+    if (id === "Rebalancer" || id === "LiquidityHub" || id === "SprinterLiquidityMining") {
+      return id;
+    }
+  }
+  return id + mainAsset;
 }

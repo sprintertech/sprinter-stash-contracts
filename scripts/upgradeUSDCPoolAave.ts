@@ -1,12 +1,16 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {getVerifier, upgradeProxyX, getHardhatNetworkConfig, getNetworkConfig, logDeployers} from "./helpers";
+import {
+  getVerifier, upgradeProxyX, getHardhatNetworkConfig, getNetworkConfig, logDeployers,
+  getMainAsset,
+  idWithMainAsset,
+} from "./helpers";
 import {createSender} from "./safe";
 import {resolveProxyXAddress, getContractAt} from "../test/helpers";
 import {isSet, assert, sameAddress} from "./common";
 import {LiquidityPoolAave} from "../typechain-types";
-import {LiquidityPoolAaveUSDC, Network, NetworkConfig, Token} from "../network.config";
+import {Network, NetworkConfig} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -20,7 +24,6 @@ export async function main() {
 
   let network: Network;
   let config: NetworkConfig;
-  console.log(`Upgrading ${LiquidityPoolAaveUSDC}`);
   ({network, config} = await getNetworkConfig());
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
@@ -28,19 +31,20 @@ export async function main() {
 
   await logDeployers(false);
 
-  const usdcConfig = config.MainAssets[Token.USDC];
-  assert(usdcConfig, "USDC main asset config must be in config");
-  assert(usdcConfig.AavePool, "AavePool must be defined in config");
-
-  const poolAddress = await resolveProxyXAddress(LiquidityPoolAaveUSDC);
+  const {mainAsset, mainAssetConfig, mainAssetInfo} = getMainAsset(config);
+  assert(mainAssetConfig.AavePool, "AavePool must be defined in config");
+  const id = idWithMainAsset(mainAsset, "LiquidityPoolAave");
+  console.log(`Upgrading ${id}`);
+  
+  const poolAddress = await resolveProxyXAddress(id);
 
   const pool = (await getContractAt("LiquidityPoolAave", poolAddress)) as LiquidityPoolAave;
-  const usdcAddress = await pool.ASSETS();
+  const poolAssetAddress = await pool.ASSETS();
   const aaveAddressesProvider = await pool.AAVE_POOL_PROVIDER();
   const wrappedNativeToken = await pool.WRAPPED_NATIVE_TOKEN();
-  assert(sameAddress(usdcAddress, config.Tokens.USDC.Address), "USDC address mismatch");
+  assert(sameAddress(poolAssetAddress, mainAssetInfo.Address), `${mainAsset} address mismatch`);
   assert(
-    sameAddress(aaveAddressesProvider, usdcConfig.AavePool.AaveAddressesProvider),
+    sameAddress(aaveAddressesProvider, mainAssetConfig.AavePool.AaveAddressesProvider),
     "AaveAddressesProvider address mismatch",
   );
   assert(sameAddress(wrappedNativeToken, config.WrappedNativeToken), "WrappedNativeToken address mismatch");
@@ -50,8 +54,8 @@ export async function main() {
     poolAddress,
     "LiquidityPoolAave",
     sender,
-    [usdcAddress, aaveAddressesProvider, wrappedNativeToken],
-    LiquidityPoolAaveUSDC,
+    [poolAssetAddress, aaveAddressesProvider, wrappedNativeToken],
+    id,
   );
 
   await verifier.verify(process.env.VERIFY === "true");

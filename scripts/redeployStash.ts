@@ -1,11 +1,14 @@
 import dotenv from "dotenv"; 
 dotenv.config();
 import hre from "hardhat";
-import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers} from "./helpers";
+import {
+  getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers, getMainAsset,
+  idWithMainAsset,
+} from "./helpers";
 import {resolveProxyXAddress} from "../test/helpers";
 import {isSet, assert} from "./common";
 import {SprinterLiquidityMining} from "../typechain-types";
-import {Network, NetworkConfig, Token} from "../network.config";
+import {Network, NetworkConfig} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -18,27 +21,27 @@ export async function main() {
 
   let network: Network;
   let config: NetworkConfig;
-  console.log("Redeploying Stash");
   ({network, config} = await getNetworkConfig());
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
   }
-
+  
   await logDeployers();
+  
+  const {mainAsset, mainAssetConfig} = getMainAsset(config);
+  assert(mainAssetConfig.Hub, "Must be a network with a hub");
+  const id = idWithMainAsset(mainAsset, "SprinterLiquidityMining");
+  console.log(`Redeploying ${id}`);
 
-  const usdcConfig = config.MainAssets[Token.USDC];
-  assert(usdcConfig, "USDC main asset config must be in config");
-  assert(usdcConfig.Hub, "Must be a network with a hub");
+  const liquidityHub = await resolveProxyXAddress(idWithMainAsset(mainAsset, "LiquidityHub"));
 
-  const liquidityHub = await resolveProxyXAddress("LiquidityHub");
-
-  const tiers = usdcConfig.Hub.Tiers;
+  const tiers = mainAssetConfig.Hub.Tiers;
   const liquidityMining = (
-    await verifier.deployX("SprinterLiquidityMining", deployer, {}, [config.Admin, liquidityHub, tiers])
+    await verifier.deployX("SprinterLiquidityMining", deployer, {}, [config.Admin, liquidityHub, tiers], id)
   ) as SprinterLiquidityMining;
 
   console.log(`Admin: ${config.Admin}`);
-  console.log(`SprinterLiquidityMining: ${liquidityMining.target}`);
+  console.log(`${id}: ${liquidityMining.target}`);
   console.log("Tiers:");
   console.table(tiers.map(el => {
     const multiplier = `${el.multiplier / 1000000000n}.${el.multiplier % 1000000000n}x`;

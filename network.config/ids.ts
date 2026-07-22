@@ -4,6 +4,20 @@ export const DEFAULT_PROXY_TYPE = "TransparentUpgradeableProxy";
 // Subsequent implementation just use UPGRADE_ID env variable.
 // Immutable contracts are deployed first with the name-derived unique id.
 // Subsequent versions use version suffix plus a git commit from the main branch.
+export const LiquidityPoolId = "LiquidityPool";
+export const LiquidityPoolAaveId = "LiquidityPoolAave";
+export const LiquidityPoolAaveLongTermId = "LiquidityPoolAaveLongTerm";
+export const LiquidityPoolStablecoinId = "LiquidityPoolStablecoin";
+export const LiquidityPoolPublicId = "LiquidityPoolPublic";
+export const ERC4626AdapterId = "ERC4626Adapter";
+
+export const LiquidityPoolProxy = DEFAULT_PROXY_TYPE + LiquidityPoolId;
+export const LiquidityPoolAaveProxy = DEFAULT_PROXY_TYPE + LiquidityPoolAaveId;
+export const LiquidityPoolLongTermProxy = DEFAULT_PROXY_TYPE + LiquidityPoolAaveLongTermId;
+export const LiquidityPoolStablecoinProxy = DEFAULT_PROXY_TYPE + LiquidityPoolStablecoinId;
+export const LiquidityPoolPublicProxy = DEFAULT_PROXY_TYPE + LiquidityPoolPublicId;
+export const ERC4626AdapterProxy = DEFAULT_PROXY_TYPE + ERC4626AdapterId;
+
 export const LiquidityPoolAaveUSDC = "LiquidityPoolAaveUSDC";
 export const LiquidityPoolUSDC = "LiquidityPoolUSDC";
 export const LiquidityPoolEURe = "LiquidityPoolEURe";
@@ -31,15 +45,15 @@ export const ERC4626AdapterUSDCV2 = "ERC4626AdapterUSDC-V2-7187ffa";
 export const LiquidityPoolAaveUSDCProxy = DEFAULT_PROXY_TYPE + LiquidityPoolAaveUSDC;
 export const LiquidityPoolUSDCProxy = DEFAULT_PROXY_TYPE + LiquidityPoolUSDC;
 export const LiquidityPoolPublicUSDCProxy = DEFAULT_PROXY_TYPE + LiquidityPoolPublicUSDC;
-export const LiquidityPoolUSDCStablecoinProxy = DEFAULT_PROXY_TYPE + LiquidityPoolUSDCStablecoin;
-export const LiquidityPoolAaveUSDCLongTermProxy = DEFAULT_PROXY_TYPE + LiquidityPoolAaveUSDCLongTerm;
+export const LiquidityPoolStablecoinUSDCProxy = DEFAULT_PROXY_TYPE + "LiquidityPoolStablecoinUSDC";
+export const LiquidityPoolAaveLongTermUSDCProxy = DEFAULT_PROXY_TYPE + "LiquidityPoolAaveLongTermUSDC";
 export const ERC4626AdapterUSDCProxy = DEFAULT_PROXY_TYPE + ERC4626AdapterUSDC;
 export const LiquidityPoolEUReProxy = DEFAULT_PROXY_TYPE + LiquidityPoolEURe;
 export const LiquidityPoolAaveUSDCLongTermVersions = [
   LiquidityPoolAaveUSDCLongTerm,
   LiquidityPoolAaveUSDCLongTermV2,
   LiquidityPoolAaveUSDCLongTermV3,
-  LiquidityPoolAaveUSDCLongTermProxy,
+  LiquidityPoolAaveLongTermUSDCProxy,
 ] as const;
 export const LiquidityPoolAaveUSDCVersions = [
   LiquidityPoolAaveUSDC,
@@ -64,7 +78,7 @@ export const LiquidityPoolUSDCStablecoinVersions = [
   LiquidityPoolUSDCStablecoinV2,
   LiquidityPoolUSDCStablecoinV3,
   LiquidityPoolUSDCStablecoinV4,
-  LiquidityPoolUSDCStablecoinProxy,
+  LiquidityPoolStablecoinUSDCProxy,
 ] as const;
 export const LiquidityPoolPublicUSDCVersions = [
   LiquidityPoolPublicUSDC,

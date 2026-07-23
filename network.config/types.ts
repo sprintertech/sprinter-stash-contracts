@@ -1,10 +1,3 @@
-import type {
-  LiquidityPoolUSDCVersions,
-  LiquidityPoolAaveUSDCVersions,
-  LiquidityPoolUSDCStablecoinVersions,
-  LiquidityPoolAaveUSDCLongTermVersions,
-} from "./ids";
-
 export enum Network {
   ETHEREUM = "ETHEREUM",
   AVALANCHE = "AVALANCHE",
@@ -19,6 +12,8 @@ export enum Network {
   WORLD_CHAIN = "WORLD_CHAIN",
   INK = "INK",
   HYPER_EVM = "HYPER_EVM",
+  TEMPO = "TEMPO",
+  STABLE = "STABLE",
 }
 
 export enum Provider {
@@ -127,11 +122,8 @@ interface HubConfig {
   DepositProfit: string; // Address that can deposit profit to the Liquidity Pool via Liquidity Hub.
   AssetsLimitSetter: string; // Address that can set assets limit.
   AssetsLimit: number; // Deposits to Liquidity Hub are only allowed till this limit is reached.
-  Tiers: Tier[];
-  Pool?: (typeof LiquidityPoolUSDCVersions)[number]
-  | (typeof LiquidityPoolAaveUSDCVersions)[number]
-  | (typeof LiquidityPoolUSDCStablecoinVersions)[number]
-  | (typeof LiquidityPoolAaveUSDCLongTermVersions)[number];
+  Tiers?: Tier[];
+  Pool?: string;
 }
 
 // Per-main-asset configuration (e.g. MainAssets.USDC, MainAssets.USDT) — most pool/route

@@ -30,6 +30,7 @@ export async function main() {
   
   const {mainAsset, mainAssetConfig} = getMainAsset(config);
   assert(mainAssetConfig.Hub, "Must be a network with a hub");
+  assert(mainAssetConfig.Hub.Tiers, "Must be a network with liquidity mining tiers configured");
   const id = idWithMainAsset(mainAsset, "SprinterLiquidityMining");
   console.log(`Redeploying ${id}`);
 

@@ -11,6 +11,8 @@ import {
   PYUSDStashDexProcessorProxy,
   USDCStashDexProcessorProxy,
   USDGStashDexProcessorProxy,
+  LiquidityPoolUSDTProxy,
+  LiquidityPoolAaveUSDTProxy,
 } from "./ids";
 
 export const prodNetworkConfig: NetworksConfig = {
@@ -103,6 +105,24 @@ export const prodNetworkConfig: NetworksConfig = {
             Provider.STARGATE,
             Provider.USDT0,
             Provider.CCTP_V2,
+          ],
+        },
+      },
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+      [LiquidityPoolUSDTProxy]: {
+        OnlySupportedToken: Token.USDT,
+        Domains: {
+          [Network.TEMPO]: [
+            Provider.USDT0,
+          ],
+          [Network.STABLE]: [
+            Provider.USDT0,
           ],
         },
       },
@@ -358,6 +378,24 @@ export const prodNetworkConfig: NetworksConfig = {
           ],
         }
       },
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+      [LiquidityPoolUSDTProxy]: {
+        OnlySupportedToken: Token.USDT,
+        Domains: {
+          [Network.TEMPO]: [
+            Provider.USDT0,
+          ],
+          [Network.STABLE]: [
+            Provider.USDT0,
+          ],
+        }
+      }
     },
     MainAssets: {
       [Token.USDC]: {
@@ -493,6 +531,17 @@ export const prodNetworkConfig: NetworksConfig = {
           ],
         }
       },
+      [LiquidityPoolUSDTProxy]: {
+        OnlySupportedToken: Token.USDT,
+        Domains: {
+          [Network.TEMPO]: [
+            Provider.USDT0,
+          ],
+          [Network.STABLE]: [
+            Provider.USDT0,
+          ],
+        }
+      },
     },
     MainAssets: {
       [Token.USDC]: {
@@ -537,6 +586,42 @@ export const prodNetworkConfig: NetworksConfig = {
           },
         },
         BasicPool: true,
+      },
+      [Token.USDT]: {
+        Hub: {
+          AssetsAdjuster: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
+          DepositProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+          AssetsLimitSetter: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+          AssetsLimit: 10_000_000,
+          Pool: LiquidityPoolUSDTProxy,
+        },
+        RebalancerRoutes: {
+          [LiquidityPoolUSDTProxy]: {
+            [Network.TEMPO]: [Provider.USDT0],
+            [Network.STABLE]: [Provider.USDT0],
+          },
+        },
+        AavePool: {
+          AaveAddressesProvider: AAVEPools.AaveV3Arbitrum.POOL_ADDRESSES_PROVIDER,
+          MinHealthFactor: 150,
+          DefaultLTV: 0,
+          TokenLTVs: {
+            "0xaf88d065e77c8cc2239327c5edb3a432268e5831": 100, // USDC
+            "0x82af49447d8a07e3bd95bd0d56f35241523fbab1": 75, // WETH
+            "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f": 75, // WBTC
+            "0x35751007a407ca6feffe80b3cb397736d2cf4dbe": 0, // weETH
+            "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9": 90, // USDT0
+            "0x5979d7b546e38e414f7e9822514be443a4800529": 0, // wstETH
+            "0xf97f4df75117a78c1a5a0dbb814af92458539fb4": 0, // LINK
+            "0x912ce59144191c1204e64559fe8253a0e49e6548": 0, // ARB
+            "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1": 90, // DAI
+            "0xec70dcb4a1efa46b8f2d97c310c9c4790ba5ffa8": 0, // rETH
+            "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": 0, // USDC.e
+            "0x7dff72693f6a4149b17e7c6314655f6a9f7c8b33": 0, // GHO
+            "0x93b346b6bc2548da6a1e7d98e9a421b42541425b": 0, // LUSD
+            "0x17fc002b466eec40dae837fc4be5c67993ddbd6f": 0, // FRAX
+          },
+        },
       },
     },
   },
@@ -717,6 +802,24 @@ export const prodNetworkConfig: NetworksConfig = {
           [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE, Provider.USDT0, Provider.CCTP_V2],
         }
       },
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+      [LiquidityPoolUSDTProxy]: {
+        OnlySupportedToken: Token.USDT,
+        Domains: {
+          [Network.TEMPO]: [
+            Provider.USDT0,
+          ],
+          [Network.STABLE]: [
+            Provider.USDT0,
+          ],
+        }
+      }
     },
     MainAssets: {
       [Token.USDC]: {
@@ -815,6 +918,24 @@ export const prodNetworkConfig: NetworksConfig = {
           [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE, Provider.USDT0, Provider.CCTP_V2],
         }
       },
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+      [LiquidityPoolUSDTProxy]: {
+        OnlySupportedToken: Token.USDT,
+        Domains: {
+          [Network.TEMPO]: [
+            Provider.USDT0,
+          ],
+          [Network.STABLE]: [
+            Provider.USDT0,
+          ],
+        }
+      }
     },
     MainAssets: {
       [Token.USDC]: {
@@ -1108,6 +1229,24 @@ export const prodNetworkConfig: NetworksConfig = {
           [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS, Provider.USDT0],
         }
       },
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+      [LiquidityPoolUSDTProxy]: {
+        OnlySupportedToken: Token.USDT,
+        Domains: {
+          [Network.TEMPO]: [
+            Provider.USDT0,
+          ],
+          [Network.STABLE]: [
+            Provider.USDT0,
+          ],
+        }
+      }
     },
     MainAssets: {},
   },
@@ -1164,5 +1303,99 @@ export const prodNetworkConfig: NetworksConfig = {
       },
     },
     MainAssets: {},
+  },
+  TEMPO: {
+    ChainId: 4217,
+    USDT0OFT: "0xaf37E8B6C9ED7f6318979f56Fc287d76c30847ff",
+    Tokens: {
+      USDC: tokenInfo("0x20C000000000000000000000b9537d11c60E8b50", 6),
+      USDT: tokenInfo("0x20C00000000000000000000014f22CA97301EB73", 6),
+    },
+    WrappedNativeToken: "0x0000000000000000000000000000000000000000",
+    Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
+    WithdrawProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RepayerCaller: "0x9A5B33bd11329116A55F764c604a5152eE8Ca292",
+    SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
+    SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RepayerRoutes: {
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+      [LiquidityPoolUSDTProxy]: {
+        OnlySupportedToken: Token.USDT,
+        Domains: {
+          [Network.STABLE]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+    },
+    MainAssets: {
+      [Token.USDT]: {
+        RebalancerRoutes: {
+          [LiquidityPoolAaveUSDTProxy]: {
+            [Network.ARBITRUM_ONE]: [Provider.USDT0],
+          },
+          [LiquidityPoolUSDTProxy]: {
+            [Network.STABLE]: [Provider.USDT0],
+          },
+        },
+        BasicPool: true,
+      },
+    },
+  },
+  STABLE: {
+    ChainId: 988,
+    USDT0OFT: "0xedaba024be4d87974d5aB11C6Dd586963CcCB027",
+    Tokens: {
+      USDC: tokenInfo("0x8a2B28364102Bea189D99A475C494330Ef2bDD0B", 6),
+      USDT: tokenInfo("0x779Ded0c9e1022225f8E0630b35a9b54bE713736", 6),
+    },
+    WrappedNativeToken: "0x0000000000000000000000000000000000000000",
+    Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
+    WithdrawProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RepayerCaller: "0x9A5B33bd11329116A55F764c604a5152eE8Ca292",
+    SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
+    SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RepayerRoutes: {
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+      [LiquidityPoolUSDTProxy]: {
+        OnlySupportedToken: Token.USDT,
+        Domains: {
+          [Network.TEMPO]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+    },
+    MainAssets: {
+      [Token.USDT]: {
+        RebalancerRoutes: {
+          [LiquidityPoolAaveUSDTProxy]: {
+            [Network.ARBITRUM_ONE]: [Provider.USDT0],
+          },
+          [LiquidityPoolUSDTProxy]: {
+            [Network.TEMPO]: [Provider.USDT0],
+          },
+        },
+        BasicPool: true,
+      },
+    },
   },
 };

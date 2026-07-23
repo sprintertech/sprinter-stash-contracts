@@ -42,13 +42,22 @@ export const LiquidityPoolUSDCStablecoinV4 = "LiquidityPoolUSDCStablecoin-V4-718
 export const LiquidityPoolAaveUSDCLongTermV3 = "LiquidityPoolAaveUSDCLongTerm-V3-7187ffa";
 export const ERC4626AdapterUSDCV2 = "ERC4626AdapterUSDC-V2-7187ffa";
 
-export const LiquidityPoolAaveUSDCProxy = DEFAULT_PROXY_TYPE + LiquidityPoolAaveUSDC;
-export const LiquidityPoolUSDCProxy = DEFAULT_PROXY_TYPE + LiquidityPoolUSDC;
-export const LiquidityPoolPublicUSDCProxy = DEFAULT_PROXY_TYPE + LiquidityPoolPublicUSDC;
-export const LiquidityPoolStablecoinUSDCProxy = DEFAULT_PROXY_TYPE + "LiquidityPoolStablecoinUSDC";
-export const LiquidityPoolAaveLongTermUSDCProxy = DEFAULT_PROXY_TYPE + "LiquidityPoolAaveLongTermUSDC";
-export const ERC4626AdapterUSDCProxy = DEFAULT_PROXY_TYPE + ERC4626AdapterUSDC;
-export const LiquidityPoolEUReProxy = DEFAULT_PROXY_TYPE + LiquidityPoolEURe;
+export const LiquidityPoolAaveUSDCProxy = LiquidityPoolAaveProxy + "USDC";
+export const LiquidityPoolUSDCProxy = LiquidityPoolProxy + "USDC";
+export const LiquidityPoolPublicUSDCProxy = LiquidityPoolPublicProxy + "USDC";
+export const LiquidityPoolStablecoinUSDCProxy = LiquidityPoolStablecoinProxy + "USDC";
+export const LiquidityPoolAaveLongTermUSDCProxy = LiquidityPoolLongTermProxy + "USDC";
+export const ERC4626AdapterUSDCProxy = ERC4626AdapterProxy + "USDC";
+
+export const LiquidityPoolEUReProxy = LiquidityPoolProxy + "EURe";
+
+export const LiquidityPoolAaveUSDTProxy = LiquidityPoolAaveProxy + "USDT";
+export const LiquidityPoolUSDTProxy = LiquidityPoolProxy + "USDT";
+export const LiquidityPoolPublicUSDTProxy = LiquidityPoolPublicProxy + "USDT";
+export const LiquidityPoolStablecoinUSDTProxy = LiquidityPoolStablecoinProxy + "USDT";
+export const LiquidityPoolAaveLongTermUSDTProxy = LiquidityPoolLongTermProxy + "USDT";
+export const ERC4626AdapterUSDTProxy = ERC4626AdapterProxy + "USDT";
+
 export const LiquidityPoolAaveUSDCLongTermVersions = [
   LiquidityPoolAaveUSDCLongTerm,
   LiquidityPoolAaveUSDCLongTermV2,

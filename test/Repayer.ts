@@ -129,7 +129,7 @@ describe("Repayer", function () {
       [liquidityPool, liquidityPool2, liquidityPool],
       [Domain.BASE, Domain.BASE, Domain.ETHEREUM],
       [Provider.LOCAL, Provider.LOCAL, Provider.CCTP_V2],
-      [ZERO_ADDRESS, usdc.target, ZERO_ADDRESS],
+      [ZERO_ADDRESS, usdc, ZERO_ADDRESS],
       [
         {
           inputToken: usdc,

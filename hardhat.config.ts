@@ -1262,6 +1262,16 @@ const config: HardhatUserConfig = {
       url: process.env.HYPER_EVM_RPC || "https://rpc.hyperliquid.xyz/evm",
       accounts,
     },
+    [Network.TEMPO]: {
+      chainId: networkConfig.TEMPO.ChainId,
+      url: process.env.TEMPO_RPC || "https://rpc.mainnet.tempo.xyz",
+      accounts,
+    },
+    [Network.STABLE]: {
+      chainId: networkConfig.STABLE.ChainId,
+      url: process.env.STABLE_RPC || "https://stable-mainnet.rpc.sentio.xyz",
+      accounts,
+    },
     hardhat: {
       chainId: isSet(process.env.DRY_RUN) || isSet(process.env.FORK_TEST)
         ? networkConfig[`${process.env.DRY_RUN || process.env.FORK_TEST}` as Network]!.ChainId

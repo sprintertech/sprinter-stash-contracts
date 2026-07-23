@@ -84,7 +84,9 @@ export async function main() {
   }
 
   if (mainAssetConfig.Hub) {
-    assert(mainAssetConfig.Hub.Tiers.length > 0, "Empty liquidity mining tiers configuration.");
+    if (mainAssetConfig.Hub.Tiers) {
+      assert(mainAssetConfig.Hub.Tiers.length > 0, "Empty liquidity mining tiers configuration.");
+    }
     assert(mainAssetConfig.Hub.AssetsLimit <= MaxUint256 / 10n ** 12n, "Assets limit is too high");
   }
 
@@ -478,8 +480,7 @@ export async function main() {
 
 
   if (mainAssetConfig.Hub) {
-    const tiers = mainAssetConfig.Hub!.Tiers;
-    const assetsLimit = BigInt(mainAssetConfig.Hub!.AssetsLimit) * 10n ** 6n;
+    const assetsLimit = BigInt(mainAssetConfig.Hub.AssetsLimit) * 10n ** 6n;
 
     const liquidityHubId = idWithMainAsset(mainAsset, "LiquidityHub");
     const liquidityHubAddress = await verifier.predictDeployProxyXAddress(liquidityHubId, deployer);
@@ -511,31 +512,36 @@ export async function main() {
     );
 
     assert(liquidityHubAddress == liquidityHub.target, "LiquidityHub address mismatch");
-    const liquidityMining = (
-      await verifier.deployX(
-        "SprinterLiquidityMining",
-        deployerWithNonce,
-        {},
-        [config.Admin, liquidityHub, tiers],
-        idWithMainAsset(mainAsset, "SprinterLiquidityMining")
-      )
-    ) as SprinterLiquidityMining;
 
     await mainPool.grantRole(LIQUIDITY_ADMIN_ROLE, liquidityHub);
 
     console.log(`Sprinter${mainAsset}LPShare: ${lpToken.target}`);
     console.log(`${liquidityHubId}: ${liquidityHub.target}`);
     console.log(`LiquidityHubProxyAdmin: ${liquidityHubAdmin.target}`);
-    console.log(`LiquidityHub Adjuster: ${mainAssetConfig.Hub!.AssetsAdjuster}`);
-    console.log(`LiquidityHub DepositProfit: ${mainAssetConfig.Hub!.DepositProfit}`);
-    console.log(`LiquidityHub AssetsLimitSetter: ${mainAssetConfig.Hub!.AssetsLimitSetter}`);
-    console.log(`LiquidityHub Assets Limit: ${mainAssetConfig.Hub!.AssetsLimit}`);
-    console.log(`SprinterLiquidityMining: ${liquidityMining.target}`);
-    console.log("Tiers:");
-    console.table(tiers.map(el => {
-      const multiplier = `${el.multiplier / 1000000000n}.${el.multiplier % 1000000000n}x`;
-      return {seconds: Number(el.period), multiplier};
-    }));
+    console.log(`LiquidityHub Adjuster: ${mainAssetConfig.Hub.AssetsAdjuster}`);
+    console.log(`LiquidityHub DepositProfit: ${mainAssetConfig.Hub.DepositProfit}`);
+    console.log(`LiquidityHub AssetsLimitSetter: ${mainAssetConfig.Hub.AssetsLimitSetter}`);
+    console.log(`LiquidityHub Assets Limit: ${mainAssetConfig.Hub.AssetsLimit}`);
+
+    if (mainAssetConfig.Hub.Tiers) {
+      const tiers = mainAssetConfig.Hub.Tiers;
+      const liquidityMining = (
+        await verifier.deployX(
+          "SprinterLiquidityMining",
+          deployerWithNonce,
+          {},
+          [config.Admin, liquidityHub, tiers],
+          idWithMainAsset(mainAsset, "SprinterLiquidityMining")
+        )
+      ) as SprinterLiquidityMining;
+
+      console.log(`SprinterLiquidityMining: ${liquidityMining.target}`);
+      console.log("Tiers:");
+      console.table(tiers.map(el => {
+        const multiplier = `${el.multiplier / 1000000000n}.${el.multiplier % 1000000000n}x`;
+        return {seconds: Number(el.period), multiplier};
+      }));
+    }
   }
 
   if (!sameAddress(deployer.address, config.Admin)) {

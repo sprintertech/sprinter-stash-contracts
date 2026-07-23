@@ -37,7 +37,7 @@ export async function main() {
 
   let liquidityPool = await liquidityHub.LIQUIDITY_POOL();
 
-  if (config.Hub.Pool) {
+  if (config.Hub.Pool && process.env.DEPLOY_ID !== "CI") {
     liquidityPool = await resolveXAddress(config.Hub.Pool);
   }
   console.log(`Liquidity Pool: ${liquidityPool}`);

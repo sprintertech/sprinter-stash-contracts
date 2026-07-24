@@ -94,7 +94,8 @@ describe("Repayer", function () {
         baseStandardBridge,
         arbitrumGatewayRouter,
         forkNetworkConfig.Omnibridge!, ZERO_ADDRESS, ZERO_ADDRESS, forkNetworkConfig.GnosisAMB!,
-        ZERO_ADDRESS, forkNetworkConfig.CCTPV2!.TokenMessenger!, forkNetworkConfig.CCTPV2!.MessageTransmitter!,
+        ZERO_ADDRESS, ZERO_ADDRESS,
+        forkNetworkConfig.CCTPV2!.TokenMessenger!, forkNetworkConfig.CCTPV2!.MessageTransmitter!,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(

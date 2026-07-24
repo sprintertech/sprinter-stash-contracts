@@ -3,7 +3,7 @@ import {
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {expect} from "chai";
 import hre from "hardhat";
-import {MaxUint256} from "ethers";
+import {AbiCoder, MaxUint256} from "ethers";
 import {
   getCreateAddress, getDeployXAddressBase, getContractAt, deploy, deployX, toBytes32,
   signBorrow, setupTests,
@@ -213,7 +213,7 @@ describe("USDT as a main pool asset", function () {
       const rebalancerImpl = (
         await deployX("Rebalancer", deployer, "RebalancerUSDT0", {},
           Domain.BASE, testUsdt0, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
-          usdt0OftAdapter, ZERO_ADDRESS, ZERO_ADDRESS,
+          usdt0OftAdapter, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
         )
       ) as Rebalancer;
       const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(
@@ -262,8 +262,9 @@ describe("USDT as a main pool asset", function () {
       const amount = 4n * USDT0_DEC;
       const fee = await usdt0OftAdapter.NATIVE_FEE();
 
+      const extraData = AbiCoder.defaultAbiCoder().encode(["uint256"], [amount]);
       const initTx = rebalancer.connect(rebalanceUser).initiateRebalance(
-        amount, pool1, pool2, Domain.ARBITRUM_ONE, Provider.USDT0, "0x", {value: fee}
+        amount, pool1, pool2, Domain.ARBITRUM_ONE, Provider.USDT0, extraData, {value: fee}
       );
       await expect(initTx)
         .to.emit(rebalancer, "InitiateRebalance")
@@ -313,7 +314,7 @@ describe("USDT as a main pool asset", function () {
           Domain.BASE,
           usdc,
           ZERO_ADDRESS, networkConfig.BASE.WrappedNativeToken, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
-          ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+          ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, 
           cctpV2TokenMessenger, cctpV2MessageTransmitter,
         )
       ) as Repayer;

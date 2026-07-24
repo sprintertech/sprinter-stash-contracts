@@ -18,6 +18,7 @@ contract TestRepayer is Repayer {
         address gnosisUsdceSwap,
         address ethereumAmb,
         address usdt0Oft,
+        address usdt0FeeNativeToken,
         address cctpV2TokenMessenger,
         address cctpV2MessageTransmitter
     ) Repayer(
@@ -34,6 +35,7 @@ contract TestRepayer is Repayer {
         gnosisUsdceSwap,
         ethereumAmb,
         usdt0Oft,
+        usdt0FeeNativeToken,
         cctpV2TokenMessenger,
         cctpV2MessageTransmitter
     ) {}

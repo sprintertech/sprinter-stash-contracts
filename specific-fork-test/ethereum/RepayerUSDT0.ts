@@ -3,6 +3,7 @@ import {
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {expect} from "chai";
 import hre from "hardhat";
+import {AbiCoder} from "ethers";
 import {
   getCreateAddress, getContractAt, deploy, deployX,
 } from "../../test/helpers";
@@ -63,7 +64,7 @@ describe("Repayer USDT0 (Ethereum fork)", function () {
         ZERO_ADDRESS,
         ZERO_ADDRESS,
         forkNetworkConfig.GnosisAMB,
-        forkNetworkConfig.USDT0OFT, ZERO_ADDRESS, ZERO_ADDRESS,
+        forkNetworkConfig.USDT0OFT, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Repayer;
 
@@ -111,13 +112,14 @@ describe("Repayer USDT0 (Ethereum fork)", function () {
     const usdt0OftAddress = forkNetworkConfig.USDT0OFT!;
     const usdtBalanceBefore = await usdt.balanceOf(repayer);
 
+    const extraData = AbiCoder.defaultAbiCoder().encode(["uint256"], [amount]);
     const tx = repayer.connect(repayUser).initiateRepay(
       usdt,
       amount,
       liquidityPool,
       Domain.ARBITRUM_ONE,
       Provider.USDT0,
-      "0x",
+      extraData,
       {value: hre.ethers.parseEther("0.1")}
     );
     await expect(tx)

@@ -109,6 +109,7 @@ contract Repayer is
         address gnosisUsdceSwap,
         address ethereumAmb,
         address usdt0Oft,
+        address usdt0FeeNativeToken,
         address cctpV2TokenMessenger,
         address cctpV2MessageTransmitter
     )
@@ -129,7 +130,7 @@ contract Repayer is
             gnosisUsdceSwap,
             ethereumAmb
         )
-        USDT0Adapter(usdt0Oft)
+        USDT0Adapter(usdt0Oft, usdt0FeeNativeToken)
     {
         ERC7201Helper.validateStorageLocation(
             STORAGE_LOCATION,
@@ -258,7 +259,7 @@ contract Repayer is
             initiateTransferGnosisOmnibridge(token, amount, destinationPool, destinationDomain, DOMAIN);
         } else
         if (provider == Provider.USDT0) {
-            initiateTransferUSDT0(token, amount, destinationPool, destinationDomain, DOMAIN, _msgSender());
+            initiateTransferUSDT0(token, amount, destinationPool, destinationDomain, extraData, _msgSender());
         } else {
             revert UnsupportedProvider();
         }

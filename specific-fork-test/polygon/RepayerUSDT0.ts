@@ -3,6 +3,7 @@ import {
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {expect} from "chai";
 import hre from "hardhat";
+import {AbiCoder} from "ethers";
 import {
   getCreateAddress, getContractAt, deploy, deployX,
 } from "../../test/helpers";
@@ -61,7 +62,7 @@ describe("Repayer USDT0 (Polygon fork)", function () {
         ZERO_ADDRESS,
         ZERO_ADDRESS,
         ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
-        forkNetworkConfig.USDT0OFT, ZERO_ADDRESS, ZERO_ADDRESS,
+        forkNetworkConfig.USDT0OFT, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Repayer;
 
@@ -118,13 +119,14 @@ describe("Repayer USDT0 (Polygon fork)", function () {
       composeMsg: "0x",
       oftCmd: "0x",
     }, false)).nativeFee;
+    const extraData = AbiCoder.defaultAbiCoder().encode(["uint256"], [amount]);
     const tx = repayer.connect(repayUser).initiateRepay(
       usdt0Token,
       amount,
       liquidityPool,
       Domain.ETHEREUM,
       Provider.USDT0,
-      "0x",
+      extraData,
       {value: fee}
     );
     await expect(tx)

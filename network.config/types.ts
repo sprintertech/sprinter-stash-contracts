@@ -165,6 +165,9 @@ export interface NetworkConfig {
   GnosisUSDCxDAI?: string;
   GnosisUSDCTransmuter?: string;
   USDT0OFT?: string;
+  // Set only on chains whose USDT0 OFT requires LayerZero fees to be paid in an ERC-20 token
+  // (i.e. USDT0OFT.nativeToken() returns a non-zero address) instead of native currency.
+  USDT0FeeNativeToken?: string;
   Tokens: {
     [Token.USDC]: TokenInfo;
     [Token.USDT]?: TokenInfo;

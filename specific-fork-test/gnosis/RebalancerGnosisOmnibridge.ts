@@ -49,7 +49,7 @@ describe("Rebalancer Gnosis Omnibridge (Gnosis Chain fork)", function () {
         gnosisConfig.Omnibridge,
         gnosisConfig.GnosisUSDCxDAI,
         gnosisConfig.GnosisUSDCTransmuter,
-        ZERO_ADDRESS,
+        ZERO_ADDRESS,ZERO_ADDRESS, 
         ZERO_ADDRESS,
         ZERO_ADDRESS,
       )

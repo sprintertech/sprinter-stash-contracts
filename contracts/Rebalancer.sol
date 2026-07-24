@@ -67,6 +67,7 @@ contract Rebalancer is
         address gnosisUsdcTransmuter,
         address ethereumAmb,
         address usdt0Oft,
+        address usdt0FeeNativeToken,
         address cctpV2TokenMessenger,
         address cctpV2MessageTransmitter
     )
@@ -83,7 +84,7 @@ contract Rebalancer is
             gnosisUsdcTransmuter,
             ethereumAmb
         )
-        USDT0Adapter(usdt0Oft)
+        USDT0Adapter(usdt0Oft, usdt0FeeNativeToken)
     {
         ERC7201Helper.validateStorageLocation(
             STORAGE_LOCATION,
@@ -191,7 +192,7 @@ contract Rebalancer is
         address destinationPool,
         Domain destinationDomain,
         Provider provider,
-        bytes calldata /*extraData*/
+        bytes calldata extraData
     ) external payable override onlyRole(REBALANCER_ROLE) {
         require(amount > 0, ZeroAmount());
         require(isRouteAllowed(sourcePool, DOMAIN, Provider.LOCAL), RouteDenied());
@@ -220,7 +221,7 @@ contract Rebalancer is
         } else
         if (provider == Provider.USDT0) {
             destinationPool = address(this);
-            initiateTransferUSDT0(ASSETS, amount, destinationPool, destinationDomain, DOMAIN, _msgSender());
+            initiateTransferUSDT0(ASSETS, amount, destinationPool, destinationDomain, extraData, _msgSender());
         } else {
             revert UnsupportedProvider();
         }

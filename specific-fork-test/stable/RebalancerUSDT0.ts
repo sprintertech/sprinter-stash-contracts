@@ -1,136 +1,130 @@
-import {
-  loadFixture, mine, setBalance, setCode
-} from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {expect} from "chai";
 import hre from "hardhat";
-import {AbiCoder} from "ethers";
-import {
-  getCreateAddress, getContractAt, deploy, deployX,
-} from "../../test/helpers";
-import {
-  ProviderSolidity as Provider, DomainSolidity as Domain,
-  DEFAULT_ADMIN_ROLE, assertAddress, ZERO_ADDRESS,
-} from "../../scripts/common";
-import {
-  TransparentUpgradeableProxy, ProxyAdmin,
-  TestLiquidityPool, Rebalancer,
-} from "../../typechain-types";
+import {concat, dataSlice, keccak256, toUtf8Bytes} from "ethers";
+import {getCreateX} from "../../test/helpers";
+import {assert, assertAddress, CREATE_X_ADDRESS} from "../../scripts/common";
 import {prodNetworkConfig as networkConfig} from "../../network.config";
 
-// Unlike Tempo, Stable's USDT0 is a dual-role asset that is simultaneously the native gas
-// token and an ERC-20, so its OFT pays LayerZero fees via ordinary msg.value
-// (USDT0OFT.nativeToken() reverts on Stable) and does not require an ERC-20 approval
-// (USDT0OFT.approvalRequired() is false there).
-describe.skip("Rebalancer USDT0 (Stable fork)", function () {
-  const deployAll = async () => {
-    // Mining a block before doing any calls (eth_call) fixes the issue:
-    // https://github.com/NomicFoundation/edr/issues/1214
-    await mine();
-    const [deployer, admin, rebalanceUser] = await hre.ethers.getSigners();
-    await setCode(rebalanceUser.address, "0x00");
+// Stable's USDT is dual-role (see RepayerUSDT0Stable/RepayerUSDT0.ts for the full rationale):
+// LayerZero fees are paid via plain msg.value, with no separate fee-token wrap step, unlike the
+// Tempo simulation.
+//
+// Run with: hardhat test --network STABLE ./specific-fork-test/stable/RebalancerUSDT0.ts
+// (a direct connection to the real network, NOT `FORK_TEST=STABLE`).
+//
+// RebalancerUSDT0Stable shares the same CreateX deployer/salt id ("StableSimulation") as
+// RepayerUSDT0Stable, and therefore the same pre-funded EXPECTED_ADDRESS — see that file's
+// harness for the full rationale on why run() is split from the constructor and why
+// deployCreate3AndInit is used to preserve run()'s real revert reason.
+describe("Rebalancer USDT0 (Stable simulation)", function () {
+  const SIMULATION_DEPLOYER = "0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11";
+  const SIMULATION_ID = "StableSimulation";
+  const BRIDGE_AMOUNT = 1_000_000n; // 1 USDT (6 decimals).
+  const REMOTE_POOL = "0x000000000000000000000000000000000000dEaD";
+  const ARBITRUM_ONE_EID = 30110n;
+  // Must match RebalancerUSDT0Stable.EXPECTED_ADDRESS (== RepayerUSDT0Stable.EXPECTED_ADDRESS),
+  // and is pre-funded with real native currency (USDT) on Stable.
+  const EXPECTED_ADDRESS = "0x1d98C9492F01aC4eEeaF13683dA561e4EC2b51E3";
 
+  // Same raw salt format as test/helpers.ts's deployX: 20 bytes deployer + protection flag
+  // byte + 11 bytes of id-derived entropy. CreateX derives the actual CREATE3 address from
+  // this salt only after confirming msg.sender matches the embedded deployer.
+  function computeSalt(): string {
+    return concat([
+      SIMULATION_DEPLOYER,
+      "0x00",
+      dataSlice(keccak256(toUtf8Bytes(SIMULATION_ID)), 0, 11),
+    ]);
+  }
+
+  // ethers throws differently depending on whether the underlying provider is a Hardhat
+  // ProviderError (direct `.data`/`.code`) or an ethers CallExceptionError (`.data` too, but a
+  // different shape) — read `.data` defensively rather than relying on `isError` type-narrowing.
+  function extractRevertData(error: unknown): string {
+    const data = (error as {data?: unknown})?.data;
+    assert(typeof data === "string" && data.length > 0, `Call did not revert with usable data: ${error}`);
+    return data;
+  }
+
+  it("Should not revert while deploying (sanity check, independent of run()/funding)", async function () {
     const forkNetworkConfig = networkConfig.STABLE;
-
-    const REBALANCER_ROLE = hre.ethers.encodeBytes32String("REBALANCER_ROLE");
-    const LIQUIDITY_ADMIN_ROLE = hre.ethers.encodeBytes32String("LIQUIDITY_ADMIN_ROLE");
-
     assertAddress(forkNetworkConfig.USDT0OFT, "USDT0OFT address is missing from STABLE config");
 
-    const usdt0Oft = await hre.ethers.getContractAt("IOFT", forkNetworkConfig.USDT0OFT!);
-    const usdt0Token = await hre.ethers.getContractAt("ERC20", await usdt0Oft.token());
-
-    expect(usdt0Token.target).to.equal(forkNetworkConfig.Tokens.USDT?.Address);
-    expect(await usdt0Oft.approvalRequired()).to.be.false;
-
-    // Stable's own USDT pool (ASSETS = USDT0-bridged USDT), the source of the rebalance.
-    const localPool = (await deploy(
-      "TestLiquidityPool", deployer, {}, usdt0Token, deployer, ZERO_ADDRESS
-    )) as TestLiquidityPool;
-    // A stand-in for the pool on Arbitrum that receives the bridged funds.
-    const remotePool = (await deploy(
-      "TestLiquidityPool", deployer, {}, usdt0Token, deployer, ZERO_ADDRESS
-    )) as TestLiquidityPool;
-
-    const USDT0_DEC = 10n ** (await usdt0Token.decimals());
-
-    const rebalancerImpl = (
-      await deployX("Rebalancer", deployer, "RebalancerStableUSDT0", {},
-        Domain.STABLE,
-        usdt0Token,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        forkNetworkConfig.USDT0OFT, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
-      )
-    ) as Rebalancer;
-
-    const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(
-      admin,
-      rebalanceUser,
-      [localPool, remotePool],
-      [Domain.STABLE, Domain.ARBITRUM_ONE],
-      [Provider.LOCAL, Provider.USDT0],
-    )).data;
-
-    const rebalancerProxy = (await deployX(
-      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyStableRebalancerUSDT0", {},
-      rebalancerImpl, admin, rebalancerInit
-    )) as TransparentUpgradeableProxy;
-    const rebalancer = (await getContractAt("Rebalancer", rebalancerProxy, deployer)) as Rebalancer;
-    const rebalancerProxyAdminAddress = await getCreateAddress(rebalancerProxy, 1);
-    const rebalancerAdmin = (await getContractAt("ProxyAdmin", rebalancerProxyAdminAddress, admin)) as ProxyAdmin;
-
-    await localPool.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
-    await remotePool.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
-
-    return {
-      deployer, admin, rebalanceUser, usdt0Token, USDT0_DEC,
-      localPool, remotePool, rebalancer, rebalancerProxy, rebalancerAdmin, usdt0Oft,
-      REBALANCER_ROLE, DEFAULT_ADMIN_ROLE,
-    };
-  };
-
-  it("Should allow rebalancer to bridge USDT0 from Stable to Arbitrum via USDT0 OFT on fork", async function () {
-    this.timeout(80000);
-    const {
-      rebalancer, USDT0_DEC, usdt0Token, rebalanceUser, localPool, remotePool, usdt0Oft,
-    } = await loadFixture(deployAll);
-
-    assertAddress(
-      process.env.USDT0_OWNER_STABLE_ADDRESS,
-      "Env variables not configured (USDT0_OWNER_STABLE_ADDRESS missing)"
+    const factory = await hre.ethers.getContractFactory("RebalancerUSDT0Stable");
+    const deployTx = await factory.getDeployTransaction(
+      forkNetworkConfig.USDT0OFT!,
+      REMOTE_POOL,
     );
-    const usdt0Owner = await hre.ethers.getImpersonatedSigner(process.env.USDT0_OWNER_STABLE_ADDRESS!);
-    await setBalance(process.env.USDT0_OWNER_STABLE_ADDRESS!, 10n ** 18n);
 
-    const amount = 4n * USDT0_DEC;
-    await usdt0Token.connect(usdt0Owner).transfer(localPool, amount);
+    // Plain deployCreate3 (no init call), via CreateX, so this also lands on and exercises the
+    // exact same deterministic address as the funded simulation below (and, in turn, the
+    // constructor's EXPECTED_ADDRESS check) rather than an arbitrary nonce-based address.
+    const salt = computeSalt();
+    const createX = await getCreateX();
+    const data = createX.interface.encodeFunctionData("deployCreate3(bytes32,bytes)", [salt, deployTx.data]);
+    const result = await hre.ethers.provider.call({to: CREATE_X_ADDRESS, from: SIMULATION_DEPLOYER, data});
+    const [deployedAddress] = createX.interface.decodeFunctionResult("deployCreate3(bytes32,bytes)", result);
+    expect(deployedAddress).to.equal(EXPECTED_ADDRESS);
+  });
 
-    const nativeFee = (await usdt0Oft.quoteSend({
-      dstEid: 30110,
-      to: hre.ethers.zeroPadValue(rebalancer.target as string, 32),
-      amountLD: amount,
-      minAmountLD: amount,
-      extraOptions: "0x",
-      composeMsg: "0x",
-      oftCmd: "0x",
-    }, false)).nativeFee;
+  it("Should bridge USDT from Stable to Arbitrum via a single simulated eth_call", async function () {
+    const forkNetworkConfig = networkConfig.STABLE;
+    assertAddress(forkNetworkConfig.USDT0OFT, "USDT0OFT address is missing from STABLE config");
 
-    const extraData = AbiCoder.defaultAbiCoder().encode(["uint256"], [amount]);
-    const tx = rebalancer.connect(rebalanceUser).initiateRebalance(
-      amount, localPool, remotePool, Domain.ARBITRUM_ONE, Provider.USDT0, extraData,
-      {value: nativeFee}
+    const factory = await hre.ethers.getContractFactory("RebalancerUSDT0Stable");
+    const deployTx = await factory.getDeployTransaction(
+      forkNetworkConfig.USDT0OFT!,
+      REMOTE_POOL,
     );
-    await expect(tx)
-      .to.emit(rebalancer, "InitiateRebalance")
-      .withArgs(amount, localPool.target, remotePool.target, Domain.ARBITRUM_ONE, Provider.USDT0);
-    await expect(tx)
-      .to.emit(rebalancer, "USDT0Transfer")
-      .withArgs(usdt0Token.target, rebalancer.target, "30110", amount);
+    const runCalldata = factory.interface.encodeFunctionData("run", [BRIDGE_AMOUNT]);
 
-    expect(await usdt0Token.balanceOf(localPool)).to.equal(0n);
-    expect(await usdt0Token.balanceOf(rebalancer)).to.equal(0n);
+    const salt = computeSalt();
+    const values = {constructorAmount: 0n, initCallAmount: 0n};
+    const createX = await getCreateX();
+    const data = createX.interface.encodeFunctionData(
+      "deployCreate3AndInit(bytes32,bytes,bytes,(uint256,uint256))",
+      [salt, deployTx.data, runCalldata, values],
+    );
+
+    let revertData: string;
+    try {
+      await hre.ethers.provider.call({to: CREATE_X_ADDRESS, from: SIMULATION_DEPLOYER, data});
+      expect.fail("Expected the simulated call to revert (run() always reverts on completion)");
+    } catch (error) {
+      revertData = extractRevertData(error);
+    }
+
+    // CreateX wraps run()'s revert as FailedContractInitialisation(address emitter, bytes
+    // revertData); unwrap once, then decode the inner error against our own contract's ABI.
+    const outer = createX.interface.parseError(revertData);
+    assert(outer !== null, `Unrecognized revert data from CreateX: ${revertData}`);
+    assert(
+      outer.name === "FailedContractInitialisation",
+      `Expected FailedContractInitialisation, got ${outer.name} (args: ${outer.args})`
+    );
+    const [, innerRevertData] = outer.args;
+
+    const decoded = factory.interface.parseError(innerRevertData);
+    // Bubbles up whatever earlier step actually failed (e.g. insufficient USDT balance if the
+    // simulation address hasn't been pre-funded yet) instead of asserting blindly.
+    assert(decoded !== null, `run() reverted with data that doesn't match any known error: ${innerRevertData}`);
+    expect(decoded.name).to.equal("SimulationSucceeded");
+
+    const [
+      rebalancer, localPool, usdt0, bridgeAmount, nativeFeeUsed, dstEid,
+      startingBalance, localPoolBalanceAfterWithdraw, rebalancerBalanceAfterSend,
+    ] = decoded.args;
+    expect(bridgeAmount).to.equal(BRIDGE_AMOUNT);
+    expect(dstEid).to.equal(ARBITRUM_ONE_EID);
+    expect(usdt0).to.equal(forkNetworkConfig.Tokens.USDT?.Address);
+    // The local pool must have been withdrawn from by at least bridgeAmount, and the Rebalancer
+    // must have fully forwarded whatever it received to the OFT (nothing left sitting on it).
+    expect(localPoolBalanceAfterWithdraw).to.equal(0n);
+    expect(rebalancerBalanceAfterSend).to.equal(0n);
+
+    console.log(`Simulated Rebalancer: ${rebalancer}`);
+    console.log(`Simulated local pool: ${localPool}`);
+    console.log(`Starting balance (before funding): ${startingBalance}`);
+    console.log(`Native fee used (18 decimals): ${nativeFeeUsed}`);
   });
 });

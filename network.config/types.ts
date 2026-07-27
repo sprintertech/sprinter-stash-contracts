@@ -220,6 +220,7 @@ export interface StandaloneRepayerConfig {
   GnosisUSDCTransmuter?: string;
   GnosisAMB?: string;
   USDT0OFT?: string;
+  USDT0FeeNativeToken?: string;
   // Repayer tokens are used from the general network config.
   WrappedNativeToken: string;
   RepayerRoutes: RepayerRoutesConfig;

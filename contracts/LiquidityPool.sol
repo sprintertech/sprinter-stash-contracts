@@ -142,7 +142,6 @@ abstract contract LiquidityPoolBase is ILiquidityPool, AccessControlUpgradeable,
     constructor(address liquidityToken, address wrappedNativeToken) {
         ERC7201Helper.validateStorageLocation(STORAGE_LOCATION, "sprinter.storage.LiquidityPoolBase");
         require(liquidityToken != address(0), ZeroAddress());
-        require(wrappedNativeToken != address(0), ZeroAddress());
         ASSETS = IERC20(liquidityToken);
         WRAPPED_NATIVE_TOKEN = IWrappedNativeToken(wrappedNativeToken);
         _disableInitializers();

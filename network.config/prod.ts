@@ -546,7 +546,7 @@ export const prodNetworkConfig: NetworksConfig = {
           DepositProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
           AssetsLimitSetter: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
           AssetsLimit: 10_000_000,
-          Pool: LiquidityPoolUSDTProxy,
+          Pool: LiquidityPoolAaveUSDTProxy,
         },
         RebalancerRoutes: {
           [LiquidityPoolUSDTProxy]: {

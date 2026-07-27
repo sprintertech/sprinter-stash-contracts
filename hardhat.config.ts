@@ -1264,12 +1264,12 @@ const config: HardhatUserConfig = {
     },
     [Network.TEMPO]: {
       chainId: networkConfig.TEMPO.ChainId,
-      url: process.env.TEMPO_RPC || "https://rpc.mainnet.tempo.xyz",
+      url: process.env[(isSet(process.env.VIRTUAL) ? "VIRTUAL_" : "") + "TEMPO_RPC"],
       accounts,
     },
     [Network.STABLE]: {
       chainId: networkConfig.STABLE.ChainId,
-      url: process.env.STABLE_RPC || "https://stable-mainnet.rpc.sentio.xyz",
+      url: process.env[(isSet(process.env.VIRTUAL) ? "VIRTUAL_" : "") + "STABLE_RPC"],
       accounts,
     },
     hardhat: {

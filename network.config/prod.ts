@@ -108,24 +108,6 @@ export const prodNetworkConfig: NetworksConfig = {
           ],
         },
       },
-      [LiquidityPoolAaveUSDTProxy]: {
-        Domains: {
-          [Network.ARBITRUM_ONE]: [
-            Provider.USDT0,
-          ],
-        },
-      },
-      [LiquidityPoolUSDTProxy]: {
-        OnlySupportedToken: Token.USDT,
-        Domains: {
-          [Network.TEMPO]: [
-            Provider.USDT0,
-          ],
-          [Network.STABLE]: [
-            Provider.USDT0,
-          ],
-        },
-      },
     },
     StashDex: {
       Oracle: "PaxosOracle",
@@ -378,24 +360,6 @@ export const prodNetworkConfig: NetworksConfig = {
           ],
         }
       },
-      [LiquidityPoolAaveUSDTProxy]: {
-        Domains: {
-          [Network.ARBITRUM_ONE]: [
-            Provider.USDT0,
-          ],
-        },
-      },
-      [LiquidityPoolUSDTProxy]: {
-        OnlySupportedToken: Token.USDT,
-        Domains: {
-          [Network.TEMPO]: [
-            Provider.USDT0,
-          ],
-          [Network.STABLE]: [
-            Provider.USDT0,
-          ],
-        }
-      }
     },
     MainAssets: {
       [Token.USDC]: {
@@ -528,17 +492,6 @@ export const prodNetworkConfig: NetworksConfig = {
             Provider.STARGATE,
             Provider.USDT0,
             Provider.CCTP_V2
-          ],
-        }
-      },
-      [LiquidityPoolUSDTProxy]: {
-        OnlySupportedToken: Token.USDT,
-        Domains: {
-          [Network.TEMPO]: [
-            Provider.USDT0,
-          ],
-          [Network.STABLE]: [
-            Provider.USDT0,
           ],
         }
       },
@@ -802,24 +755,6 @@ export const prodNetworkConfig: NetworksConfig = {
           [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE, Provider.USDT0, Provider.CCTP_V2],
         }
       },
-      [LiquidityPoolAaveUSDTProxy]: {
-        Domains: {
-          [Network.ARBITRUM_ONE]: [
-            Provider.USDT0,
-          ],
-        },
-      },
-      [LiquidityPoolUSDTProxy]: {
-        OnlySupportedToken: Token.USDT,
-        Domains: {
-          [Network.TEMPO]: [
-            Provider.USDT0,
-          ],
-          [Network.STABLE]: [
-            Provider.USDT0,
-          ],
-        }
-      }
     },
     MainAssets: {
       [Token.USDC]: {
@@ -918,24 +853,6 @@ export const prodNetworkConfig: NetworksConfig = {
           [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE, Provider.USDT0, Provider.CCTP_V2],
         }
       },
-      [LiquidityPoolAaveUSDTProxy]: {
-        Domains: {
-          [Network.ARBITRUM_ONE]: [
-            Provider.USDT0,
-          ],
-        },
-      },
-      [LiquidityPoolUSDTProxy]: {
-        OnlySupportedToken: Token.USDT,
-        Domains: {
-          [Network.TEMPO]: [
-            Provider.USDT0,
-          ],
-          [Network.STABLE]: [
-            Provider.USDT0,
-          ],
-        }
-      }
     },
     MainAssets: {
       [Token.USDC]: {
@@ -1229,24 +1146,6 @@ export const prodNetworkConfig: NetworksConfig = {
           [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS, Provider.USDT0],
         }
       },
-      [LiquidityPoolAaveUSDTProxy]: {
-        Domains: {
-          [Network.ARBITRUM_ONE]: [
-            Provider.USDT0,
-          ],
-        },
-      },
-      [LiquidityPoolUSDTProxy]: {
-        OnlySupportedToken: Token.USDT,
-        Domains: {
-          [Network.TEMPO]: [
-            Provider.USDT0,
-          ],
-          [Network.STABLE]: [
-            Provider.USDT0,
-          ],
-        }
-      }
     },
     MainAssets: {},
   },

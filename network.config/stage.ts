@@ -15,6 +15,8 @@ import {
   USDGStashDexProcessorProxy,
   USDTStashDexProcessorProxy,
   SUPPORTS_ONLY_USDC,
+  LiquidityPoolUSDTProxy,
+  LiquidityPoolAaveUSDTProxy,
 } from "./ids";
 
 export const stageNetworkConfig: PartialNetworksConfig = {
@@ -141,7 +143,25 @@ export const stageNetworkConfig: PartialNetworksConfig = {
             Provider.GNOSIS_OMNIBRIDGE,
             Provider.STARGATE,
           ],
-        }
+        },
+      },
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+      [LiquidityPoolUSDTProxy]: {
+        OnlySupportedToken: Token.USDT,
+        Domains: {
+          [Network.TEMPO]: [
+            Provider.USDT0,
+          ],
+          [Network.STABLE]: [
+            Provider.USDT0,
+          ],
+        },
       },
     },
     StashDex: {
@@ -474,6 +494,24 @@ export const stageNetworkConfig: PartialNetworksConfig = {
           ],
         },
       },
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+      [LiquidityPoolUSDTProxy]: {
+        OnlySupportedToken: Token.USDT,
+        Domains: {
+          [Network.TEMPO]: [
+            Provider.USDT0,
+          ],
+          [Network.STABLE]: [
+            Provider.USDT0,
+          ],
+        },
+      },
     },
     MainAssets: {
       [Token.USDC]: {
@@ -757,6 +795,24 @@ export const stageNetworkConfig: PartialNetworksConfig = {
           ],
         },
       },
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+      [LiquidityPoolUSDTProxy]: {
+        OnlySupportedToken: Token.USDT,
+        Domains: {
+          [Network.TEMPO]: [
+            Provider.USDT0,
+          ],
+          [Network.STABLE]: [
+            Provider.USDT0,
+          ],
+        },
+      },
     },
     MainAssets: {
       [Token.USDC]: {
@@ -812,14 +868,14 @@ export const stageNetworkConfig: PartialNetworksConfig = {
       WETH: tokenInfo("0x4200000000000000000000000000000000000006", 18),
     },
     WrappedNativeToken: "0x4200000000000000000000000000000000000006",
-    Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
-    WithdrawProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-    Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-    RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-    RepayerCaller: "0x9A5B33bd11329116A55F764c604a5152eE8Ca292",
-    SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-    MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
-    SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Admin: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    WithdrawProfit: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    Pauser: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    RebalanceCaller: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    RepayerCaller: "0xc1d6EEa5ce163d7D9f1952Db220830Aae16Cb607",
+    SetInputOutputTokens: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
+    SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
@@ -850,6 +906,24 @@ export const stageNetworkConfig: PartialNetworksConfig = {
           [Network.GNOSIS_CHAIN]: [
             Provider.STARGATE,
           ],
+        },
+        [LiquidityPoolAaveUSDTProxy]: {
+          Domains: {
+            [Network.ARBITRUM_ONE]: [
+              Provider.USDT0,
+            ],
+          },
+        },
+        [LiquidityPoolUSDTProxy]: {
+          OnlySupportedToken: Token.USDT,
+          Domains: {
+            [Network.TEMPO]: [
+              Provider.USDT0,
+            ],
+            [Network.STABLE]: [
+              Provider.USDT0,
+            ],
+          },
         },
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
@@ -1064,6 +1138,103 @@ export const stageNetworkConfig: PartialNetworksConfig = {
             "0xcB444e90D8198415266c6a2724b7900fb12FC56E": 100, // EURe v1
           },
         },
+      },
+    },
+  },
+  TEMPO: {
+    ChainId: 4217,
+    USDT0OFT: "0xaf37E8B6C9ED7f6318979f56Fc287d76c30847ff",
+    // Tempo has no native currency (CALLVALUE always returns 0), so its USDT0 OFT requires
+    // LayerZero fees to be paid in this ERC-20 token instead (confirmed via oft.nativeToken()).
+    USDT0FeeNativeToken: "0x0cEb237E109eE22374a567c6b09F373C73FA4cBb",
+    Tokens: {
+      USDC: tokenInfo("0x20C000000000000000000000b9537d11c60E8b50", 6),
+      USDT: tokenInfo("0x20C00000000000000000000014f22CA97301EB73", 6),
+    },
+    WrappedNativeToken: "0x0000000000000000000000000000000000000000",
+    Admin: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    WithdrawProfit: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    Pauser: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    RebalanceCaller: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    RepayerCaller: "0xc1d6EEa5ce163d7D9f1952Db220830Aae16Cb607",
+    SetInputOutputTokens: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
+    SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    RepayerRoutes: {
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+      [LiquidityPoolUSDTProxy]: {
+        OnlySupportedToken: Token.USDT,
+        Domains: {
+          [Network.STABLE]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+    },
+    MainAssets: {
+      [Token.USDT]: {
+        RebalancerRoutes: {
+          [LiquidityPoolAaveUSDTProxy]: {
+            [Network.ARBITRUM_ONE]: [Provider.USDT0],
+          },
+          [LiquidityPoolUSDTProxy]: {
+            [Network.STABLE]: [Provider.USDT0],
+          },
+        },
+        BasicPool: true,
+      },
+    },
+  },
+  STABLE: {
+    ChainId: 988,
+    USDT0OFT: "0xedaba024be4d87974d5aB11C6Dd586963CcCB027",
+    Tokens: {
+      USDC: tokenInfo("0x8a2B28364102Bea189D99A475C494330Ef2bDD0B", 6),
+      USDT: tokenInfo("0x779Ded0c9e1022225f8E0630b35a9b54bE713736", 6),
+    },
+    WrappedNativeToken: "0x0000000000000000000000000000000000000000",
+    Admin: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    WithdrawProfit: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    Pauser: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    RebalanceCaller: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    RepayerCaller: "0xc1d6EEa5ce163d7D9f1952Db220830Aae16Cb607",
+    SetInputOutputTokens: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
+    SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    RepayerRoutes: {
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+      [LiquidityPoolUSDTProxy]: {
+        OnlySupportedToken: Token.USDT,
+        Domains: {
+          [Network.TEMPO]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+    },
+    MainAssets: {
+      [Token.USDT]: {
+        RebalancerRoutes: {
+          [LiquidityPoolAaveUSDTProxy]: {
+            [Network.ARBITRUM_ONE]: [Provider.USDT0],
+          },
+          [LiquidityPoolUSDTProxy]: {
+            [Network.TEMPO]: [Provider.USDT0],
+          },
+        },
+        BasicPool: true,
       },
     },
   },

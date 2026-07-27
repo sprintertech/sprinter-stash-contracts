@@ -1,151 +1,141 @@
-import {
-  loadFixture, mine, setBalance, setCode
-} from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {expect} from "chai";
 import hre from "hardhat";
-import {AbiCoder} from "ethers";
-import {
-  getCreateAddress, getContractAt, deploy, deployX,
-} from "../../test/helpers";
-import {
-  ProviderSolidity as Provider, DomainSolidity as Domain,
-  DEFAULT_ADMIN_ROLE, assertAddress, ZERO_ADDRESS,
-} from "../../scripts/common";
-import {
-  TransparentUpgradeableProxy, ProxyAdmin,
-  TestLiquidityPool, Rebalancer, ILZEndpointDollar,
-} from "../../typechain-types";
+import {concat, dataSlice, keccak256, toUtf8Bytes} from "ethers";
+import {getCreateX} from "../../test/helpers";
+import {assert, assertAddress, CREATE_X_ADDRESS} from "../../scripts/common";
 import {prodNetworkConfig as networkConfig} from "../../network.config";
 
-// Tempo has no native currency (CALLVALUE always returns 0 on Tempo), so its USDT0 OFT
-// requires LayerZero fees to be paid in an ERC-20 token (USDT0OFT.nativeToken()) instead
-// of msg.value, matching the wiring in scripts/deploy.ts / network.config for Tempo.
-// USDT0FeeNativeToken is LZD (ILZEndpointDollar): fee tokens are obtained by wrapping USDT0
-// into LZD 1:1, rather than needing a separate LZD-holder address to impersonate.
-describe.skip("Rebalancer USDT0 (Tempo fork)", function () {
-  const deployAll = async () => {
-    // Mining a block before doing any calls (eth_call) fixes the issue:
-    // https://github.com/NomicFoundation/edr/issues/1214
-    await mine();
-    const [deployer, admin, rebalanceUser] = await hre.ethers.getSigners();
-    await setCode(rebalanceUser.address, "0x00");
+// Tempo is not fully EVM-compatible (e.g. CALLVALUE and BALANCE always return 0), so Hardhat's
+// fork/EDR network cannot replicate its real execution semantics. Instead of forking, the
+// entire scenario (fund a local pool, wrap USDT0 into the LZD fee token, initiateRebalance)
+// runs inside RebalancerUSDT0Tempo, and gets simulated via read-only eth_calls sent directly to
+// live Tempo mainnet: nothing here forks state, spends real gas, or persists.
+//
+// Run with: hardhat test --network TEMPO ./specific-fork-test/tempo/RebalancerUSDT0.ts
+// (a direct connection to the real network, NOT `FORK_TEST=TEMPO`).
+//
+// RebalancerUSDT0Tempo shares the same CreateX deployer/salt id ("TempoSimulation") as
+// RepayerUSDT0Tempo, and therefore the same pre-funded EXPECTED_ADDRESS — see that file's
+// harness for the full rationale on why run() is split from the constructor and why
+// deployCreate3AndInit is used to preserve run()'s real revert reason.
+describe("Rebalancer USDT0 (Tempo simulation)", function () {
+  const SIMULATION_DEPLOYER = "0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11";
+  const SIMULATION_ID = "TempoSimulation";
+  const BRIDGE_AMOUNT = 1_000_000n; // 1 USDT0 (6 decimals).
+  const REMOTE_POOL = "0x000000000000000000000000000000000000dEaD";
+  const ARBITRUM_ONE_EID = 30110n;
+  // Must match RebalancerUSDT0Tempo.EXPECTED_ADDRESS (== RepayerUSDT0Tempo.EXPECTED_ADDRESS),
+  // and is pre-funded with real USDT0 on Tempo.
+  const EXPECTED_ADDRESS = "0xcE98A33AC0a054bCE4ed6715b780F59A2e6CC7f1";
 
+  // Same raw salt format as test/helpers.ts's deployX: 20 bytes deployer + protection flag
+  // byte + 11 bytes of id-derived entropy. CreateX derives the actual CREATE3 address from
+  // this salt only after confirming msg.sender matches the embedded deployer.
+  function computeSalt(): string {
+    return concat([
+      SIMULATION_DEPLOYER,
+      "0x00",
+      dataSlice(keccak256(toUtf8Bytes(SIMULATION_ID)), 0, 11),
+    ]);
+  }
+
+  // ethers throws differently depending on whether the underlying provider is a Hardhat
+  // ProviderError (direct `.data`/`.code`) or an ethers CallExceptionError (`.data` too, but a
+  // different shape) — read `.data` defensively rather than relying on `isError` type-narrowing.
+  function extractRevertData(error: unknown): string {
+    const data = (error as {data?: unknown})?.data;
+    assert(typeof data === "string" && data.length > 0, `Call did not revert with usable data: ${error}`);
+    return data;
+  }
+
+  it("Should not revert while deploying (sanity check, independent of run()/funding)", async function () {
     const forkNetworkConfig = networkConfig.TEMPO;
-
-    const REBALANCER_ROLE = hre.ethers.encodeBytes32String("REBALANCER_ROLE");
-    const LIQUIDITY_ADMIN_ROLE = hre.ethers.encodeBytes32String("LIQUIDITY_ADMIN_ROLE");
-
     assertAddress(forkNetworkConfig.USDT0OFT, "USDT0OFT address is missing from TEMPO config");
     assertAddress(
       forkNetworkConfig.USDT0FeeNativeToken, "USDT0FeeNativeToken address is missing from TEMPO config"
     );
 
-    const usdt0Oft = await hre.ethers.getContractAt("IOFT", forkNetworkConfig.USDT0OFT!);
-    const usdt0Token = await hre.ethers.getContractAt("ERC20", await usdt0Oft.token());
-    const feeToken = (
-      await hre.ethers.getContractAt("ILZEndpointDollar", forkNetworkConfig.USDT0FeeNativeToken!)
-    ) as ILZEndpointDollar;
+    const factory = await hre.ethers.getContractFactory("RebalancerUSDT0Tempo");
+    const deployTx = await factory.getDeployTransaction(
+      forkNetworkConfig.USDT0OFT!,
+      forkNetworkConfig.USDT0FeeNativeToken!,
+      REMOTE_POOL,
+    );
 
-    expect(usdt0Token.target).to.equal(forkNetworkConfig.Tokens.USDT?.Address);
-    expect(await usdt0Oft.approvalRequired()).to.be.true;
-    expect(await usdt0Oft.nativeToken()).to.equal(feeToken.target);
+    // Plain deployCreate3 (no init call), via CreateX, so this also lands on and exercises the
+    // exact same deterministic address as the funded simulation below (and, in turn, the
+    // constructor's EXPECTED_ADDRESS check) rather than an arbitrary nonce-based address.
+    const salt = computeSalt();
+    const createX = await getCreateX();
+    const data = createX.interface.encodeFunctionData("deployCreate3(bytes32,bytes)", [salt, deployTx.data]);
+    const result = await hre.ethers.provider.call({to: CREATE_X_ADDRESS, from: SIMULATION_DEPLOYER, data});
+    const [deployedAddress] = createX.interface.decodeFunctionResult("deployCreate3(bytes32,bytes)", result);
+    expect(deployedAddress).to.equal(EXPECTED_ADDRESS);
+  });
 
-    // Tempo's own USDT pool (ASSETS = USDT0-bridged USDT), the source of the rebalance.
-    const localPool = (await deploy(
-      "TestLiquidityPool", deployer, {}, usdt0Token, deployer, ZERO_ADDRESS
-    )) as TestLiquidityPool;
-    // A stand-in for the pool on Arbitrum that receives the bridged funds.
-    const remotePool = (await deploy(
-      "TestLiquidityPool", deployer, {}, usdt0Token, deployer, ZERO_ADDRESS
-    )) as TestLiquidityPool;
-
-    const USDT0_DEC = 10n ** (await usdt0Token.decimals());
-
-    const rebalancerImpl = (
-      await deployX("Rebalancer", deployer, "RebalancerTempoUSDT0", {},
-        Domain.TEMPO,
-        usdt0Token,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        forkNetworkConfig.USDT0OFT, forkNetworkConfig.USDT0FeeNativeToken, ZERO_ADDRESS, ZERO_ADDRESS,
-      )
-    ) as Rebalancer;
-
-    const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(
-      admin,
-      rebalanceUser,
-      [localPool, remotePool],
-      [Domain.TEMPO, Domain.ARBITRUM_ONE],
-      [Provider.LOCAL, Provider.USDT0],
-    )).data;
-
-    const rebalancerProxy = (await deployX(
-      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyTempoRebalancerUSDT0", {},
-      rebalancerImpl, admin, rebalancerInit
-    )) as TransparentUpgradeableProxy;
-    const rebalancer = (await getContractAt("Rebalancer", rebalancerProxy, deployer)) as Rebalancer;
-    const rebalancerProxyAdminAddress = await getCreateAddress(rebalancerProxy, 1);
-    const rebalancerAdmin = (await getContractAt("ProxyAdmin", rebalancerProxyAdminAddress, admin)) as ProxyAdmin;
-
-    await localPool.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
-    await remotePool.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
-
-    return {
-      deployer, admin, rebalanceUser, usdt0Token, feeToken, USDT0_DEC,
-      localPool, remotePool, rebalancer, rebalancerProxy, rebalancerAdmin, usdt0Oft,
-      REBALANCER_ROLE, DEFAULT_ADMIN_ROLE,
-    };
-  };
-
-  it("Should allow rebalancer to bridge USDT0 from Tempo to Arbitrum via USDT0 OFT on fork", async function () {
-    this.timeout(80000);
-    const {
-      rebalancer, USDT0_DEC, usdt0Token, feeToken, rebalanceUser, localPool, remotePool, usdt0Oft,
-    } = await loadFixture(deployAll);
-
+  it("Should bridge USDT0 from Tempo to Arbitrum via a single simulated eth_call", async function () {
+    const forkNetworkConfig = networkConfig.TEMPO;
+    assertAddress(forkNetworkConfig.USDT0OFT, "USDT0OFT address is missing from TEMPO config");
     assertAddress(
-      process.env.USDT0_OWNER_TEMPO_ADDRESS,
-      "Env variables not configured (USDT0_OWNER_TEMPO_ADDRESS missing)"
+      forkNetworkConfig.USDT0FeeNativeToken, "USDT0FeeNativeToken address is missing from TEMPO config"
     );
-    const usdt0Owner = await hre.ethers.getImpersonatedSigner(process.env.USDT0_OWNER_TEMPO_ADDRESS!);
-    await setBalance(process.env.USDT0_OWNER_TEMPO_ADDRESS!, 10n ** 18n);
 
-    const amount = 4n * USDT0_DEC;
-    await usdt0Token.connect(usdt0Owner).transfer(localPool, amount);
-
-    const nativeFee = (await usdt0Oft.quoteSend({
-      dstEid: 30110,
-      to: hre.ethers.zeroPadValue(rebalancer.target as string, 32),
-      amountLD: amount,
-      minAmountLD: amount,
-      extraOptions: "0x",
-      composeMsg: "0x",
-      oftCmd: "0x",
-    }, false)).nativeFee;
-
-    // Mint LZD fee tokens by wrapping USDT0 1:1, straight to rebalanceUser (the
-    // REBALANCER_ROLE caller), instead of needing a separate LZD-holder address to impersonate.
-    await usdt0Token.connect(usdt0Owner).approve(feeToken, nativeFee);
-    await feeToken.connect(usdt0Owner).wrap(usdt0Token, rebalanceUser, nativeFee);
-    // rebalanceUser must approve the Rebalancer to pull the fee token, since it is pulled from
-    // the caller rather than from the Rebalancer's own balance.
-    await feeToken.connect(rebalanceUser).approve(rebalancer, nativeFee);
-
-    const extraData = AbiCoder.defaultAbiCoder().encode(["uint256", "uint256"], [amount, nativeFee]);
-    const tx = rebalancer.connect(rebalanceUser).initiateRebalance(
-      amount, localPool, remotePool, Domain.ARBITRUM_ONE, Provider.USDT0, extraData,
+    const factory = await hre.ethers.getContractFactory("RebalancerUSDT0Tempo");
+    const deployTx = await factory.getDeployTransaction(
+      forkNetworkConfig.USDT0OFT!,
+      forkNetworkConfig.USDT0FeeNativeToken!,
+      REMOTE_POOL,
     );
-    await expect(tx)
-      .to.emit(rebalancer, "InitiateRebalance")
-      .withArgs(amount, localPool.target, remotePool.target, Domain.ARBITRUM_ONE, Provider.USDT0);
-    await expect(tx)
-      .to.emit(rebalancer, "USDT0Transfer")
-      .withArgs(usdt0Token.target, rebalancer.target, "30110", amount);
+    const runCalldata = factory.interface.encodeFunctionData("run", [BRIDGE_AMOUNT]);
 
-    expect(await usdt0Token.balanceOf(localPool)).to.equal(0n);
-    expect(await usdt0Token.balanceOf(rebalancer)).to.equal(0n);
+    const salt = computeSalt();
+    const values = {constructorAmount: 0n, initCallAmount: 0n};
+    const createX = await getCreateX();
+    const data = createX.interface.encodeFunctionData(
+      "deployCreate3AndInit(bytes32,bytes,bytes,(uint256,uint256))",
+      [salt, deployTx.data, runCalldata, values],
+    );
+
+    let revertData: string;
+    try {
+      await hre.ethers.provider.call({to: CREATE_X_ADDRESS, from: SIMULATION_DEPLOYER, data});
+      expect.fail("Expected the simulated call to revert (run() always reverts on completion)");
+    } catch (error) {
+      revertData = extractRevertData(error);
+    }
+
+    // CreateX wraps run()'s revert as FailedContractInitialisation(address emitter, bytes
+    // revertData); unwrap once, then decode the inner error against our own contract's ABI.
+    const outer = createX.interface.parseError(revertData);
+    assert(outer !== null, `Unrecognized revert data from CreateX: ${revertData}`);
+    assert(
+      outer.name === "FailedContractInitialisation",
+      `Expected FailedContractInitialisation, got ${outer.name} (args: ${outer.args})`
+    );
+    const [, innerRevertData] = outer.args;
+
+    const decoded = factory.interface.parseError(innerRevertData);
+    // Bubbles up whatever earlier step actually failed (e.g. insufficient USDT0 balance if the
+    // simulation address hasn't been pre-funded yet) instead of asserting blindly.
+    assert(decoded !== null, `run() reverted with data that doesn't match any known error: ${innerRevertData}`);
+    expect(decoded.name).to.equal("SimulationSucceeded");
+
+    const [
+      rebalancer, localPool, usdt0, feeToken, bridgeAmount, nativeFeeUsed, dstEid,
+      startingBalance, localPoolBalanceAfterWithdraw, rebalancerBalanceAfterSend,
+    ] = decoded.args;
+    expect(bridgeAmount).to.equal(BRIDGE_AMOUNT);
+    expect(dstEid).to.equal(ARBITRUM_ONE_EID);
+    expect(usdt0).to.equal(forkNetworkConfig.Tokens.USDT?.Address);
+    expect(feeToken).to.equal(forkNetworkConfig.USDT0FeeNativeToken);
+    // The local pool must have been withdrawn from by at least bridgeAmount, and the Rebalancer
+    // must have fully forwarded whatever it received to the OFT (nothing left sitting on it).
+    expect(localPoolBalanceAfterWithdraw).to.equal(0n);
+    expect(rebalancerBalanceAfterSend).to.equal(0n);
+
+    console.log(`Simulated Rebalancer: ${rebalancer}`);
+    console.log(`Simulated local pool: ${localPool}`);
+    console.log(`Starting balance (before funding): ${startingBalance}`);
+    console.log(`Native (LZD) fee used: ${nativeFeeUsed}`);
   });
 });

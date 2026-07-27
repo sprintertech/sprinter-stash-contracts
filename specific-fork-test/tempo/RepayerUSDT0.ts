@@ -1,163 +1,149 @@
-import {
-  loadFixture, mine, setBalance, setCode
-} from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {expect} from "chai";
 import hre from "hardhat";
-import {AbiCoder} from "ethers";
-import {
-  getCreateAddress, getContractAt, deploy, deployX,
-} from "../../test/helpers";
-import {
-  ProviderSolidity as Provider, DomainSolidity as Domain,
-  DEFAULT_ADMIN_ROLE, assertAddress, ZERO_ADDRESS,
-} from "../../scripts/common";
-import {
-  TransparentUpgradeableProxy, ProxyAdmin,
-  TestLiquidityPool, Repayer, ILZEndpointDollar,
-} from "../../typechain-types";
+import {concat, dataSlice, keccak256, toUtf8Bytes} from "ethers";
+import {getCreateX} from "../../test/helpers";
+import {assert, assertAddress, CREATE_X_ADDRESS} from "../../scripts/common";
 import {prodNetworkConfig as networkConfig} from "../../network.config";
 
-// Tempo has no native currency (CALLVALUE always returns 0 on Tempo), so its USDT0 OFT
-// requires LayerZero fees to be paid in an ERC-20 token (USDT0OFT.nativeToken()) instead
-// of msg.value. This is why the deployment below wires USDT0FeeNativeToken and every
-// initiateRepay call below encodes a (minAmountLD, nativeFee) pair in extraData.
-// USDT0FeeNativeToken is LZD (ILZEndpointDollar): fee tokens are obtained by wrapping USDT0
-// into LZD 1:1, rather than needing a separate LZD-holder address to impersonate.
-describe.skip("Repayer USDT0 (Tempo fork)", function () {
-  const deployAll = async () => {
-    // Mining a block before doing any calls (eth_call) fixes the issue:
-    // https://github.com/NomicFoundation/edr/issues/1214
-    await mine();
-    const [deployer, admin, repayUser, setTokensUser] = await hre.ethers.getSigners();
-    await setCode(repayUser.address, "0x00");
+// Tempo is not fully EVM-compatible (e.g. CALLVALUE and BALANCE always return 0), so Hardhat's
+// fork/EDR network cannot replicate its real execution semantics. Instead of forking, the
+// entire scenario (fund Repayer, wrap USDT0 into the LZD fee token, initiateRepay) runs inside
+// RepayerUSDT0Tempo, and gets simulated via read-only eth_calls sent directly to live Tempo
+// mainnet: nothing here forks state, spends real gas, or persists.
+//
+// Run with: hardhat test --network TEMPO ./specific-fork-test/tempo/RepayerUSDT0.ts
+// (a direct connection to the real network, NOT `FORK_TEST=TEMPO`).
+//
+// RepayerUSDT0Tempo's constructor only does setup that is not expected to fail (deploying a
+// fresh Repayer implementation + proxy, wiring the USDT0 route); run() does everything that
+// could actually fail (funding, wrapping the LZD fee, initiateRepay) and always reverts on
+// completion, so CreateX's deployCreate3AndInit forwards the real revert reason via
+// FailedContractInitialisation(address,bytes) rather than swallowing it behind its own
+// generic, reason-less FailedContractCreation(address) (which is what happens if a plain
+// deployCreate3's constructor itself reverts).
+//
+// RepayerUSDT0Tempo is deployed via CreateX's deployCreate3(AndInit) at a deterministic address
+// (independent of the contract's bytecode, so future edits to it don't change the address)
+// that must be pre-funded with real USDT0, since every call run() makes has msg.sender == that
+// address — an eth_call's `from` override only affects the outermost call, not calls made
+// further down the stack. "TempoSimulation" is intentionally test-case agnostic so other Tempo
+// simulation contracts can reuse this same pre-funded address later.
+describe("Repayer USDT0 (Tempo simulation)", function () {
+  const SIMULATION_DEPLOYER = "0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11";
+  const SIMULATION_ID = "TempoSimulation";
+  const BRIDGE_AMOUNT = 1_000_000n; // 1 USDT0 (6 decimals).
+  const DESTINATION_POOL = "0x000000000000000000000000000000000000dEaD";
+  const ARBITRUM_ONE_EID = 30110n;
+  // Must match RepayerUSDT0Tempo.EXPECTED_ADDRESS, and is pre-funded with real USDT0 on Tempo.
+  const EXPECTED_ADDRESS = "0xcE98A33AC0a054bCE4ed6715b780F59A2e6CC7f1";
 
+  // Same raw salt format as test/helpers.ts's deployX: 20 bytes deployer + protection flag
+  // byte + 11 bytes of id-derived entropy. CreateX derives the actual CREATE3 address from
+  // this salt only after confirming msg.sender matches the embedded deployer.
+  function computeSalt(): string {
+    return concat([
+      SIMULATION_DEPLOYER,
+      "0x00",
+      dataSlice(keccak256(toUtf8Bytes(SIMULATION_ID)), 0, 11),
+    ]);
+  }
+
+  // ethers throws differently depending on whether the underlying provider is a Hardhat
+  // ProviderError (direct `.data`/`.code`) or an ethers CallExceptionError (`.data` too, but a
+  // different shape) — read `.data` defensively rather than relying on `isError` type-narrowing.
+  function extractRevertData(error: unknown): string {
+    const data = (error as {data?: unknown})?.data;
+    assert(typeof data === "string" && data.length > 0, `Call did not revert with usable data: ${error}`);
+    return data;
+  }
+
+  it("Should not revert while deploying (sanity check, independent of run()/funding)", async function () {
     const forkNetworkConfig = networkConfig.TEMPO;
-
-    const REPAYER_ROLE = hre.ethers.encodeBytes32String("REPAYER_ROLE");
-    const DEPOSIT_PROFIT_ROLE = hre.ethers.encodeBytes32String("DEPOSIT_PROFIT_ROLE");
-
     assertAddress(forkNetworkConfig.USDT0OFT, "USDT0OFT address is missing from TEMPO config");
     assertAddress(
       forkNetworkConfig.USDT0FeeNativeToken, "USDT0FeeNativeToken address is missing from TEMPO config"
     );
 
-    const usdt0Oft = await hre.ethers.getContractAt("IOFT", forkNetworkConfig.USDT0OFT!);
-    const usdt0Token = await hre.ethers.getContractAt("ERC20", await usdt0Oft.token());
-    const feeToken = (
-      await hre.ethers.getContractAt("ILZEndpointDollar", forkNetworkConfig.USDT0FeeNativeToken!)
-    ) as ILZEndpointDollar;
+    const factory = await hre.ethers.getContractFactory("RepayerUSDT0Tempo");
+    const deployTx = await factory.getDeployTransaction(
+      forkNetworkConfig.USDT0OFT!,
+      forkNetworkConfig.USDT0FeeNativeToken!,
+      DESTINATION_POOL,
+    );
 
-    expect(usdt0Token.target).to.equal(forkNetworkConfig.Tokens.USDT?.Address);
-    expect(await usdt0Oft.approvalRequired()).to.be.true;
-    expect(await usdt0Oft.nativeToken()).to.equal(feeToken.target);
+    // Plain deployCreate3 (no init call), via CreateX, so this also lands on and exercises the
+    // exact same deterministic address as the funded simulation below (and, in turn, the
+    // constructor's EXPECTED_ADDRESS check) rather than an arbitrary nonce-based address.
+    const salt = computeSalt();
+    const createX = await getCreateX();
+    const data = createX.interface.encodeFunctionData("deployCreate3(bytes32,bytes)", [salt, deployTx.data]);
+    const result = await hre.ethers.provider.call({to: CREATE_X_ADDRESS, from: SIMULATION_DEPLOYER, data});
+    const [deployedAddress] = createX.interface.decodeFunctionResult("deployCreate3(bytes32,bytes)", result);
+    expect(deployedAddress).to.equal(EXPECTED_ADDRESS);
+  });
 
-    // A stand-in for the destination pool on Arbitrum (this test only forks Tempo).
-    const liquidityPool = (await deploy(
-      "TestLiquidityPool",
-      deployer,
-      {},
-      usdt0Token,
-      deployer,
-      ZERO_ADDRESS
-    )) as TestLiquidityPool;
-
-    const USDT0_DEC = 10n ** (await usdt0Token.decimals());
-
-    const repayerImpl = (
-      await deployX("Repayer", deployer, "RepayerTempoUSDT0", {},
-        Domain.TEMPO,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
-        forkNetworkConfig.USDT0OFT, forkNetworkConfig.USDT0FeeNativeToken, ZERO_ADDRESS, ZERO_ADDRESS,
-      )
-    ) as Repayer;
-
-    const repayerInit = (await repayerImpl.initialize.populateTransaction(
-      admin,
-      repayUser,
-      setTokensUser,
-      [liquidityPool],
-      [Domain.ARBITRUM_ONE],
-      [Provider.USDT0],
-      [ZERO_ADDRESS],
-      [],
-    )).data;
-
-    const repayerProxy = (await deployX(
-      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyTempoUSDT0", {},
-      repayerImpl, admin, repayerInit
-    )) as TransparentUpgradeableProxy;
-    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
-    const repayerProxyAdminAddress = await getCreateAddress(repayerProxy, 1);
-    const repayerAdmin = (await getContractAt("ProxyAdmin", repayerProxyAdminAddress, admin)) as ProxyAdmin;
-
-    await liquidityPool.grantRole(DEPOSIT_PROFIT_ROLE, repayer);
-
-    return {
-      deployer, admin, repayUser, usdt0Token, feeToken, setTokensUser,
-      USDT0_DEC, liquidityPool, repayer, repayerProxy, repayerAdmin, usdt0Oft,
-      REPAYER_ROLE, DEFAULT_ADMIN_ROLE,
-    };
-  };
-
-  it("Should allow repayer to bridge USDT0 from Tempo to Arbitrum via USDT0 OFT on fork", async function () {
-    this.timeout(80000);
-    const {
-      repayer, USDT0_DEC, usdt0Token, feeToken, repayUser, liquidityPool, usdt0Oft,
-    } = await loadFixture(deployAll);
-
+  it("Should bridge USDT0 from Tempo to Arbitrum via a single simulated eth_call", async function () {
+    const forkNetworkConfig = networkConfig.TEMPO;
+    assertAddress(forkNetworkConfig.USDT0OFT, "USDT0OFT address is missing from TEMPO config");
     assertAddress(
-      process.env.USDT0_OWNER_TEMPO_ADDRESS,
-      "Env variables not configured (USDT0_OWNER_TEMPO_ADDRESS missing)"
+      forkNetworkConfig.USDT0FeeNativeToken, "USDT0FeeNativeToken address is missing from TEMPO config"
     );
-    const usdt0Owner = await hre.ethers.getImpersonatedSigner(process.env.USDT0_OWNER_TEMPO_ADDRESS!);
-    await setBalance(process.env.USDT0_OWNER_TEMPO_ADDRESS!, 10n ** 18n);
 
-    const amount = 4n * USDT0_DEC;
-    await usdt0Token.connect(usdt0Owner).transfer(repayer, 10n * USDT0_DEC);
-
-    const balanceBefore = await usdt0Token.balanceOf(repayer);
-
-    const nativeFee = (await usdt0Oft.quoteSend({
-      dstEid: 30110,
-      to: hre.ethers.zeroPadValue(liquidityPool.target as string, 32),
-      amountLD: amount,
-      minAmountLD: amount,
-      extraOptions: "0x",
-      composeMsg: "0x",
-      oftCmd: "0x",
-    }, false)).nativeFee;
-
-    // Mint LZD fee tokens by wrapping USDT0 1:1, straight to repayUser (the REPAYER_ROLE
-    // caller), instead of needing a separate LZD-holder address to impersonate.
-    await usdt0Token.connect(usdt0Owner).approve(feeToken, nativeFee);
-    await feeToken.connect(usdt0Owner).wrap(usdt0Token, repayUser, nativeFee);
-    // repayUser must approve the Repayer to pull the fee token, since it is pulled from the
-    // caller rather than from the Repayer's own balance.
-    await feeToken.connect(repayUser).approve(repayer, nativeFee);
-
-    const extraData = AbiCoder.defaultAbiCoder().encode(["uint256", "uint256"], [amount, nativeFee]);
-    const tx = repayer.connect(repayUser).initiateRepay(
-      usdt0Token,
-      amount,
-      liquidityPool,
-      Domain.ARBITRUM_ONE,
-      Provider.USDT0,
-      extraData,
+    const factory = await hre.ethers.getContractFactory("RepayerUSDT0Tempo");
+    const deployTx = await factory.getDeployTransaction(
+      forkNetworkConfig.USDT0OFT!,
+      forkNetworkConfig.USDT0FeeNativeToken!,
+      DESTINATION_POOL,
     );
-    await expect(tx)
-      .to.emit(repayer, "InitiateRepay")
-      .withArgs(usdt0Token.target, amount, liquidityPool.target, Domain.ARBITRUM_ONE, Provider.USDT0);
-    await expect(tx)
-      .to.emit(repayer, "USDT0Transfer")
-      .withArgs(usdt0Token.target, liquidityPool.target, "30110", amount);
+    const runCalldata = factory.interface.encodeFunctionData("run", [BRIDGE_AMOUNT]);
 
-    expect(await usdt0Token.balanceOf(repayer)).to.equal(balanceBefore - amount);
+    const salt = computeSalt();
+    const values = {constructorAmount: 0n, initCallAmount: 0n};
+    const createX = await getCreateX();
+    const data = createX.interface.encodeFunctionData(
+      "deployCreate3AndInit(bytes32,bytes,bytes,(uint256,uint256))",
+      [salt, deployTx.data, runCalldata, values],
+    );
+
+    let revertData: string;
+    try {
+      await hre.ethers.provider.call({to: CREATE_X_ADDRESS, from: SIMULATION_DEPLOYER, data});
+      expect.fail("Expected the simulated call to revert (run() always reverts on completion)");
+    } catch (error) {
+      revertData = extractRevertData(error);
+    }
+
+    // CreateX wraps run()'s revert as FailedContractInitialisation(address emitter, bytes
+    // revertData); unwrap once, then decode the inner error against our own contract's ABI.
+    const outer = createX.interface.parseError(revertData);
+    assert(outer !== null, `Unrecognized revert data from CreateX: ${revertData}`);
+    assert(
+      outer.name === "FailedContractInitialisation",
+      `Expected FailedContractInitialisation, got ${outer.name} (args: ${outer.args})`
+    );
+    const [, innerRevertData] = outer.args;
+
+    const decoded = factory.interface.parseError(innerRevertData);
+    // Bubbles up whatever earlier step actually failed (e.g. insufficient USDT0 balance if the
+    // simulation address hasn't been pre-funded yet) instead of asserting blindly.
+    assert(decoded !== null, `run() reverted with data that doesn't match any known error: ${innerRevertData}`);
+    expect(decoded.name).to.equal("SimulationSucceeded");
+
+    const [
+      repayer, usdt0, feeToken, bridgeAmount, nativeFeeUsed, dstEid,
+      startingBalance, repayerBalanceBeforeSend, repayerBalanceAfterSend,
+    ] = decoded.args;
+    expect(bridgeAmount).to.equal(BRIDGE_AMOUNT);
+    expect(dstEid).to.equal(ARBITRUM_ONE_EID);
+    expect(repayerBalanceBeforeSend).to.equal(BRIDGE_AMOUNT);
+    expect(usdt0).to.equal(forkNetworkConfig.Tokens.USDT?.Address);
+    expect(feeToken).to.equal(forkNetworkConfig.USDT0FeeNativeToken);
+    // The OFT must have actually pulled/burned at least bridgeAmount from the Repayer.
+    expect(repayerBalanceBeforeSend - repayerBalanceAfterSend).to.be.greaterThanOrEqual(BRIDGE_AMOUNT);
+
+    console.log(`Simulated Repayer: ${repayer}`);
+    console.log(`Starting balance (before funding): ${startingBalance}`);
+    console.log(`Repayer USDT0 balance after send: ${repayerBalanceAfterSend}`);
+    console.log(`Native (LZD) fee used: ${nativeFeeUsed}`);
   });
 });

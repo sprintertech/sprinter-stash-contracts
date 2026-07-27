@@ -327,7 +327,7 @@
     "test:arbitrum": "FORK_TEST=ARBITRUM_ONE hardhat test --typecheck ./specific-fork-test/arbitrum/*.ts",
     "test:polygon": "FORK_TEST=POLYGON_MAINNET hardhat test --typecheck ./specific-fork-test/polygon/*.ts",
     "test:unichain": "FORK_TEST=UNICHAIN hardhat test --typecheck ./specific-fork-test/unichain/*.ts",
-    "test:tempo": "FORK_TEST=TEMPO hardhat test --typecheck ./specific-fork-test/tempo/*.ts",
+    "test:tempo": "hardhat test --typecheck --network TEMPO ./specific-fork-test/tempo/*.ts",
     "test:stable": "FORK_TEST=STABLE hardhat test --typecheck ./specific-fork-test/stable/*.ts",
     "test:scripts": "SCRIPT_ENV=CI DEPLOY_ID=CI ts-node --files ./scripts/test.ts",
     "coverage": "hardhat coverage",

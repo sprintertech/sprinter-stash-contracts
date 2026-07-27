@@ -1309,7 +1309,7 @@ export const prodNetworkConfig: NetworksConfig = {
     USDT0OFT: "0xaf37E8B6C9ED7f6318979f56Fc287d76c30847ff",
     // Tempo has no native currency (CALLVALUE always returns 0), so its USDT0 OFT requires
     // LayerZero fees to be paid in this ERC-20 token instead (confirmed via oft.nativeToken()).
-    USDT0FeeNativeToken: "0x0Ceb237E109ee22374a567C6b09F373C73fa4CBB",
+    USDT0FeeNativeToken: "0x0cEb237E109eE22374a567c6b09F373C73FA4cBb",
     Tokens: {
       USDC: tokenInfo("0x20C000000000000000000000b9537d11c60E8b50", 6),
       USDT: tokenInfo("0x20C00000000000000000000014f22CA97301EB73", 6),

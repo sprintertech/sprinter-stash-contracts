@@ -12,7 +12,7 @@ import {
   ProviderSolidity as Provider, DomainSolidity as Domain, ZERO_ADDRESS,
 } from "../scripts/common";
 import {
-  TestUSDC, TestUSDT, TestUSDT0, TestUSDT0OFTNative,
+  TestUSDC, TestUSDT, TestUSDT0, TestUSDT0OFTNative, TestUSDT0OFTFeeNativeToken,
   TestLiquidityPool, LiquidityPool, LiquidityHub, SprinterUSDTLPShare,
   TransparentUpgradeableProxy, ProxyAdmin, Rebalancer, Repayer,
   MockTarget, MockSignerTrue,
@@ -286,6 +286,57 @@ describe("USDT as a main pool asset", function () {
       await expect(processTx).to.emit(pool2, "Deposit");
       expect(await testUsdt0.balanceOf(rebalancer)).to.equal(0n);
       expect(await testUsdt0.balanceOf(pool2)).to.equal(amount);
+    });
+
+    it("Should revert USDT0 rebalance with an ERC20 fee token if native currency is sent along",
+    async function () {
+      const {deployer, admin, rebalanceUser} = await loadFixture(deployAll);
+      const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
+
+      const testUsdt0 = (await deploy("TestUSDT0", deployer, {})) as TestUSDT0;
+      const feeToken = (await deploy("TestUSDC", deployer, {})) as TestUSDC;
+      const testOFT = (
+        await deploy("TestUSDT0OFTFeeNativeToken", deployer, {}, testUsdt0, feeToken)
+      ) as TestUSDT0OFTFeeNativeToken;
+
+      const USDT0_DEC = 10n ** (await testUsdt0.decimals());
+      const feeTokenFee = await testOFT.FEE_NATIVE_TOKEN_FEE();
+
+      const localPool = (await deploy(
+        "TestLiquidityPool", deployer, {}, testUsdt0, deployer, networkConfig.BASE.WrappedNativeToken
+      )) as TestLiquidityPool;
+      const remotePool = "0x000000000000000000000000000000000000dEaD";
+
+      const rebalancerImpl = (
+        await deployX("Rebalancer", deployer, "RebalancerUSDT0FeeNativeTokenNotPayable", {},
+          Domain.BASE, testUsdt0, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+          testOFT, feeToken, ZERO_ADDRESS, ZERO_ADDRESS,
+        )
+      ) as Rebalancer;
+      const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(
+        admin, rebalanceUser,
+        [localPool, remotePool],
+        [Domain.BASE, Domain.ARBITRUM_ONE],
+        [Provider.LOCAL, Provider.USDT0],
+      )).data;
+      const rebalancerProxy = (await deployX(
+        "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRebalancerUSDT0FeeNativeTokenNotPayable",
+        {}, rebalancerImpl, admin, rebalancerInit
+      )) as TransparentUpgradeableProxy;
+      const rebalancer = (await getContractAt("Rebalancer", rebalancerProxy, deployer)) as Rebalancer;
+      await localPool.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
+
+      const amount = 4n * USDT0_DEC;
+      await testUsdt0.mint(localPool, 10n * USDT0_DEC);
+
+      const feeAmount = 2n * feeTokenFee;
+      await feeToken.mint(rebalanceUser, feeAmount);
+      await feeToken.connect(rebalanceUser).approve(rebalancer, feeAmount);
+
+      const extraData = AbiCoder.defaultAbiCoder().encode(["uint256", "uint256"], [amount, feeAmount]);
+      await expect(rebalancer.connect(rebalanceUser).initiateRebalance(
+        amount, localPool, remotePool, Domain.ARBITRUM_ONE, Provider.USDT0, extraData, {value: 1n}
+      )).to.be.revertedWithCustomError(rebalancer, "NotPayable()");
     });
   });
 

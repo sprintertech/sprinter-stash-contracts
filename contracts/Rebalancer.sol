@@ -260,7 +260,7 @@ contract Rebalancer is
     function _processRebalanceLOCAL(
         uint256 amount,
         address destinationPool
-    ) internal {
+    ) internal notPayable {
         ASSETS.safeTransfer(destinationPool, amount);
         ILiquidityPoolBase(destinationPool).deposit(amount);
 

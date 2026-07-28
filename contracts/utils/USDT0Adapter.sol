@@ -74,6 +74,7 @@ abstract contract USDT0Adapter is LayerZeroHelper {
             require(extraData.length == 32, InvalidExtraData());
             fee.nativeFee = msg.value;
         } else {
+            require(msg.value == 0, NotPayable());
             require(extraData.length == 64, InvalidExtraData());
             fee.nativeFee = abi.decode(extraData[32:64], (uint256));
             IERC20(USDT0_FEE_NATIVE_TOKEN).safeTransferFrom(caller, address(this), fee.nativeFee);

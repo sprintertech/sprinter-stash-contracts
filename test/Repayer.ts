@@ -4221,6 +4221,66 @@ describe("Repayer", function () {
     expect(await feeToken.balanceOf(testOFT)).to.equal(feeTokenFee);
   });
 
+  it("Should revert USDT0 repay with an ERC20 fee token if native currency is sent along", async function () {
+    const {
+      usdc, admin, repayUser, liquidityPool, deployer,
+      acrossV3SpokePool,
+      weth, stargateTreasurerTrue,
+      optimismBridge, baseBridge, arbitrumGatewayRouter, setTokensUser,
+    } = await loadFixture(deployAll);
+
+    const testUsdt0 = (await deploy("TestUSDT0", deployer, {})) as TestUSDT0;
+    const feeToken = (await deploy("TestUSDC", deployer, {})) as TestUSDC;
+    const testOFT = (
+      await deploy("TestUSDT0OFTFeeNativeToken", deployer, {}, testUsdt0, feeToken)
+    ) as TestUSDT0OFTFeeNativeToken;
+
+    const USDT0_DEC = 10n ** (await testUsdt0.decimals());
+    const feeTokenFee = await testOFT.FEE_NATIVE_TOKEN_FEE();
+
+    const repayerImpl = (
+      await deployX("Repayer", deployer, "RepayerUSDT0FeeNativeTokenNotPayable", {},
+        Domain.BASE,
+        usdc,
+        acrossV3SpokePool,
+        weth,
+        stargateTreasurerTrue,
+        optimismBridge,
+        baseBridge,
+        arbitrumGatewayRouter,
+        ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+        testOFT, feeToken, ZERO_ADDRESS, ZERO_ADDRESS,
+      )
+    ) as Repayer;
+    const repayerInit = (await repayerImpl.initialize.populateTransaction(
+      admin, repayUser, setTokensUser,
+      [liquidityPool], [Domain.ARBITRUM_ONE], [Provider.USDT0], [ZERO_ADDRESS], [],
+    )).data;
+    const repayerProxy = (await deployX(
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayerUSDT0FeeNativeTokenNotPayable", {},
+      repayerImpl, admin, repayerInit
+    )) as TransparentUpgradeableProxy;
+    const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+    const amount = 4n * USDT0_DEC;
+    await testUsdt0.mint(repayer.target, 10n * USDT0_DEC);
+
+    const feeAmount = 2n * feeTokenFee;
+    await feeToken.mint(repayUser, feeAmount);
+    await feeToken.connect(repayUser).approve(repayer, feeAmount);
+
+    const extraData = AbiCoder.defaultAbiCoder().encode(["uint256", "uint256"], [amount, feeAmount]);
+    await expect(repayer.connect(repayUser).initiateRepay(
+      testUsdt0,
+      amount,
+      liquidityPool,
+      Domain.ARBITRUM_ONE,
+      Provider.USDT0,
+      extraData,
+      {value: 1n}
+    )).to.be.revertedWithCustomError(repayer, "NotPayable()");
+  });
+
   it("Should revert USDT0 repay with an ERC20 fee token if extraData is only 32 bytes", async function () {
     const {
       usdc, admin, repayUser, liquidityPool, deployer,

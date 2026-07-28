@@ -458,6 +458,22 @@ describe("Rebalancer", function () {
     expect(await usdc.balanceOf(rebalancer)).to.equal(0n);
   });
 
+  it("Should revert local rebalance if native currency is sent along", async function () {
+    const {rebalancer, usdc, USDC, rebalanceUser, liquidityPool, liquidityPool2
+    } = await loadFixture(deployAll);
+
+    await usdc.transfer(liquidityPool, 10n * USDC);
+    await expect(rebalancer.connect(rebalanceUser).initiateRebalance(
+      4n * USDC,
+      liquidityPool,
+      liquidityPool2,
+      Domain.BASE,
+      Provider.LOCAL,
+      "0x",
+      {value: 1n}
+    )).to.be.revertedWithCustomError(rebalancer, "NotPayable()");
+  });
+
   it("Should not allow rebalancer to initiate rebalance on invalid route", async function () {
     const {rebalancer, usdc, USDC, rebalanceUser, liquidityPool,
     } = await loadFixture(deployAll);

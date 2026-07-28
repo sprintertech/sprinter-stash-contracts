@@ -1,8 +1,11 @@
-import dotenv from "dotenv"; 
+import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
-import {isAddress} from "ethers";
-import {getVerifier, upgradeProxyX, getHardhatNetworkConfig, getNetworkConfig, logDeployers} from "./helpers";
+import {
+  getVerifier, upgradeProxyX, getHardhatNetworkConfig, getNetworkConfig, logDeployers,
+  getMainAsset,
+  idWithMainAsset,
+} from "./helpers";
 import {createSender} from "./safe";
 import {getDeployProxyXAddress} from "../test/helpers";
 import {isSet, assert, DomainSolidity, ZERO_ADDRESS} from "./common";
@@ -21,7 +24,6 @@ export async function main() {
 
   let network: Network;
   let config: NetworkConfig;
-  console.log("Upgrading Rebalancer");
   ({network, config} = await getNetworkConfig());
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
@@ -29,7 +31,9 @@ export async function main() {
 
   await logDeployers(false);
 
-  assert(isAddress(config.Tokens.USDC.Address), "USDC must be an address");
+  const {mainAsset, mainAssetInfo} = getMainAsset(config);
+  const id = idWithMainAsset(mainAsset, "Rebalancer");
+  console.log(`Upgrading ${id}`);
   if (!config.CCTPV2) {
     config.CCTPV2 = {
       TokenMessenger: ZERO_ADDRESS,
@@ -40,9 +44,12 @@ export async function main() {
   if (!config.GnosisUSDCxDAI) config.GnosisUSDCxDAI = ZERO_ADDRESS;
   if (!config.GnosisUSDCTransmuter) config.GnosisUSDCTransmuter = ZERO_ADDRESS;
   if (!config.GnosisAMB) config.GnosisAMB = ZERO_ADDRESS;
+  if (!config.USDT0OFT) config.USDT0OFT = ZERO_ADDRESS;
+  if (!config.USDT0FeeNativeToken) config.USDT0FeeNativeToken = ZERO_ADDRESS;
 
-  const rebalancerAddress = await getDeployProxyXAddress("Rebalancer");
+  const rebalancerAddress = await getDeployProxyXAddress(id);
   const rebalancerVersion = "Rebalancer";
+  const usdcAddress = config.Tokens.USDC?.Address || ZERO_ADDRESS;
 
   await upgradeProxyX<Rebalancer>(
     verifier.deployX,
@@ -50,11 +57,11 @@ export async function main() {
     rebalancerVersion,
     sender,
     [
-      DomainSolidity[network], config.Tokens.USDC.Address,
+      DomainSolidity[network], mainAssetInfo.Address, usdcAddress,
       config.Omnibridge, config.GnosisUSDCxDAI, config.GnosisUSDCTransmuter, config.GnosisAMB,
-      config.CCTPV2.TokenMessenger, config.CCTPV2.MessageTransmitter,
+      config.USDT0OFT, config.USDT0FeeNativeToken, config.CCTPV2.TokenMessenger, config.CCTPV2.MessageTransmitter,
     ],
-    "Rebalancer",
+    id,
   );
 
   await verifier.verify(process.env.VERIFY === "true");

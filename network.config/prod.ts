@@ -11,6 +11,8 @@ import {
   PYUSDStashDexProcessorProxy,
   USDCStashDexProcessorProxy,
   USDGStashDexProcessorProxy,
+  LiquidityPoolUSDTProxy,
+  LiquidityPoolAaveUSDTProxy,
 } from "./ids";
 
 export const prodNetworkConfig: NetworksConfig = {
@@ -46,25 +48,8 @@ export const prodNetworkConfig: NetworksConfig = {
     SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-    RebalancerRoutes: {
-      [LiquidityPoolAaveUSDCV4]: {
-        [Network.OP_MAINNET]: [Provider.CCTP_V2],
-        [Network.ARBITRUM_ONE]: [Provider.CCTP_V2],
-        [Network.BASE]: [Provider.CCTP_V2],
-        [Network.POLYGON_MAINNET]: [Provider.CCTP_V2],
-      },
-      [LiquidityPoolUSDCV4]: {
-        [Network.OP_MAINNET]: [Provider.CCTP_V2],
-        [Network.ARBITRUM_ONE]: [Provider.CCTP_V2],
-        [Network.BASE]: [Provider.CCTP_V2],
-      },
-      [LiquidityPoolUSDCStablecoinV4]: {
-        [Network.UNICHAIN]: [Provider.CCTP_V2],
-      },
-    },
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCV4]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.OP_MAINNET]: [
             Provider.ACROSS,
@@ -94,7 +79,7 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolUSDCV4]: {
-        SupportsAllTokens: false,
+        OnlySupportedToken: Token.USDC,
         Domains: {
           [Network.OP_MAINNET]: [
             Provider.ACROSS,
@@ -114,7 +99,6 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolUSDCStablecoinV4]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.UNICHAIN]: [
             Provider.ACROSS,
@@ -125,35 +109,6 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
     },
-    USDCStablecoinPool: true,
-    AavePoolLongTerm: {
-      AaveAddressesProvider: AAVEPools.AaveV3Ethereum.POOL_ADDRESSES_PROVIDER,
-      MinHealthFactor: 150,
-      DefaultLTV: 0,
-      TokenLTVs: {
-        "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599": 100, // WBTC
-        "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2": 100, // WETH
-        "0x6b175474e89094c44da98b954eedeac495271d0f": 90, // DAI
-      },
-      BorrowLongTermAdmin: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-      RepayCaller: "0x9A5B33bd11329116A55F764c604a5152eE8Ca292",
-    },
-    AavePool: {
-      AaveAddressesProvider: AAVEPools.AaveV3Ethereum.POOL_ADDRESSES_PROVIDER,
-      MinHealthFactor: 150,
-      DefaultLTV: 0,
-      TokenLTVs: {
-        "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599": 100, // WBTC
-        "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2": 100, // WETH
-        "0x6b175474e89094c44da98b954eedeac495271d0f": 100, // DAI
-        "0x6c3ea9036406852006290770BEdFcAbA0e23A0e8": 100, // PYUSD
-        "0xe343167631d89B6Ffc58B88d6b7fB0228795491D": 100, // USDG
-        "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48": 100, // USDC
-        "0xdAC17F958D2ee523a2206206994597C13D831ec7": 100, // USDT
-      },
-      DirectBorrowCaller: StashStablecoinDexProxy,
-    },
-    USDCPool: true,
     StashDex: {
       Oracle: "PaxosOracle",
       Receiver: RepayerProxy,
@@ -204,6 +159,55 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       ],
     },
+    MainAssets: {
+      [Token.USDC]: {
+        RebalancerRoutes: {
+          [LiquidityPoolAaveUSDCV4]: {
+            [Network.OP_MAINNET]: [Provider.CCTP_V2],
+            [Network.ARBITRUM_ONE]: [Provider.CCTP_V2],
+            [Network.BASE]: [Provider.CCTP_V2],
+            [Network.POLYGON_MAINNET]: [Provider.CCTP_V2],
+          },
+          [LiquidityPoolUSDCV4]: {
+            [Network.OP_MAINNET]: [Provider.CCTP_V2],
+            [Network.ARBITRUM_ONE]: [Provider.CCTP_V2],
+            [Network.BASE]: [Provider.CCTP_V2],
+          },
+          [LiquidityPoolUSDCStablecoinV4]: {
+            [Network.UNICHAIN]: [Provider.CCTP_V2],
+          },
+        },
+        AavePool: {
+          AaveAddressesProvider: AAVEPools.AaveV3Ethereum.POOL_ADDRESSES_PROVIDER,
+          MinHealthFactor: 150,
+          DefaultLTV: 0,
+          TokenLTVs: {
+            "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599": 100, // WBTC
+            "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2": 100, // WETH
+            "0x6b175474e89094c44da98b954eedeac495271d0f": 100, // DAI
+            "0x6c3ea9036406852006290770BEdFcAbA0e23A0e8": 100, // PYUSD
+            "0xe343167631d89B6Ffc58B88d6b7fB0228795491D": 100, // USDG
+            "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48": 100, // USDC
+            "0xdAC17F958D2ee523a2206206994597C13D831ec7": 100, // USDT
+          },
+          DirectBorrowCaller: StashStablecoinDexProxy,
+        },
+        AavePoolLongTerm: {
+          AaveAddressesProvider: AAVEPools.AaveV3Ethereum.POOL_ADDRESSES_PROVIDER,
+          MinHealthFactor: 150,
+          DefaultLTV: 0,
+          TokenLTVs: {
+            "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599": 100, // WBTC
+            "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2": 100, // WETH
+            "0x6b175474e89094c44da98b954eedeac495271d0f": 90, // DAI
+          },
+          BorrowLongTermAdmin: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+          RepayCaller: "0x9A5B33bd11329116A55F764c604a5152eE8Ca292",
+        },
+        BasicPool: true,
+        StablecoinPool: true,
+      },
+    },
   },
   AVALANCHE: {
     ChainId: 43114,
@@ -226,7 +230,6 @@ export const prodNetworkConfig: NetworksConfig = {
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCV4]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ARBITRUM_ONE]: [
             Provider.STARGATE,
@@ -247,7 +250,7 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolUSDCV4]: {
-        SupportsAllTokens: false,
+        OnlySupportedToken: Token.USDC,
         Domains: {
           [Network.ARBITRUM_ONE]: [Provider.CCTP_V2],
           [Network.BASE]: [Provider.CCTP_V2],
@@ -256,19 +259,18 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolUSDCStablecoinV4]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ETHEREUM]: [Provider.STARGATE, Provider.CCTP_V2],
           [Network.UNICHAIN]: [Provider.STARGATE, Provider.CCTP_V2],
         },
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ETHEREUM]: [Provider.STARGATE, Provider.CCTP_V2],
         },
       },
     },
+    MainAssets: {},
   },
   OP_MAINNET: {
     ChainId: 10,
@@ -295,28 +297,8 @@ export const prodNetworkConfig: NetworksConfig = {
     SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-    RebalancerRoutes: {
-      [LiquidityPoolAaveUSDCV4]: {
-        [Network.BASE]: [Provider.CCTP_V2],
-        [Network.ARBITRUM_ONE]: [Provider.CCTP_V2],
-        [Network.POLYGON_MAINNET]: [Provider.CCTP_V2],
-      },
-      [LiquidityPoolUSDCV4]: {
-        [Network.BASE]: [Provider.CCTP_V2],
-        [Network.ARBITRUM_ONE]: [Provider.CCTP_V2],
-        [Network.ETHEREUM]: [Provider.CCTP_V2],
-      },
-      [LiquidityPoolUSDCStablecoinV4]: {
-        [Network.ETHEREUM]: [Provider.CCTP_V2],
-        [Network.UNICHAIN]: [Provider.CCTP_V2],
-      },
-      [LiquidityPoolAaveUSDCLongTermV3]: {
-        [Network.ETHEREUM]: [Provider.CCTP_V2],
-      },
-    },
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCV4]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ARBITRUM_ONE]: [
             Provider.ACROSS,
@@ -336,7 +318,7 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolUSDCV4]: {
-        SupportsAllTokens: false,
+        OnlySupportedToken: Token.USDC,
         Domains: {
           [Network.ARBITRUM_ONE]: [
             Provider.ACROSS,
@@ -353,7 +335,6 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolUSDCStablecoinV4]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ETHEREUM]: [
             Provider.ACROSS,
@@ -370,7 +351,6 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ETHEREUM]: [
             Provider.ACROSS,
@@ -381,26 +361,49 @@ export const prodNetworkConfig: NetworksConfig = {
         }
       },
     },
-    AavePool: {
-      AaveAddressesProvider: AAVEPools.AaveV3Optimism.POOL_ADDRESSES_PROVIDER,
-      MinHealthFactor: 300,
-      DefaultLTV: 0,
-      TokenLTVs: {
-        "0x1f32b1c2345538c0c6f582fcb022739c4a194ebb": 50, // wstETH
-        "0x4200000000000000000000000000000000000006": 50, // WETH
-        "0x0b2c639c533813f4aa9d7837caf62653d097ff85": 100, // USDC
-        "0x68f180fcce6836688e9084f035309e29bf0a2095": 50, // WBTC
-        "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58": 80, // USDT
-        "0x4200000000000000000000000000000000000042": 50, // OP
-        "0x8c6f28f2f1a3c87f0f938b96d27520d9751ec8d9": 50, // sUSD
-        "0x9bcef72be871e61ed4fbbc7630889bee758eb81d": 50, // rETH
-        "0x7f5c764cbc14f9669b88837ca1490cca17c31607": 80, // USDC.e
-        "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1": 80, // DAI
-        "0x350a791bfc2c21f9ed5d10980dad2e2638ffa7f6": 50, // LINK
-        "0xc40f949f8a4e094d1b49a23ea9241d289b7b2819": 50, // LUSD
+    MainAssets: {
+      [Token.USDC]: {
+        RebalancerRoutes: {
+          [LiquidityPoolAaveUSDCV4]: {
+            [Network.BASE]: [Provider.CCTP_V2],
+            [Network.ARBITRUM_ONE]: [Provider.CCTP_V2],
+            [Network.POLYGON_MAINNET]: [Provider.CCTP_V2],
+          },
+          [LiquidityPoolUSDCV4]: {
+            [Network.BASE]: [Provider.CCTP_V2],
+            [Network.ARBITRUM_ONE]: [Provider.CCTP_V2],
+            [Network.ETHEREUM]: [Provider.CCTP_V2],
+          },
+          [LiquidityPoolUSDCStablecoinV4]: {
+            [Network.ETHEREUM]: [Provider.CCTP_V2],
+            [Network.UNICHAIN]: [Provider.CCTP_V2],
+          },
+          [LiquidityPoolAaveUSDCLongTermV3]: {
+            [Network.ETHEREUM]: [Provider.CCTP_V2],
+          },
+        },
+        AavePool: {
+          AaveAddressesProvider: AAVEPools.AaveV3Optimism.POOL_ADDRESSES_PROVIDER,
+          MinHealthFactor: 300,
+          DefaultLTV: 0,
+          TokenLTVs: {
+            "0x1f32b1c2345538c0c6f582fcb022739c4a194ebb": 50, // wstETH
+            "0x4200000000000000000000000000000000000006": 50, // WETH
+            "0x0b2c639c533813f4aa9d7837caf62653d097ff85": 100, // USDC
+            "0x68f180fcce6836688e9084f035309e29bf0a2095": 50, // WBTC
+            "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58": 80, // USDT
+            "0x4200000000000000000000000000000000000042": 50, // OP
+            "0x8c6f28f2f1a3c87f0f938b96d27520d9751ec8d9": 50, // sUSD
+            "0x9bcef72be871e61ed4fbbc7630889bee758eb81d": 50, // rETH
+            "0x7f5c764cbc14f9669b88837ca1490cca17c31607": 80, // USDC.e
+            "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1": 80, // DAI
+            "0x350a791bfc2c21f9ed5d10980dad2e2638ffa7f6": 50, // LINK
+            "0xc40f949f8a4e094d1b49a23ea9241d289b7b2819": 50, // LUSD
+          },
+        },
+        BasicPool: true,
       },
     },
-    USDCPool: true,
   },
   ARBITRUM_ONE: {
     ChainId: 42161,
@@ -427,28 +430,8 @@ export const prodNetworkConfig: NetworksConfig = {
     SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-    RebalancerRoutes: {
-      [LiquidityPoolAaveUSDCV4]: {
-        [Network.BASE]: [Provider.CCTP_V2],
-        [Network.OP_MAINNET]: [Provider.CCTP_V2],
-        [Network.POLYGON_MAINNET]: [Provider.CCTP_V2],
-      },
-      [LiquidityPoolUSDCV4]: {
-        [Network.BASE]: [Provider.CCTP_V2],
-        [Network.OP_MAINNET]: [Provider.CCTP_V2],
-        [Network.ETHEREUM]: [Provider.CCTP_V2],
-      },
-      [LiquidityPoolUSDCStablecoinV4]: {
-        [Network.ETHEREUM]: [Provider.CCTP_V2],
-        [Network.UNICHAIN]: [Provider.CCTP_V2],
-      },
-      [LiquidityPoolAaveUSDCLongTermV3]: {
-        [Network.ETHEREUM]: [Provider.CCTP_V2],
-      },
-    },
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCV4]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.OP_MAINNET]: [
             Provider.CCTP_V2,
@@ -469,7 +452,7 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolUSDCV4]: {
-        SupportsAllTokens: false,
+        OnlySupportedToken: Token.USDC,
         Domains: {
           [Network.OP_MAINNET]: [
             Provider.ACROSS,
@@ -487,7 +470,6 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolUSDCStablecoinV4]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ETHEREUM]: [
             Provider.ACROSS,
@@ -504,7 +486,6 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ETHEREUM]: [
             Provider.ACROSS,
@@ -515,28 +496,87 @@ export const prodNetworkConfig: NetworksConfig = {
         }
       },
     },
-    AavePool: {
-      AaveAddressesProvider: AAVEPools.AaveV3Arbitrum.POOL_ADDRESSES_PROVIDER,
-      MinHealthFactor: 150,
-      DefaultLTV: 0,
-      TokenLTVs: {
-        "0xaf88d065e77c8cc2239327c5edb3a432268e5831": 100, // USDC
-        "0x82af49447d8a07e3bd95bd0d56f35241523fbab1": 75, // WETH
-        "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f": 75, // WBTC
-        "0x35751007a407ca6feffe80b3cb397736d2cf4dbe": 0, // weETH
-        "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9": 90, // USDT0
-        "0x5979d7b546e38e414f7e9822514be443a4800529": 0, // wstETH
-        "0xf97f4df75117a78c1a5a0dbb814af92458539fb4": 0, // LINK
-        "0x912ce59144191c1204e64559fe8253a0e49e6548": 0, // ARB
-        "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1": 90, // DAI
-        "0xec70dcb4a1efa46b8f2d97c310c9c4790ba5ffa8": 0, // rETH
-        "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": 0, // USDC.e
-        "0x7dff72693f6a4149b17e7c6314655f6a9f7c8b33": 0, // GHO
-        "0x93b346b6bc2548da6a1e7d98e9a421b42541425b": 0, // LUSD
-        "0x17fc002b466eec40dae837fc4be5c67993ddbd6f": 0, // FRAX
+    MainAssets: {
+      [Token.USDC]: {
+        RebalancerRoutes: {
+          [LiquidityPoolAaveUSDCV4]: {
+            [Network.BASE]: [Provider.CCTP_V2],
+            [Network.OP_MAINNET]: [Provider.CCTP_V2],
+            [Network.POLYGON_MAINNET]: [Provider.CCTP_V2],
+          },
+          [LiquidityPoolUSDCV4]: {
+            [Network.BASE]: [Provider.CCTP_V2],
+            [Network.OP_MAINNET]: [Provider.CCTP_V2],
+            [Network.ETHEREUM]: [Provider.CCTP_V2],
+          },
+          [LiquidityPoolUSDCStablecoinV4]: {
+            [Network.ETHEREUM]: [Provider.CCTP_V2],
+            [Network.UNICHAIN]: [Provider.CCTP_V2],
+          },
+          [LiquidityPoolAaveUSDCLongTermV3]: {
+            [Network.ETHEREUM]: [Provider.CCTP_V2],
+          },
+        },
+        AavePool: {
+          AaveAddressesProvider: AAVEPools.AaveV3Arbitrum.POOL_ADDRESSES_PROVIDER,
+          MinHealthFactor: 150,
+          DefaultLTV: 0,
+          TokenLTVs: {
+            "0xaf88d065e77c8cc2239327c5edb3a432268e5831": 100, // USDC
+            "0x82af49447d8a07e3bd95bd0d56f35241523fbab1": 75, // WETH
+            "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f": 75, // WBTC
+            "0x35751007a407ca6feffe80b3cb397736d2cf4dbe": 0, // weETH
+            "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9": 90, // USDT0
+            "0x5979d7b546e38e414f7e9822514be443a4800529": 0, // wstETH
+            "0xf97f4df75117a78c1a5a0dbb814af92458539fb4": 0, // LINK
+            "0x912ce59144191c1204e64559fe8253a0e49e6548": 0, // ARB
+            "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1": 90, // DAI
+            "0xec70dcb4a1efa46b8f2d97c310c9c4790ba5ffa8": 0, // rETH
+            "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": 0, // USDC.e
+            "0x7dff72693f6a4149b17e7c6314655f6a9f7c8b33": 0, // GHO
+            "0x93b346b6bc2548da6a1e7d98e9a421b42541425b": 0, // LUSD
+            "0x17fc002b466eec40dae837fc4be5c67993ddbd6f": 0, // FRAX
+          },
+        },
+        BasicPool: true,
+      },
+      [Token.USDT]: {
+        Hub: {
+          AssetsAdjuster: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
+          DepositProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+          AssetsLimitSetter: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+          AssetsLimit: 10_000_000,
+          Pool: LiquidityPoolAaveUSDTProxy,
+        },
+        RebalancerRoutes: {
+          [LiquidityPoolUSDTProxy]: {
+            [Network.TEMPO]: [Provider.USDT0],
+            [Network.STABLE]: [Provider.USDT0],
+          },
+        },
+        AavePool: {
+          AaveAddressesProvider: AAVEPools.AaveV3Arbitrum.POOL_ADDRESSES_PROVIDER,
+          MinHealthFactor: 150,
+          DefaultLTV: 0,
+          TokenLTVs: {
+            "0xaf88d065e77c8cc2239327c5edb3a432268e5831": 100, // USDC
+            "0x82af49447d8a07e3bd95bd0d56f35241523fbab1": 75, // WETH
+            "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f": 75, // WBTC
+            "0x35751007a407ca6feffe80b3cb397736d2cf4dbe": 0, // weETH
+            "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9": 90, // USDT0
+            "0x5979d7b546e38e414f7e9822514be443a4800529": 0, // wstETH
+            "0xf97f4df75117a78c1a5a0dbb814af92458539fb4": 0, // LINK
+            "0x912ce59144191c1204e64559fe8253a0e49e6548": 0, // ARB
+            "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1": 90, // DAI
+            "0xec70dcb4a1efa46b8f2d97c310c9c4790ba5ffa8": 0, // rETH
+            "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": 0, // USDC.e
+            "0x7dff72693f6a4149b17e7c6314655f6a9f7c8b33": 0, // GHO
+            "0x93b346b6bc2548da6a1e7d98e9a421b42541425b": 0, // LUSD
+            "0x17fc002b466eec40dae837fc4be5c67993ddbd6f": 0, // FRAX
+          },
+        },
       },
     },
-    USDCPool: true,
   },
   BASE: {
     ChainId: 8453,
@@ -561,43 +601,8 @@ export const prodNetworkConfig: NetworksConfig = {
     SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-    Hub: {
-      AssetsAdjuster: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
-      DepositProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-      AssetsLimitSetter: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-      AssetsLimit: 10_000_000,
-      Tiers: [
-        {period: 7776000n, multiplier: 400000000n},
-        {period: 15552000n, multiplier: 1000000000n},
-        {period: 31104000n, multiplier: 2200000000n},
-      ],
-      Pool: LiquidityPoolAaveUSDCProxy,
-    },
-    RebalancerRoutes: {
-      [LiquidityPoolAaveUSDCV4]: {
-        [Network.OP_MAINNET]: [Provider.CCTP_V2],
-        [Network.ARBITRUM_ONE]: [Provider.CCTP_V2],
-        [Network.POLYGON_MAINNET]: [Provider.CCTP_V2],
-      },
-      [LiquidityPoolUSDCV4]: {
-        [Network.OP_MAINNET]: [Provider.CCTP_V2],
-        [Network.ETHEREUM]: [Provider.CCTP_V2],
-        [Network.ARBITRUM_ONE]: [Provider.CCTP_V2],
-      },
-      [LiquidityPoolUSDCStablecoinV4]: {
-        [Network.ETHEREUM]: [Provider.CCTP_V2],
-        [Network.UNICHAIN]: [Provider.CCTP_V2],
-      },
-      [LiquidityPoolAaveUSDCLongTermV3]: {
-        [Network.ETHEREUM]: [Provider.CCTP_V2],
-      },
-      [LiquidityPoolAaveUSDCProxy]: {
-        [Network.ETHEREUM]: [Provider.CCTP_V2],
-      },
-    },
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCV4]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.OP_MAINNET]: [
             Provider.CCTP_V2,
@@ -617,7 +622,7 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolUSDCV4]: {
-        SupportsAllTokens: false,
+        OnlySupportedToken: Token.USDC,
         Domains: {
           [Network.OP_MAINNET]: [Provider.ACROSS, Provider.CCTP_V2],
           [Network.ARBITRUM_ONE]: [Provider.ACROSS, Provider.CCTP_V2],
@@ -625,36 +630,72 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolUSDCStablecoinV4]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
           [Network.UNICHAIN]: [Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
         },
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
         }
       },
     },
-    AavePool: {
-      AaveAddressesProvider: AAVEPools.AaveV3Base.POOL_ADDRESSES_PROVIDER,
-      MinHealthFactor: 150,
-      DefaultLTV: 0,
-      TokenLTVs: {
-        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": 100, // USDC
-        "0x4200000000000000000000000000000000000006": 75, // WETH
-        "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf": 50, // cbBTC
-        "0x04c0599ae5a44757c0af6f9ec3b93da8976c150a": 50, // weETH
-        "0xc1cba3fcea344f92d9239c08c0568f6f2f0ee452": 50, // wstETH
-        "0x6bb7a212910682dcfdbd5bcbb3e28fb4e8da10ee": 20, // GHO
-        "0x2ae3f1ec7f1f5012cfeab0185bfc7aa3cf0dec22": 50, // cbETH
-        "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca": 80, // USDbC
-        "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42": 20, // EURC
+    MainAssets: {
+      [Token.USDC]: {
+        Hub: {
+          AssetsAdjuster: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
+          DepositProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+          AssetsLimitSetter: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+          AssetsLimit: 10_000_000,
+          Tiers: [
+            {period: 7776000n, multiplier: 400000000n},
+            {period: 15552000n, multiplier: 1000000000n},
+            {period: 31104000n, multiplier: 2200000000n},
+          ],
+          Pool: LiquidityPoolAaveUSDCProxy,
+        },
+        RebalancerRoutes: {
+          [LiquidityPoolAaveUSDCV4]: {
+            [Network.OP_MAINNET]: [Provider.CCTP_V2],
+            [Network.ARBITRUM_ONE]: [Provider.CCTP_V2],
+            [Network.POLYGON_MAINNET]: [Provider.CCTP_V2],
+          },
+          [LiquidityPoolUSDCV4]: {
+            [Network.OP_MAINNET]: [Provider.CCTP_V2],
+            [Network.ETHEREUM]: [Provider.CCTP_V2],
+            [Network.ARBITRUM_ONE]: [Provider.CCTP_V2],
+          },
+          [LiquidityPoolUSDCStablecoinV4]: {
+            [Network.ETHEREUM]: [Provider.CCTP_V2],
+            [Network.UNICHAIN]: [Provider.CCTP_V2],
+          },
+          [LiquidityPoolAaveUSDCLongTermV3]: {
+            [Network.ETHEREUM]: [Provider.CCTP_V2],
+          },
+          [LiquidityPoolAaveUSDCProxy]: {
+            [Network.ETHEREUM]: [Provider.CCTP_V2],
+          },
+        },
+        AavePool: {
+          AaveAddressesProvider: AAVEPools.AaveV3Base.POOL_ADDRESSES_PROVIDER,
+          MinHealthFactor: 150,
+          DefaultLTV: 0,
+          TokenLTVs: {
+            "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": 100, // USDC
+            "0x4200000000000000000000000000000000000006": 75, // WETH
+            "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf": 50, // cbBTC
+            "0x04c0599ae5a44757c0af6f9ec3b93da8976c150a": 50, // weETH
+            "0xc1cba3fcea344f92d9239c08c0568f6f2f0ee452": 50, // wstETH
+            "0x6bb7a212910682dcfdbd5bcbb3e28fb4e8da10ee": 20, // GHO
+            "0x2ae3f1ec7f1f5012cfeab0185bfc7aa3cf0dec22": 50, // cbETH
+            "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca": 80, // USDbC
+            "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42": 20, // EURC
+          },
+        },
+        BasicPool: true,
       },
     },
-    USDCPool: true,
   },
   POLYGON_MAINNET: {
     ChainId: 137,
@@ -681,33 +722,8 @@ export const prodNetworkConfig: NetworksConfig = {
     SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-    RebalancerRoutes: {
-      [LiquidityPoolAaveUSDCV4]: {
-        [Network.OP_MAINNET]: [Provider.CCTP_V2],
-        [Network.ARBITRUM_ONE]: [Provider.CCTP_V2],
-        [Network.BASE]: [Provider.CCTP_V2],
-        [Network.ETHEREUM]: [Provider.CCTP_V2],
-      },
-      [LiquidityPoolUSDCV4]: {
-        [Network.OP_MAINNET]: [Provider.CCTP_V2],
-        [Network.ETHEREUM]: [Provider.CCTP_V2],
-        [Network.ARBITRUM_ONE]: [Provider.CCTP_V2],
-        [Network.BASE]: [Provider.CCTP_V2],
-      },
-      [LiquidityPoolUSDCStablecoinV4]: {
-        [Network.ETHEREUM]: [Provider.CCTP_V2],
-        [Network.UNICHAIN]: [Provider.CCTP_V2],
-      },
-      [LiquidityPoolAaveUSDCLongTermV3]: {
-        [Network.ETHEREUM]: [Provider.CCTP_V2],
-      },
-      [LiquidityPoolAaveUSDCProxy]: {
-        [Network.ETHEREUM]: [Provider.CCTP_V2]
-      }
-    },
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCV4]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ARBITRUM_ONE]: [
             Provider.ACROSS,
@@ -720,7 +736,7 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolUSDCV4]: {
-        SupportsAllTokens: false,
+        OnlySupportedToken: Token.USDC,
         Domains: {
           [Network.ARBITRUM_ONE]: [Provider.ACROSS, Provider.CCTP_V2],
           [Network.BASE]: [Provider.ACROSS, Provider.CCTP_V2],
@@ -729,29 +745,55 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolUSDCStablecoinV4]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE, Provider.USDT0, Provider.CCTP_V2],
           [Network.UNICHAIN]: [Provider.ACROSS, Provider.STARGATE, Provider.USDT0, Provider.CCTP_V2],
         },
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE, Provider.USDT0, Provider.CCTP_V2],
         }
       },
     },
-    AavePool: {
-      AaveAddressesProvider: AAVEPools.AaveV3Polygon.POOL_ADDRESSES_PROVIDER,
-      MinHealthFactor: 150,
-      DefaultLTV: 0,
-      TokenLTVs: {
-        "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063": 90, // DAI
-        "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359": 100, // USDC
-        "0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6": 75, // WBTC
-        "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619": 75, // WETH
-        "0xc2132D05D31c914a87C6611C10748AEb04B58e8F": 90, // USDT0
+    MainAssets: {
+      [Token.USDC]: {
+        RebalancerRoutes: {
+          [LiquidityPoolAaveUSDCV4]: {
+            [Network.OP_MAINNET]: [Provider.CCTP_V2],
+            [Network.ARBITRUM_ONE]: [Provider.CCTP_V2],
+            [Network.BASE]: [Provider.CCTP_V2],
+            [Network.ETHEREUM]: [Provider.CCTP_V2],
+          },
+          [LiquidityPoolUSDCV4]: {
+            [Network.OP_MAINNET]: [Provider.CCTP_V2],
+            [Network.ETHEREUM]: [Provider.CCTP_V2],
+            [Network.ARBITRUM_ONE]: [Provider.CCTP_V2],
+            [Network.BASE]: [Provider.CCTP_V2],
+          },
+          [LiquidityPoolUSDCStablecoinV4]: {
+            [Network.ETHEREUM]: [Provider.CCTP_V2],
+            [Network.UNICHAIN]: [Provider.CCTP_V2],
+          },
+          [LiquidityPoolAaveUSDCLongTermV3]: {
+            [Network.ETHEREUM]: [Provider.CCTP_V2],
+          },
+          [LiquidityPoolAaveUSDCProxy]: {
+            [Network.ETHEREUM]: [Provider.CCTP_V2]
+          }
+        },
+        AavePool: {
+          AaveAddressesProvider: AAVEPools.AaveV3Polygon.POOL_ADDRESSES_PROVIDER,
+          MinHealthFactor: 150,
+          DefaultLTV: 0,
+          TokenLTVs: {
+            "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063": 90, // DAI
+            "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359": 100, // USDC
+            "0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6": 75, // WBTC
+            "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619": 75, // WETH
+            "0xc2132D05D31c914a87C6611C10748AEb04B58e8F": 90, // USDT0
+          },
+        },
       },
     },
   },
@@ -778,29 +820,8 @@ export const prodNetworkConfig: NetworksConfig = {
     SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-    RebalancerRoutes: {
-      [LiquidityPoolAaveUSDCV4]: {
-        [Network.OP_MAINNET]: [Provider.CCTP_V2],
-        [Network.ARBITRUM_ONE]: [Provider.CCTP_V2],
-        [Network.BASE]: [Provider.CCTP_V2],
-        [Network.POLYGON_MAINNET]: [Provider.CCTP_V2],
-      },
-      [LiquidityPoolUSDCV4]: {
-        [Network.OP_MAINNET]: [Provider.CCTP_V2],
-        [Network.ARBITRUM_ONE]: [Provider.CCTP_V2],
-        [Network.BASE]: [Provider.CCTP_V2],
-        [Network.ETHEREUM]: [Provider.CCTP_V2],
-      },
-      [LiquidityPoolUSDCStablecoinV4]: {
-        [Network.ETHEREUM]: [Provider.CCTP_V2],
-      },
-      [LiquidityPoolAaveUSDCLongTermV3]: {
-        [Network.ETHEREUM]: [Provider.CCTP_V2],
-      },
-    },
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCV4]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ARBITRUM_ONE]: [
             Provider.ACROSS,
@@ -814,7 +835,7 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolUSDCV4]: {
-        SupportsAllTokens: false,
+        OnlySupportedToken: Token.USDC,
         Domains: {
           [Network.ARBITRUM_ONE]: [Provider.ACROSS, Provider.CCTP_V2],
           [Network.BASE]: [Provider.ACROSS, Provider.CCTP_V2],
@@ -823,19 +844,41 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolUSDCStablecoinV4]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE, Provider.USDT0, Provider.CCTP_V2],
         },
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE, Provider.USDT0, Provider.CCTP_V2],
         }
       },
     },
-    USDCStablecoinPool: true,
+    MainAssets: {
+      [Token.USDC]: {
+        RebalancerRoutes: {
+          [LiquidityPoolAaveUSDCV4]: {
+            [Network.OP_MAINNET]: [Provider.CCTP_V2],
+            [Network.ARBITRUM_ONE]: [Provider.CCTP_V2],
+            [Network.BASE]: [Provider.CCTP_V2],
+            [Network.POLYGON_MAINNET]: [Provider.CCTP_V2],
+          },
+          [LiquidityPoolUSDCV4]: {
+            [Network.OP_MAINNET]: [Provider.CCTP_V2],
+            [Network.ARBITRUM_ONE]: [Provider.CCTP_V2],
+            [Network.BASE]: [Provider.CCTP_V2],
+            [Network.ETHEREUM]: [Provider.CCTP_V2],
+          },
+          [LiquidityPoolUSDCStablecoinV4]: {
+            [Network.ETHEREUM]: [Provider.CCTP_V2],
+          },
+          [LiquidityPoolAaveUSDCLongTermV3]: {
+            [Network.ETHEREUM]: [Provider.CCTP_V2],
+          },
+        },
+        StablecoinPool: true,
+      },
+    },
   },
   BSC: {
     ChainId: 56,
@@ -858,7 +901,6 @@ export const prodNetworkConfig: NetworksConfig = {
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCV4]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ARBITRUM_ONE]: [Provider.ACROSS, Provider.STARGATE],
           [Network.BASE]: [Provider.ACROSS, Provider.STARGATE],
@@ -867,7 +909,7 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolUSDCV4]: {
-        SupportsAllTokens: false,
+        OnlySupportedToken: Token.USDC,
         Domains: {
           [Network.ARBITRUM_ONE]: [Provider.ACROSS, Provider.STARGATE],
           [Network.BASE]: [Provider.ACROSS, Provider.STARGATE],
@@ -876,19 +918,18 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolUSDCStablecoinV4]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE],
           [Network.UNICHAIN]: [Provider.ACROSS, Provider.STARGATE],
         },
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE],
         },
       },
     },
+    MainAssets: {},
   },
   LINEA: {
     ChainId: 59144,
@@ -916,7 +957,6 @@ export const prodNetworkConfig: NetworksConfig = {
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCV4]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ARBITRUM_ONE]: [Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
           [Network.BASE]: [Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
@@ -925,7 +965,7 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolUSDCV4]: {
-        SupportsAllTokens: false,
+        OnlySupportedToken: Token.USDC,
         Domains: {
           [Network.ARBITRUM_ONE]: [Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
           [Network.BASE]: [Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
@@ -934,19 +974,18 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolUSDCStablecoinV4]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
           [Network.UNICHAIN]: [Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
         },
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
         },
       },
     },
+    MainAssets: {},
   },
   GNOSIS_CHAIN: {
     ChainId: 100,
@@ -974,7 +1013,7 @@ export const prodNetworkConfig: NetworksConfig = {
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerRoutes: {
       [LiquidityPoolUSDCV4]: {
-        SupportsAllTokens: false,
+        OnlySupportedToken: Token.USDC,
         Domains: {
           [Network.ETHEREUM]: [Provider.STARGATE, Provider.GNOSIS_OMNIBRIDGE],
           [Network.ARBITRUM_ONE]: [Provider.STARGATE],
@@ -983,7 +1022,6 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolAaveUSDCV4]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ARBITRUM_ONE]: [Provider.STARGATE],
           [Network.BASE]: [Provider.STARGATE],
@@ -992,19 +1030,18 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolUSDCStablecoinV4]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ETHEREUM]: [Provider.STARGATE, Provider.GNOSIS_OMNIBRIDGE],
           [Network.UNICHAIN]: [Provider.STARGATE],
         },
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ETHEREUM]: [Provider.STARGATE, Provider.GNOSIS_OMNIBRIDGE],
         }
       },
     },
+    MainAssets: {},
   },
   WORLD_CHAIN: {
     ChainId: 480,
@@ -1029,7 +1066,7 @@ export const prodNetworkConfig: NetworksConfig = {
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerRoutes: {
       [LiquidityPoolUSDCV4]: {
-        SupportsAllTokens: false,
+        OnlySupportedToken: Token.USDC,
         Domains: {
           [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS],
           [Network.ARBITRUM_ONE]: [Provider.CCTP_V2, Provider.ACROSS],
@@ -1038,7 +1075,6 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolAaveUSDCV4]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ARBITRUM_ONE]: [Provider.CCTP_V2, Provider.ACROSS],
           [Network.BASE]: [Provider.CCTP_V2, Provider.ACROSS],
@@ -1047,19 +1083,18 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolUSDCStablecoinV4]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS],
           [Network.UNICHAIN]: [Provider.CCTP_V2, Provider.ACROSS],
         },
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS],
         }
       },
     },
+    MainAssets: {},
   },
   HYPER_EVM: {
     ChainId: 999,
@@ -1084,7 +1119,7 @@ export const prodNetworkConfig: NetworksConfig = {
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerRoutes: {
       [LiquidityPoolUSDCV4]: {
-        SupportsAllTokens: false,
+        OnlySupportedToken: Token.USDC,
         Domains: {
           [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS],
           [Network.ARBITRUM_ONE]: [Provider.CCTP_V2, Provider.ACROSS],
@@ -1093,7 +1128,6 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolAaveUSDCV4]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ARBITRUM_ONE]: [Provider.CCTP_V2, Provider.ACROSS, Provider.USDT0],
           [Network.BASE]: [Provider.CCTP_V2, Provider.ACROSS],
@@ -1102,19 +1136,18 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolUSDCStablecoinV4]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS],
           [Network.UNICHAIN]: [Provider.CCTP_V2, Provider.ACROSS],
         },
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS, Provider.USDT0],
         }
       },
     },
+    MainAssets: {},
   },
   INK: {
     ChainId: 57073,
@@ -1140,7 +1173,7 @@ export const prodNetworkConfig: NetworksConfig = {
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerRoutes: {
       [LiquidityPoolUSDCV4]: {
-        SupportsAllTokens: false,
+        OnlySupportedToken: Token.USDC,
         Domains: {
           [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS],
           [Network.ARBITRUM_ONE]: [Provider.CCTP_V2, Provider.ACROSS],
@@ -1149,7 +1182,6 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolAaveUSDCV4]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ARBITRUM_ONE]: [Provider.CCTP_V2, Provider.ACROSS, Provider.USDT0],
           [Network.BASE]: [Provider.CCTP_V2, Provider.ACROSS],
@@ -1158,17 +1190,113 @@ export const prodNetworkConfig: NetworksConfig = {
         },
       },
       [LiquidityPoolUSDCStablecoinV4]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS],
           [Network.UNICHAIN]: [Provider.CCTP_V2, Provider.ACROSS],
         },
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
-        SupportsAllTokens: true,
         Domains: {
           [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS, Provider.USDT0],
         }
+      },
+    },
+    MainAssets: {},
+  },
+  TEMPO: {
+    ChainId: 4217,
+    USDT0OFT: "0xaf37E8B6C9ED7f6318979f56Fc287d76c30847ff",
+    // Tempo has no native currency (CALLVALUE always returns 0), so its USDT0 OFT requires
+    // LayerZero fees to be paid in this ERC-20 token instead (confirmed via oft.nativeToken()).
+    USDT0FeeNativeToken: "0x0cEb237E109eE22374a567c6b09F373C73FA4cBb",
+    Tokens: {
+      USDC: tokenInfo("0x20C000000000000000000000b9537d11c60E8b50", 6),
+      USDT: tokenInfo("0x20C00000000000000000000014f22CA97301EB73", 6),
+    },
+    WrappedNativeToken: "0x0000000000000000000000000000000000000000",
+    Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
+    WithdrawProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RepayerCaller: "0x9A5B33bd11329116A55F764c604a5152eE8Ca292",
+    SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
+    SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RepayerRoutes: {
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+      [LiquidityPoolUSDTProxy]: {
+        OnlySupportedToken: Token.USDT,
+        Domains: {
+          [Network.STABLE]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+    },
+    MainAssets: {
+      [Token.USDT]: {
+        RebalancerRoutes: {
+          [LiquidityPoolAaveUSDTProxy]: {
+            [Network.ARBITRUM_ONE]: [Provider.USDT0],
+          },
+          [LiquidityPoolUSDTProxy]: {
+            [Network.STABLE]: [Provider.USDT0],
+          },
+        },
+        BasicPool: true,
+      },
+    },
+  },
+  STABLE: {
+    ChainId: 988,
+    USDT0OFT: "0xedaba024be4d87974d5aB11C6Dd586963CcCB027",
+    Tokens: {
+      USDC: tokenInfo("0x8a2B28364102Bea189D99A475C494330Ef2bDD0B", 6),
+      USDT: tokenInfo("0x779Ded0c9e1022225f8E0630b35a9b54bE713736", 6),
+    },
+    WrappedNativeToken: "0x0000000000000000000000000000000000000000",
+    Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
+    WithdrawProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RepayerCaller: "0x9A5B33bd11329116A55F764c604a5152eE8Ca292",
+    SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
+    SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RepayerRoutes: {
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+      [LiquidityPoolUSDTProxy]: {
+        OnlySupportedToken: Token.USDT,
+        Domains: {
+          [Network.TEMPO]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+    },
+    MainAssets: {
+      [Token.USDT]: {
+        RebalancerRoutes: {
+          [LiquidityPoolAaveUSDTProxy]: {
+            [Network.ARBITRUM_ONE]: [Provider.USDT0],
+          },
+          [LiquidityPoolUSDTProxy]: {
+            [Network.TEMPO]: [Provider.USDT0],
+          },
+        },
+        BasicPool: true,
       },
     },
   },

@@ -1,11 +1,11 @@
-import dotenv from "dotenv"; 
+import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {getAddress} from "ethers";
 import {
   getVerifier, deployProxyX, getHardhatStandaloneRepayerConfig, getStandaloneRepayerConfig,
   getInputOutputTokens, flattenInputOutputTokens,
-  logDeployers,
+  logDeployers, resolveOnlySupportedToken,
 } from "./helpers";
 import {resolveXAddress, toBytes32} from "../test/helpers";
 import {
@@ -42,13 +42,20 @@ export async function main() {
 
   await logDeployers();
 
-  assertAddress(prodNetworkConfig[network].Tokens.USDC.Address, "USDC must be an address");
+  const prodConfig = prodNetworkConfig[network];
+  let usdcAddress = ZERO_ADDRESS;
+  if (prodConfig.Tokens.USDC) {
+    usdcAddress = prodConfig.Tokens.USDC.Address;
+    assertAddress(usdcAddress, "USDC must be an address");
+  }
   assertAddress(config.Admin, "Admin must be an address");
   assert(config.RepayerCallers.length > 0, "RepayerCallers must not be empty");
   config.RepayerCallers.forEach(el => assertAddress(el, "Each RepayerCaller must be an address"));
   assertAddress(config.WrappedNativeToken, "WrappedNativeToken must be an address");
 
-  const repayerRoutes: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens: boolean}[] = [];
+  const repayerRoutes: {Pool: string, Domain: Network, Provider: Provider, OnlySupportedToken: string}[] = [];
+  // Repayer tokens are used from the general network config, not the standalone repayer config.
+  const tokens = prodConfig.Tokens;
   for (const [pool, domainProviders] of Object.entries(config.RepayerRoutes || {})) {
     for (const [domain, providers] of Object.entries(domainProviders.Domains) as [Network, Provider[]][]) {
       for (const provider of providers) {
@@ -56,7 +63,7 @@ export async function main() {
           Pool: await resolveXAddress(pool, false),
           Domain: domain,
           Provider: provider,
-          SupportsAllTokens: domainProviders.SupportsAllTokens,
+          OnlySupportedToken: resolveOnlySupportedToken(tokens, domainProviders.OnlySupportedToken),
         });
       }
     }
@@ -88,8 +95,9 @@ export async function main() {
   if (!config.GnosisUSDCTransmuter) config.GnosisUSDCTransmuter = ZERO_ADDRESS;
   if (!config.GnosisAMB) config.GnosisAMB = ZERO_ADDRESS;
   if (!config.USDT0OFT) config.USDT0OFT = ZERO_ADDRESS;
+  if (!config.USDT0FeeNativeToken) config.USDT0FeeNativeToken = ZERO_ADDRESS;
 
-  const inputOutputTokens = getInputOutputTokens(network, prodNetworkConfig[network]);
+  const inputOutputTokens = getInputOutputTokens(network, prodConfig);
   const repayerVersion = "Repayer";
 
   const {target: repayer, targetAdmin: repayerAdmin} = await deployProxyX<Repayer>(
@@ -99,7 +107,7 @@ export async function main() {
     config.Admin,
     [
       DomainSolidity[network],
-      prodNetworkConfig[network].Tokens.USDC.Address,
+      usdcAddress,
       config.AcrossV3SpokePool,
       config.WrappedNativeToken,
       config.StargateTreasurer,
@@ -111,6 +119,7 @@ export async function main() {
       config.GnosisUSDCTransmuter,
       config.GnosisAMB,
       config.USDT0OFT,
+      config.USDT0FeeNativeToken,
       config.CCTPV2.TokenMessenger,
       config.CCTPV2.MessageTransmitter,
     ],
@@ -121,7 +130,7 @@ export async function main() {
       repayerRoutes.map(el => el.Pool),
       repayerRoutes.map(el => DomainSolidity[el.Domain]),
       repayerRoutes.map(el => ProviderSolidity[el.Provider]),
-      repayerRoutes.map(el => el.SupportsAllTokens),
+      repayerRoutes.map(el => el.OnlySupportedToken),
       inputOutputTokens,
     ],
     id,

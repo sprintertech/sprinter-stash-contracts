@@ -57,7 +57,7 @@ describe("Repayer Gnosis Omnibridge (Ethereum fork)", function () {
         ZERO_ADDRESS,
         ZERO_ADDRESS,
         forkNetworkConfig.GnosisAMB,
-        ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+        ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Repayer;
 
@@ -68,7 +68,7 @@ describe("Repayer Gnosis Omnibridge (Ethereum fork)", function () {
       [liquidityPool],
       [Domain.GNOSIS_CHAIN],
       [Provider.GNOSIS_OMNIBRIDGE],
-      [true],
+      [ZERO_ADDRESS],
       [],
     )).data;
 

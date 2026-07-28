@@ -126,11 +126,11 @@ describe("LiquidityPool", function () {
       )).to.be.revertedWithCustomError(liquidityPool, "ZeroAddress");
     });
 
-    it("Should NOT deploy the contract if wrapped native token address is 0", async function () {
-      const {deployer, liquidityPool, usdc} = await loadFixture(deployAll);
-      await expect(deploy("LiquidityPool", deployer, {},
+    it("Should deploy the contract if wrapped native token address is 0", async function () {
+      const {deployer, usdc} = await loadFixture(deployAll);
+      await deploy("LiquidityPool", deployer, {},
         usdc, ZERO_ADDRESS
-      )).to.be.revertedWithCustomError(liquidityPool, "ZeroAddress");
+      );
     });
 
     it("Should NOT deploy the proxy if admin address is 0", async function () {

@@ -3,7 +3,7 @@ dotenv.config();
 import hre from "hardhat";
 import {getVerifier, upgradeProxyX, getHardhatNetworkConfig, getNetworkConfig, logDeployers} from "./helpers";
 import {createSender} from "./safe";
-import {getDeployProxyXAddress, resolveXAddress} from "../test/helpers";
+import {resolveProxyXAddress, resolveXAddress} from "../test/helpers";
 import {isSet, assert, addressToBytes32} from "./common";
 import {StashDex} from "../typechain-types";
 import {Network, NetworkConfig, Token} from "../network.config";
@@ -31,7 +31,7 @@ export async function main() {
   assert(config.StashDex, "StashDex must be in config");
 
   const id = "StashStablecoinDex";
-  const stashDexAddress = await getDeployProxyXAddress(id);
+  const stashDexAddress = await resolveProxyXAddress(id);
   const oracle = await resolveXAddress(config.StashDex.Oracle);
   const receiver = await resolveXAddress(config.StashDex.Receiver);
 

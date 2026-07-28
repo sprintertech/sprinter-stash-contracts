@@ -1,10 +1,3 @@
-import type {
-  LiquidityPoolUSDCVersions,
-  LiquidityPoolAaveUSDCVersions,
-  LiquidityPoolUSDCStablecoinVersions,
-  LiquidityPoolAaveUSDCLongTermVersions,
-} from "./ids";
-
 export enum Network {
   ETHEREUM = "ETHEREUM",
   AVALANCHE = "AVALANCHE",
@@ -19,6 +12,8 @@ export enum Network {
   WORLD_CHAIN = "WORLD_CHAIN",
   INK = "INK",
   HYPER_EVM = "HYPER_EVM",
+  TEMPO = "TEMPO",
+  STABLE = "STABLE",
 }
 
 export enum Provider {
@@ -59,7 +54,7 @@ export interface RebalancerRoutesConfig {
 
 export interface RepayerRoutesConfig {
   [Pool: string]: {
-    SupportsAllTokens: boolean;
+    OnlySupportedToken?: Token; // Omit to accept any repaid token.
     Domains: {
       [Domain in Network]?: Provider[];
     };
@@ -127,11 +122,22 @@ interface HubConfig {
   DepositProfit: string; // Address that can deposit profit to the Liquidity Pool via Liquidity Hub.
   AssetsLimitSetter: string; // Address that can set assets limit.
   AssetsLimit: number; // Deposits to Liquidity Hub are only allowed till this limit is reached.
-  Tiers: Tier[];
-  Pool?: (typeof LiquidityPoolUSDCVersions)[number]
-  | (typeof LiquidityPoolAaveUSDCVersions)[number]
-  | (typeof LiquidityPoolUSDCStablecoinVersions)[number]
-  | (typeof LiquidityPoolAaveUSDCLongTermVersions)[number];
+  Tiers?: Tier[];
+  Pool?: string;
+}
+
+// Per-main-asset configuration (e.g. MainAssets.USDC, MainAssets.USDT) — most pool/route
+// configuration is specific to which token a given set of Liquidity Pools use as their main asset.
+export interface MainAssetConfig {
+  Hub?: HubConfig;
+  RebalancerRoutes?: RebalancerRoutesConfig;
+  AavePool?: AavePoolConfig;
+  AavePoolLongTerm?: AavePoolLongTermConfig;
+  BasicPool?: boolean;
+  StablecoinPool?: boolean;
+  PublicPool?: PublicPoolConfig;
+  ERC4626AdapterTargetVault?: string;
+  ActiveLegacyPools?: ActiveLegacyPoolConfig;
 }
 
 export type TokenInfo = {
@@ -159,6 +165,9 @@ export interface NetworkConfig {
   GnosisUSDCxDAI?: string;
   GnosisUSDCTransmuter?: string;
   USDT0OFT?: string;
+  // Set only on chains whose USDT0 OFT requires LayerZero fees to be paid in an ERC-20 token
+  // (i.e. USDT0OFT.nativeToken() returns a non-zero address) instead of native currency.
+  USDT0FeeNativeToken?: string;
   Tokens: {
     [Token.USDC]: TokenInfo;
     [Token.USDT]?: TokenInfo;
@@ -170,7 +179,6 @@ export interface NetworkConfig {
     [Token.PYUSD]?: TokenInfo;
   };
   WrappedNativeToken: string;
-  RebalancerRoutes?: RebalancerRoutesConfig;
   RepayerRoutes?: RepayerRoutesConfig;
   Admin: string; // Every contracts admin/owner.
   WithdrawProfit: string;
@@ -180,14 +188,10 @@ export interface NetworkConfig {
   SetInputOutputTokens: string;
   MpcAddress: string;
   SignerAddress: string;
-  Hub?: HubConfig;
-  AavePool?: AavePoolConfig;
-  AavePoolLongTerm?: AavePoolLongTermConfig;
-  USDCPool?: boolean;
-  USDCStablecoinPool?: boolean;
-  USDCPublicPool?: PublicPoolConfig;
-  ERC4626AdapterUSDCTargetVault?: string;
-  ActiveLegacyPools?: ActiveLegacyPoolConfig;
+  // Configuration specific to which token a set of Liquidity Pools use as their main asset.
+  MainAssets: {
+    [key in Token]?: MainAssetConfig;
+  };
   StashDex?: StashDexConfig;
 }
 
@@ -216,6 +220,7 @@ export interface StandaloneRepayerConfig {
   GnosisUSDCTransmuter?: string;
   GnosisAMB?: string;
   USDT0OFT?: string;
+  USDT0FeeNativeToken?: string;
   // Repayer tokens are used from the general network config.
   WrappedNativeToken: string;
   RepayerRoutes: RepayerRoutesConfig;

@@ -2,11 +2,14 @@ import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {NonceManager} from "ethers";
-import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers, deployProxyX} from "./helpers";
+import {
+  getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers, deployProxyX, getMainAsset,
+  idWithMainAsset,
+} from "./helpers";
 import {resolveProxyXAddress, toBytes32} from "../test/helpers";
 import {isSet, assert, DEFAULT_ADMIN_ROLE, sameAddress} from "./common";
 import {LiquidityPool, ProxyAdmin} from "../typechain-types";
-import {Network, NetworkConfig, LiquidityPoolUSDCVersions} from "../network.config";
+import {Network, NetworkConfig, LiquidityPoolId} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -21,44 +24,45 @@ export async function main() {
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
   const verifier = getVerifier(process.env.DEPLOY_ID);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
-  let id = LiquidityPoolUSDCVersions[0];
+  let id = LiquidityPoolId;
 
   let network: Network;
   let config: NetworkConfig;
-  console.log("Deploying USDC Pool");
   ({network, config} = await getNetworkConfig());
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
     id += "-DeployTest";
   }
 
-  assert(config.USDCPool, "USDC pool is not configured");
+  const {mainAsset, mainAssetConfig, mainAssetInfo} = getMainAsset(config);
+  assert(mainAssetConfig.BasicPool, `${mainAsset} basic pool is not configured`);
+  id = idWithMainAsset(mainAsset, id);
+  console.log(`Deploying ${id}`);
 
-  const rebalancer = await resolveProxyXAddress("Rebalancer");
+  const rebalancer = await resolveProxyXAddress(idWithMainAsset(mainAsset, "Rebalancer"));
   console.log(`Rebalancer: ${rebalancer}`);
 
-  console.log("Deploying USDC Liquidity Pool");
-  const {target: usdcPool, targetAdmin: usdcPoolAdmin}: {target: LiquidityPool; targetAdmin: ProxyAdmin} =
+  const {target: basicPool, targetAdmin: basicPoolAdmin}: {target: LiquidityPool; targetAdmin: ProxyAdmin} =
     await deployProxyX<LiquidityPool>(
       verifier.deployX,
       "LiquidityPool",
       deployerWithNonce,
       config.Admin,
-      [config.Tokens.USDC.Address, config.WrappedNativeToken],
+      [mainAssetInfo.Address, config.WrappedNativeToken],
       [deployer, config.MpcAddress, config.SignerAddress],
       id,
       verifier,
     );
-  console.log(`${id}: ${usdcPool.target}`);
-  console.log(`${id}ProxyAdmin: ${usdcPoolAdmin.target}`);
+  console.log(`${id}Proxy: ${basicPool.target}`);
+  console.log(`${id}ProxyAdmin: ${basicPoolAdmin.target}`);
 
-  await usdcPool!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
-  await usdcPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
-  let lastTx = await usdcPool!.grantRole(PAUSER_ROLE, config.Pauser);
+  await basicPool.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
+  await basicPool.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
+  let lastTx = await basicPool!.grantRole(PAUSER_ROLE, config.Pauser);
 
   if (!sameAddress(deployer.address, config.Admin)) {
-    await usdcPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-    lastTx = await usdcPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    await basicPool.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
+    lastTx = await basicPool.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
   }
 
   await verifier.verify(process.env.VERIFY === "true");

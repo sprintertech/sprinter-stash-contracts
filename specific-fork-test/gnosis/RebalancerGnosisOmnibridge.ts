@@ -45,13 +45,16 @@ describe("Rebalancer Gnosis Omnibridge (Gnosis Chain fork)", function () {
     const rebalancerImpl = (
       await deployX("Rebalancer", deployer, "RebalancerGnosis", {},
         Domain.GNOSIS_CHAIN,
-        usdce,
+        usdce, // assets
+        usdce, // usdc
         gnosisConfig.Omnibridge,
         gnosisConfig.GnosisUSDCxDAI,
         gnosisConfig.GnosisUSDCTransmuter,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
+        ZERO_ADDRESS, // ethereumAmb
+        ZERO_ADDRESS, // usdt0Oft
+        ZERO_ADDRESS, // usdt0FeeNativeToken
+        ZERO_ADDRESS, // cctpV2TokenMessenger
+        ZERO_ADDRESS, // cctpV2MessageTransmitter
       )
     ) as Rebalancer;
 

@@ -9,7 +9,6 @@ export const repayerConfig: StandaloneRepayersConfig = {
       WrappedNativeToken: "0x4200000000000000000000000000000000000006",
       RepayerRoutes: {
         "0xa21007B5BC5E2B488063752d1BE43C0f3f376743": {
-          SupportsAllTokens: true,
           Domains: {
             [Network.BASE]: [Provider.LOCAL],
             [Network.ARBITRUM_ONE]: [Provider.ACROSS, Provider.STARGATE],
@@ -29,7 +28,6 @@ export const repayerConfig: StandaloneRepayersConfig = {
       WrappedNativeToken: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
       RepayerRoutes: {
         "0xa21007B5BC5E2B488063752d1BE43C0f3f376743": {
-          SupportsAllTokens: true,
           Domains: {
             [Network.ARBITRUM_ONE]: [Provider.LOCAL],
             [Network.BASE]: [Provider.ACROSS, Provider.STARGATE],
@@ -49,7 +47,6 @@ export const repayerConfig: StandaloneRepayersConfig = {
       WrappedNativeToken: "0x4200000000000000000000000000000000000006",
       RepayerRoutes: {
         "0xa21007B5BC5E2B488063752d1BE43C0f3f376743": {
-          SupportsAllTokens: true,
           Domains: {
             [Network.OP_MAINNET]: [Provider.LOCAL],
             [Network.ARBITRUM_ONE]: [Provider.ACROSS, Provider.STARGATE],

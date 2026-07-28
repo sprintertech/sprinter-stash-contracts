@@ -142,7 +142,6 @@ abstract contract LiquidityPoolBase is ILiquidityPool, AccessControlUpgradeable,
     constructor(address liquidityToken, address wrappedNativeToken) {
         ERC7201Helper.validateStorageLocation(STORAGE_LOCATION, "sprinter.storage.LiquidityPoolBase");
         require(liquidityToken != address(0), ZeroAddress());
-        require(wrappedNativeToken != address(0), ZeroAddress());
         ASSETS = IERC20(liquidityToken);
         WRAPPED_NATIVE_TOKEN = IWrappedNativeToken(wrappedNativeToken);
         _disableInitializers();
@@ -198,14 +197,14 @@ abstract contract LiquidityPoolBase is ILiquidityPool, AccessControlUpgradeable,
     /// Supplying amount less than the actual increase will result in the extra funds being treated as profit.
     /// Supplying amount greater than the actual increase will result in the future profits treated as deposit.
     function deposit(uint256 amount) external virtual override onlyRole(LIQUIDITY_ADMIN_ROLE) {
-        // called after receiving deposit in USDC
+        // called after receiving ASSETS
         uint256 newBalance = HelperLib.balanceOfThis(ASSETS);
         require(newBalance >= amount, NotEnoughToDeposit());
         _deposit(_msgSender(), amount);
     }
 
     function depositWithPull(uint256 amount) external virtual override {
-        // pulls USDC from the sender
+        // pulls ASSETS from the sender
         ASSETS.safeTransferFrom(_msgSender(), address(this), amount);
         _deposit(_msgSender(), amount);
     }

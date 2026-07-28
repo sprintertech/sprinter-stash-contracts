@@ -1,4 +1,4 @@
-import dotenv from "dotenv"; 
+import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {MaxUint256, NonceManager} from "ethers";
@@ -6,25 +6,26 @@ import {toBytes32, resolveProxyXAddress, resolveXAddress, getContractAt, resolve
 import {
   getVerifier, deployProxyX, getHardhatNetworkConfig, getNetworkConfig, percentsToBps,
   getProxyXAdmin, getInputOutputTokens, flattenInputOutputTokens,
-  logDeployers,
+  logDeployers, getMainAsset, idWithMainAsset, resolveOnlySupportedToken,
 } from "./helpers";
 import {
   assert, isSet, ProviderSolidity, DomainSolidity, DEFAULT_ADMIN_ROLE, ZERO_ADDRESS,
   sameAddress, assertAddress,
 } from "./common";
 import {
-  SprinterUSDCLPShare, LiquidityHub, SprinterLiquidityMining,
+  LiquidityHub, SprinterLiquidityMining,
   Rebalancer, Repayer, LiquidityPool, LiquidityPoolAave, LiquidityPoolStablecoin, LiquidityPoolAaveLongTerm,
   ProxyAdmin, PublicLiquidityPool, ERC4626Adapter, AccessControl,
+  ManagedToken,
 } from "../typechain-types";
 import {
   Network, Provider, NetworkConfig,
-  LiquidityPoolAaveUSDCVersions,
-  LiquidityPoolAaveUSDCLongTermVersions,
-  LiquidityPoolUSDCVersions,
-  LiquidityPoolUSDCStablecoinVersions,
-  LiquidityPoolPublicUSDCVersions,
-  ERC4626AdapterUSDCVersions,
+  LiquidityPoolAaveId,
+  LiquidityPoolAaveLongTermId,
+  LiquidityPoolId,
+  LiquidityPoolStablecoinId,
+  LiquidityPoolPublicId,
+  ERC4626AdapterId,
 } from "../network.config";
 
 export async function main() {
@@ -52,9 +53,19 @@ export async function main() {
 
   await logDeployers();
 
-  assert(config.AavePool! || config.AavePoolLongTerm! || config.USDCPool! || config.USDCStablecoinPool!,
-    "At least one pool should be present.");
-  assertAddress(config.Tokens.USDC.Address, "USDC must be an address");
+  const {mainAsset, mainAssetConfig, mainAssetInfo} = getMainAsset(config);
+
+  assert(
+    mainAssetConfig.AavePool || mainAssetConfig.AavePoolLongTerm || mainAssetConfig.BasicPool
+      || mainAssetConfig.StablecoinPool,
+    "At least one pool should be present."
+  );
+  let usdcAddress = ZERO_ADDRESS;
+  if (config.Tokens.USDC) {
+    usdcAddress = config.Tokens.USDC.Address;
+    assertAddress(usdcAddress, "USDC must be an address");
+  }
+  assertAddress(mainAssetInfo.Address, `${mainAsset} must be an address`);
   assertAddress(config.Admin, "Admin must be an address");
   assertAddress(config.WithdrawProfit, "WithdrawProfit must be an address");
   assertAddress(config.Pauser, "Pauser must be an address");
@@ -72,9 +83,14 @@ export async function main() {
     };
   }
 
-  if (config.Hub) {
-    assert(config.Hub.Tiers.length > 0, "Empty liquidity mining tiers configuration.");
-    assert(config.Hub.AssetsLimit <= MaxUint256 / 10n ** 12n, "Assets limit is too high");
+  if (mainAssetConfig.Hub) {
+    if (mainAssetConfig.Hub.Tiers) {
+      assert(mainAssetConfig.Hub.Tiers.length > 0, "Empty liquidity mining tiers configuration.");
+    }
+    assert(
+      mainAssetConfig.Hub.AssetsLimit <= MaxUint256 / 10n ** BigInt(18 - mainAssetInfo.Decimals),
+      "Assets limit is too high"
+    );
   }
 
   const rebalancerRoutes: {Pools: string[], Domains: Network[], Providers: Provider[]} = {
@@ -82,8 +98,8 @@ export async function main() {
     Domains: [],
     Providers: [],
   };
-  if (config.RebalancerRoutes) {
-    for (const [pool, domainProviders] of Object.entries(config.RebalancerRoutes)) {
+  if (mainAssetConfig.RebalancerRoutes) {
+    for (const [pool, domainProviders] of Object.entries(mainAssetConfig.RebalancerRoutes)) {
       for (const [domain, providers] of Object.entries(domainProviders)) {
         for (const provider of providers) {
           rebalancerRoutes.Pools.push(pool);
@@ -94,11 +110,11 @@ export async function main() {
     }
   }
 
-  const repayerRoutes: {Pools: string[], Domains: Network[], Providers: Provider[], SupportsAllTokens: boolean[]} = {
+  const repayerRoutes: {Pools: string[], Domains: Network[], Providers: Provider[], OnlySupportedTokens: string[]} = {
     Pools: [],
     Domains: [],
     Providers: [],
-    SupportsAllTokens: [],
+    OnlySupportedTokens: [],
   };
   if (config.RepayerRoutes) {
     for (const [pool, domainProviders] of Object.entries(config.RepayerRoutes)) {
@@ -107,7 +123,9 @@ export async function main() {
           repayerRoutes.Pools.push(pool);
           repayerRoutes.Domains.push(domain as Network);
           repayerRoutes.Providers.push(provider);
-          repayerRoutes.SupportsAllTokens.push(domainProviders.SupportsAllTokens);
+          repayerRoutes.OnlySupportedTokens.push(
+            resolveOnlySupportedToken(config.Tokens, domainProviders.OnlySupportedToken)
+          );
         }
       }
     }
@@ -133,14 +151,15 @@ export async function main() {
   if (!config.GnosisUSDCTransmuter) config.GnosisUSDCTransmuter = ZERO_ADDRESS;
   if (!config.GnosisAMB) config.GnosisAMB = ZERO_ADDRESS;
   if (!config.USDT0OFT) config.USDT0OFT = ZERO_ADDRESS;
+  if (!config.USDT0FeeNativeToken) config.USDT0FeeNativeToken = ZERO_ADDRESS;
 
   let mainPool: AccessControl | undefined = undefined;
   let aavePoolLongTerm: LiquidityPoolAaveLongTerm;
   let aavePoolLongTermAdmin: ProxyAdmin;
-  if (config.AavePoolLongTerm) {
-    const id = LiquidityPoolAaveUSDCLongTermVersions[0];
-    const minHealthFactor = BigInt(config.AavePoolLongTerm.MinHealthFactor) * 10000n / 100n;
-    const defaultLTV = BigInt(config.AavePoolLongTerm.DefaultLTV) * 10000n / 100n;
+  if (mainAssetConfig.AavePoolLongTerm) {
+    const id = idWithMainAsset(mainAsset, LiquidityPoolAaveLongTermId);
+    const minHealthFactor = BigInt(mainAssetConfig.AavePoolLongTerm.MinHealthFactor) * 10000n / 100n;
+    const defaultLTV = BigInt(mainAssetConfig.AavePoolLongTerm.DefaultLTV) * 10000n / 100n;
     console.log("Deploying AAVE Liquidity Pool Long Term");
     ({target: aavePoolLongTerm, targetAdmin: aavePoolLongTermAdmin} =
       await deployProxyX<LiquidityPoolAaveLongTerm>(
@@ -148,21 +167,24 @@ export async function main() {
         "LiquidityPoolAaveLongTerm",
         deployerWithNonce,
         config.Admin,
-        [config.Tokens.USDC.Address, config.AavePoolLongTerm.AaveAddressesProvider, config.WrappedNativeToken],
+        [
+          mainAssetInfo.Address, mainAssetConfig.AavePoolLongTerm.AaveAddressesProvider,
+          config.WrappedNativeToken,
+        ],
         [deployer, config.MpcAddress, config.SignerAddress, minHealthFactor, defaultLTV],
         id,
         verifier,
       ));
 
-    if (config.AavePoolLongTerm.TokenLTVs) {
-      const tokens = Object.keys(config.AavePoolLongTerm.TokenLTVs);
-      const LTVs = Object.values(config.AavePoolLongTerm.TokenLTVs);
+    if (mainAssetConfig.AavePoolLongTerm.TokenLTVs) {
+      const tokens = Object.keys(mainAssetConfig.AavePoolLongTerm.TokenLTVs);
+      const LTVs = Object.values(mainAssetConfig.AavePoolLongTerm.TokenLTVs);
       await aavePoolLongTerm.setBorrowTokenLTVs(
         tokens,
         percentsToBps(LTVs),
       );
     }
-    console.log(`${id}: ${aavePoolLongTerm.target}`);
+    console.log(`${id}Proxy: ${aavePoolLongTerm.target}`);
     console.log(`${id}ProxyAdmin: ${aavePoolLongTermAdmin.target}`);
 
     rebalancerRoutes.Pools.push(await aavePoolLongTerm.getAddress());
@@ -172,38 +194,38 @@ export async function main() {
     repayerRoutes.Pools.push(await aavePoolLongTerm.getAddress());
     repayerRoutes.Domains.push(network);
     repayerRoutes.Providers.push(Provider.LOCAL);
-    repayerRoutes.SupportsAllTokens.push(true);
+    repayerRoutes.OnlySupportedTokens.push(ZERO_ADDRESS);
 
     mainPool = aavePoolLongTerm;
   }
 
   let aavePool: LiquidityPoolAave;
   let aavePoolAdmin: ProxyAdmin;
-  if (config.AavePool) {
-    const id = LiquidityPoolAaveUSDCVersions[0];
-    const minHealthFactor = BigInt(config.AavePool.MinHealthFactor) * 10000n / 100n;
-    const defaultLTV = BigInt(config.AavePool.DefaultLTV) * 10000n / 100n;
+  if (mainAssetConfig.AavePool) {
+    const id = idWithMainAsset(mainAsset, LiquidityPoolAaveId);
+    const minHealthFactor = BigInt(mainAssetConfig.AavePool.MinHealthFactor) * 10000n / 100n;
+    const defaultLTV = BigInt(mainAssetConfig.AavePool.DefaultLTV) * 10000n / 100n;
     console.log("Deploying AAVE Liquidity Pool");
     ({target: aavePool, targetAdmin: aavePoolAdmin} = await deployProxyX<LiquidityPoolAave>(
       verifier.deployX,
       "LiquidityPoolAave",
       deployerWithNonce,
       config.Admin,
-      [config.Tokens.USDC.Address, config.AavePool.AaveAddressesProvider, config.WrappedNativeToken],
+      [mainAssetInfo.Address, mainAssetConfig.AavePool.AaveAddressesProvider, config.WrappedNativeToken],
       [deployer, config.MpcAddress, config.SignerAddress, minHealthFactor, defaultLTV],
       id,
       verifier,
     ));
 
-    if (config.AavePool.TokenLTVs) {
-      const tokens = Object.keys(config.AavePool.TokenLTVs);
-      const LTVs = Object.values(config.AavePool.TokenLTVs);
+    if (mainAssetConfig.AavePool.TokenLTVs) {
+      const tokens = Object.keys(mainAssetConfig.AavePool.TokenLTVs);
+      const LTVs = Object.values(mainAssetConfig.AavePool.TokenLTVs);
       await aavePool.setBorrowTokenLTVs(
         tokens,
         percentsToBps(LTVs),
       );
     }
-    console.log(`${id}: ${aavePool.target}`);
+    console.log(`${id}Proxy: ${aavePool.target}`);
     console.log(`${id}ProxyAdmin: ${aavePoolAdmin.target}`);
 
     rebalancerRoutes.Pools.push(await aavePool.getAddress());
@@ -213,129 +235,130 @@ export async function main() {
     repayerRoutes.Pools.push(await aavePool.getAddress());
     repayerRoutes.Domains.push(network);
     repayerRoutes.Providers.push(Provider.LOCAL);
-    repayerRoutes.SupportsAllTokens.push(true);
+    repayerRoutes.OnlySupportedTokens.push(ZERO_ADDRESS);
 
     if (!mainPool) {
       mainPool = aavePool;
     }
   }
 
-  let usdcPool: LiquidityPool;
-  let usdcPoolAdmin: ProxyAdmin;
-  if (config.USDCPool) {
-    const id = LiquidityPoolUSDCVersions[0];
-    console.log("Deploying USDC Liquidity Pool");
-    ({target: usdcPool, targetAdmin: usdcPoolAdmin} = await deployProxyX<LiquidityPool>(
+  let basicPool: LiquidityPool;
+  let basicPoolAdmin: ProxyAdmin;
+  if (mainAssetConfig.BasicPool) {
+    const id = idWithMainAsset(mainAsset, LiquidityPoolId);
+    console.log(`Deploying ${id}`);
+    ({target: basicPool, targetAdmin: basicPoolAdmin} = await deployProxyX<LiquidityPool>(
       verifier.deployX,
       "LiquidityPool",
       deployerWithNonce,
       config.Admin,
-      [config.Tokens.USDC.Address, config.WrappedNativeToken],
+      [mainAssetInfo.Address, config.WrappedNativeToken],
       [deployer, config.MpcAddress, config.SignerAddress],
       id,
       verifier,
     ));
-    console.log(`${id}: ${usdcPool.target}`);
-    console.log(`${id}ProxyAdmin: ${usdcPoolAdmin.target}`);
+    console.log(`${id}Proxy: ${basicPool.target}`);
+    console.log(`${id}ProxyAdmin: ${basicPoolAdmin.target}`);
 
-    rebalancerRoutes.Pools.push(await usdcPool.getAddress());
+    rebalancerRoutes.Pools.push(await basicPool.getAddress());
     rebalancerRoutes.Domains.push(network);
     rebalancerRoutes.Providers.push(Provider.LOCAL);
 
-    repayerRoutes.Pools.push(await usdcPool.getAddress());
+    repayerRoutes.Pools.push(await basicPool.getAddress());
     repayerRoutes.Domains.push(network);
     repayerRoutes.Providers.push(Provider.LOCAL);
-    repayerRoutes.SupportsAllTokens.push(false);
+    repayerRoutes.OnlySupportedTokens.push(mainAssetInfo.Address);
 
     if (!mainPool) {
-      mainPool = usdcPool;
+      mainPool = basicPool;
     }
   }
 
-  let usdcStablecoinPool: LiquidityPoolStablecoin;
-  let usdcStablecoinPoolAdmin: ProxyAdmin;
-  if (config.USDCStablecoinPool) {
-    const id = LiquidityPoolUSDCStablecoinVersions[0];
-    console.log("Deploying USDC Stablecoin Liquidity Pool");
-    ({target: usdcStablecoinPool, targetAdmin: usdcStablecoinPoolAdmin} =
+  let stablecoinPool: LiquidityPoolStablecoin;
+  let stablecoinPoolAdmin: ProxyAdmin;
+  if (mainAssetConfig.StablecoinPool) {
+    const id = idWithMainAsset(mainAsset, LiquidityPoolStablecoinId);
+    console.log(`Deploying ${id}`);
+    ({target: stablecoinPool, targetAdmin: stablecoinPoolAdmin} =
       await deployProxyX<LiquidityPoolStablecoin>(
         verifier.deployX,
         "LiquidityPoolStablecoin",
         deployerWithNonce,
         config.Admin,
-        [config.Tokens.USDC.Address, config.WrappedNativeToken],
+        [mainAssetInfo.Address, config.WrappedNativeToken],
         [deployer, config.MpcAddress, config.SignerAddress],
         id,
         verifier,
       ));
-    console.log(`${id}: ${usdcStablecoinPool.target}`);
-    console.log(`${id}ProxyAdmin: ${usdcStablecoinPoolAdmin.target}`);
+    console.log(`${id}Proxy: ${stablecoinPool.target}`);
+    console.log(`${id}ProxyAdmin: ${stablecoinPoolAdmin.target}`);
 
-    rebalancerRoutes.Pools.push(await usdcStablecoinPool.getAddress());
+    rebalancerRoutes.Pools.push(await stablecoinPool.getAddress());
     rebalancerRoutes.Domains.push(network);
     rebalancerRoutes.Providers.push(Provider.LOCAL);
 
-    repayerRoutes.Pools.push(await usdcStablecoinPool.getAddress());
+    repayerRoutes.Pools.push(await stablecoinPool.getAddress());
     repayerRoutes.Domains.push(network);
     repayerRoutes.Providers.push(Provider.LOCAL);
-    repayerRoutes.SupportsAllTokens.push(true);
+    repayerRoutes.OnlySupportedTokens.push(ZERO_ADDRESS);
 
-    if ((!config.AavePool) && (!config.USDCPool)) {
-      mainPool = usdcStablecoinPool;
+    if ((!mainAssetConfig.AavePool) && (!mainAssetConfig.BasicPool)) {
+      mainPool = stablecoinPool;
     }
   }
 
-  let usdcPublicPool: PublicLiquidityPool;
-  let usdcPublicPoolAdmin: ProxyAdmin;
-  if (config.USDCPublicPool) {
-    assertAddress(config.USDCPublicPool.FeeSetter, "FeeSetter must be an address");
-    const id = LiquidityPoolPublicUSDCVersions[0];
-    console.log("Deploying USDC Public Liquidity Pool");
-    ({target: usdcPublicPool, targetAdmin: usdcPublicPoolAdmin} = await deployProxyX<PublicLiquidityPool>(
+  let publicPool: PublicLiquidityPool;
+  let publicPoolAdmin: ProxyAdmin;
+  if (mainAssetConfig.PublicPool) {
+    assertAddress(mainAssetConfig.PublicPool.FeeSetter, "FeeSetter must be an address");
+    const id = idWithMainAsset(mainAsset, LiquidityPoolPublicId);
+    console.log(`Deploying ${id}`);
+    ({target: publicPool, targetAdmin: publicPoolAdmin} = await deployProxyX<PublicLiquidityPool>(
       verifier.deployX,
       "PublicLiquidityPool",
       deployerWithNonce,
       config.Admin,
-      [config.Tokens.USDC.Address, config.WrappedNativeToken],
+      [mainAssetInfo.Address, config.WrappedNativeToken],
       [deployer, config.MpcAddress, config.SignerAddress,
-        config.USDCPublicPool.Name, config.USDCPublicPool.Symbol,
-        config.USDCPublicPool.ProtocolFeeRate * 10000 / 100],
+        mainAssetConfig.PublicPool.Name, mainAssetConfig.PublicPool.Symbol,
+        mainAssetConfig.PublicPool.ProtocolFeeRate * 10000 / 100],
       id,
       verifier,
     ));
-    console.log(`${id}: ${usdcPublicPool.target}`);
-    console.log(`${id}ProxyAdmin: ${usdcPublicPoolAdmin.target}`);
+    console.log(`${id}Proxy: ${publicPool.target}`);
+    console.log(`${id}ProxyAdmin: ${publicPoolAdmin.target}`);
   }
 
-  let erc4626AdapterUSDC: ERC4626Adapter;
-  let erc4626AdapterUSDCAdmin: ProxyAdmin;
-  if (config.ERC4626AdapterUSDCTargetVault) {
-    const id = ERC4626AdapterUSDCVersions[0];
-    const targetVault = await resolveXAddress(config.ERC4626AdapterUSDCTargetVault);
+  let erc4626Adapter: ERC4626Adapter;
+  let erc4626AdapterAdmin: ProxyAdmin;
+  if (mainAssetConfig.ERC4626AdapterTargetVault) {
+    const id = idWithMainAsset(mainAsset, ERC4626AdapterId);
+    const targetVault = await resolveXAddress(mainAssetConfig.ERC4626AdapterTargetVault);
     console.log(`Target Vault: ${targetVault}`);
 
-    console.log("Deploying ERC4626 Adapter USDC");
-    ({target: erc4626AdapterUSDC, targetAdmin: erc4626AdapterUSDCAdmin} =
+    console.log(`Deploying ${id}`);
+    ({target: erc4626Adapter, targetAdmin: erc4626AdapterAdmin} =
       await deployProxyX<ERC4626Adapter>(
         verifier.deployX,
         "ERC4626Adapter",
         deployerWithNonce,
         config.Admin,
-        [config.Tokens.USDC.Address, targetVault],
+        [mainAssetInfo.Address, targetVault],
         [deployer],
         id,
         verifier,
       ));
-    console.log(`${id}: ${erc4626AdapterUSDC.target}`);
-    console.log(`${id}ProxyAdmin: ${erc4626AdapterUSDCAdmin.target}`);
+    console.log(`${id}Proxy: ${erc4626Adapter.target}`);
+    console.log(`${id}ProxyAdmin: ${erc4626AdapterAdmin.target}`);
 
-    rebalancerRoutes.Pools.push(await erc4626AdapterUSDC.getAddress());
+    rebalancerRoutes.Pools.push(await erc4626Adapter.getAddress());
     rebalancerRoutes.Domains.push(network);
     rebalancerRoutes.Providers.push(Provider.LOCAL);
   }
 
   assert(mainPool, "Main pool is not defined");
   const rebalancerVersion = "Rebalancer";
+  const rebalancerId = idWithMainAsset(mainAsset, "Rebalancer");
 
   rebalancerRoutes.Pools = await resolveXAddresses(rebalancerRoutes.Pools, false);
 
@@ -345,9 +368,9 @@ export async function main() {
     deployerWithNonce,
     config.Admin,
     [
-      DomainSolidity[network], config.Tokens.USDC.Address,
+      DomainSolidity[network], mainAssetInfo.Address, usdcAddress,
       config.Omnibridge, config.GnosisUSDCxDAI, config.GnosisUSDCTransmuter, config.GnosisAMB,
-      config.CCTPV2.TokenMessenger, config.CCTPV2.MessageTransmitter,
+      config.USDT0OFT, config.USDT0FeeNativeToken, config.CCTPV2.TokenMessenger, config.CCTPV2.MessageTransmitter,
     ],
     [
       config.Admin,
@@ -356,46 +379,46 @@ export async function main() {
       rebalancerRoutes.Domains.map(el => DomainSolidity[el]),
       rebalancerRoutes.Providers.map(el => ProviderSolidity[el]),
     ],
-    "Rebalancer",
+    rebalancerId,
     verifier,
   );
 
-  if (config.AavePoolLongTerm) {
+  if (mainAssetConfig.AavePoolLongTerm) {
     await aavePoolLongTerm!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
     await aavePoolLongTerm!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
     await aavePoolLongTerm!.grantRole(PAUSER_ROLE, config.Pauser);
-    await aavePoolLongTerm!.grantRole(BORROW_LONG_TERM_ROLE, config.AavePoolLongTerm.BorrowLongTermAdmin);
-    await aavePoolLongTerm!.grantRole(REPAYER_ROLE, config.AavePoolLongTerm.RepayCaller);
+    await aavePoolLongTerm!.grantRole(BORROW_LONG_TERM_ROLE, mainAssetConfig.AavePoolLongTerm.BorrowLongTermAdmin);
+    await aavePoolLongTerm!.grantRole(REPAYER_ROLE, mainAssetConfig.AavePoolLongTerm.RepayCaller);
   }
 
-  if (config.AavePool) {
+  if (mainAssetConfig.AavePool) {
     await aavePool!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
     await aavePool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
     await aavePool!.grantRole(PAUSER_ROLE, config.Pauser);
   }
 
-  if (config.USDCPool) {
-    await usdcPool!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
-    await usdcPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
-    await usdcPool!.grantRole(PAUSER_ROLE, config.Pauser);
+  if (mainAssetConfig.BasicPool) {
+    await basicPool!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
+    await basicPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
+    await basicPool!.grantRole(PAUSER_ROLE, config.Pauser);
   }
 
-  if (config.USDCStablecoinPool) {
-    await usdcStablecoinPool!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
-    await usdcStablecoinPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
-    await usdcStablecoinPool!.grantRole(PAUSER_ROLE, config.Pauser);
+  if (mainAssetConfig.StablecoinPool) {
+    await stablecoinPool!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
+    await stablecoinPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
+    await stablecoinPool!.grantRole(PAUSER_ROLE, config.Pauser);
   }
 
-  if (config.USDCPublicPool) {
-    await usdcPublicPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
-    await usdcPublicPool!.grantRole(PAUSER_ROLE, config.Pauser);
-    await usdcPublicPool!.grantRole(FEE_SETTER_ROLE, config.USDCPublicPool.FeeSetter);
+  if (mainAssetConfig.PublicPool) {
+    await publicPool!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
+    await publicPool!.grantRole(PAUSER_ROLE, config.Pauser);
+    await publicPool!.grantRole(FEE_SETTER_ROLE, mainAssetConfig.PublicPool.FeeSetter);
   }
 
-  if (config.ERC4626AdapterUSDCTargetVault) {
-    await erc4626AdapterUSDC!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
-    await erc4626AdapterUSDC!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
-    await erc4626AdapterUSDC!.grantRole(PAUSER_ROLE, config.Pauser);
+  if (mainAssetConfig.ERC4626AdapterTargetVault) {
+    await erc4626Adapter!.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
+    await erc4626Adapter!.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
+    await erc4626Adapter!.grantRole(PAUSER_ROLE, config.Pauser);
   }
 
   const repayerVersion = "Repayer";
@@ -434,6 +457,7 @@ export async function main() {
         config.GnosisUSDCTransmuter,
         config.GnosisAMB,
         config.USDT0OFT,
+        config.USDT0FeeNativeToken,
         config.CCTPV2.TokenMessenger,
         config.CCTPV2.MessageTransmitter,
       ],
@@ -444,7 +468,7 @@ export async function main() {
         repayerRoutes.Pools,
         repayerRoutes.Domains.map(el => DomainSolidity[el]),
         repayerRoutes.Providers.map(el => ProviderSolidity[el]),
-        repayerRoutes.SupportsAllTokens,
+        repayerRoutes.OnlySupportedTokens,
         inputOutputTokens,
       ],
       repayerId,
@@ -454,19 +478,19 @@ export async function main() {
   }
 
 
-  if (config.Hub) {
-    const tiers = config.Hub!.Tiers;
-    const assetsLimit = BigInt(config.Hub!.AssetsLimit) * 10n ** 6n;
+  if (mainAssetConfig.Hub) {
+    const assetsLimit = BigInt(mainAssetConfig.Hub.AssetsLimit) * 10n ** BigInt(mainAssetInfo.Decimals);
 
-    const liquidityHubAddress = await verifier.predictDeployProxyXAddress("LiquidityHub", deployer);
+    const liquidityHubId = idWithMainAsset(mainAsset, "LiquidityHub");
+    const liquidityHubAddress = await verifier.predictDeployProxyXAddress(liquidityHubId, deployer);
     const lpToken = (await verifier.deployX(
-      "SprinterUSDCLPShare",
+      `Sprinter${mainAsset}LPShare`,
       deployerWithNonce,
       {},
       [liquidityHubAddress],
-      "SprinterUSDCLPShare",
-      "contracts/SprinterUSDCLPShare.sol:SprinterUSDCLPShare"
-    )) as SprinterUSDCLPShare;
+      `Sprinter${mainAsset}LPShare`,
+      `contracts/Sprinter${mainAsset}LPShare.sol:Sprinter${mainAsset}LPShare`
+    )) as ManagedToken;
 
     const {target: liquidityHub, targetAdmin: liquidityHubAdmin} = await deployProxyX<LiquidityHub>(
       verifier.deployX,
@@ -475,68 +499,79 @@ export async function main() {
       config.Admin,
       [lpToken, mainPool],
       [
-        config.Tokens.USDC.Address,
+        mainAssetInfo.Address,
         config.Admin,
-        config.Hub.AssetsAdjuster,
-        config.Hub.DepositProfit,
-        config.Hub.AssetsLimitSetter,
+        mainAssetConfig.Hub.AssetsAdjuster,
+        mainAssetConfig.Hub.DepositProfit,
+        mainAssetConfig.Hub.AssetsLimitSetter,
         assetsLimit
       ],
-      "LiquidityHub",
+      liquidityHubId,
       verifier,
     );
 
     assert(liquidityHubAddress == liquidityHub.target, "LiquidityHub address mismatch");
-    const liquidityMining = (
-      await verifier.deployX("SprinterLiquidityMining", deployerWithNonce, {}, [config.Admin, liquidityHub, tiers])
-    ) as SprinterLiquidityMining;
 
     await mainPool.grantRole(LIQUIDITY_ADMIN_ROLE, liquidityHub);
 
-    console.log(`SprinterUSDCLPShare: ${lpToken.target}`);
-    console.log(`LiquidityHub: ${liquidityHub.target}`);
+    console.log(`Sprinter${mainAsset}LPShare: ${lpToken.target}`);
+    console.log(`${liquidityHubId}: ${liquidityHub.target}`);
     console.log(`LiquidityHubProxyAdmin: ${liquidityHubAdmin.target}`);
-    console.log(`LiquidityHub Adjuster: ${config.Hub!.AssetsAdjuster}`);
-    console.log(`LiquidityHub DepositProfit: ${config.Hub!.DepositProfit}`);
-    console.log(`LiquidityHub AssetsLimitSetter: ${config.Hub!.AssetsLimitSetter}`);
-    console.log(`LiquidityHub Assets Limit: ${config.Hub!.AssetsLimit}`);
-    console.log(`SprinterLiquidityMining: ${liquidityMining.target}`);
-    console.log("Tiers:");
-    console.table(tiers.map(el => {
-      const multiplier = `${el.multiplier / 1000000000n}.${el.multiplier % 1000000000n}x`;
-      return {seconds: Number(el.period), multiplier};
-    }));
+    console.log(`LiquidityHub Adjuster: ${mainAssetConfig.Hub.AssetsAdjuster}`);
+    console.log(`LiquidityHub DepositProfit: ${mainAssetConfig.Hub.DepositProfit}`);
+    console.log(`LiquidityHub AssetsLimitSetter: ${mainAssetConfig.Hub.AssetsLimitSetter}`);
+    console.log(`LiquidityHub Assets Limit: ${mainAssetConfig.Hub.AssetsLimit}`);
+
+    if (mainAssetConfig.Hub.Tiers) {
+      const tiers = mainAssetConfig.Hub.Tiers;
+      const liquidityMining = (
+        await verifier.deployX(
+          "SprinterLiquidityMining",
+          deployerWithNonce,
+          {},
+          [config.Admin, liquidityHub, tiers],
+          idWithMainAsset(mainAsset, "SprinterLiquidityMining")
+        )
+      ) as SprinterLiquidityMining;
+
+      console.log(`SprinterLiquidityMining: ${liquidityMining.target}`);
+      console.log("Tiers:");
+      console.table(tiers.map(el => {
+        const multiplier = `${el.multiplier / 1000000000n}.${el.multiplier % 1000000000n}x`;
+        return {seconds: Number(el.period), multiplier};
+      }));
+    }
   }
 
   if (!sameAddress(deployer.address, config.Admin)) {
-    if (config.AavePoolLongTerm) {
+    if (mainAssetConfig.AavePoolLongTerm) {
       await aavePoolLongTerm!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
       await aavePoolLongTerm!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
     }
 
-    if (config.AavePool) {
+    if (mainAssetConfig.AavePool) {
       await aavePool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
       await aavePool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
     }
 
-    if (config.USDCPool) {
-      await usdcPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-      await usdcPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    if (mainAssetConfig.BasicPool) {
+      await basicPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
+      await basicPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
     }
 
-    if (config.USDCStablecoinPool) {
-      await usdcStablecoinPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-      await usdcStablecoinPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    if (mainAssetConfig.StablecoinPool) {
+      await stablecoinPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
+      await stablecoinPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
     }
 
-    if (config.USDCPublicPool) {
-      await usdcPublicPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-      await usdcPublicPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    if (mainAssetConfig.PublicPool) {
+      await publicPool!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
+      await publicPool!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
     }
 
-    if (config.ERC4626AdapterUSDCTargetVault) {
-      await erc4626AdapterUSDC!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-      await erc4626AdapterUSDC!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    if (mainAssetConfig.ERC4626AdapterTargetVault) {
+      await erc4626Adapter!.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
+      await erc4626Adapter!.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
     }
   }
 
@@ -556,10 +591,10 @@ export async function main() {
   console.log(`LiquidityPool Withdraw Profit: ${config.WithdrawProfit}`);
   console.log(`LiquidityPool Pauser: ${config.Pauser}`);
   console.log(`MPC Address: ${config.MpcAddress}`);
-  console.log(`USDC: ${config.Tokens.USDC.Address}`);
+  console.log(`${mainAsset}: ${config.Tokens[mainAsset]!.Address}`);
   console.log(`Signer Address: ${config.SignerAddress}`);
-  console.log(`Rebalancer: ${rebalancer.target}`);
-  console.log(`RebalancerProxyAdmin: ${rebalancerAdmin.target}`);
+  console.log(`${rebalancerId}: ${rebalancer.target}`);
+  console.log(`${rebalancerId}ProxyAdmin: ${rebalancerAdmin.target}`);
   if (rebalancerRoutes.Pools.length > 0) {
     console.log("RebalancerRoutes:");
     const transposedRoutes = [];
@@ -582,7 +617,7 @@ export async function main() {
         Pool: repayerRoutes.Pools[i],
         Domain: repayerRoutes.Domains[i],
         Provider: repayerRoutes.Providers[i],
-        SupportsAllTokens: repayerRoutes.SupportsAllTokens[i],
+        OnlySupportedToken: repayerRoutes.OnlySupportedTokens[i],
       });
     }
     console.table(transposedRoutes);

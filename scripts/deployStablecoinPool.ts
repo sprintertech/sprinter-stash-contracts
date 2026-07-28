@@ -2,11 +2,14 @@ import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {NonceManager} from "ethers";
-import {getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers, deployProxyX} from "./helpers";
+import {
+  getVerifier, getHardhatNetworkConfig, getNetworkConfig, logDeployers, deployProxyX, getMainAsset,
+  idWithMainAsset,
+} from "./helpers";
 import {resolveProxyXAddress, toBytes32} from "../test/helpers";
 import {isSet, assert, DEFAULT_ADMIN_ROLE, sameAddress} from "./common";
 import {LiquidityPoolStablecoin, ProxyAdmin} from "../typechain-types";
-import {Network, NetworkConfig, LiquidityPoolUSDCStablecoinVersions} from "../network.config";
+import {Network, NetworkConfig, LiquidityPoolStablecoinId} from "../network.config";
 
 export async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -19,11 +22,10 @@ export async function main() {
   assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
   const verifier = getVerifier(process.env.DEPLOY_ID);
   console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
-  let id = LiquidityPoolUSDCStablecoinVersions[0];
+  let id = LiquidityPoolStablecoinId;
 
   let network: Network;
   let config: NetworkConfig;
-  console.log("Deploying USDC Stablecoin Pool");
   ({network, config} = await getNetworkConfig());
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
@@ -32,35 +34,37 @@ export async function main() {
 
   await logDeployers();
 
-  assert(config.USDCStablecoinPool, "USDC stablecoin pool is not configured");
+  const {mainAsset, mainAssetConfig, mainAssetInfo} = getMainAsset(config);
+  assert(mainAssetConfig.StablecoinPool, `${mainAsset} stablecoin pool is not configured`);
+  id = idWithMainAsset(mainAsset, id);
+  console.log(`Deploying ${id}`);
 
-  const rebalancer = await resolveProxyXAddress("Rebalancer");
+  const rebalancer = await resolveProxyXAddress(idWithMainAsset(mainAsset, "Rebalancer"));
   console.log(`Rebalancer: ${rebalancer}`);
 
-  console.log("Deploying USDC Stablecoin Liquidity Pool");
   const {
-    target: usdcPoolStablecoin, targetAdmin: usdcPoolStablecoinAdmin,
+    target: poolStablecoin, targetAdmin: poolStablecoinAdmin,
   }: {target: LiquidityPoolStablecoin; targetAdmin: ProxyAdmin} =
     await deployProxyX<LiquidityPoolStablecoin>(
       verifier.deployX,
       "LiquidityPoolStablecoin",
       deployerWithNonce,
       config.Admin,
-      [config.Tokens.USDC.Address, config.WrappedNativeToken],
+      [mainAssetInfo.Address, config.WrappedNativeToken],
       [deployer, config.MpcAddress, config.SignerAddress],
       id,
       verifier,
     );
-  console.log(`${id}: ${usdcPoolStablecoin.target}`);
-  console.log(`${id}ProxyAdmin: ${usdcPoolStablecoinAdmin.target}`);
+  console.log(`${id}Proxy: ${poolStablecoin.target}`);
+  console.log(`${id}ProxyAdmin: ${poolStablecoinAdmin.target}`);
 
-  await usdcPoolStablecoin.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
-  await usdcPoolStablecoin.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
-  let lastTx = await usdcPoolStablecoin.grantRole(PAUSER_ROLE, config.Pauser);
+  await poolStablecoin.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
+  await poolStablecoin.grantRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit);
+  let lastTx = await poolStablecoin.grantRole(PAUSER_ROLE, config.Pauser);
 
   if (!sameAddress(deployer.address, config.Admin)) {
-    await usdcPoolStablecoin.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
-    lastTx = await usdcPoolStablecoin.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
+    await poolStablecoin.grantRole(DEFAULT_ADMIN_ROLE, config.Admin);
+    lastTx = await poolStablecoin.renounceRole(DEFAULT_ADMIN_ROLE, deployer);
   }
 
   await verifier.verify(process.env.VERIFY === "true");

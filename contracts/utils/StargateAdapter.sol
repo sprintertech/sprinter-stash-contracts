@@ -62,6 +62,7 @@ abstract contract StargateAdapter is LayerZeroHelper {
             oftCmd: new bytes(1)
         });
 
+        // TODO: Add support for chains without a native token, like Tempo.
         // The caller is responsible for estimating and providing the correct messaging fee.
         MessagingFee memory messagingFee = MessagingFee(msg.value, 0);
 

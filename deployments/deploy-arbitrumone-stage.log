@@ -178,3 +178,40 @@ Threshold met (1/1). Executing on-chain...
 Executed. On-chain TX hash: 0x57be7255dbf1361d3c9751ffc596cd5613d6c7648a8d6437d3871984b1c5ddbd
 0x57be7255dbf1361d3c9751ffc596cd5613d6c7648a8d6437d3871984b1c5ddbd
 Rebalancer upgraded.
+
+Deployment ID: MVP
+Deploying contracts set
+Using config for: stage, ARBITRUM_ONE
+Deployer        : 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+Using main asset: USDT
+Deploying AAVE Liquidity Pool
+LiquidityPoolAaveUSDTProxy: 0x29Ded76318fb2d01644fc816D09D48dE8cb4739e
+LiquidityPoolAaveUSDTProxyAdmin: 0x21Ab03d7A40CfaD506b2ef3Dd43ce24483664B4b
+Repayer was already deployed
+Make sure to update the Repayer routes with the update-routes-repayer task
+SprinterUSDTLPShare: 0x89f535Cef0db203485E57762504aB94CE336D1a6
+LiquidityHubUSDT: 0x0Ce3Cfd4cFF1bE85b35DCb52FC4Ef5AC71a722f1
+LiquidityHubProxyAdmin: 0x08b01050A93339704498E240eeA0372650Fa5e69
+LiquidityHub Adjuster: 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414
+LiquidityHub DepositProfit: 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414
+LiquidityHub AssetsLimitSetter: 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414
+LiquidityHub Assets Limit: 10000000
+Multicall was already deployed
+Multicall: 0xd0A630c391daEb244369DB0f75CBDF7dFeEaEaC3
+Admin: 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414
+LiquidityPool Withdraw Profit: 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414
+LiquidityPool Pauser: 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414
+MPC Address: 0x6adAF8c96151962198a9b73132c16E99F4682Eb5
+USDT: 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9
+Signer Address: 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414
+RebalancerUSDT: 0xB6AE827F83831C78c428Abdd4c53aE6259c1383f
+RebalancerUSDTProxyAdmin: 0xB4f9FE4906c58c7c917b4315288D02E347689231
+RebalancerRoutes:
+┌─────────┬──────────────────────────────────────────────┬────────────────┬──────────┐
+│ (index) │ Pool                                         │ Domain         │ Provider │
+├─────────┼──────────────────────────────────────────────┼────────────────┼──────────┤
+│ 0       │ '0x756c4097F7f82A63ecd20f26EbF1edAd979A2178' │ 'TEMPO'        │ 'USDT0'  │
+│ 1       │ '0x756c4097F7f82A63ecd20f26EbF1edAd979A2178' │ 'STABLE'       │ 'USDT0'  │
+│ 2       │ '0x29Ded76318fb2d01644fc816D09D48dE8cb4739e' │ 'ARBITRUM_ONE' │ 'LOCAL'  │
+└─────────┴──────────────────────────────────────────────┴────────────────┴──────────┘

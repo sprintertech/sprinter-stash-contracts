@@ -47,6 +47,7 @@ export function getMainAsset(config: NetworkConfig): {
   const mainAssetInfo = config.Tokens[mainAsset];
   assert(mainAssetInfo, `${mainAsset} token must be in config`);
   assertAddress(mainAssetInfo.Address, `${mainAsset} token address must be an address`);
+  console.log(`Using main asset: ${mainAsset}`);
   return {mainAsset: mainAsset, mainAssetConfig, mainAssetInfo};
 }
 

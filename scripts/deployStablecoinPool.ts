@@ -31,9 +31,9 @@ export async function main() {
     ({network, config} = await getHardhatNetworkConfig());
     id += "-DeployTest";
   }
-  
+
   await logDeployers();
-  
+
   const {mainAsset, mainAssetConfig, mainAssetInfo} = getMainAsset(config);
   assert(mainAssetConfig.StablecoinPool, `${mainAsset} stablecoin pool is not configured`);
   id = idWithMainAsset(mainAsset, id);

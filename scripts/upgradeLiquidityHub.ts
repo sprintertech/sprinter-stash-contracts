@@ -1,4 +1,4 @@
-import dotenv from "dotenv"; 
+import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {
@@ -27,12 +27,12 @@ export async function main() {
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
   }
-  
+
   await logDeployers(false);
-  
+
   const {mainAsset, mainAssetConfig, mainAssetInfo} = getMainAsset(config);
   assert(mainAssetConfig.Hub, "LiquidityHub must be defined");
-  
+
   const id = idWithMainAsset(mainAsset, "LiquidityHub");
   console.log(`Upgrading ${id}`);
   const liquidityHubAddress = await getDeployProxyXAddress(id);

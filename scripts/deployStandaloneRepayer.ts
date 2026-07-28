@@ -1,11 +1,11 @@
-import dotenv from "dotenv"; 
+import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {getAddress} from "ethers";
 import {
   getVerifier, deployProxyX, getHardhatStandaloneRepayerConfig, getStandaloneRepayerConfig,
   getInputOutputTokens, flattenInputOutputTokens,
-  logDeployers,
+  logDeployers, resolveOnlySupportedToken,
 } from "./helpers";
 import {resolveXAddress, toBytes32} from "../test/helpers";
 import {
@@ -46,7 +46,7 @@ export async function main() {
   let usdcAddress = ZERO_ADDRESS;
   if (prodConfig.Tokens.USDC) {
     usdcAddress = prodConfig.Tokens.USDC.Address;
-    assertAddress(usdcAddress, "USDC must have an address");
+    assertAddress(usdcAddress, "USDC must be an address");
   }
   assertAddress(config.Admin, "Admin must be an address");
   assert(config.RepayerCallers.length > 0, "RepayerCallers must not be empty");
@@ -59,19 +59,11 @@ export async function main() {
   for (const [pool, domainProviders] of Object.entries(config.RepayerRoutes || {})) {
     for (const [domain, providers] of Object.entries(domainProviders.Domains) as [Network, Provider[]][]) {
       for (const provider of providers) {
-        let onlySupportedToken = ZERO_ADDRESS;
-        if (domainProviders.OnlySupportedToken) {
-          assert(
-            tokens[domainProviders.OnlySupportedToken],
-            `Token ${domainProviders.OnlySupportedToken} is not found in the network config`
-          );
-          onlySupportedToken = tokens[domainProviders.OnlySupportedToken]!.Address;
-        }
         repayerRoutes.push({
           Pool: await resolveXAddress(pool, false),
           Domain: domain,
           Provider: provider,
-          OnlySupportedToken: onlySupportedToken,
+          OnlySupportedToken: resolveOnlySupportedToken(tokens, domainProviders.OnlySupportedToken),
         });
       }
     }

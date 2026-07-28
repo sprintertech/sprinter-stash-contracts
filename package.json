@@ -330,7 +330,7 @@
     "test:deploy": "ts-node --files ./scripts/deploy.ts",
     "test:ethereum": "FORK_TEST=ETHEREUM hardhat test --typecheck ./specific-fork-test/ethereum/*.ts",
     "test:gnosis": "FORK_TEST=GNOSIS_CHAIN hardhat test --typecheck ./specific-fork-test/gnosis/*.ts",
-    "test:arbitrum": "FORK_TEST=ARBITRUM_ONE hardhat test --typecheck ./specific-fork-test/arbitrum/*.ts",
+    "test:arbitrumone": "FORK_TEST=ARBITRUM_ONE hardhat test --typecheck ./specific-fork-test/arbitrum/*.ts",
     "test:polygon": "FORK_TEST=POLYGON_MAINNET hardhat test --typecheck ./specific-fork-test/polygon/*.ts",
     "test:unichain": "FORK_TEST=UNICHAIN hardhat test --typecheck ./specific-fork-test/unichain/*.ts",
     "test:tempo": "hardhat test --typecheck --network TEMPO ./specific-fork-test/tempo/*.ts",

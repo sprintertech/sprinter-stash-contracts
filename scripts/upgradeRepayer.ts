@@ -1,4 +1,4 @@
-import dotenv from "dotenv"; 
+import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {isAddress} from "ethers";
@@ -32,7 +32,7 @@ export async function main() {
   let usdcAddress = ZERO_ADDRESS;
   if (config.Tokens.USDC) {
     usdcAddress = config.Tokens.USDC.Address;
-    assertAddress(usdcAddress, "USDC must have an address");
+    assertAddress(usdcAddress, "USDC must be an address");
   }
   assert(isAddress(config.WrappedNativeToken), "WrappedNativeToken must be an address");
   if (!config.CCTPV2) {

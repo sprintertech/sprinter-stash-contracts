@@ -35,7 +35,7 @@ describe("Repayer USDT0 (Ethereum fork)", function () {
     const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.USDC.Address);
     const usdt = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.USDT.Address);
     const weth = await hre.ethers.getContractAt("IWrappedNativeToken", forkNetworkConfig.WrappedNativeToken);
-    
+
     const usdt0Oft = await hre.ethers.getContractAt("IOFT", forkNetworkConfig.USDT0OFT!);
     expect(await usdt0Oft.token()).to.equal(forkNetworkConfig.Tokens.USDT.Address);
 

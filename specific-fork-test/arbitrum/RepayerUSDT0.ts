@@ -77,7 +77,7 @@ describe("Repayer USDT0 (Arbitrum fork)", function () {
     )).data;
 
     const repayerProxy = (await deployX(
-      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyArbitrumUSDT0", {},
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyArbitrumUSDT0Repayer", {},
       repayerImpl, admin, repayerInit
     )) as TransparentUpgradeableProxy;
     const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;

@@ -314,7 +314,7 @@ describe("USDT as a main pool asset", function () {
           Domain.BASE,
           usdc,
           ZERO_ADDRESS, networkConfig.BASE.WrappedNativeToken, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
-          ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, 
+          ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
           cctpV2TokenMessenger, cctpV2MessageTransmitter,
         )
       ) as Repayer;

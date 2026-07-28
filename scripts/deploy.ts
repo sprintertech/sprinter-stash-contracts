@@ -1,4 +1,4 @@
-import dotenv from "dotenv"; 
+import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {MaxUint256, NonceManager} from "ethers";
@@ -6,7 +6,7 @@ import {toBytes32, resolveProxyXAddress, resolveXAddress, getContractAt, resolve
 import {
   getVerifier, deployProxyX, getHardhatNetworkConfig, getNetworkConfig, percentsToBps,
   getProxyXAdmin, getInputOutputTokens, flattenInputOutputTokens,
-  logDeployers, getMainAsset, idWithMainAsset,
+  logDeployers, getMainAsset, idWithMainAsset, resolveOnlySupportedToken,
 } from "./helpers";
 import {
   assert, isSet, ProviderSolidity, DomainSolidity, DEFAULT_ADMIN_ROLE, ZERO_ADDRESS,
@@ -63,7 +63,7 @@ export async function main() {
   let usdcAddress = ZERO_ADDRESS;
   if (config.Tokens.USDC) {
     usdcAddress = config.Tokens.USDC.Address;
-    assertAddress(usdcAddress, "USDC must have an address");
+    assertAddress(usdcAddress, "USDC must be an address");
   }
   assertAddress(mainAssetInfo.Address, `${mainAsset} must be an address`);
   assertAddress(config.Admin, "Admin must be an address");
@@ -87,7 +87,10 @@ export async function main() {
     if (mainAssetConfig.Hub.Tiers) {
       assert(mainAssetConfig.Hub.Tiers.length > 0, "Empty liquidity mining tiers configuration.");
     }
-    assert(mainAssetConfig.Hub.AssetsLimit <= MaxUint256 / 10n ** 12n, "Assets limit is too high");
+    assert(
+      mainAssetConfig.Hub.AssetsLimit <= MaxUint256 / 10n ** BigInt(18 - mainAssetInfo.Decimals),
+      "Assets limit is too high"
+    );
   }
 
   const rebalancerRoutes: {Pools: string[], Domains: Network[], Providers: Provider[]} = {
@@ -120,15 +123,9 @@ export async function main() {
           repayerRoutes.Pools.push(pool);
           repayerRoutes.Domains.push(domain as Network);
           repayerRoutes.Providers.push(provider);
-          let onlySupportedToken = ZERO_ADDRESS;
-          if (domainProviders.OnlySupportedToken) {
-            assert(
-              config.Tokens[domainProviders.OnlySupportedToken],
-              `Token ${domainProviders.OnlySupportedToken} is not found in the network config`
-            );
-            onlySupportedToken = config.Tokens[domainProviders.OnlySupportedToken]!.Address;
-          }
-          repayerRoutes.OnlySupportedTokens.push(onlySupportedToken);
+          repayerRoutes.OnlySupportedTokens.push(
+            resolveOnlySupportedToken(config.Tokens, domainProviders.OnlySupportedToken)
+          );
         }
       }
     }
@@ -482,7 +479,7 @@ export async function main() {
 
 
   if (mainAssetConfig.Hub) {
-    const assetsLimit = BigInt(mainAssetConfig.Hub.AssetsLimit) * 10n ** 6n;
+    const assetsLimit = BigInt(mainAssetConfig.Hub.AssetsLimit) * 10n ** BigInt(mainAssetInfo.Decimals);
 
     const liquidityHubId = idWithMainAsset(mainAsset, "LiquidityHub");
     const liquidityHubAddress = await verifier.predictDeployProxyXAddress(liquidityHubId, deployer);

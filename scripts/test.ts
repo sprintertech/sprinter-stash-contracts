@@ -1,4 +1,4 @@
-import dotenv from "dotenv"; 
+import dotenv from "dotenv";
 dotenv.config();
 import {assert} from "./common";
 import {main as deploy} from "./deploy";

@@ -50,6 +50,16 @@ export function getMainAsset(config: NetworkConfig): {
   return {mainAsset: mainAsset, mainAssetConfig, mainAssetInfo};
 }
 
+// Resolves a RepayerRoutes entry's optional OnlySupportedToken into the address Repayer expects
+// (ZERO_ADDRESS meaning "no restriction").
+export function resolveOnlySupportedToken(tokens: NetworkConfig["Tokens"], token?: Token): string {
+  if (!token) {
+    return ZERO_ADDRESS;
+  }
+  assert(tokens[token], `Token ${token} is not found in the network config`);
+  return tokens[token].Address;
+}
+
 export async function resolveAddresses(input: any[]): Promise<any[]> {
   return await Promise.all(input.map(async (el) => {
     // Resolving all Addressable into string addresses or ids.
@@ -298,19 +308,11 @@ export async function addLocalPoolUSDC(
       }
     }
     assertAddress(pool, `${poolName} pool not found`);
-    let onlySupportedTokenAddress = ZERO_ADDRESS;
-    if (onlySupportedToken) {
-      assert(
-        config.Tokens[onlySupportedToken],
-        `Token ${onlySupportedToken} is not found in the network config`
-      );
-      onlySupportedTokenAddress = config.Tokens[onlySupportedToken]!.Address;
-    }
     routes.push({
       Pool: pool,
       Domain: network,
       Provider: Provider.LOCAL,
-      OnlySupportedToken: onlySupportedTokenAddress,
+      OnlySupportedToken: resolveOnlySupportedToken(config.Tokens, onlySupportedToken),
     });
   }
 }
@@ -324,20 +326,11 @@ export async function addLocalPoolProxy(
   onlySupportedToken?: Token,
 ): Promise<void> {
   if (condition) {
-    const pool = await resolveProxyXAddress(id);
-    let onlySupportedTokenAddress = ZERO_ADDRESS;
-    if (onlySupportedToken) {
-      assert(
-        config.Tokens[onlySupportedToken],
-        `Token ${onlySupportedToken} is not found in the network config`
-      );
-      onlySupportedTokenAddress = config.Tokens[onlySupportedToken].Address;
-    }
     routes.push({
-      Pool: pool,
+      Pool: await resolveProxyXAddress(id),
       Domain: network,
       Provider: Provider.LOCAL,
-      OnlySupportedToken: onlySupportedTokenAddress,
+      OnlySupportedToken: resolveOnlySupportedToken(config.Tokens, onlySupportedToken),
     });
   }
 }

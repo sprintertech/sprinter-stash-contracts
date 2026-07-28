@@ -71,7 +71,7 @@ describe("Rebalancer USDT0 (Arbitrum fork)", function () {
     )).data;
 
     const rebalancerProxy = (await deployX(
-      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyArbitrumUSDT0", {},
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyArbitrumUSDT0Rebalancer", {},
       rebalancerImpl, admin, rebalancerInit
     )) as TransparentUpgradeableProxy;
     const rebalancer = (await getContractAt("Rebalancer", rebalancerProxy, deployer)) as Rebalancer;

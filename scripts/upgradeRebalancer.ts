@@ -1,4 +1,4 @@
-import dotenv from "dotenv"; 
+import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {
@@ -30,7 +30,7 @@ export async function main() {
   }
 
   await logDeployers(false);
-  
+
   const {mainAsset, mainAssetInfo} = getMainAsset(config);
   const id = idWithMainAsset(mainAsset, "Rebalancer");
   console.log(`Upgrading ${id}`);

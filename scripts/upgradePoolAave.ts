@@ -1,4 +1,4 @@
-import dotenv from "dotenv"; 
+import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {
@@ -35,7 +35,7 @@ export async function main() {
   assert(mainAssetConfig.AavePool, "AavePool must be defined in config");
   const id = idWithMainAsset(mainAsset, "LiquidityPoolAave");
   console.log(`Upgrading ${id}`);
-  
+
   const poolAddress = await resolveProxyXAddress(id);
 
   const pool = (await getContractAt("LiquidityPoolAave", poolAddress)) as LiquidityPoolAave;

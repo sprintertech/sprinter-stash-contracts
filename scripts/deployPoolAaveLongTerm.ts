@@ -49,7 +49,7 @@ export async function main() {
   assertAddress(mainAssetConfig.AavePoolLongTerm.RepayCaller, "RepayCaller must be an address");
   id = idWithMainAsset(mainAsset, id);
   console.log(`Deploying ${id}`);
-  
+
   const rebalancer = await resolveProxyXAddress(idWithMainAsset(mainAsset, "Rebalancer"));
   console.log(`Rebalancer: ${rebalancer}`);
 

@@ -171,7 +171,7 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
   const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
   const {getNetworkConfig, addLocalPools, getMainAsset, idWithMainAsset} = await loadScriptHelpers();
   const {network, config} = await getNetworkConfig();
-  
+
   const [sender] = await hre.ethers.getSigners();
   const admin = await createSender(hre, sender);
   const {mainAsset, mainAssetConfig} = getMainAsset(config);
@@ -357,7 +357,7 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
   action: string,
 }, hre) => {
   const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
-  const {getNetworkConfig, addLocalPools} = await loadScriptHelpers();
+  const {getNetworkConfig, addLocalPools, resolveOnlySupportedToken} = await loadScriptHelpers();
   const {network, config} = await getNetworkConfig();
 
   const [sender] = await hre.ethers.getSigners();
@@ -379,14 +379,7 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
   const localConfig: {Pool: string, Domain: Network, Provider: Provider, OnlySupportedToken: string}[] = [];
   for (const [pool, domainProviders] of Object.entries(config.RepayerRoutes || {})) {
     const poolAddress = await resolveXAddress(pool, false);
-    let onlySupportedToken = ZERO_ADDRESS;
-    if (domainProviders.OnlySupportedToken) {
-      assert(
-        config.Tokens[domainProviders.OnlySupportedToken],
-        `Token ${domainProviders.OnlySupportedToken} is not found in the network config`
-      );
-      onlySupportedToken = config.Tokens[domainProviders.OnlySupportedToken]!.Address;
-    }
+    const onlySupportedToken = resolveOnlySupportedToken(config.Tokens, domainProviders.OnlySupportedToken);
     for (const [domain, providers] of Object.entries(domainProviders.Domains) as [Network, Provider[]][]) {
       for (const provider of providers) {
         localConfig.push({

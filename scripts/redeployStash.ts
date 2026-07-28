@@ -1,4 +1,4 @@
-import dotenv from "dotenv"; 
+import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {
@@ -25,9 +25,9 @@ export async function main() {
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
   }
-  
+
   await logDeployers();
-  
+
   const {mainAsset, mainAssetConfig} = getMainAsset(config);
   assert(mainAssetConfig.Hub, "Must be a network with a hub");
   assert(mainAssetConfig.Hub.Tiers, "Must be a network with liquidity mining tiers configured");

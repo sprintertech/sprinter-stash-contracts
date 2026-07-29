@@ -7,6 +7,7 @@ import {
   getVerifier, deployProxyX, getHardhatNetworkConfig, getNetworkConfig, percentsToBps,
   getProxyXAdmin, getInputOutputTokens, flattenInputOutputTokens,
   logDeployers, getMainAsset, idWithMainAsset, resolveOnlySupportedToken,
+  mineIfNeeded,
 } from "./helpers";
 import {
   assert, isSet, ProviderSolidity, DomainSolidity, DEFAULT_ADMIN_ROLE, ZERO_ADDRESS,
@@ -29,6 +30,7 @@ import {
 } from "../network.config";
 
 export async function main() {
+  await mineIfNeeded();
   const [deployer] = await hre.ethers.getSigners();
   const deployerWithNonce = new NonceManager(deployer);
 

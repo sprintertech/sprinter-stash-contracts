@@ -494,13 +494,6 @@ export const stageNetworkConfig: PartialNetworksConfig = {
           ],
         },
       },
-      [LiquidityPoolAaveUSDTProxy]: {
-        Domains: {
-          [Network.ARBITRUM_ONE]: [
-            Provider.USDT0,
-          ],
-        },
-      },
       [LiquidityPoolUSDTProxy]: {
         OnlySupportedToken: Token.USDT,
         Domains: {

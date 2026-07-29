@@ -215,3 +215,50 @@ RebalancerRoutes:
 │ 1       │ '0x756c4097F7f82A63ecd20f26EbF1edAd979A2178' │ 'STABLE'       │ 'USDT0'  │
 │ 2       │ '0x29Ded76318fb2d01644fc816D09D48dE8cb4739e' │ 'ARBITRUM_ONE' │ 'LOCAL'  │
 └─────────┴──────────────────────────────────────────────┴────────────────┴──────────┘
+
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Deployment ID: MVP
+Upgrade ID: MAIN_ASSET_USDT
+Upgrading Repayer
+Using config for: stage, ARBITRUM_ONE
+Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+New Repayer implementation deployed to 0xc75674Dc5350835Db4767e0c7DB65ccF70C80f25
+Sending Repayer upgrade transaction.
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0xc1f2d0a0f2a5f40ec469a7bf1430ed45e3700eff32c9ddf17cff890de2aebc8e
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0x3209604fa70608fe7df947c5467b850fb9c5156bdb3ef26d7b6728d56fd39497
+0x3209604fa70608fe7df947c5467b850fb9c5156bdb3ef26d7b6728d56fd39497
+Repayer upgraded.
+
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Deployment ID: MVP
+Upgrade ID: MAIN_ASSET_USDT
+Using config for: stage, ARBITRUM_ONE
+Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+Using main asset: USDC
+Upgrading Rebalancer
+New Rebalancer implementation deployed to 0x18Ba384b66849d34915658E6DABF3AAf873162d4
+Sending Rebalancer upgrade transaction.
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0x6d6e5b7d8ad15bd9addd0617ebbb43a11c297f5ec6832bb082221c44b1a82dae
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0x7e6d749ba329d5eb2993ce5bb99a2e2b80872deda1b6922b936dcce4ae08ba81
+0x7e6d749ba329d5eb2993ce5bb99a2e2b80872deda1b6922b936dcce4ae08ba81
+Rebalancer upgraded.
+
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Deployment ID: MVP
+Upgrade ID: MAIN_ASSET_USDT
+Using config for: stage, ARBITRUM_ONE
+Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+Using main asset: USDT
+Upgrading RebalancerUSDT
+New Rebalancer implementation deployed to 0x57412087bF4Ea0b46562c05C2dc8380FDF336a9d
+Sending Rebalancer upgrade transaction.
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0x24f98845636bf45728916871465cb848092ca8542ad7ad0e12dd978e68288c5b
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0xa84bca65deb327e8a01a8c7f11ff12eeb03d88f9a8b2019e85d9885df71d1b07
+0xa84bca65deb327e8a01a8c7f11ff12eeb03d88f9a8b2019e85d9885df71d1b07
+Rebalancer upgraded.

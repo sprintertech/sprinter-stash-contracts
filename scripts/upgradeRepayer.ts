@@ -2,7 +2,9 @@ import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {isAddress} from "ethers";
-import {getVerifier, upgradeProxyX, getHardhatNetworkConfig, getNetworkConfig, logDeployers} from "./helpers";
+import {
+  getVerifier, upgradeProxyX, getHardhatNetworkConfig, getNetworkConfig, logDeployers, mineIfNeeded,
+} from "./helpers";
 import {createSender} from "./safe";
 import {resolveProxyXAddress} from "../test/helpers";
 import {isSet, assert, DomainSolidity, ZERO_ADDRESS, assertAddress} from "./common";
@@ -10,6 +12,7 @@ import {Repayer} from "../typechain-types";
 import {Network, NetworkConfig} from "../network.config";
 
 export async function main() {
+  await mineIfNeeded();
   const [deployer] = await hre.ethers.getSigners();
   const sender = await createSender(hre, deployer);
 

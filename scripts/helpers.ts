@@ -32,6 +32,7 @@ import {
   LiquidityPoolStablecoinId,
   ERC4626AdapterId,
 } from "../network.config";
+import {mine} from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
 // The token that Liquidity Pools/Hub/Rebalancer are denominated in for this deployment,
 // e.g. "USDC" or "USDT". Set via the MAIN_ASSET env variable.
@@ -342,10 +343,10 @@ export async function addLocalPools(
   routes: {Pool: string, Domain: Network, Provider: Provider, OnlySupportedToken?: string}[],
   isRebalancer: boolean = true,
 ): Promise<void> {
-  const {mainAsset} = getMainAsset(config);
   let mainAssets = Object.entries(config.MainAssets) as [Token, MainAssetConfig][];
   // If isRebalancer only add mainAsset pools.
   if (isRebalancer) {
+    const {mainAsset} = getMainAsset(config);
     mainAssets = mainAssets.filter(([token]) => token === mainAsset);
   }
   // Otherwise local pools for all main assets.
@@ -613,4 +614,12 @@ export function idWithMainAsset(mainAsset: Token, id: string): string {
     }
   }
   return id + mainAsset;
+}
+
+// Mining a block before doing any calls (eth_call) fixes the issue:
+// https://github.com/NomicFoundation/edr/issues/1214
+export async function mineIfNeeded() {
+  if (hre.network.name === "hardhat") {
+    await mine();
+  }
 }

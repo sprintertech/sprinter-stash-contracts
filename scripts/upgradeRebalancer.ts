@@ -5,6 +5,7 @@ import {
   getVerifier, upgradeProxyX, getHardhatNetworkConfig, getNetworkConfig, logDeployers,
   getMainAsset,
   idWithMainAsset,
+  mineIfNeeded,
 } from "./helpers";
 import {createSender} from "./safe";
 import {getDeployProxyXAddress} from "../test/helpers";
@@ -13,6 +14,7 @@ import {Rebalancer} from "../typechain-types";
 import {Network, NetworkConfig} from "../network.config";
 
 export async function main() {
+  await mineIfNeeded();
   const [deployer] = await hre.ethers.getSigners();
   const sender = await createSender(hre, deployer);
 

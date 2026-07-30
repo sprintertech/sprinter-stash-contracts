@@ -64,6 +64,14 @@ Make sure to save the output of the deployment. You can use those later in the `
 
 You can optionally set VERIFY to `true` in order to publish the source code to Etherscan after deployment.
 
+### Peculiar chains deployment
+
+*Stable* chain dry run relies on a virtual RPC url, then one could be provided by Tenderly, as it can properly fork Stable.
+You will need to create that virtual environment then set the url to VIRTUAL_STABLE_RPC to make dry command work.
+
+*Tempo* chain dry run relies on the different DEPLOY_ID (you have to change it for each dry run of *new* deployment). It
+sends actual transactions to the real chain, just with the different DEPLOY_ID to not collide addresses.
+
 ### Deployed contract addresses
 
 [YAML Stage](deployments/deployments.staging.yml)

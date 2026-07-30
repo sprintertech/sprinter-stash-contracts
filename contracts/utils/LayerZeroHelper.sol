@@ -35,6 +35,12 @@ abstract contract LayerZeroHelper is AdapterHelper {
         } else
         if (destinationDomain == Domain.GNOSIS_CHAIN) {
             return 30145;
+        } else
+        if (destinationDomain == Domain.TEMPO) {
+            return 30410;
+        } else
+        if (destinationDomain == Domain.STABLE) {
+            return 30396;
         } else {
             revert UnsupportedDomain();
         }

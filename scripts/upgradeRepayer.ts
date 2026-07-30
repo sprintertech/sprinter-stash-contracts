@@ -1,15 +1,18 @@
-import dotenv from "dotenv"; 
+import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {isAddress} from "ethers";
-import {getVerifier, upgradeProxyX, getHardhatNetworkConfig, getNetworkConfig, logDeployers} from "./helpers";
+import {
+  getVerifier, upgradeProxyX, getHardhatNetworkConfig, getNetworkConfig, logDeployers, mineIfNeeded,
+} from "./helpers";
 import {createSender} from "./safe";
-import {getDeployProxyXAddress} from "../test/helpers";
-import {isSet, assert, DomainSolidity, ZERO_ADDRESS} from "./common";
+import {resolveProxyXAddress} from "../test/helpers";
+import {isSet, assert, DomainSolidity, ZERO_ADDRESS, assertAddress} from "./common";
 import {Repayer} from "../typechain-types";
 import {Network, NetworkConfig} from "../network.config";
 
 export async function main() {
+  await mineIfNeeded();
   const [deployer] = await hre.ethers.getSigners();
   const sender = await createSender(hre, deployer);
 
@@ -29,7 +32,11 @@ export async function main() {
 
   await logDeployers(false);
 
-  assert(isAddress(config.Tokens.USDC.Address), "USDC must be an address");
+  let usdcAddress = ZERO_ADDRESS;
+  if (config.Tokens.USDC) {
+    usdcAddress = config.Tokens.USDC.Address;
+    assertAddress(usdcAddress, "USDC must be an address");
+  }
   assert(isAddress(config.WrappedNativeToken), "WrappedNativeToken must be an address");
   if (!config.CCTPV2) {
     config.CCTPV2 = {
@@ -57,8 +64,9 @@ export async function main() {
   if (!config.GnosisUSDCTransmuter) config.GnosisUSDCTransmuter = ZERO_ADDRESS;
   if (!config.GnosisAMB) config.GnosisAMB = ZERO_ADDRESS;
   if (!config.USDT0OFT) config.USDT0OFT = ZERO_ADDRESS;
+  if (!config.USDT0FeeNativeToken) config.USDT0FeeNativeToken = ZERO_ADDRESS;
 
-  const repayerAddress = await getDeployProxyXAddress("Repayer");
+  const repayerAddress = await resolveProxyXAddress("Repayer");
   const repayerVersion = "Repayer";
 
   await upgradeProxyX<Repayer>(
@@ -68,7 +76,7 @@ export async function main() {
     sender,
     [
       DomainSolidity[network],
-      config.Tokens.USDC.Address,
+      usdcAddress,
       config.AcrossV3SpokePool,
       config.WrappedNativeToken,
       config.StargateTreasurer,
@@ -80,6 +88,7 @@ export async function main() {
       config.GnosisUSDCTransmuter,
       config.GnosisAMB,
       config.USDT0OFT,
+      config.USDT0FeeNativeToken,
       config.CCTPV2.TokenMessenger,
       config.CCTPV2.MessageTransmitter,
     ],

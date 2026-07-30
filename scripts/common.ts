@@ -83,6 +83,8 @@ export const DomainSolidity = {
   WORLD_CHAIN: 16n,
   INK: 17n,
   HYPER_EVM: 18n,
+  TEMPO: 19n,
+  STABLE: 20n,
 };
 
 export const SolidityDomain: { [n: number]: Network } = {
@@ -99,6 +101,8 @@ export const SolidityDomain: { [n: number]: Network } = {
   16: Network.WORLD_CHAIN,
   17: Network.INK,
   18: Network.HYPER_EVM,
+  19: Network.TEMPO,
+  20: Network.STABLE,
 };
 
 export const SolidityProvider: { [n: number]: Provider } = {

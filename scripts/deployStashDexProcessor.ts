@@ -26,7 +26,7 @@ export async function main() {
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
   }
-  
+
   await logDeployers();
 
   assert(isSet(process.env.PROCESSOR_TOKEN), "PROCESSOR_TOKEN must be set");

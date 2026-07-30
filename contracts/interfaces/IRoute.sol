@@ -22,7 +22,9 @@ interface IRoute {
         GNOSIS_CHAIN,
         WORLD_CHAIN,
         INK,
-        HYPER_EVM
+        HYPER_EVM,
+        TEMPO,
+        STABLE
     }
 
     enum Provider {

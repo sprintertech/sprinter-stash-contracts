@@ -10,7 +10,7 @@ import {
   logDeployers,
 } from "./helpers";
 import {createSender} from "./safe";
-import {getDeployProxyXAddress, resolveProxyXAddress, getContractAt} from "../test/helpers";
+import {resolveProxyXAddress, getContractAt} from "../test/helpers";
 import {isSet, assert, assertAddress, ZERO_ADDRESS, retry} from "./common";
 import {Processor} from "../typechain-types";
 import {Network, NetworkConfig, Token} from "../network.config";
@@ -47,7 +47,7 @@ export async function main() {
   assertAddress(config.SignerAddress, "SignerAddress must be an address, used as OpsAdmin");
 
   const id = token === Token.USDC ? "Processor" : `Processor${token}`;
-  const processorAddress = await getDeployProxyXAddress(id);
+  const processorAddress = await resolveProxyXAddress(id);
   const repayerAddress = await resolveProxyXAddress("Repayer");
   const oracleAddress = ZERO_ADDRESS;
   console.log(`Repayer: ${repayerAddress}`);

@@ -25,4 +25,9 @@ interface IOFT {
 
     /// @notice Returns the address of the ERC-20 token locked/burned by this OFT.
     function token() external view returns (address);
+
+    function approvalRequired() external view returns (bool);
+
+    /// @notice Not on all OFT contracts.
+    function nativeToken() external view returns (address);
 }

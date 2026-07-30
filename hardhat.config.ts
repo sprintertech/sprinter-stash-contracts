@@ -2,14 +2,15 @@ import {HardhatUserConfig, task, types} from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import {
   prodNetworkConfig as networkConfig, Network, Provider, Token,
+  LiquidityPoolAaveId,
 } from "./network.config";
-import {TypedDataDomain, AbiCoder, toNumber, dataSlice, getAddress, parseEther} from "ethers";
+import {TypedDataDomain, AbiCoder, toNumber, dataSlice, getAddress, parseEther, isAddress} from "ethers";
 import {
   LiquidityPoolAave, PaxosOracle, Rebalancer, Repayer, StashDex,
 } from "./typechain-types";
 import {
   assert, isSet, ProviderSolidity, DomainSolidity, CCTPDomain, SolidityDomain, SolidityProvider,
-  DEFAULT_ADMIN_ROLE, assertAddress, addressToBytes32,
+  DEFAULT_ADMIN_ROLE, assertAddress, addressToBytes32, ZERO_ADDRESS,
   sameAddress,
 } from "./scripts/common";
 import "hardhat-ignore-warnings";
@@ -28,7 +29,9 @@ async function loadScriptHelpers() {
   return await import("./scripts/helpers");
 }
 
-function sortRoutes(routes: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens?: boolean}[]): void {
+function sortRoutes(
+  routes: {Pool: string, Domain: Network, Provider: Provider, OnlySupportedToken?: string}[]
+): void {
   routes.sort((a, b) => `${a.Pool}${a.Domain}${a.Provider}`.localeCompare(`${b.Pool}${b.Domain}${b.Provider}`));
 }
 
@@ -47,10 +50,16 @@ task("grant-role", "Grant some role on some AccessControl")
 });
 
 task("set-default-ltv", "Update Liquidity Pool config")
-.addOptionalParam("pool", "Liquidity Pool proxy address or id", "LiquidityPoolAaveUSDC", types.string)
+.addOptionalParam("pool", "Liquidity Pool proxy address or id", LiquidityPoolAaveId, types.string)
 .addOptionalParam("ltv", "New default LTV value, where 10000 is 100%", 2000n, types.bigint)
 .setAction(async ({pool, ltv}: {pool: string, ltv: bigint}, hre) => {
   const {resolveXAddress} = await loadTestHelpers();
+  const {getNetworkConfig, getMainAsset, idWithMainAsset} = await loadScriptHelpers();
+  if (!isAddress(pool)) {
+    const {config} = await getNetworkConfig();
+    const {mainAsset} = getMainAsset(config);
+    pool = idWithMainAsset(mainAsset, pool);
+  }
   const [sender] = await hre.ethers.getSigners();
   const admin = await createSender(hre, sender);
 
@@ -64,9 +73,15 @@ task("set-default-ltv", "Update Liquidity Pool config")
 task("set-token-ltvs", "Update Liquidity Pool config")
 .addParam("tokens", "Comma separated list of tokens to update LTV for")
 .addParam("ltvs", "Comma separated list of new LTV values where 10000 is 100%")
-.addOptionalParam("pool", "Liquidity Pool proxy address or id", "LiquidityPoolAaveUSDC", types.string)
+.addOptionalParam("pool", "Liquidity Pool proxy address or id", LiquidityPoolAaveId, types.string)
 .setAction(async (args: {tokens: string, ltvs: string, pool: string}, hre) => {
   const {resolveXAddress} = await loadTestHelpers();
+  const {getNetworkConfig, getMainAsset, idWithMainAsset} = await loadScriptHelpers();
+  if (!isAddress(args.pool)) {
+    const {config} = await getNetworkConfig();
+    const {mainAsset} = getMainAsset(config);
+    args.pool = idWithMainAsset(mainAsset, args.pool);
+  }
   const [sender] = await hre.ethers.getSigners();
   const admin = await createSender(hre, sender);
 
@@ -82,10 +97,16 @@ task("set-token-ltvs", "Update Liquidity Pool config")
 });
 
 task("set-min-health-factor", "Update Liquidity Pool config")
-.addOptionalParam("pool", "Liquidity Pool proxy address or id", "LiquidityPoolAaveUSDC", types.string)
+.addOptionalParam("pool", "Liquidity Pool proxy address or id", LiquidityPoolAaveId, types.string)
 .addOptionalParam("healthfactor", "New min health factor value, where 10000 is 1", 50000n, types.bigint)
 .setAction(async ({pool, healthfactor}: {pool: string, healthfactor: bigint}, hre) => {
   const {resolveXAddress} = await loadTestHelpers();
+  const {getNetworkConfig, getMainAsset, idWithMainAsset} = await loadScriptHelpers();
+  if (!isAddress(pool)) {
+    const {config} = await getNetworkConfig();
+    const {mainAsset} = getMainAsset(config);
+    pool = idWithMainAsset(mainAsset, pool);
+  }
   const [sender] = await hre.ethers.getSigners();
   const admin = await createSender(hre, sender);
 
@@ -110,7 +131,12 @@ task("set-routes-rebalancer", "Update Rebalancer config")
   allowed: boolean,
 }, hre) => {
   const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
-
+  const {getNetworkConfig, getMainAsset, idWithMainAsset} = await loadScriptHelpers();
+  if (!isAddress(args.rebalancer)) {
+    const {config} = await getNetworkConfig();
+    const {mainAsset} = getMainAsset(config);
+    args.rebalancer = idWithMainAsset(mainAsset, "Rebalancer");
+  }
   const [sender] = await hre.ethers.getSigners();
   const admin = await createSender(hre, sender);
 
@@ -143,12 +169,15 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
   action: string,
 }, hre) => {
   const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
-  const {getNetworkConfig, addLocalPools} = await loadScriptHelpers();
+  const {getNetworkConfig, addLocalPools, getMainAsset, idWithMainAsset} = await loadScriptHelpers();
   const {network, config} = await getNetworkConfig();
 
   const [sender] = await hre.ethers.getSigners();
   const admin = await createSender(hre, sender);
-
+  const {mainAsset, mainAssetConfig} = getMainAsset(config);
+  if (!isAddress(args.rebalancer)) {
+    args.rebalancer = idWithMainAsset(mainAsset, "Rebalancer");
+  }
   assert(["allow", "deny", "both"].includes(args.action), "Invalid action");
   const targetAddress = await resolveProxyXAddress(args.rebalancer);
   const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, admin)) as Rebalancer;
@@ -162,7 +191,7 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
     });
   }
   const localConfig: {Pool: string, Domain: Network, Provider: Provider}[] = [];
-  for (const [pool, domainProviders] of Object.entries(config.RebalancerRoutes || {})) {
+  for (const [pool, domainProviders] of Object.entries(mainAssetConfig?.RebalancerRoutes || {})) {
     for (const [domain, providers] of Object.entries(domainProviders) as [Network, Provider[]][]) {
       for (const provider of providers) {
         localConfig.push({
@@ -277,14 +306,17 @@ task("set-routes-repayer", "Update Repayer config")
 .addParam("pools", "Comma separated list of Liquidity Pool ids or addresses")
 .addParam("domains", "Comma separated list of domain names")
 .addParam("providers", "Comma separated list of provider names")
-.addParam("supportsalltokens", "Comma separated bool flags whether the pool supports all tokens")
+.addParam(
+  "onlysupportedtokens",
+  "Comma separated list of token ids or addresses each pool is restricted to (empty entry = accepts all tokens)"
+)
 .addOptionalParam("allowed", "Allowed or denied", true, types.boolean)
 .setAction(async (args: {
   repayer: string,
   pools: string,
   domains: string,
   providers: string,
-  supportsalltokens: string,
+  onlysupportedtokens: string,
   allowed: boolean,
 }, hre) => {
   const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
@@ -307,12 +339,14 @@ task("set-routes-repayer", "Update Repayer config")
     assert(Object.values(Provider).includes(el as Provider), `Invalid provider ${el}`);
     return ProviderSolidity[el as Provider];
   });
-  const supportsAllTokens = args.supportsalltokens?.split(",") || [];
-  const supportsAllTokensBool = supportsAllTokens.map(el => el.toString() === "true");
+  const targetOnlySupportedTokens = args.onlysupportedtokens?.split(",") || [];
+  const onlySupportedToken = await Promise.all(
+    targetOnlySupportedTokens.map(el => el.trim() ? resolveXAddress(el, false) : ZERO_ADDRESS)
+  );
 
-  await target.setRoute(pools, domainsSolidity, providersSolidity, supportsAllTokensBool, args.allowed);
+  await target.setRoute(pools, domainsSolidity, providersSolidity, onlySupportedToken, args.allowed);
   console.log(`Following routes are ${args.allowed ? "" : "dis"}allowed on ${targetAddress}.`);
-  console.table({domains, providers, allTokens: supportsAllTokensBool});
+  console.table({domains, providers, onlySupportedToken});
 });
 
 task("update-routes-repayer", "Update Repayer routes based on current network config")
@@ -323,7 +357,7 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
   action: string,
 }, hre) => {
   const {resolveProxyXAddress, resolveXAddress} = await loadTestHelpers();
-  const {getNetworkConfig, addLocalPools} = await loadScriptHelpers();
+  const {getNetworkConfig, addLocalPools, resolveOnlySupportedToken} = await loadScriptHelpers();
   const {network, config} = await getNetworkConfig();
 
   const [sender] = await hre.ethers.getSigners();
@@ -333,24 +367,26 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
   const targetAddress = await resolveProxyXAddress(args.repayer);
   const target = (await hre.ethers.getContractAt("Repayer", targetAddress, admin)) as Repayer;
   const onchainRoutes = await target.getAllRoutes();
-  const onchainConfig: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens: boolean}[] = [];
+  const onchainConfig: {Pool: string, Domain: Network, Provider: Provider, OnlySupportedToken: string}[] = [];
   for (let i = 0; i < onchainRoutes.pools.length; i++) {
     onchainConfig.push({
       Pool: getAddress(onchainRoutes.pools[i]),
       Domain: SolidityDomain[Number(onchainRoutes.domains[i])],
       Provider: SolidityProvider[Number(onchainRoutes.providers[i])],
-      SupportsAllTokens: onchainRoutes.poolSupportsAllTokens[i],
+      OnlySupportedToken: getAddress(onchainRoutes.poolOnlySupportsToken[i]),
     });
   }
-  const localConfig: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens: boolean}[] = [];
+  const localConfig: {Pool: string, Domain: Network, Provider: Provider, OnlySupportedToken: string}[] = [];
   for (const [pool, domainProviders] of Object.entries(config.RepayerRoutes || {})) {
+    const poolAddress = await resolveXAddress(pool, false);
+    const onlySupportedToken = resolveOnlySupportedToken(config.Tokens, domainProviders.OnlySupportedToken);
     for (const [domain, providers] of Object.entries(domainProviders.Domains) as [Network, Provider[]][]) {
       for (const provider of providers) {
         localConfig.push({
-          Pool: await resolveXAddress(pool, false),
+          Pool: poolAddress,
           Domain: domain,
           Provider: provider,
-          SupportsAllTokens: domainProviders.SupportsAllTokens,
+          OnlySupportedToken: getAddress(onlySupportedToken),
         });
       }
     }
@@ -368,31 +404,31 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
     el2.Pool === el.Pool &&
     el2.Domain === el.Domain &&
     el2.Provider === el.Provider &&
-    el2.SupportsAllTokens === el.SupportsAllTokens
+    el2.OnlySupportedToken === el.OnlySupportedToken
   ));
   const toDeny = onchainConfig.filter(el => !localConfig.some(el2 =>
     el2.Pool === el.Pool &&
     el2.Domain === el.Domain &&
     el2.Provider === el.Provider &&
-    el2.SupportsAllTokens === el.SupportsAllTokens
+    el2.OnlySupportedToken === el.OnlySupportedToken
   ));
 
   const hasRole = await target.hasRole(DEFAULT_ADMIN_ROLE, admin);
 
-  // Calling deny first so that allow overrides incorrect SupportsAllTokens flag.
+  // Calling deny first so that allow overrides an incorrect OnlySupportedToken.
   if (toDeny.length > 0) {
     const toDenyParams = toDeny.map(el => ({
       pools: el.Pool,
       domains: DomainSolidity[el.Domain],
       providers: ProviderSolidity[el.Provider],
-      supportsAllTokens: el.SupportsAllTokens,
+      onlySupportedToken: el.OnlySupportedToken,
     }));
     if (hasRole && (args.action === "deny" || args.action === "both")) {
       await (await target.setRoute(
         toDenyParams.map(el => el.pools),
         toDenyParams.map(el => el.domains),
         toDenyParams.map(el => el.providers),
-        toDenyParams.map(el => el.supportsAllTokens),
+        toDenyParams.map(el => el.onlySupportedToken),
         false
       )).wait();
       console.log(`Following routes are now denied on ${targetAddress}.`);
@@ -412,7 +448,7 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
         toDenyParams.map(el => el.pools),
         toDenyParams.map(el => el.domains),
         toDenyParams.map(el => el.providers),
-        toDenyParams.map(el => el.supportsAllTokens),
+        toDenyParams.map(el => el.onlySupportedToken),
         false
       );
       console.log(`Raw data: ${denyTx.data}`);
@@ -426,14 +462,14 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
       pools: el.Pool,
       domains: DomainSolidity[el.Domain],
       providers: ProviderSolidity[el.Provider],
-      supportsAllTokens: el.SupportsAllTokens,
+      onlySupportedToken: el.OnlySupportedToken,
     }));
     if (hasRole && (args.action === "allow" || args.action === "both")) {
       await (await target.setRoute(
         toAllowParams.map(el => el.pools),
         toAllowParams.map(el => el.domains),
         toAllowParams.map(el => el.providers),
-        toAllowParams.map(el => el.supportsAllTokens),
+        toAllowParams.map(el => el.onlySupportedToken),
         true
       )).wait();
       console.log(`Following routes are now allowed on ${targetAddress}.`);
@@ -453,7 +489,7 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
         toAllowParams.map(el => el.pools),
         toAllowParams.map(el => el.domains),
         toAllowParams.map(el => el.providers),
-        toAllowParams.map(el => el.supportsAllTokens),
+        toAllowParams.map(el => el.onlySupportedToken),
         true
       );
       console.log(`Raw data: ${allowTx.data}`);
@@ -889,7 +925,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
 // By default produces a new nonce every 10 seconds.
 .addOptionalParam("nonce", "Reuse protection nonce", BigInt(Date.now()) / 1000n / 10n, types.bigint)
 .addOptionalParam("deadline", "Expiry protection timestamp", 2000000000n, types.bigint)
-.addOptionalParam("pool", "Liquidity Pool address or id", "LiquidityPoolAaveUSDC", types.string)
+.addOptionalParam("pool", "Liquidity Pool address or id", LiquidityPoolAaveId, types.string)
 .setAction(async (args: {
   caller: string,
   token?: string,
@@ -901,7 +937,12 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
   pool: string,
 }, hre) => {
   const {resolveXAddress} = await loadTestHelpers();
-  const config = networkConfig[hre.network.name as Network];
+  const {getNetworkConfig, getMainAsset, idWithMainAsset} = await loadScriptHelpers();
+  const {config} = await getNetworkConfig();
+  const {mainAsset, mainAssetInfo} = getMainAsset(config);
+  if (!isAddress(args.pool)) {
+    args.pool = idWithMainAsset(mainAsset, args.pool);
+  }
 
   const [signer] = await hre.ethers.getSigners();
 
@@ -929,7 +970,7 @@ task("sign-borrow", "Sign a Liquidity Pool borrow request for testing purposes")
   };
 
   const token = await hre.ethers.getContractAt("IERC20", hre.ethers.ZeroAddress, signer);
-  const borrowToken = args.token || config.Tokens.USDC.Address;
+  const borrowToken = args.token || mainAssetInfo.Address;
   const amount = args.amount;
   const target = args.target || borrowToken;
   const data = args.data || (await token.transfer.populateTransaction(signer, amount)).data;
@@ -1214,6 +1255,16 @@ const config: HardhatUserConfig = {
       url: process.env.HYPER_EVM_RPC || "https://rpc.hyperliquid.xyz/evm",
       accounts,
     },
+    [Network.TEMPO]: {
+      chainId: networkConfig.TEMPO.ChainId,
+      url: process.env.TEMPO_RPC || "https://rpc.mainnet.tempo.xyz",
+      accounts,
+    },
+    [Network.STABLE]: {
+      chainId: networkConfig.STABLE.ChainId,
+      url: process.env[(isSet(process.env.VIRTUAL) ? "VIRTUAL_" : "") + "STABLE_RPC"],
+      accounts,
+    },
     hardhat: {
       chainId: isSet(process.env.DRY_RUN) || isSet(process.env.FORK_TEST)
         ? networkConfig[`${process.env.DRY_RUN || process.env.FORK_TEST}` as Network]!.ChainId
@@ -1298,6 +1349,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api.worldscan.org/api",
           browserURL: "https://worldscan.org"
+        },
+      },
+      {
+        network: "stable",
+        chainId: networkConfig.STABLE.ChainId,
+        urls: {
+          apiURL: "https://api.stablescan.xyz/api",
+          browserURL: "https://stablescan.xyz"
         },
       },
     ],

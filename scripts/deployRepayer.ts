@@ -1,11 +1,11 @@
-import dotenv from "dotenv"; 
+import dotenv from "dotenv";
 dotenv.config();
 import hre from "hardhat";
 import {NonceManager} from "ethers";
 import {
   getVerifier, deployProxyX, getHardhatNetworkConfig, getNetworkConfig, addLocalPools,
   getInputOutputTokens, flattenInputOutputTokens,
-  logDeployers,
+  logDeployers, resolveOnlySupportedToken,
 } from "./helpers";
 import {resolveXAddress} from "../test/helpers";
 import {
@@ -35,13 +35,17 @@ export async function main() {
   }
 
   await logDeployers();
-  assertAddress(config.Tokens.USDC.Address, "USDC must be an address");
+  let usdcAddress = ZERO_ADDRESS;
+  if (config.Tokens.USDC) {
+    usdcAddress = config.Tokens.USDC.Address;
+    assertAddress(usdcAddress, "USDC must be an address");
+  }
   assertAddress(config.Admin, "Admin must be an address");
   assertAddress(config.RepayerCaller, "RepayerCaller must be an address");
   assertAddress(config.SetInputOutputTokens, "SetInputOutputTokens must be an address");
   assertAddress(config.WrappedNativeToken, "WrappedNativeToken must be an address");
 
-  const repayerRoutes: {Pool: string, Domain: Network, Provider: Provider, SupportsAllTokens: boolean}[] = [];
+  const repayerRoutes: {Pool: string, Domain: Network, Provider: Provider, OnlySupportedToken: string}[] = [];
   for (const [pool, domainProviders] of Object.entries(config.RepayerRoutes || {})) {
     for (const [domain, providers] of Object.entries(domainProviders.Domains) as [Network, Provider[]][]) {
       for (const provider of providers) {
@@ -49,7 +53,7 @@ export async function main() {
           Pool: await resolveXAddress(pool, false),
           Domain: domain,
           Provider: provider,
-          SupportsAllTokens: domainProviders.SupportsAllTokens,
+          OnlySupportedToken: resolveOnlySupportedToken(config.Tokens, domainProviders.OnlySupportedToken),
         });
       }
     }
@@ -82,6 +86,7 @@ export async function main() {
   if (!config.GnosisUSDCTransmuter) config.GnosisUSDCTransmuter = ZERO_ADDRESS;
   if (!config.GnosisAMB) config.GnosisAMB = ZERO_ADDRESS;
   if (!config.USDT0OFT) config.USDT0OFT = ZERO_ADDRESS;
+  if (!config.USDT0FeeNativeToken) config.USDT0FeeNativeToken = ZERO_ADDRESS;
 
   const inputOutputTokens = getInputOutputTokens(network, config);
   const repayerVersion = "Repayer";
@@ -93,7 +98,7 @@ export async function main() {
     config.Admin,
     [
       DomainSolidity[network],
-      config.Tokens.USDC.Address,
+      usdcAddress,
       config.AcrossV3SpokePool,
       config.WrappedNativeToken,
       config.StargateTreasurer,
@@ -105,6 +110,7 @@ export async function main() {
       config.GnosisUSDCTransmuter,
       config.GnosisAMB,
       config.USDT0OFT,
+      config.USDT0FeeNativeToken,
       config.CCTPV2.TokenMessenger,
       config.CCTPV2.MessageTransmitter,
     ],
@@ -115,7 +121,7 @@ export async function main() {
       repayerRoutes.map(el => el.Pool),
       repayerRoutes.map(el => DomainSolidity[el.Domain]),
       repayerRoutes.map(el => ProviderSolidity[el.Provider]),
-      repayerRoutes.map(el => el.SupportsAllTokens),
+      repayerRoutes.map(el => el.OnlySupportedToken),
       inputOutputTokens,
     ],
     id,

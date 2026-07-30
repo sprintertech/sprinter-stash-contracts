@@ -1,23 +1,27 @@
 import {
-  loadFixture, setBalance, setCode
+  loadFixture, setBalance, setCode,
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {expect} from "chai";
 import hre from "hardhat";
+import {AbiCoder} from "ethers";
 import {
   getCreateAddress, getContractAt, deploy, deployX,
 } from "../../test/helpers";
 import {
   ProviderSolidity as Provider, DomainSolidity as Domain,
   DEFAULT_ADMIN_ROLE, assertAddress, ZERO_ADDRESS,
+  addressToBytes32,
 } from "../../scripts/common";
 import {
   TransparentUpgradeableProxy, ProxyAdmin,
   TestLiquidityPool, Repayer,
 } from "../../typechain-types";
 import {prodNetworkConfig as networkConfig} from "../../network.config";
+import {mineIfNeeded} from "../../scripts/helpers";
 
-describe.skip("Repayer USDT0 (Polygon fork), https://github.com/NomicFoundation/edr/issues/1214", function () {
+describe("Repayer USDT0 (Polygon fork)", function () {
   const deployAll = async () => {
+    await mineIfNeeded();
     const [deployer, admin, repayUser, setTokensUser] = await hre.ethers.getSigners();
     await setCode(repayUser.address, "0x00");
 
@@ -57,7 +61,7 @@ describe.skip("Repayer USDT0 (Polygon fork), https://github.com/NomicFoundation/
         ZERO_ADDRESS,
         ZERO_ADDRESS,
         ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
-        forkNetworkConfig.USDT0OFT, ZERO_ADDRESS, ZERO_ADDRESS,
+        forkNetworkConfig.USDT0OFT, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Repayer;
 
@@ -68,7 +72,7 @@ describe.skip("Repayer USDT0 (Polygon fork), https://github.com/NomicFoundation/
       [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.USDT0],
-      [true],
+      [ZERO_ADDRESS],
       [],
     )).data;
 
@@ -85,33 +89,44 @@ describe.skip("Repayer USDT0 (Polygon fork), https://github.com/NomicFoundation/
     return {
       deployer, admin, repayUser, usdc, usdt0Token, setTokensUser, weth,
       USDT0_DEC, liquidityPool, repayer, repayerProxy, repayerAdmin,
-      REPAYER_ROLE, DEFAULT_ADMIN_ROLE,
+      REPAYER_ROLE, DEFAULT_ADMIN_ROLE, usdt0Oft,
     };
   };
 
   it("Should allow repayer to bridge USDT0 from Polygon to Ethereum via USDT0 OFT on fork", async function () {
-    const {repayer, USDT0_DEC, usdt0Token, repayUser, liquidityPool} = await loadFixture(deployAll);
+    this.timeout(80000);
+    const {repayer, USDT0_DEC, usdt0Token, repayUser, liquidityPool, usdt0Oft} = await loadFixture(deployAll);
 
     assertAddress(
       process.env.USDT0_OWNER_POLYGON_ADDRESS,
       "Env variables not configured (USDT0_OWNER_POLYGON_ADDRESS missing)"
     );
     const usdt0Owner = await hre.ethers.getImpersonatedSigner(process.env.USDT0_OWNER_POLYGON_ADDRESS!);
-    await setBalance(process.env.USDT0_OWNER_POLYGON_ADDRESS!, 10n ** 18n);
+    await setBalance(process.env.USDT0_OWNER_POLYGON_ADDRESS!, 1000n * 10n ** 18n);
 
     const amount = 4n * USDT0_DEC;
     await usdt0Token.connect(usdt0Owner).transfer(repayer, 10n * USDT0_DEC);
 
     const balanceBefore = await usdt0Token.balanceOf(repayer);
 
+    const fee = (await usdt0Oft.quoteSend({
+      dstEid: 30101,
+      to: addressToBytes32(liquidityPool.target),
+      amountLD: amount,
+      minAmountLD: amount,
+      extraOptions: "0x",
+      composeMsg: "0x",
+      oftCmd: "0x",
+    }, false)).nativeFee;
+    const extraData = AbiCoder.defaultAbiCoder().encode(["uint256"], [amount]);
     const tx = repayer.connect(repayUser).initiateRepay(
       usdt0Token,
       amount,
       liquidityPool,
       Domain.ETHEREUM,
       Provider.USDT0,
-      "0x",
-      {value: hre.ethers.parseEther("1")}
+      extraData,
+      {value: fee}
     );
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")

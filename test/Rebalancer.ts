@@ -60,7 +60,7 @@ describe("Rebalancer", function () {
 
     const rebalancerImpl = (
       await deployX("Rebalancer", deployer, "Rebalancer", {},
-        Domain.BASE, usdc, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+        Domain.BASE, usdc, usdc, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
         cctpV2TokenMessenger, cctpV2MessageTransmitter,
       )
     ) as Rebalancer;
@@ -376,7 +376,7 @@ describe("Rebalancer", function () {
 
     const rebalancerImpl = (
       await deployX("Rebalancer", deployer, "RebalancerNoCCTPV2", {},
-        Domain.BASE, usdc, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+        Domain.BASE, usdc, usdc, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
         ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Rebalancer;
@@ -404,7 +404,7 @@ describe("Rebalancer", function () {
 
     const rebalancerImpl = (
       await deployX("Rebalancer", deployer, "RebalancerNoCCTPV2Transmitter", {},
-        Domain.BASE, usdc, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+        Domain.BASE, usdc, usdc, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
         cctpV2TokenMessenger, ZERO_ADDRESS,
       )
     ) as Rebalancer;
@@ -456,6 +456,22 @@ describe("Rebalancer", function () {
     expect(await usdc.balanceOf(liquidityPool)).to.equal(6n * USDC);
     expect(await usdc.balanceOf(liquidityPool2)).to.equal(4n * USDC);
     expect(await usdc.balanceOf(rebalancer)).to.equal(0n);
+  });
+
+  it("Should revert local rebalance if native currency is sent along", async function () {
+    const {rebalancer, usdc, USDC, rebalanceUser, liquidityPool, liquidityPool2
+    } = await loadFixture(deployAll);
+
+    await usdc.transfer(liquidityPool, 10n * USDC);
+    await expect(rebalancer.connect(rebalanceUser).initiateRebalance(
+      4n * USDC,
+      liquidityPool,
+      liquidityPool2,
+      Domain.BASE,
+      Provider.LOCAL,
+      "0x",
+      {value: 1n}
+    )).to.be.revertedWithCustomError(rebalancer, "NotPayable()");
   });
 
   it("Should not allow rebalancer to initiate rebalance on invalid route", async function () {
@@ -606,7 +622,7 @@ describe("Rebalancer", function () {
 
     const rebalancerImpl = (
       await deployX("Rebalancer", deployer, "RebalancerGnosis", {},
-        Domain.GNOSIS_CHAIN, usdc2, gnosisOmnibridge, usdc, usdceSwap, ZERO_ADDRESS,
+        Domain.GNOSIS_CHAIN, usdc2, usdc2, gnosisOmnibridge, usdc, usdceSwap, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
         ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Rebalancer;
@@ -676,7 +692,7 @@ describe("Rebalancer", function () {
 
     const rebalancerImpl = (
       await deployX("Rebalancer", deployer, "RebalancerGnosis2", {},
-        Domain.GNOSIS_CHAIN, usdc2, gnosisOmnibridge, usdc, usdceSwap, ZERO_ADDRESS,
+        Domain.GNOSIS_CHAIN, usdc2, usdc2, gnosisOmnibridge, usdc, usdceSwap, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
         ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Rebalancer;
@@ -740,7 +756,7 @@ describe("Rebalancer", function () {
 
     const rebalancerImpl = (
       await deployX("Rebalancer", deployer, "RebalancerGnosis3", {},
-        Domain.GNOSIS_CHAIN, usdc2, gnosisOmnibridge, usdc, usdceSwap, ZERO_ADDRESS,
+        Domain.GNOSIS_CHAIN, usdc2, usdc2, gnosisOmnibridge, usdc, usdceSwap, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
         ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Rebalancer;
@@ -803,7 +819,7 @@ describe("Rebalancer", function () {
 
     const rebalancerImpl = (
       await deployX("Rebalancer", deployer, "RebalancerGnosis4", {},
-        Domain.GNOSIS_CHAIN, usdc2, gnosisOmnibridge, usdc, usdceSwap, ZERO_ADDRESS,
+        Domain.GNOSIS_CHAIN, usdc2, usdc2, gnosisOmnibridge, usdc, usdceSwap, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
         ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Rebalancer;
@@ -835,7 +851,8 @@ describe("Rebalancer", function () {
 
     const rebalancerImpl = (
       await deployX("Rebalancer", deployer, "Rebalancer2", {},
-        Domain.ETHEREUM, usdc, ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb,
+        Domain.ETHEREUM, usdc, usdc, ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb, ZERO_ADDRESS,
+        ZERO_ADDRESS,
         ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Rebalancer;
@@ -881,7 +898,8 @@ describe("Rebalancer", function () {
 
     const rebalancerImpl = (
       await deployX("Rebalancer", deployer, "Rebalancer2", {},
-        Domain.ETHEREUM, usdc, ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb,
+        Domain.ETHEREUM, usdc, usdc, ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb, ZERO_ADDRESS,
+        ZERO_ADDRESS,
         ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Rebalancer;
@@ -938,7 +956,8 @@ describe("Rebalancer", function () {
 
     const rebalancerImpl = (
       await deployX("Rebalancer", deployer, "Rebalancer2", {},
-        Domain.ETHEREUM, usdc, ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb,
+        Domain.ETHEREUM, usdc, usdc, ethereumOmnibridge, ZERO_ADDRESS, ZERO_ADDRESS, ethereumAmb, ZERO_ADDRESS,
+        ZERO_ADDRESS,
         ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Rebalancer;

@@ -3,6 +3,7 @@ import {
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {expect} from "chai";
 import hre from "hardhat";
+import {AbiCoder} from "ethers";
 import {
   getCreateAddress, getContractAt, deploy, deployX,
 } from "../../test/helpers";
@@ -15,9 +16,11 @@ import {
   TestLiquidityPool, Repayer,
 } from "../../typechain-types";
 import {prodNetworkConfig as networkConfig} from "../../network.config";
+import {mineIfNeeded} from "../../scripts/helpers";
 
-describe.skip("Repayer USDT0 (Arbitrum fork), https://github.com/NomicFoundation/edr/issues/1214", function () {
+describe("Repayer USDT0 (Arbitrum fork)", function () {
   const deployAll = async () => {
+    await mineIfNeeded();
     const [deployer, admin, repayUser, setTokensUser] = await hre.ethers.getSigners();
     await setCode(repayUser.address, "0x00");
 
@@ -57,7 +60,7 @@ describe.skip("Repayer USDT0 (Arbitrum fork), https://github.com/NomicFoundation
         ZERO_ADDRESS,
         ZERO_ADDRESS,
         ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
-        forkNetworkConfig.USDT0OFT, ZERO_ADDRESS, ZERO_ADDRESS,
+        forkNetworkConfig.USDT0OFT, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
       )
     ) as Repayer;
 
@@ -68,12 +71,12 @@ describe.skip("Repayer USDT0 (Arbitrum fork), https://github.com/NomicFoundation
       [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.USDT0],
-      [true],
+      [ZERO_ADDRESS],
       [],
     )).data;
 
     const repayerProxy = (await deployX(
-      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyArbitrumUSDT0", {},
+      "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyArbitrumUSDT0Repayer", {},
       repayerImpl, admin, repayerInit
     )) as TransparentUpgradeableProxy;
     const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
@@ -90,6 +93,7 @@ describe.skip("Repayer USDT0 (Arbitrum fork), https://github.com/NomicFoundation
   };
 
   it("Should allow repayer to bridge USDT0 from Arbitrum to Ethereum via USDT0 OFT on fork", async function () {
+    this.timeout(80000);
     const {repayer, USDT0_DEC, usdt0Token, repayUser, liquidityPool} = await loadFixture(deployAll);
 
     assertAddress(
@@ -104,13 +108,14 @@ describe.skip("Repayer USDT0 (Arbitrum fork), https://github.com/NomicFoundation
 
     const balanceBefore = await usdt0Token.balanceOf(repayer);
 
+    const extraData = AbiCoder.defaultAbiCoder().encode(["uint256"], [amount]);
     const tx = repayer.connect(repayUser).initiateRepay(
       usdt0Token,
       amount,
       liquidityPool,
       Domain.ETHEREUM,
       Provider.USDT0,
-      "0x",
+      extraData,
       {value: hre.ethers.parseEther("0.01")}
     );
     await expect(tx)

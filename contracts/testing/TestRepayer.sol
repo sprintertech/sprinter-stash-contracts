@@ -6,7 +6,7 @@ import {Repayer, IERC20} from "../Repayer.sol";
 contract TestRepayer is Repayer {
     constructor(
         Domain localDomain,
-        IERC20 assets,
+        IERC20 usdc,
         address acrossSpokePool,
         address wrappedNativeToken,
         address stargateTreasurer,
@@ -18,11 +18,12 @@ contract TestRepayer is Repayer {
         address gnosisUsdceSwap,
         address ethereumAmb,
         address usdt0Oft,
+        address usdt0FeeNativeToken,
         address cctpV2TokenMessenger,
         address cctpV2MessageTransmitter
     ) Repayer(
         localDomain,
-        assets,
+        usdc,
         acrossSpokePool,
         wrappedNativeToken,
         stargateTreasurer,
@@ -34,6 +35,7 @@ contract TestRepayer is Repayer {
         gnosisUsdceSwap,
         ethereumAmb,
         usdt0Oft,
+        usdt0FeeNativeToken,
         cctpV2TokenMessenger,
         cctpV2MessageTransmitter
     ) {}

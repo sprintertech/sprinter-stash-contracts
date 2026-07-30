@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 /**
  * @dev Struct representing token parameters for the OFT send() operation.
  */
@@ -32,4 +34,9 @@ struct OFTReceipt {
     uint256 amountSentLD; // Amount of tokens ACTUALLY debited from the sender in local decimals.
     // @dev In non-default implementations, the amountReceivedLD COULD differ from this value.
     uint256 amountReceivedLD; // Amount of tokens to be received on the remote side.
+}
+
+interface ILZEndpointDollar is IERC20 {
+    function wrap(address token, address to, uint256 amount) external;
+    function unwrap(address token, address to, uint256 amount) external;
 }

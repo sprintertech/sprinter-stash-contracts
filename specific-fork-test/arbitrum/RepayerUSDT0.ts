@@ -1,5 +1,5 @@
 import {
-  loadFixture, mine, setBalance, setCode
+  loadFixture, setBalance, setCode
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {expect} from "chai";
 import hre from "hardhat";
@@ -16,12 +16,11 @@ import {
   TestLiquidityPool, Repayer,
 } from "../../typechain-types";
 import {prodNetworkConfig as networkConfig} from "../../network.config";
+import {mineIfNeeded} from "../../scripts/helpers";
 
 describe("Repayer USDT0 (Arbitrum fork)", function () {
   const deployAll = async () => {
-    // Mining a block before doing any calls (eth_call) fixes the issue:
-    // https://github.com/NomicFoundation/edr/issues/1214
-    await mine();
+    await mineIfNeeded();
     const [deployer, admin, repayUser, setTokensUser] = await hre.ethers.getSigners();
     await setCode(repayUser.address, "0x00");
 

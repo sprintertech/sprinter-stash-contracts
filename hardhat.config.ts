@@ -1351,6 +1351,14 @@ const config: HardhatUserConfig = {
           browserURL: "https://worldscan.org"
         },
       },
+      {
+        network: "stable",
+        chainId: networkConfig.STABLE.ChainId,
+        urls: {
+          apiURL: "https://api.stablescan.xyz/api",
+          browserURL: "https://stablescan.xyz"
+        },
+      },
     ],
   },
   warnings: {

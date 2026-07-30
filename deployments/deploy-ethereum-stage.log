@@ -712,3 +712,34 @@ Threshold met (1/1). Executing on-chain...
 Executed. On-chain TX hash: 0xf835ec6638f995b803827e8ab4da3158f2be417947754e2dcbe1c079ed7ef3ee
 0xf835ec6638f995b803827e8ab4da3158f2be417947754e2dcbe1c079ed7ef3ee
 StashDex upgraded.
+
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Deployment ID: MVP
+Upgrade ID: MAIN_ASSET_USDT
+Upgrading Repayer
+Using config for: stage, ETHEREUM
+Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+New Repayer implementation deployed to 0xc75674Dc5350835Db4767e0c7DB65ccF70C80f25
+Sending Repayer upgrade transaction.
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0xebcd79fcfb94560142cbf419a3522b8c7e10ac7eabf24414d62ef9ae09f0e4af
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0x537e46b75b7f9cce4a071bc0d7bff40a769b4a66118efdfefc9b772cdd2647f5
+0x537e46b75b7f9cce4a071bc0d7bff40a769b4a66118efdfefc9b772cdd2647f5
+Repayer upgraded.
+
+Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414: verified 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE as owner.
+Deployment ID: MVP
+Upgrade ID: MAIN_ASSET_USDT
+Using config for: stage, ETHEREUM
+Deployer        : 0xdeC18ca09f163C841Fc3d44237bfD0EBbC8414dE
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+Using main asset: USDC
+Upgrading Rebalancer
+New Rebalancer implementation deployed to 0x18Ba384b66849d34915658E6DABF3AAf873162d4
+Sending Rebalancer upgrade transaction.
+Transaction proposed to Safe 0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414. Safe TX hash: 0x9565bcb5ef1d0ffe8ca831d25bcb2e2665f8d38b6dcf004cb0010e713dcb0ce3
+Threshold met (1/1). Executing on-chain...
+Executed. On-chain TX hash: 0xe7e201ecb21428e0d978c76c833bc6ff2b04ddf687393f1c5f59f87d76f657fd
+0xe7e201ecb21428e0d978c76c833bc6ff2b04ddf687393f1c5f59f87d76f657fd
+Rebalancer upgraded.

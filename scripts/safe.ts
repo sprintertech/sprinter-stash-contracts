@@ -24,6 +24,10 @@ function waitForKeypress(prompt: string): Promise<void> {
   });
 }
 
+function stringifyUnsanitized(value: any): string {
+  return JSON.stringify(value, (_, value) => typeof value === "bigint" ? Number(value) : value);
+}
+
 export class SafeSigner extends AbstractSigner {
   private readonly protocolKit: Safe;
   private readonly apiKit: SafeApiKit;
@@ -166,7 +170,20 @@ export class SafeSigner extends AbstractSigner {
 
     if (confirmations >= this.threshold) {
       console.log(`Threshold met (${confirmations}/${this.threshold}). Executing on-chain...`);
-      const execResult = await retry(() => this.protocolKit.executeTransaction(signedTx), 3000);
+      const execResult = await retry(async () => {
+        try {
+          return await this.protocolKit.executeTransaction(signedTx);
+        } catch (error) {
+          if (stringifyUnsanitized(error).includes("0x03c85973")) {
+            console.log("TimelockGuard_TransactionNotScheduled");
+            console.log("Schedule the transaction, wait for the delay to pass.");
+            await waitForKeypress("Press any key when the delay has passed...");
+            return await this.protocolKit.executeTransaction(signedTx);
+          }
+          console.error(`Failed to execute transaction: ${error}`);
+          throw error;
+        }
+      }, 3000);
       const txHash = execResult.hash;
       console.log(`Executed. On-chain TX hash: ${txHash}`);
       const response = await retry(async () => {

@@ -494,13 +494,6 @@ export const stageNetworkConfig: PartialNetworksConfig = {
           ],
         },
       },
-      [LiquidityPoolAaveUSDTProxy]: {
-        Domains: {
-          [Network.ARBITRUM_ONE]: [
-            Provider.USDT0,
-          ],
-        },
-      },
       [LiquidityPoolUSDTProxy]: {
         OnlySupportedToken: Token.USDT,
         Domains: {
@@ -655,7 +648,6 @@ export const stageNetworkConfig: PartialNetworksConfig = {
           [Network.POLYGON_MAINNET]: [
             Provider.ACROSS,
             Provider.STARGATE,
-            Provider.USDT0,
             Provider.CCTP_V2,
           ],
           [Network.GNOSIS_CHAIN]: [
@@ -1197,6 +1189,16 @@ export const stageNetworkConfig: PartialNetworksConfig = {
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
     RepayerRoutes: {
+      [LiquidityPoolAaveUSDCProxy]: {
+        Domains: {
+          [Network.ETHEREUM]: [Provider.USDT0],
+        },
+      },
+      [LiquidityPoolAaveUSDCV4]: {
+        Domains: {
+          [Network.POLYGON_MAINNET]: [Provider.USDT0],
+        },
+      },
       [LiquidityPoolAaveUSDTProxy]: {
         Domains: {
           [Network.ARBITRUM_ONE]: [
@@ -1244,6 +1246,16 @@ export const stageNetworkConfig: PartialNetworksConfig = {
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
     RepayerRoutes: {
+      [LiquidityPoolAaveUSDCProxy]: {
+        Domains: {
+          [Network.ETHEREUM]: [Provider.USDT0],
+        },
+      },
+      [LiquidityPoolAaveUSDCV4]: {
+        Domains: {
+          [Network.POLYGON_MAINNET]: [Provider.USDT0],
+        },
+      },
       [LiquidityPoolAaveUSDTProxy]: {
         Domains: {
           [Network.ARBITRUM_ONE]: [

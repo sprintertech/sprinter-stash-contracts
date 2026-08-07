@@ -17,7 +17,7 @@ import {
   TransparentUpgradeableProxy, ProxyAdmin,
   TestLiquidityPool, Repayer,
 } from "../../typechain-types";
-import {prodNetworkConfig as networkConfig} from "../../network.config";
+import {prodNetworkConfig as networkConfig, stageNetworkConfig} from "../../network.config";
 
 describe("Repayer", function () {
   const deployAll = async () => {
@@ -79,6 +79,15 @@ describe("Repayer", function () {
     assertAddress(forkNetworkConfig.Omnibridge, "ETHEREUM Omnibridge address is missing");
     assertAddress(forkNetworkConfig.GnosisAMB, "ETHEREUM GnosisAMB address is missing");
 
+    // Read from the stage config: the Polygon PoS bridge is only enabled on stage so far, and
+    // both configs would point at the same Ethereum mainnet contract anyway.
+    const polygonPosRootChainManagerAddress = stageNetworkConfig.ETHEREUM!.PolygonPosRootChainManager;
+    assertAddress(polygonPosRootChainManagerAddress, "ETHEREUM PolygonPosRootChainManager address is missing");
+    const polygonPosRootChainManager = await hre.ethers.getContractAt(
+      "IPolygonRootChainManager",
+      polygonPosRootChainManagerAddress
+    );
+
     const USDC_DEC = 10n ** (await usdc.decimals());
     const DAI_DEC = 10n ** (await dai.decimals());
     const WBTC_DEC = 10n ** (await wbtc.decimals());
@@ -96,6 +105,7 @@ describe("Repayer", function () {
         forkNetworkConfig.Omnibridge!, ZERO_ADDRESS, ZERO_ADDRESS, forkNetworkConfig.GnosisAMB!,
         ZERO_ADDRESS, ZERO_ADDRESS,
         forkNetworkConfig.CCTPV2!.TokenMessenger!, forkNetworkConfig.CCTPV2!.MessageTransmitter!,
+        polygonPosRootChainManagerAddress,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -104,11 +114,11 @@ describe("Repayer", function () {
       setTokensUser,
       [
         liquidityPool, liquidityPool2, liquidityPool, liquidityPool,
-        liquidityPool, liquidityPool,
+        liquidityPool, liquidityPool, liquidityPool,
       ],
       [
         Domain.ETHEREUM, Domain.ETHEREUM, Domain.OP_MAINNET, Domain.BASE,
-        Domain.ARBITRUM_ONE, Domain.ARBITRUM_ONE,
+        Domain.ARBITRUM_ONE, Domain.ARBITRUM_ONE, Domain.POLYGON_MAINNET,
       ],
       [
         Provider.LOCAL,
@@ -117,8 +127,9 @@ describe("Repayer", function () {
         Provider.SUPERCHAIN_STANDARD_BRIDGE,
         Provider.ARBITRUM_GATEWAY,
         Provider.CCTP_V2,
+        Provider.POLYGON_POS_BRIDGE,
       ],
-      [ZERO_ADDRESS, usdc, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS],
+      [ZERO_ADDRESS, usdc, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS],
       [
         {
           inputToken: usdc,
@@ -138,18 +149,34 @@ describe("Repayer", function () {
             destinationToken(Domain.ARBITRUM_ONE, addressToBytes32(networkConfig.ARBITRUM_ONE.Tokens.DAI!.Address)),
             destinationToken(Domain.OP_MAINNET, addressToBytes32(networkConfig.OP_MAINNET.Tokens.DAI!.Address)),
             destinationToken(Domain.BASE, addressToBytes32(networkConfig.BASE.Tokens.DAI!.Address)),
+            destinationToken(
+              Domain.POLYGON_MAINNET, addressToBytes32(networkConfig.POLYGON_MAINNET.Tokens.DAI!.Address)
+            ),
           ]
         },
         {
           inputToken: wbtc,
           destinationTokens: [
-            destinationToken(Domain.ARBITRUM_ONE, addressToBytes32(networkConfig.ARBITRUM_ONE.Tokens.WBTC!.Address))
+            destinationToken(Domain.ARBITRUM_ONE, addressToBytes32(networkConfig.ARBITRUM_ONE.Tokens.WBTC!.Address)),
+            destinationToken(
+              Domain.POLYGON_MAINNET, addressToBytes32(networkConfig.POLYGON_MAINNET.Tokens.WBTC!.Address)
+            ),
           ]
         },
         {
           inputToken: weth,
           destinationTokens: [
             destinationToken(Domain.ARBITRUM_ONE, addressToBytes32(networkConfig.ARBITRUM_ONE.Tokens.WETH!.Address))
+          ]
+        },
+        {
+          // Polygon's canonical USDC is Circle-issued, not the PoS child of Ethereum USDC,
+          // so this route is expected to be rejected by the adapter. See the test below.
+          inputToken: usdc,
+          destinationTokens: [
+            destinationToken(
+              Domain.POLYGON_MAINNET, addressToBytes32(networkConfig.POLYGON_MAINNET.Tokens.USDC.Address)
+            ),
           ]
         },
       ],
@@ -171,6 +198,7 @@ describe("Repayer", function () {
       REPAYER_ROLE, DEFAULT_ADMIN_ROLE, acrossV3SpokePool, weth,
       stargateTreasurer, forkNetworkConfig, optimismStandardBridge, baseStandardBridge,
       arbitrumGatewayRouter, dai, DAI_DEC, wbtc, WBTC_DEC,
+      polygonPosRootChainManager,
     };
   };
 
@@ -515,6 +543,100 @@ describe("Repayer", function () {
       {value: fee}
     )).to.be.revertedWithCustomError(repayer, "InvalidOutputToken()");
   });
+
+  it("Should allow repayer to initiate Polygon PoS DAI deposit on fork", async function () {
+    const {repayer, dai, repayUser, liquidityPool, polygonPosRootChainManager} = await loadFixture(deployAll);
+
+    assertAddress(process.env.DAI_OWNER_ETH_ADDRESS, "Env variables not configured (DAI_OWNER_ETH_ADDRESS missing)");
+    const DAI_OWNER_ETH_ADDRESS = process.env.DAI_OWNER_ETH_ADDRESS;
+    const daiOwner = await hre.ethers.getImpersonatedSigner(DAI_OWNER_ETH_ADDRESS);
+    await setBalance(DAI_OWNER_ETH_ADDRESS, 10n ** 18n);
+
+    const amount = 4n * ETH;
+    await dai.connect(daiOwner).transfer(repayer, amount);
+
+    const outputToken = networkConfig.POLYGON_MAINNET.Tokens.DAI!.Address;
+    // Polygon's canonical DAI is the PoS child of Ethereum DAI.
+    expect((await polygonPosRootChainManager.rootToChildToken(dai.target)).toLowerCase())
+      .to.equal(outputToken.toLowerCase());
+
+    const predicate = await polygonPosRootChainManager.typeToPredicate(
+      await polygonPosRootChainManager.tokenToType(dai.target)
+    );
+    const predicateBalanceBefore = await dai.balanceOf(predicate);
+
+    const extraData = AbiCoder.defaultAbiCoder().encode(["address"], [outputToken]);
+    const tx = repayer.connect(repayUser).initiateRepay(
+      dai, amount, liquidityPool, Domain.POLYGON_MAINNET, Provider.POLYGON_POS_BRIDGE, extraData
+    );
+    await expect(tx)
+      .to.emit(repayer, "InitiateRepay")
+      .withArgs(dai.target, amount, liquidityPool.target, Domain.POLYGON_MAINNET, Provider.POLYGON_POS_BRIDGE);
+    await expect(tx)
+      .to.emit(repayer, "PolygonPosDepositInitiated")
+      .withArgs(dai.target, liquidityPool.target, amount);
+    // The predicate escrows the deposit on Ethereum, the child token is minted on Polygon.
+    await expect(tx).to.emit(dai, "Transfer").withArgs(repayer.target, predicate, amount);
+    expect(await dai.balanceOf(predicate)).to.equal(predicateBalanceBefore + amount);
+    expect(await dai.balanceOf(repayer)).to.equal(0n);
+  });
+
+  it("Should allow repayer to initiate Polygon PoS WBTC deposit on fork", async function () {
+    const {repayer, wbtc, WBTC_DEC, repayUser, liquidityPool, polygonPosRootChainManager} =
+      await loadFixture(deployAll);
+
+    assertAddress(process.env.WBTC_OWNER_ETH_ADDRESS, "Env variables not configured (WBTC_OWNER_ETH_ADDRESS missing)");
+    const WBTC_OWNER_ETH_ADDRESS = process.env.WBTC_OWNER_ETH_ADDRESS;
+    const wbtcOwner = await hre.ethers.getImpersonatedSigner(WBTC_OWNER_ETH_ADDRESS);
+    await setBalance(WBTC_OWNER_ETH_ADDRESS, 10n ** 18n);
+
+    const amount = 4n * WBTC_DEC;
+    await wbtc.connect(wbtcOwner).transfer(repayer, amount);
+
+    const outputToken = networkConfig.POLYGON_MAINNET.Tokens.WBTC!.Address;
+    const predicate = await polygonPosRootChainManager.typeToPredicate(
+      await polygonPosRootChainManager.tokenToType(wbtc.target)
+    );
+    const predicateBalanceBefore = await wbtc.balanceOf(predicate);
+
+    const extraData = AbiCoder.defaultAbiCoder().encode(["address"], [outputToken]);
+    const tx = repayer.connect(repayUser).initiateRepay(
+      wbtc, amount, liquidityPool, Domain.POLYGON_MAINNET, Provider.POLYGON_POS_BRIDGE, extraData
+    );
+    await expect(tx)
+      .to.emit(repayer, "PolygonPosDepositInitiated")
+      .withArgs(wbtc.target, liquidityPool.target, amount);
+    expect(await wbtc.balanceOf(predicate)).to.equal(predicateBalanceBefore + amount);
+    expect(await wbtc.balanceOf(repayer)).to.equal(0n);
+  });
+
+  it("Should revert Polygon PoS deposit on fork for USDC, whose child token is USDC.e",
+    async function () {
+      const {repayer, usdc, USDC_DEC, repayUser, liquidityPool, polygonPosRootChainManager} =
+        await loadFixture(deployAll);
+
+      assertAddress(
+        process.env.USDC_OWNER_ETH_ADDRESS, "Env variables not configured (USDC_OWNER_ETH_ADDRESS missing)"
+      );
+      const USDC_OWNER_ETH_ADDRESS = process.env.USDC_OWNER_ETH_ADDRESS;
+      const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ETH_ADDRESS);
+      await setBalance(USDC_OWNER_ETH_ADDRESS, 10n ** 18n);
+
+      const amount = 4n * USDC_DEC;
+      await usdc.connect(usdcOwner).transfer(repayer, amount);
+
+      // Polygon's canonical USDC is Circle-issued and is NOT what the PoS bridge would mint,
+      // so the adapter must refuse rather than strand the funds as USDC.e.
+      const outputToken = networkConfig.POLYGON_MAINNET.Tokens.USDC.Address;
+      const childToken = await polygonPosRootChainManager.rootToChildToken(usdc.target);
+      expect(childToken.toLowerCase()).to.not.equal(outputToken.toLowerCase());
+
+      const extraData = AbiCoder.defaultAbiCoder().encode(["address"], [outputToken]);
+      await expect(repayer.connect(repayUser).initiateRepay(
+        usdc, amount, liquidityPool, Domain.POLYGON_MAINNET, Provider.POLYGON_POS_BRIDGE, extraData
+      )).to.be.revertedWithCustomError(repayer, "InvalidOutputToken()");
+    }
+  );
 
   it("Should allow repayer to initiate CCTP V2 repay on fork", async function () {
     const {repayer, USDC_DEC, usdc, repayUser, liquidityPool, cctpV2Messenger} = await loadFixture(deployAll);

@@ -17,6 +17,7 @@ import {SuperchainStandardBridgeAdapter} from "./utils/SuperchainStandardBridgeA
 import {ArbitrumGatewayAdapter} from "./utils/ArbitrumGatewayAdapter.sol";
 import {GnosisOmnibridgeAdapter} from "./utils/GnosisOmnibridgeAdapter.sol";
 import {USDT0Adapter} from "./utils/USDT0Adapter.sol";
+import {PolygonPosBridgeAdapter} from "./utils/PolygonPosBridgeAdapter.sol";
 import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
 
 /// @title Performs repayment to Liquidity Pools on same/different chains.
@@ -33,7 +34,8 @@ contract Repayer is
     SuperchainStandardBridgeAdapter,
     ArbitrumGatewayAdapter,
     GnosisOmnibridgeAdapter,
-    USDT0Adapter
+    USDT0Adapter,
+    PolygonPosBridgeAdapter
 {
     using SafeERC20 for IERC20;
     using BitMaps for BitMaps.BitMap;
@@ -111,7 +113,8 @@ contract Repayer is
         address usdt0Oft,
         address usdt0FeeNativeToken,
         address cctpV2TokenMessenger,
-        address cctpV2MessageTransmitter
+        address cctpV2MessageTransmitter,
+        address polygonPosRootChainManager
     )
         CCTPV2Adapter(
             usdc,
@@ -131,6 +134,7 @@ contract Repayer is
             ethereumAmb
         )
         USDT0Adapter(usdt0Oft, usdt0FeeNativeToken)
+        PolygonPosBridgeAdapter(polygonPosRootChainManager)
     {
         ERC7201Helper.validateStorageLocation(
             STORAGE_LOCATION,
@@ -260,6 +264,19 @@ contract Repayer is
         } else
         if (provider == Provider.USDT0) {
             initiateTransferUSDT0(token, amount, destinationPool, destinationDomain, extraData, _msgSender());
+        } else
+        if (provider == Provider.POLYGON_POS_BRIDGE) {
+            // When bridging from Polygon, the PoS exit releases the tokens to the burner, so they
+            // must come back to the Repayer itself and be forwarded through process().
+            initiateTransferPolygonPosBridge(
+                token,
+                amount,
+                destinationPool,
+                destinationDomain,
+                extraData,
+                DOMAIN,
+                $.inputOutputTokens[address(token)]
+            );
         } else {
             revert UnsupportedProvider();
         }
@@ -278,6 +295,12 @@ contract Repayer is
         } else
         if (provider == Provider.GNOSIS_OMNIBRIDGE) {
             (token, amount) = processTransferGnosisOmnibridge(address(this), DOMAIN, extraData);
+            if (destinationPool != address(this)) {
+                token.safeTransfer(destinationPool, amount);
+            }
+        } else
+        if (provider == Provider.POLYGON_POS_BRIDGE) {
+            (token, amount) = processTransferPolygonPosBridge(extraData);
             if (destinationPool != address(this)) {
                 token.safeTransfer(destinationPool, amount);
             }

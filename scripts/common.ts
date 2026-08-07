@@ -65,6 +65,7 @@ export const ProviderSolidity = {
   GNOSIS_OMNIBRIDGE: 7n,
   USDT0: 8n,
   CCTP_V2: 9n,
+  POLYGON_POS_BRIDGE: 10n,
 };
 
 // Domain IDs 6-11 are reserved on the Solidity side for testnets (ETHEREUM_SEPOLIA, AVALANCHE_FUJI,
@@ -116,6 +117,7 @@ export const SolidityProvider: { [n: number]: Provider } = {
   7: Provider.GNOSIS_OMNIBRIDGE,
   8: Provider.USDT0,
   9: Provider.CCTP_V2,
+  10: Provider.POLYGON_POS_BRIDGE,
 };
 
 export const CCTPDomain: { [n: number]: Network } = {

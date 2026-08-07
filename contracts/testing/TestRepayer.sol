@@ -20,7 +20,8 @@ contract TestRepayer is Repayer {
         address usdt0Oft,
         address usdt0FeeNativeToken,
         address cctpV2TokenMessenger,
-        address cctpV2MessageTransmitter
+        address cctpV2MessageTransmitter,
+        address polygonPosRootChainManager
     ) Repayer(
         localDomain,
         usdc,
@@ -37,7 +38,8 @@ contract TestRepayer is Repayer {
         usdt0Oft,
         usdt0FeeNativeToken,
         cctpV2TokenMessenger,
-        cctpV2MessageTransmitter
+        cctpV2MessageTransmitter,
+        polygonPosRootChainManager
     ) {}
 
     function domainCCTP(Domain destinationDomain) public pure override returns (uint32) {

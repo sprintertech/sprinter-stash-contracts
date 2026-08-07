@@ -33,6 +33,8 @@ jobs:
         run: npm run test:gnosis
       - name: Hardhat Fork Tests Arbitrum One Chain
         run: npm run test:arbitrumone
+      - name: Hardhat Fork Tests Polygon
+        run: npm run test:polygon
       - name: Hardhat Simulation Tests Tempo Chain
         run: npm run test:tempo
       - name: Hardhat Simulation Tests Stable Chain

@@ -59,6 +59,9 @@ export async function main() {
   if (!config.ArbitrumGatewayRouter) {
     config.ArbitrumGatewayRouter = ZERO_ADDRESS;
   }
+  if (!config.PolygonPosRootChainManager) {
+    config.PolygonPosRootChainManager = ZERO_ADDRESS;
+  }
   if (!config.Omnibridge) config.Omnibridge = ZERO_ADDRESS;
   if (!config.GnosisUSDCxDAI) config.GnosisUSDCxDAI = ZERO_ADDRESS;
   if (!config.GnosisUSDCTransmuter) config.GnosisUSDCTransmuter = ZERO_ADDRESS;
@@ -91,6 +94,7 @@ export async function main() {
       config.USDT0FeeNativeToken,
       config.CCTPV2.TokenMessenger,
       config.CCTPV2.MessageTransmitter,
+      config.PolygonPosRootChainManager,
     ],
     "Repayer",
   );

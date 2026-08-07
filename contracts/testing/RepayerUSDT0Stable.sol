@@ -74,7 +74,8 @@ contract RepayerUSDT0Stable {
             usdt0OftAddress,
             address(0), // usdt0FeeNativeToken: Stable pays LayerZero fees via msg.value, not an ERC20 fee token
             address(0), // cctpV2TokenMessenger
-            address(0) // cctpV2MessageTransmitter
+            address(0), // cctpV2MessageTransmitter
+            address(0) // polygonPosRootChainManager
         );
 
         address[] memory pools = new address[](1);

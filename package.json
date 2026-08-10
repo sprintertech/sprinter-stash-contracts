@@ -345,7 +345,7 @@
     "test:unichain": "FORK_TEST=UNICHAIN hardhat test --typecheck ./specific-fork-test/unichain/*.ts",
     "test:tempo": "hardhat test --typecheck --network TEMPO ./specific-fork-test/tempo/*.ts",
     "test:stable": "hardhat test --typecheck --network STABLE ./specific-fork-test/stable/*.ts",
-    "test:scripts": "SCRIPT_ENV=CI DEPLOY_ID=CI ts-node --files ./scripts/test.ts",
+    "test:scripts": "SCRIPT_ENV=CI DEPLOY_ID=CI MAIN_ASSET=USDC ts-node --files ./scripts/test.ts",
     "coverage": "hardhat coverage",
     "coverage:check": "ts-node --files scripts/check-coverage.ts",
     "coverage:update-baseline": "ts-node --files scripts/check-coverage.ts --update-baseline"

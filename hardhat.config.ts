@@ -1168,7 +1168,27 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 2000,
+            runs: 100,
+          },
+          viaIR: true,
+        },
+      },
+      "contracts/testing/RepayerUSDT0Tempo.sol": {
+        version: "0.8.28",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 1,
+          },
+          viaIR: true,
+        },
+      },
+      "contracts/testing/RepayerUSDT0Stable.sol": {
+        version: "0.8.28",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 1,
           },
           viaIR: true,
         },
@@ -1178,7 +1198,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 2000,
+            runs: 100,
           },
           viaIR: true,
         },

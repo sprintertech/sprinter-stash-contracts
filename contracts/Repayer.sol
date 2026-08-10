@@ -19,6 +19,7 @@ import {GnosisOmnibridgeAdapter} from "./utils/GnosisOmnibridgeAdapter.sol";
 import {USDT0Adapter} from "./utils/USDT0Adapter.sol";
 import {PolygonPosBridgeAdapter} from "./utils/PolygonPosBridgeAdapter.sol";
 import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
+import {HelperLib} from "./utils/HelperLib.sol";
 
 /// @title Performs repayment to Liquidity Pools on same/different chains.
 /// Routes, which is a destination pool/domain and a bridging provider, have to be approved by admin.
@@ -201,7 +202,7 @@ contract Repayer is
             if (thisBalance > 0) WRAPPED_NATIVE_TOKEN.deposit{value: thisBalance}();
         }
 
-        require(token.balanceOf(address(this)) >= amount, InsufficientBalance());
+        require(HelperLib.balanceOfThis(token) >= amount, InsufficientBalance());
         require(isRouteAllowed(destinationPool, destinationDomain, provider), RouteDenied());
 
         emit InitiateRepay(token, amount, destinationPool, destinationDomain, provider);
@@ -290,22 +291,22 @@ contract Repayer is
         require(isRouteAllowed(destinationPool, DOMAIN, Provider.LOCAL), RouteDenied());
         IERC20 token;
         uint256 amount = 0;
+        bool processedToThis = false;
         if (provider == Provider.CCTP_V2) {
             (token, amount) = processTransferCCTPV2(destinationPool, extraData);
         } else
         if (provider == Provider.GNOSIS_OMNIBRIDGE) {
             (token, amount) = processTransferGnosisOmnibridge(address(this), DOMAIN, extraData);
-            if (destinationPool != address(this)) {
-                token.safeTransfer(destinationPool, amount);
-            }
+            processedToThis = true;
         } else
         if (provider == Provider.POLYGON_POS_BRIDGE) {
             (token, amount) = processTransferPolygonPosBridge(extraData);
-            if (destinationPool != address(this)) {
-                token.safeTransfer(destinationPool, amount);
-            }
+            processedToThis = true;
         } else {
             revert UnsupportedProvider();
+        }
+        if (processedToThis && destinationPool != address(this)) {
+            token.safeTransfer(destinationPool, amount);
         }
         IERC20 onlySupportedToken = _getStorage().poolOnlySupportsToken[destinationPool];
         if (onlySupportedToken != IERC20(address(0))) {
@@ -444,7 +445,7 @@ contract Repayer is
         address inputToken,
         Domain destinationDomain,
         bytes32 outputToken
-    ) public view returns (bool isAllowed, int8 localDecimalsGreaterBy) {
+    ) external view returns (bool isAllowed, int8 localDecimalsGreaterBy) {
         InputOutputTokenData storage inputOutputTokenData = _getStorage().inputOutputTokens[inputToken][outputToken];
         isAllowed = inputOutputTokenData.destinationDomains.get(uint256(destinationDomain));
         localDecimalsGreaterBy = inputOutputTokenData.localDecimalsGreaterBy[destinationDomain];

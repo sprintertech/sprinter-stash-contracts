@@ -770,7 +770,7 @@ export const stageNetworkConfig: PartialNetworksConfig = {
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
-          [Network.ETHEREUM]: [Provider.ACROSS, Provider.CCTP_V2],
+          [Network.ETHEREUM]: [Provider.ACROSS, Provider.CCTP_V2, Provider.POLYGON_POS_BRIDGE],
           [Network.GNOSIS_CHAIN]: [
             Provider.STARGATE,
           ],

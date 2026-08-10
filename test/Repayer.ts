@@ -93,7 +93,7 @@ describe("Repayer", function () {
     ) as TestSuperchainStandardBridge;
     const l2TokenAddress = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd";
     const arbitrumGatewayRouter = (
-      await deploy("TestArbitrumGatewayRouter", deployer, {}, usdc.target, l2TokenAddress)
+      await deploy("TestArbitrumGatewayRouter", deployer, {}, usdc, l2TokenAddress)
     ) as TestArbitrumGatewayRouter;
     // Polygon PoS: usdc stands in for the Ethereum root token, polygonChildToken for its
     // Polygon counterpart that gets minted on deposit and burned on withdraw.
@@ -101,7 +101,7 @@ describe("Repayer", function () {
       await deploy("TestPolygonChildERC20", deployer, {})
     ) as TestPolygonChildERC20;
     const polygonRootChainManager = (
-      await deploy("TestPolygonRootChainManager", deployer, {}, usdc.target, polygonChildToken.target)
+      await deploy("TestPolygonRootChainManager", deployer, {}, usdc, polygonChildToken)
     ) as TestPolygonRootChainManager;
 
     const USDC_DEC = 10n ** (await usdc.decimals());
@@ -129,7 +129,7 @@ describe("Repayer", function () {
         arbitrumGatewayRouter,
         ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
         cctpV2TokenMessenger, cctpV2MessageTransmitter,
-        ZERO_ADDRESS,
+        polygonRootChainManager,
       )
     ) as Repayer;
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
@@ -182,7 +182,7 @@ describe("Repayer", function () {
 
   it("Should have default values", async function () {
     const {liquidityPool, liquidityPool2, repayer, usdc, REPAYER_ROLE, DEFAULT_ADMIN_ROLE,
-      admin, repayUser, deployer, acrossV3SpokePool,
+      admin, repayUser, deployer, acrossV3SpokePool, polygonRootChainManager,
       stargateTreasurerTrue, optimismBridge, baseBridge, setTokensUser, eurc,
     } = await loadFixture(deployAll);
 
@@ -191,6 +191,7 @@ describe("Repayer", function () {
     expect(await repayer.STARGATE_TREASURER()).to.equal(stargateTreasurerTrue.target);
     expect(await repayer.OPTIMISM_STANDARD_BRIDGE()).to.equal(optimismBridge.target);
     expect(await repayer.BASE_STANDARD_BRIDGE()).to.equal(baseBridge.target);
+    expect(await repayer.POLYGON_POS_ROOT_CHAIN_MANAGER()).to.equal(polygonRootChainManager.target);
     expect(await repayer.isRouteAllowed(liquidityPool, Domain.BASE, Provider.LOCAL)).to.be.true;
     expect(await repayer.isRouteAllowed(liquidityPool2, Domain.BASE, Provider.LOCAL)).to.be.true;
     expect(await repayer.isRouteAllowed(liquidityPool, Domain.ETHEREUM, Provider.CCTP_V2)).to.be.true;
@@ -2254,10 +2255,10 @@ describe("Repayer", function () {
     // eurc is not registered as an output token for usdc on POLYGON_MAINNET.
     expect(await isOutputTokenAllowed(
       repayer, usdc, Domain.POLYGON_MAINNET, addressToBytes32(eurc.target)
-    )).to.equal(false);
+    )).to.be.false;
     expect(await isOutputTokenAllowed(
       repayer, usdc, Domain.POLYGON_MAINNET, addressToBytes32(polygonChildToken.target)
-    )).to.equal(true);
+    )).to.be.true;
 
     await expect(repayer.connect(repayUser).initiateRepay(
       usdc,
@@ -2339,58 +2340,54 @@ describe("Repayer", function () {
     )).to.be.revertedWithCustomError(repayer, "NotPayable");
   });
 
-  it("Should NOT initiate Polygon PoS deposit if destination domain is not POLYGON_MAINNET",
-    async function () {
-      const fixture = await loadFixture(deployAll);
-      const {USDC_DEC, usdc, admin, repayUser, liquidityPool, polygonChildToken} = fixture;
-      const repayer = await deployPolygonPosRepayer(fixture, Domain.ETHEREUM);
+  it("Should NOT initiate Polygon PoS deposit if destination domain is not POLYGON_MAINNET", async function () {
+    const fixture = await loadFixture(deployAll);
+    const {USDC_DEC, usdc, admin, repayUser, liquidityPool, polygonChildToken} = fixture;
+    const repayer = await deployPolygonPosRepayer(fixture, Domain.ETHEREUM);
 
-      await usdc.transfer(repayer, 10n * USDC_DEC);
-      // Allow the route and the output token so the domain check is what actually fails.
-      await repayer.connect(admin).setRoute(
-        [liquidityPool], [Domain.ARBITRUM_ONE], [Provider.POLYGON_POS_BRIDGE], [ZERO_ADDRESS], ALLOWED
-      );
-      await repayer.connect(fixture.setTokensUser).setInputOutputTokens([{
-        inputToken: usdc.target,
-        destinationTokens: [destinationToken(Domain.ARBITRUM_ONE, addressToBytes32(polygonChildToken.target))],
-      }], ALLOWED);
+    await usdc.transfer(repayer, 10n * USDC_DEC);
+    // Allow the route and the output token so the domain check is what actually fails.
+    await repayer.connect(admin).setRoute(
+      [liquidityPool], [Domain.ARBITRUM_ONE], [Provider.POLYGON_POS_BRIDGE], [ZERO_ADDRESS], ALLOWED
+    );
+    await repayer.connect(fixture.setTokensUser).setInputOutputTokens([{
+      inputToken: usdc.target,
+      destinationTokens: [destinationToken(Domain.ARBITRUM_ONE, addressToBytes32(polygonChildToken.target))],
+    }], ALLOWED);
 
-      await expect(repayer.connect(repayUser).initiateRepay(
-        usdc,
-        4n * USDC_DEC,
-        liquidityPool,
-        Domain.ARBITRUM_ONE,
-        Provider.POLYGON_POS_BRIDGE,
-        polygonPosExtraData(polygonChildToken.target),
-      )).to.be.revertedWithCustomError(repayer, "UnsupportedDomain");
-    }
-  );
+    await expect(repayer.connect(repayUser).initiateRepay(
+      usdc,
+      4n * USDC_DEC,
+      liquidityPool,
+      Domain.ARBITRUM_ONE,
+      Provider.POLYGON_POS_BRIDGE,
+      polygonPosExtraData(polygonChildToken.target),
+    )).to.be.revertedWithCustomError(repayer, "UnsupportedDomain");
+  });
 
-  it("Should NOT allow Polygon PoS transfer if local domain is neither Ethereum nor Polygon",
-    async function () {
-      const {
-        USDC_DEC, usdc, repayer, repayUser, liquidityPool, admin, setTokensUser, polygonChildToken,
-      } = await loadFixture(deployAll);
-      // The fixture Repayer is on BASE, which has no PoS bridge in either direction.
-      await usdc.transfer(repayer, 10n * USDC_DEC);
-      await repayer.connect(admin).setRoute(
-        [liquidityPool], [Domain.POLYGON_MAINNET], [Provider.POLYGON_POS_BRIDGE], [ZERO_ADDRESS], ALLOWED
-      );
-      await repayer.connect(setTokensUser).setInputOutputTokens([{
-        inputToken: usdc.target,
-        destinationTokens: [destinationToken(Domain.POLYGON_MAINNET, addressToBytes32(polygonChildToken.target))],
-      }], ALLOWED);
+  it("Should NOT allow Polygon PoS transfer if local domain is neither Ethereum nor Polygon", async function () {
+    const {
+      USDC_DEC, usdc, repayer, repayUser, liquidityPool, admin, setTokensUser, polygonChildToken,
+    } = await loadFixture(deployAll);
+    // The fixture Repayer is on BASE, which has no PoS bridge in either direction.
+    await usdc.transfer(repayer, 10n * USDC_DEC);
+    await repayer.connect(admin).setRoute(
+      [liquidityPool], [Domain.POLYGON_MAINNET], [Provider.POLYGON_POS_BRIDGE], [ZERO_ADDRESS], ALLOWED
+    );
+    await repayer.connect(setTokensUser).setInputOutputTokens([{
+      inputToken: usdc.target,
+      destinationTokens: [destinationToken(Domain.POLYGON_MAINNET, addressToBytes32(polygonChildToken.target))],
+    }], ALLOWED);
 
-      await expect(repayer.connect(repayUser).initiateRepay(
-        usdc,
-        4n * USDC_DEC,
-        liquidityPool,
-        Domain.POLYGON_MAINNET,
-        Provider.POLYGON_POS_BRIDGE,
-        polygonPosExtraData(polygonChildToken.target),
-      )).to.be.revertedWithCustomError(repayer, "UnsupportedDomain");
-    }
-  );
+    await expect(repayer.connect(repayUser).initiateRepay(
+      usdc,
+      4n * USDC_DEC,
+      liquidityPool,
+      Domain.POLYGON_MAINNET,
+      Provider.POLYGON_POS_BRIDGE,
+      polygonPosExtraData(polygonChildToken.target),
+    )).to.be.revertedWithCustomError(repayer, "UnsupportedDomain");
+  });
 
   it("Should NOT allow repayer to initiate Polygon PoS repay on invalid route", async function () {
     const fixture = await loadFixture(deployAll);
@@ -2504,7 +2501,7 @@ describe("Repayer", function () {
     // The recipient is always the burner, i.e. the Repayer itself.
     const burnProof = AbiCoder.defaultAbiCoder().encode(
       ["address", "address", "uint256"],
-      [usdc.target, await repayer.getAddress(), amount],
+      [usdc.target, repayer.target, amount],
     );
     const extraData = AbiCoder.defaultAbiCoder().encode(["address", "bytes"], [usdc.target, burnProof]);
 
@@ -2528,7 +2525,7 @@ describe("Repayer", function () {
 
     const burnProof = AbiCoder.defaultAbiCoder().encode(
       ["address", "address", "uint256"],
-      [usdc.target, await repayer.getAddress(), amount],
+      [usdc.target, repayer.target, amount],
     );
     const extraData = AbiCoder.defaultAbiCoder().encode(["address", "bytes"], [usdc.target, burnProof]);
 
@@ -2550,7 +2547,7 @@ describe("Repayer", function () {
     // Exit releases to someone other than the Repayer, so its balance does not grow.
     const burnProof = AbiCoder.defaultAbiCoder().encode(
       ["address", "address", "uint256"],
-      [usdc.target, await liquidityPool2.getAddress(), amount],
+      [usdc.target, liquidityPool2.target, amount],
     );
     const extraData = AbiCoder.defaultAbiCoder().encode(["address", "bytes"], [usdc.target, burnProof]);
 

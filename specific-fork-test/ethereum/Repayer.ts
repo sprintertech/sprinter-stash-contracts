@@ -3,7 +3,7 @@ import {
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {assert, expect} from "chai";
 import hre from "hardhat";
-import {AbiCoder} from "ethers";
+import {AbiCoder, getAddress} from "ethers";
 import {
   getCreateAddress, getContractAt, deploy, deployX, toBytes32, getBalance,
   destinationToken,
@@ -553,15 +553,15 @@ describe("Repayer", function () {
     await setBalance(DAI_OWNER_ETH_ADDRESS, 10n ** 18n);
 
     const amount = 4n * ETH;
-    await dai.connect(daiOwner).transfer(repayer, amount);
+    const extraAmount = 1n * ETH;
+    await dai.connect(daiOwner).transfer(repayer, amount + extraAmount);
 
-    const outputToken = networkConfig.POLYGON_MAINNET.Tokens.DAI!.Address;
+    const outputToken = getAddress(networkConfig.POLYGON_MAINNET.Tokens.DAI!.Address);
     // Polygon's canonical DAI is the PoS child of Ethereum DAI.
-    expect((await polygonPosRootChainManager.rootToChildToken(dai.target)).toLowerCase())
-      .to.equal(outputToken.toLowerCase());
+    expect(await polygonPosRootChainManager.rootToChildToken(dai)).to.equal(outputToken);
 
     const predicate = await polygonPosRootChainManager.typeToPredicate(
-      await polygonPosRootChainManager.tokenToType(dai.target)
+      await polygonPosRootChainManager.tokenToType(dai)
     );
     const predicateBalanceBefore = await dai.balanceOf(predicate);
 
@@ -578,7 +578,7 @@ describe("Repayer", function () {
     // The predicate escrows the deposit on Ethereum, the child token is minted on Polygon.
     await expect(tx).to.emit(dai, "Transfer").withArgs(repayer.target, predicate, amount);
     expect(await dai.balanceOf(predicate)).to.equal(predicateBalanceBefore + amount);
-    expect(await dai.balanceOf(repayer)).to.equal(0n);
+    expect(await dai.balanceOf(repayer)).to.equal(extraAmount);
   });
 
   it("Should allow repayer to initiate Polygon PoS WBTC deposit on fork", async function () {
@@ -591,7 +591,8 @@ describe("Repayer", function () {
     await setBalance(WBTC_OWNER_ETH_ADDRESS, 10n ** 18n);
 
     const amount = 4n * WBTC_DEC;
-    await wbtc.connect(wbtcOwner).transfer(repayer, amount);
+    const extraAmount = 1n * WBTC_DEC;
+    await wbtc.connect(wbtcOwner).transfer(repayer, amount + extraAmount);
 
     const outputToken = networkConfig.POLYGON_MAINNET.Tokens.WBTC!.Address;
     const predicate = await polygonPosRootChainManager.typeToPredicate(
@@ -607,36 +608,34 @@ describe("Repayer", function () {
       .to.emit(repayer, "PolygonPosDepositInitiated")
       .withArgs(wbtc.target, liquidityPool.target, amount);
     expect(await wbtc.balanceOf(predicate)).to.equal(predicateBalanceBefore + amount);
-    expect(await wbtc.balanceOf(repayer)).to.equal(0n);
+    expect(await wbtc.balanceOf(repayer)).to.equal(extraAmount);
   });
 
-  it("Should revert Polygon PoS deposit on fork for USDC, whose child token is USDC.e",
-    async function () {
-      const {repayer, usdc, USDC_DEC, repayUser, liquidityPool, polygonPosRootChainManager} =
-        await loadFixture(deployAll);
+  it("Should revert Polygon PoS deposit on fork for USDC, whose child token is USDC.e", async function () {
+    const {repayer, usdc, USDC_DEC, repayUser, liquidityPool, polygonPosRootChainManager} =
+      await loadFixture(deployAll);
 
-      assertAddress(
-        process.env.USDC_OWNER_ETH_ADDRESS, "Env variables not configured (USDC_OWNER_ETH_ADDRESS missing)"
-      );
-      const USDC_OWNER_ETH_ADDRESS = process.env.USDC_OWNER_ETH_ADDRESS;
-      const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ETH_ADDRESS);
-      await setBalance(USDC_OWNER_ETH_ADDRESS, 10n ** 18n);
+    assertAddress(
+      process.env.USDC_OWNER_ETH_ADDRESS, "Env variables not configured (USDC_OWNER_ETH_ADDRESS missing)"
+    );
+    const USDC_OWNER_ETH_ADDRESS = process.env.USDC_OWNER_ETH_ADDRESS;
+    const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ETH_ADDRESS);
+    await setBalance(USDC_OWNER_ETH_ADDRESS, 10n ** 18n);
 
-      const amount = 4n * USDC_DEC;
-      await usdc.connect(usdcOwner).transfer(repayer, amount);
+    const amount = 4n * USDC_DEC;
+    await usdc.connect(usdcOwner).transfer(repayer, amount);
 
-      // Polygon's canonical USDC is Circle-issued and is NOT what the PoS bridge would mint,
-      // so the adapter must refuse rather than strand the funds as USDC.e.
-      const outputToken = networkConfig.POLYGON_MAINNET.Tokens.USDC.Address;
-      const childToken = await polygonPosRootChainManager.rootToChildToken(usdc.target);
-      expect(childToken.toLowerCase()).to.not.equal(outputToken.toLowerCase());
+    // Polygon's canonical USDC is Circle-issued and is NOT what the PoS bridge would mint,
+    // so the adapter must refuse rather than strand the funds as USDC.e.
+    const outputToken = getAddress(networkConfig.POLYGON_MAINNET.Tokens.USDC.Address);
+    const childToken = await polygonPosRootChainManager.rootToChildToken(usdc);
+    expect(childToken).to.not.equal(outputToken);
 
-      const extraData = AbiCoder.defaultAbiCoder().encode(["address"], [outputToken]);
-      await expect(repayer.connect(repayUser).initiateRepay(
-        usdc, amount, liquidityPool, Domain.POLYGON_MAINNET, Provider.POLYGON_POS_BRIDGE, extraData
-      )).to.be.revertedWithCustomError(repayer, "InvalidOutputToken()");
-    }
-  );
+    const extraData = AbiCoder.defaultAbiCoder().encode(["address"], [outputToken]);
+    await expect(repayer.connect(repayUser).initiateRepay(
+      usdc, amount, liquidityPool, Domain.POLYGON_MAINNET, Provider.POLYGON_POS_BRIDGE, extraData
+    )).to.be.revertedWithCustomError(repayer, "InvalidOutputToken()");
+  });
 
   it("Should allow repayer to initiate CCTP V2 repay on fork", async function () {
     const {repayer, USDC_DEC, usdc, repayUser, liquidityPool, cctpV2Messenger} = await loadFixture(deployAll);

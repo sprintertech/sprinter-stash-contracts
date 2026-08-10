@@ -5,15 +5,15 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {AbiCoder} from "ethers";
 import {
-  getCreateAddress, getContractAt, deploy, deployX,
+  getContractAt, deploy, deployX,
 } from "../../test/helpers";
 import {
   ProviderSolidity as Provider, DomainSolidity as Domain,
-  DEFAULT_ADMIN_ROLE, assertAddress, ZERO_ADDRESS, ETH,
+  assertAddress, ZERO_ADDRESS, ETH,
   addressToBytes32,
 } from "../../scripts/common";
 import {
-  TransparentUpgradeableProxy, ProxyAdmin,
+  TransparentUpgradeableProxy,
   TestLiquidityPool, Repayer,
 } from "../../typechain-types";
 import {prodNetworkConfig as networkConfig} from "../../network.config";
@@ -29,9 +29,6 @@ describe("Repayer Polygon PoS Bridge (Polygon fork)", function () {
     await setCode(repayUser.address, "0x00");
 
     const forkNetworkConfig = networkConfig.POLYGON_MAINNET;
-
-    const REPAYER_ROLE = hre.ethers.encodeBytes32String("REPAYER_ROLE");
-    const DEPOSIT_PROFIT_ROLE = hre.ethers.encodeBytes32String("DEPOSIT_PROFIT_ROLE");
 
     assertAddress(forkNetworkConfig.Tokens.DAI?.Address, "DAI address is missing from POLYGON_MAINNET config");
 
@@ -79,7 +76,7 @@ describe("Repayer Polygon PoS Bridge (Polygon fork)", function () {
       [Provider.LOCAL, Provider.POLYGON_POS_BRIDGE],
       [ZERO_ADDRESS, ZERO_ADDRESS],
       [{
-        inputToken: dai.target,
+        inputToken: dai,
         destinationTokens: [{
           destinationDomain: Domain.ETHEREUM,
           outputToken: addressToBytes32(networkConfig.ETHEREUM.Tokens.DAI!.Address),
@@ -93,15 +90,9 @@ describe("Repayer Polygon PoS Bridge (Polygon fork)", function () {
       repayerImpl, admin, repayerInit
     )) as TransparentUpgradeableProxy;
     const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
-    const repayerProxyAdminAddress = await getCreateAddress(repayerProxy, 1);
-    const repayerAdmin = (await getContractAt("ProxyAdmin", repayerProxyAdminAddress, admin)) as ProxyAdmin;
-
-    await liquidityPool.grantRole(DEPOSIT_PROFIT_ROLE, repayer);
 
     return {
-      deployer, admin, repayUser, setTokensUser, usdc, dai, weth,
-      liquidityPool, repayer, repayerProxy, repayerAdmin,
-      REPAYER_ROLE, DEFAULT_ADMIN_ROLE, forkNetworkConfig,
+      deployer, repayUser, dai, liquidityPool, repayer,
     };
   };
 
@@ -112,11 +103,12 @@ describe("Repayer Polygon PoS Bridge (Polygon fork)", function () {
       process.env.DAI_OWNER_POLYGON_ADDRESS,
       "Env variables not configured (DAI_OWNER_POLYGON_ADDRESS missing)"
     );
-    const daiOwner = await hre.ethers.getImpersonatedSigner(process.env.DAI_OWNER_POLYGON_ADDRESS!);
-    await setBalance(process.env.DAI_OWNER_POLYGON_ADDRESS!, 1000n * 10n ** 18n);
+    const daiOwner = await hre.ethers.getImpersonatedSigner(process.env.DAI_OWNER_POLYGON_ADDRESS);
+    await setBalance(process.env.DAI_OWNER_POLYGON_ADDRESS, 1000n * ETH);
 
     const amount = 4n * ETH;
-    await dai.connect(daiOwner).transfer(repayer, 10n * ETH);
+    const extraAmount = 6n * ETH;
+    await dai.connect(daiOwner).transfer(repayer, amount + extraAmount);
     const totalSupplyBefore = await dai.totalSupply();
 
     const outputToken = networkConfig.ETHEREUM.Tokens.DAI!.Address;
@@ -138,7 +130,7 @@ describe("Repayer Polygon PoS Bridge (Polygon fork)", function () {
       .to.emit(dai, "Transfer")
       .withArgs(repayer.target, ZERO_ADDRESS, amount);
 
-    expect(await dai.balanceOf(repayer)).to.equal(6n * ETH);
+    expect(await dai.balanceOf(repayer)).to.equal(extraAmount);
     expect(await dai.totalSupply()).to.equal(totalSupplyBefore - amount);
   });
 
@@ -149,8 +141,8 @@ describe("Repayer Polygon PoS Bridge (Polygon fork)", function () {
       process.env.DAI_OWNER_POLYGON_ADDRESS,
       "Env variables not configured (DAI_OWNER_POLYGON_ADDRESS missing)"
     );
-    const daiOwner = await hre.ethers.getImpersonatedSigner(process.env.DAI_OWNER_POLYGON_ADDRESS!);
-    await setBalance(process.env.DAI_OWNER_POLYGON_ADDRESS!, 1000n * 10n ** 18n);
+    const daiOwner = await hre.ethers.getImpersonatedSigner(process.env.DAI_OWNER_POLYGON_ADDRESS);
+    await setBalance(process.env.DAI_OWNER_POLYGON_ADDRESS, 1000n * ETH);
 
     await dai.connect(daiOwner).transfer(repayer, 10n * ETH);
 

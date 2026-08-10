@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IPolygonRootChainManager, IPolygonChildERC20} from ".././interfaces/IPolygonPosBridge.sol";
 import {AdapterHelper, InputOutputTokenData} from "./AdapterHelper.sol";
+import {HelperLib} from "./HelperLib.sol";
 
 /// @notice Bridges tokens between Ethereum and Polygon over the Polygon PoS bridge.
 /// Ethereum -> Polygon takes minutes, Polygon -> Ethereum takes 30 minutes to 3 hours,
@@ -17,8 +18,8 @@ abstract contract PolygonPosBridgeAdapter is AdapterHelper {
     /// @notice Polygon PoS RootChainManager on Ethereum. Zero on every other chain.
     IPolygonRootChainManager immutable public POLYGON_POS_ROOT_CHAIN_MANAGER;
 
-    event PolygonPosDepositInitiated(address indexed token, address indexed receiver, uint256 amount);
-    event PolygonPosWithdrawInitiated(address indexed token, uint256 amount);
+    event PolygonPosDepositInitiated(address token, address receiver, uint256 amount);
+    event PolygonPosWithdrawInitiated(address token, uint256 amount);
 
     constructor(
         address polygonPosRootChainManager
@@ -85,9 +86,9 @@ abstract contract PolygonPosBridgeAdapter is AdapterHelper {
         bytes memory burnProof;
         (token, burnProof) = abi.decode(extraData, (IERC20, bytes));
 
-        uint256 balanceBefore = token.balanceOf(address(this));
+        uint256 balanceBefore = HelperLib.balanceOfThis(token);
         manager.exit(burnProof);
-        uint256 balanceAfter = token.balanceOf(address(this));
+        uint256 balanceAfter = HelperLib.balanceOfThis(token);
 
         require(balanceAfter > balanceBefore, ProcessFailed());
         unchecked {

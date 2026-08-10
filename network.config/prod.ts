@@ -108,6 +108,17 @@ export const prodNetworkConfig: NetworksConfig = {
           ],
         },
       },
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [
+            Provider.ACROSS,
+            Provider.STARGATE,
+            Provider.ARBITRUM_GATEWAY,
+            Provider.USDT0,
+            Provider.CCTP_V2,
+          ],
+        },
+      },
     },
     StashDex: {
       Oracle: "PaxosOracle",
@@ -231,8 +242,7 @@ export const prodNetworkConfig: NetworksConfig = {
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
-          [Network.ETHEREUM
-          ]: [
+          [Network.ETHEREUM]: [
             Provider.STARGATE,
             Provider.CCTP_V2,
           ],
@@ -276,6 +286,14 @@ export const prodNetworkConfig: NetworksConfig = {
       [LiquidityPoolAaveUSDCLongTermV3]: {
         Domains: {
           [Network.ETHEREUM]: [Provider.STARGATE, Provider.CCTP_V2],
+        },
+      },
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [
+            Provider.STARGATE,
+            Provider.CCTP_V2,
+          ],
         },
       },
     },
@@ -377,6 +395,15 @@ export const prodNetworkConfig: NetworksConfig = {
             Provider.USDT0,
           ],
         }
+      },
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [
+            Provider.ACROSS,
+            Provider.STARGATE,
+            Provider.CCTP_V2,
+          ],
+        },
       },
     },
     MainAssets: {
@@ -567,43 +594,42 @@ export const prodNetworkConfig: NetworksConfig = {
         },
         BasicPool: true,
       },
-      // USDT main asset infra is not deployed on ARBITRUM_ONE prod yet. Uncomment after deploy.
-      // [Token.USDT]: {
-      //   Hub: {
-      //     AssetsAdjuster: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
-      //     DepositProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-      //     AssetsLimitSetter: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
-      //     AssetsLimit: 10_000_000,
-      //     Pool: LiquidityPoolAaveUSDTProxy,
-      //   },
-      //   RebalancerRoutes: {
-      //     [LiquidityPoolUSDTProxy]: {
-      //       [Network.TEMPO]: [Provider.USDT0],
-      //       [Network.STABLE]: [Provider.USDT0],
-      //     },
-      //   },
-      //   AavePool: {
-      //     AaveAddressesProvider: AAVEPools.AaveV3Arbitrum.POOL_ADDRESSES_PROVIDER,
-      //     MinHealthFactor: 150,
-      //     DefaultLTV: 0,
-      //     TokenLTVs: {
-      //       "0xaf88d065e77c8cc2239327c5edb3a432268e5831": 100, // USDC
-      //       "0x82af49447d8a07e3bd95bd0d56f35241523fbab1": 75, // WETH
-      //       "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f": 75, // WBTC
-      //       "0x35751007a407ca6feffe80b3cb397736d2cf4dbe": 0, // weETH
-      //       "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9": 90, // USDT0
-      //       "0x5979d7b546e38e414f7e9822514be443a4800529": 0, // wstETH
-      //       "0xf97f4df75117a78c1a5a0dbb814af92458539fb4": 0, // LINK
-      //       "0x912ce59144191c1204e64559fe8253a0e49e6548": 0, // ARB
-      //       "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1": 90, // DAI
-      //       "0xec70dcb4a1efa46b8f2d97c310c9c4790ba5ffa8": 0, // rETH
-      //       "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": 0, // USDC.e
-      //       "0x7dff72693f6a4149b17e7c6314655f6a9f7c8b33": 0, // GHO
-      //       "0x93b346b6bc2548da6a1e7d98e9a421b42541425b": 0, // LUSD
-      //       "0x17fc002b466eec40dae837fc4be5c67993ddbd6f": 0, // FRAX
-      //     },
-      //   },
-      // },
+      [Token.USDT]: {
+        Hub: {
+          AssetsAdjuster: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
+          DepositProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+          AssetsLimitSetter: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+          AssetsLimit: 10_000_000,
+          Pool: LiquidityPoolAaveUSDTProxy,
+        },
+        // RebalancerRoutes: {
+        //   [LiquidityPoolUSDTProxy]: {
+        //     [Network.TEMPO]: [Provider.USDT0],
+        //     [Network.STABLE]: [Provider.USDT0],
+        //   },
+        // },
+        AavePool: {
+          AaveAddressesProvider: AAVEPools.AaveV3Arbitrum.POOL_ADDRESSES_PROVIDER,
+          MinHealthFactor: 150,
+          DefaultLTV: 0,
+          TokenLTVs: {
+            "0xaf88d065e77c8cc2239327c5edb3a432268e5831": 90, // USDC
+            "0x82af49447d8a07e3bd95bd0d56f35241523fbab1": 75, // WETH
+            "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f": 75, // WBTC
+            "0x35751007a407ca6feffe80b3cb397736d2cf4dbe": 0, // weETH
+            "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9": 100, // USDT0
+            "0x5979d7b546e38e414f7e9822514be443a4800529": 0, // wstETH
+            "0xf97f4df75117a78c1a5a0dbb814af92458539fb4": 0, // LINK
+            "0x912ce59144191c1204e64559fe8253a0e49e6548": 0, // ARB
+            "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1": 90, // DAI
+            "0xec70dcb4a1efa46b8f2d97c310c9c4790ba5ffa8": 0, // rETH
+            "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": 0, // USDC.e
+            "0x7dff72693f6a4149b17e7c6314655f6a9f7c8b33": 0, // GHO
+            "0x93b346b6bc2548da6a1e7d98e9a421b42541425b": 0, // LUSD
+            "0x17fc002b466eec40dae837fc4be5c67993ddbd6f": 0, // FRAX
+          },
+        },
+      },
     },
   },
   BASE: {
@@ -676,6 +702,15 @@ export const prodNetworkConfig: NetworksConfig = {
         Domains: {
           [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
         }
+      },
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [
+            Provider.CCTP_V2,
+            Provider.ACROSS,
+            Provider.STARGATE
+          ],
+        },
       },
     },
     MainAssets: {
@@ -802,6 +837,16 @@ export const prodNetworkConfig: NetworksConfig = {
           [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE, Provider.USDT0, Provider.CCTP_V2],
         }
       },
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [
+            Provider.ACROSS,
+            Provider.STARGATE,
+            Provider.USDT0,
+            Provider.CCTP_V2,
+          ],
+        },
+      },
     },
     MainAssets: {
       [Token.USDC]: {
@@ -910,6 +955,16 @@ export const prodNetworkConfig: NetworksConfig = {
           [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE, Provider.USDT0, Provider.CCTP_V2],
         }
       },
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [
+            Provider.ACROSS,
+            Provider.STARGATE,
+            Provider.USDT0,
+            Provider.CCTP_V2,
+          ],
+        },
+      },
     },
     MainAssets: {
       [Token.USDC]: {
@@ -990,6 +1045,11 @@ export const prodNetworkConfig: NetworksConfig = {
           [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE],
         },
       },
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [Provider.ACROSS, Provider.STARGATE],
+        },
+      },
     },
     MainAssets: {},
   },
@@ -1049,6 +1109,11 @@ export const prodNetworkConfig: NetworksConfig = {
       [LiquidityPoolAaveUSDCLongTermV3]: {
         Domains: {
           [Network.ETHEREUM]: [Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
+        },
+      },
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [Provider.ACROSS, Provider.STARGATE, Provider.CCTP_V2],
         },
       },
     },
@@ -1112,6 +1177,11 @@ export const prodNetworkConfig: NetworksConfig = {
           [Network.ETHEREUM]: [Provider.STARGATE, Provider.GNOSIS_OMNIBRIDGE],
         }
       },
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [Provider.STARGATE],
+        },
+      },
     },
     MainAssets: {},
   },
@@ -1169,6 +1239,11 @@ export const prodNetworkConfig: NetworksConfig = {
         Domains: {
           [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS],
         }
+      },
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [Provider.CCTP_V2, Provider.ACROSS],
+        },
       },
     },
     MainAssets: {},
@@ -1228,6 +1303,11 @@ export const prodNetworkConfig: NetworksConfig = {
           [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS, Provider.USDT0],
         }
       },
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [Provider.CCTP_V2, Provider.ACROSS, Provider.USDT0],
+        },
+      },
     },
     MainAssets: {},
   },
@@ -1286,6 +1366,11 @@ export const prodNetworkConfig: NetworksConfig = {
         Domains: {
           [Network.ETHEREUM]: [Provider.CCTP_V2, Provider.ACROSS, Provider.USDT0],
         }
+      },
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [Provider.CCTP_V2, Provider.ACROSS, Provider.USDT0],
+        },
       },
     },
     MainAssets: {},

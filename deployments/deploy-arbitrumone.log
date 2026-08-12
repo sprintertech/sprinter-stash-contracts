@@ -144,3 +144,40 @@ To finalize upgrade send the following transaction from ProxyAdmin owner: 0x4eA9
 To: 0x2B5D04eF6b3279bCdA4B219b02FAF627dA1664CB
 Value: 0
 Data: 0x9623609d00000000000000000000000036364acc7b9c67692ca215af09a41cbd1043951100000000000000000000000037f3f7b6741d8832d3a36f514f68517d292a381100000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000
+
+Deployment ID: MVP
+Deploying contracts set
+Using config for: ARBITRUM_ONE
+Deployer        : 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+DEPLOYER_ADDRESS: 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+Using main asset: USDT
+Deploying AAVE Liquidity Pool
+LiquidityPoolAaveUSDTProxy: 0xe0cA2791aeB3cd767cEB5217e7f3011e1a2e19D3
+LiquidityPoolAaveUSDTProxyAdmin: 0x97bFDfa6481e2a480769Eb258db3fD2005DE5C56
+Repayer was already deployed
+Make sure to update the Repayer routes with the update-routes-repayer task
+SprinterUSDTLPShare: 0xa13a87A57be24b29e4ca87fcAb5C419C16dCcEb3
+LiquidityHubUSDT: 0xdAb74B00780461940Bf61aED8Ee00E9d710b1f7d
+LiquidityHubProxyAdmin: 0xBF7E16Ec37BeBc3bab7D101b9d2402c3060477cA
+LiquidityHub Adjuster: 0x4eA9E682BA79bC403523c9e8D98A05EaF3810636
+LiquidityHub DepositProfit: 0x83B8D2eAda788943c3e80892f37f9c102271C1D6
+LiquidityHub AssetsLimitSetter: 0x83B8D2eAda788943c3e80892f37f9c102271C1D6
+LiquidityHub Assets Limit: 10000000
+Multicall was already deployed
+Multicall: 0x7C472EBa1945E970a23C903FC8812D469a29B6bb
+Admin: 0x4eA9E682BA79bC403523c9e8D98A05EaF3810636
+LiquidityPool Withdraw Profit: 0x83B8D2eAda788943c3e80892f37f9c102271C1D6
+LiquidityPool Pauser: 0x83B8D2eAda788943c3e80892f37f9c102271C1D6
+MPC Address: 0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2
+USDT: 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9
+Signer Address: 0x83B8D2eAda788943c3e80892f37f9c102271C1D6
+RebalancerUSDT: 0x9a9938972A37Fd546Bf72420114bA2E3e41b94f9
+RebalancerUSDTProxyAdmin: 0xeb98A7ed19E1aA2E027b19D2bc9671aA7b35835a
+RebalancerRoutes:
+┌─────────┬──────────────────────────────────────────────┬────────────────┬──────────┐
+│ (index) │ Pool                                         │ Domain         │ Provider │
+├─────────┼──────────────────────────────────────────────┼────────────────┼──────────┤
+│ 0       │ '0xe0cA2791aeB3cd767cEB5217e7f3011e1a2e19D3' │ 'ARBITRUM_ONE' │ 'LOCAL'  │
+└─────────┴──────────────────────────────────────────────┴────────────────┴──────────┘
+Repayer: 0x36364Acc7B9c67692CA215af09A41CBd10439511
+RepayerProxyAdmin: 0x2B5D04eF6b3279bCdA4B219b02FAF627dA1664CB

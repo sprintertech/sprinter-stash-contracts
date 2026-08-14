@@ -1196,6 +1196,7 @@ export const stageNetworkConfig: PartialNetworksConfig = {
       },
       [LiquidityPoolAaveUSDCV4]: {
         Domains: {
+          [Network.ARBITRUM_ONE]: [Provider.USDT0],
           [Network.POLYGON_MAINNET]: [Provider.USDT0],
         },
       },
@@ -1253,6 +1254,7 @@ export const stageNetworkConfig: PartialNetworksConfig = {
       },
       [LiquidityPoolAaveUSDCV4]: {
         Domains: {
+          [Network.ARBITRUM_ONE]: [Provider.USDT0],
           [Network.POLYGON_MAINNET]: [Provider.USDT0],
         },
       },

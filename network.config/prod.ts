@@ -1333,6 +1333,13 @@ export const prodNetworkConfig: NetworksConfig = {
           [Network.ARBITRUM_ONE]: [Provider.CCTP_V2, Provider.ACROSS, Provider.USDT0],
         },
       },
+      [LiquidityPoolUSDTProxy]: {
+        OnlySupportedToken: Token.USDT,
+        Domains: {
+          [Network.STABLE]: [Provider.USDT0],
+          [Network.TEMPO]: [Provider.USDT0],
+        },
+      },
     },
     MainAssets: {},
   },

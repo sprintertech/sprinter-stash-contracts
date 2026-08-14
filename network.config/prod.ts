@@ -119,6 +119,13 @@ export const prodNetworkConfig: NetworksConfig = {
           ],
         },
       },
+      [LiquidityPoolUSDTProxy]: {
+        OnlySupportedToken: Token.USDT,
+        Domains: {
+          [Network.STABLE]: [Provider.USDT0],
+          [Network.TEMPO]: [Provider.USDT0],
+        },
+      },
     },
     StashDex: {
       Oracle: "PaxosOracle",
@@ -376,13 +383,11 @@ export const prodNetworkConfig: NetworksConfig = {
             Provider.ACROSS,
             Provider.STARGATE,
             Provider.CCTP_V2,
-            Provider.USDT0,
           ],
           [Network.UNICHAIN]: [
             Provider.ACROSS,
             Provider.STARGATE,
             Provider.CCTP_V2,
-            Provider.USDT0,
           ],
         },
       },
@@ -392,7 +397,6 @@ export const prodNetworkConfig: NetworksConfig = {
             Provider.ACROSS,
             Provider.STARGATE,
             Provider.CCTP_V2,
-            Provider.USDT0,
           ],
         }
       },
@@ -549,6 +553,13 @@ export const prodNetworkConfig: NetworksConfig = {
           ],
         }
       },
+      [LiquidityPoolUSDTProxy]: {
+        OnlySupportedToken: Token.USDT,
+        Domains: {
+          [Network.TEMPO]: [Provider.USDT0],
+          [Network.STABLE]: [Provider.USDT0],
+        }
+      },
     },
     MainAssets: {
       [Token.USDC]: {
@@ -602,12 +613,12 @@ export const prodNetworkConfig: NetworksConfig = {
           AssetsLimit: 10_000_000,
           Pool: LiquidityPoolAaveUSDTProxy,
         },
-        // RebalancerRoutes: {
-        //   [LiquidityPoolUSDTProxy]: {
-        //     [Network.TEMPO]: [Provider.USDT0],
-        //     [Network.STABLE]: [Provider.USDT0],
-        //   },
-        // },
+        RebalancerRoutes: {
+          [LiquidityPoolUSDTProxy]: {
+            [Network.TEMPO]: [Provider.USDT0],
+            [Network.STABLE]: [Provider.USDT0],
+          },
+        },
         AavePool: {
           AaveAddressesProvider: AAVEPools.AaveV3Arbitrum.POOL_ADDRESSES_PROVIDER,
           MinHealthFactor: 150,
@@ -847,6 +858,13 @@ export const prodNetworkConfig: NetworksConfig = {
           ],
         },
       },
+      [LiquidityPoolUSDTProxy]: {
+        OnlySupportedToken: Token.USDT,
+        Domains: {
+          [Network.STABLE]: [Provider.USDT0],
+          [Network.TEMPO]: [Provider.USDT0],
+        },
+      },
     },
     MainAssets: {
       [Token.USDC]: {
@@ -963,6 +981,13 @@ export const prodNetworkConfig: NetworksConfig = {
             Provider.USDT0,
             Provider.CCTP_V2,
           ],
+        },
+      },
+      [LiquidityPoolUSDTProxy]: {
+        OnlySupportedToken: Token.USDT,
+        Domains: {
+          [Network.STABLE]: [Provider.USDT0],
+          [Network.TEMPO]: [Provider.USDT0],
         },
       },
     },
@@ -1372,6 +1397,13 @@ export const prodNetworkConfig: NetworksConfig = {
           [Network.ARBITRUM_ONE]: [Provider.CCTP_V2, Provider.ACROSS, Provider.USDT0],
         },
       },
+      [LiquidityPoolUSDTProxy]: {
+        OnlySupportedToken: Token.USDT,
+        Domains: {
+          [Network.STABLE]: [Provider.USDT0],
+          [Network.TEMPO]: [Provider.USDT0],
+        },
+      },
     },
     MainAssets: {},
   },
@@ -1395,16 +1427,30 @@ export const prodNetworkConfig: NetworksConfig = {
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerRoutes: {
-      [LiquidityPoolAaveUSDTProxy]: {
+      [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
-          [Network.ARBITRUM_ONE]: [
+          [Network.ETHEREUM]: [
             Provider.USDT0,
           ],
         },
       },
-      [LiquidityPoolAaveUSDCProxy]: {
+      [LiquidityPoolAaveUSDCV4]: {
+        Domains: {
+          [Network.POLYGON_MAINNET]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+      [LiquidityPoolAaveUSDCLongTermV3]: {
         Domains: {
           [Network.ETHEREUM]: [
+            Provider.USDT0,
+          ],
+        }
+      },
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [
             Provider.USDT0,
           ],
         },
@@ -1449,6 +1495,27 @@ export const prodNetworkConfig: NetworksConfig = {
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     RepayerRoutes: {
+      [LiquidityPoolAaveUSDCProxy]: {
+        Domains: {
+          [Network.ETHEREUM]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+      [LiquidityPoolAaveUSDCV4]: {
+        Domains: {
+          [Network.POLYGON_MAINNET]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+      [LiquidityPoolAaveUSDCLongTermV3]: {
+        Domains: {
+          [Network.ETHEREUM]: [
+            Provider.USDT0,
+          ],
+        }
+      },
       [LiquidityPoolAaveUSDTProxy]: {
         Domains: {
           [Network.ARBITRUM_ONE]: [

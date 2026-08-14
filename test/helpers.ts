@@ -31,12 +31,14 @@ export async function getCreateAddress(from: AddressLike, nonce: number): Promis
   return hre.ethers.getCreateAddress({from: await resolveAddress(from), nonce});
 }
 
-export async function getCreateX(deployer?: Signer): Promise<ICreateX> {
+export async function getCreateX(deployer?: Signer | undefined, codeCheck: boolean = true): Promise<ICreateX> {
   const createX = await getContractAt("ICreateX", CREATE_X_ADDRESS, deployer) as ICreateX;
   const expectedBytecodeHash = "0xbd8a7ea8cfca7b4e5f5041d7d4b17bc317c5ce42cfbc42066a00cf26b43eb53f";
   const actualBytecode = await hre.ethers.provider.getCode(createX);
   const actualBytecodeHash = keccak256(actualBytecode);
-  assert(actualBytecodeHash === expectedBytecodeHash, `Unexpected CreateX bytecode: ${actualBytecode}`);
+  if (codeCheck) {
+    assert(actualBytecodeHash === expectedBytecodeHash, `Unexpected CreateX bytecode: ${actualBytecode}`);
+  }
   return createX;
 };
 
@@ -53,6 +55,7 @@ export async function getDeployXAddressBase(
   deployer: AddressLike,
   id: string,
   codeCheck: boolean = true,
+  onchain: boolean = true,
 ): Promise<string> {
   const salt = concat([
     await resolveAddress(deployer),
@@ -63,19 +66,47 @@ export async function getDeployXAddressBase(
     ["address", "bytes32"],
     [await resolveAddress(deployer), salt],
   ));
-  const createX = await getCreateX();
-  const result = await createX["computeCreate3Address(bytes32)"](guardedSalt);
+  const createX = await getCreateX(undefined, codeCheck);
+  let result: string;
+  if (onchain) {
+    result = await createX["computeCreate3Address(bytes32)"](guardedSalt);
+  } else {
+    result = await getDeployXAddressBaseOffchain(await createX.getAddress(), guardedSalt);
+  }
   if (codeCheck) {
     await assertCode(result);
   }
   return result;
 }
 
-export async function getDeployXAddress(id: string, codeCheck: boolean = true): Promise<string> {
+export async function getDeployXAddressBaseOffchain(
+  createXAddress: string,
+  guardedSalt: string,
+): Promise<string> {
+  const factoryAddress = dataSlice(keccak256(concat([
+    "0xff",
+    createXAddress,
+    guardedSalt,
+    "0x21c35dbe1b344a2488cf3321d6ce542f8e9f305544ff09e4993a62319a497c1f",
+  ])), 12);
+  const result = dataSlice(keccak256(concat([
+    "0xd694",
+    factoryAddress,
+    "0x01",
+  ])), 12);
+  return result;
+}
+
+export async function getDeployXAddress(
+  id: string,
+  codeCheck: boolean = true,
+  onchain: boolean = true,
+): Promise<string> {
   return await getDeployXAddressBase(
     process.env.DEPLOYER_ADDRESS!,
     process.env.DEPLOY_ID! + id,
     codeCheck,
+    onchain,
   );
 }
 
@@ -97,9 +128,13 @@ async function tryResolve(address: string, codeCheck: boolean = true): Promise<s
   return null;
 }
 
-export async function resolveXAddress(addressOrId: string, codeCheck: boolean = true): Promise<string> {
+export async function resolveXAddress(
+  addressOrId: string,
+  codeCheck: boolean = true,
+  onchain: boolean = true,
+): Promise<string> {
   const result = await tryResolve(addressOrId, codeCheck);
-  return result || await getDeployXAddress(addressOrId, codeCheck);
+  return result || await getDeployXAddress(addressOrId, codeCheck, onchain);
 }
 
 export async function resolveProxyXAddress(addressOrId: string, codeCheck: boolean = true): Promise<string> {
@@ -107,8 +142,12 @@ export async function resolveProxyXAddress(addressOrId: string, codeCheck: boole
   return result || await getDeployProxyXAddress(addressOrId, codeCheck);
 }
 
-export async function resolveXAddresses(addressOrIds: string[], codeCheck: boolean = true): Promise<string[]> {
-  return await Promise.all(addressOrIds.map(el => resolveXAddress(el, codeCheck)));
+export async function resolveXAddresses(
+  addressOrIds: string[],
+  codeCheck: boolean = true,
+  onchain: boolean = true,
+): Promise<string[]> {
+  return await Promise.all(addressOrIds.map(el => resolveXAddress(el, codeCheck, onchain)));
 }
 
 export async function getContractAt(

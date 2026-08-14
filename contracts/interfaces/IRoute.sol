@@ -24,7 +24,8 @@ interface IRoute {
         INK,
         HYPER_EVM,
         TEMPO,
-        STABLE
+        STABLE,
+        TRON
     }
 
     enum Provider {

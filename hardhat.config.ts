@@ -16,6 +16,8 @@ import {
 import "hardhat-ignore-warnings";
 import "solidity-coverage";
 import {createSender} from "./scripts/safe";
+import "@layerzerolabs/hardhat-deploy";
+import "@layerzerolabs/hardhat-tron";
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -1131,6 +1133,16 @@ const config: HardhatUserConfig = {
         },
         viaIR: true,
       },
+    },
+    {
+      version: "0.8.26",
+      settings: {
+        optimizer: {
+          enabled: true,
+          runs: 999999,
+        },
+        viaIR: true,
+      },
     }],
     overrides: {
       "contracts/LiquidityPoolAave.sol": {
@@ -1164,11 +1176,11 @@ const config: HardhatUserConfig = {
         },
       },
       "contracts/Repayer.sol": {
-        version: "0.8.28",
+        version: isSet(process.env.TRON) ? "0.8.26" : "0.8.28",
         settings: {
           optimizer: {
             enabled: true,
-            runs: 10000,
+            runs: 1000,
           },
           viaIR: true,
         },
@@ -1185,9 +1197,27 @@ const config: HardhatUserConfig = {
       }
     }
   },
+  tronSolc: {
+    enable: true,
+    filter: ["Repayer", "Rebalancer", "LiquidityPool", "Deps", "CensoredTransferFromMulticall", "ICreateX"],
+    compilers: [{version: "0.8.26"}], // highest version available in tronbox.
+    versionRemapping: [
+      ["0.8.28", "0.8.26"],
+    ],
+  },
   networks: {
     localhost: {
       url: "http://127.0.0.1:8545/",
+    },
+    localtron: {
+      url: "http://127.0.0.1:9090/jsonrpc",
+      tron: true,
+      accounts: [
+        "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+        "59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
+        "5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a",
+        "7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6",
+      ],
     },
     [Network.AVALANCHE]: {
       chainId: networkConfig.AVALANCHE.ChainId,
@@ -1263,6 +1293,12 @@ const config: HardhatUserConfig = {
     [Network.STABLE]: {
       chainId: networkConfig.STABLE.ChainId,
       url: process.env[(isSet(process.env.VIRTUAL) ? "VIRTUAL_" : "") + "STABLE_RPC"],
+      accounts,
+    },
+    [Network.TRON]: {
+      chainId: networkConfig.TRON.ChainId,
+      url: process.env.TRON_RPC || "https://api.trongrid.io/jsonrpc",
+      tron: true,
       accounts,
     },
     hardhat: {
@@ -1357,6 +1393,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api.stablescan.xyz/api",
           browserURL: "https://stablescan.xyz"
+        },
+      },
+      {
+        network: "tron",
+        chainId: networkConfig.TRON.ChainId,
+        urls: {
+          apiURL: "https://api.tronscan.org/api",
+          browserURL: "https://tronscan.org"
         },
       },
     ],

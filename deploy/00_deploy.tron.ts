@@ -1,0 +1,376 @@
+import dotenv from "dotenv";
+dotenv.config();
+import {BaseContract, ContractTransaction} from "ethers";
+import {toBytes32, getContractAt, resolveXAddresses} from "../test/helpers";
+import {
+  getHardhatNetworkConfig, getNetworkConfig,
+  getInputOutputTokens, flattenInputOutputTokens,
+  logDeployers, getMainAsset, idWithMainAsset, resolveOnlySupportedToken,
+} from "../scripts/helpers";
+import {
+  assert, isSet, ProviderSolidity, DomainSolidity, DEFAULT_ADMIN_ROLE, ZERO_ADDRESS,
+  sameAddress, assertAddress, bytes32ToToken,
+} from "../scripts/common";
+import {
+  Rebalancer, Repayer, LiquidityPool, AccessControlUpgradeable, ProxyAdmin,
+} from "../typechain-types";
+import {
+  Network, Provider, NetworkConfig,
+  LiquidityPoolId, DEFAULT_PROXY_TYPE,
+} from "../network.config";
+import {HardhatRuntimeEnvironment} from "hardhat/types";
+import {DeployFunction} from "hardhat-deploy/types";
+
+const ADMIN_SLOT = "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103";
+const SKIP_IF_ALREADY_DEPLOYED = true;
+
+interface Initializable extends BaseContract {
+  initialize: {
+    populateTransaction: (...params: any[]) => Promise<ContractTransaction>
+  }
+}
+
+export async function deployProxy<ContractType extends Initializable>(
+  hre: HardhatRuntimeEnvironment,
+  contractName: string,
+  deployer: string,
+  upgradeAdmin: string,
+  contructorArgs: any[] = [],
+  initArgs: any[] = [],
+  id: string = contractName,
+  skipIfAlreadyDeployed: boolean = false,
+): Promise<{target: ContractType; targetAdmin: ProxyAdmin;}> {
+  const {deployments} = hre;
+  const proxy = await deployments.deploy(id, {
+    contract: contractName,
+    from: deployer,
+    args: contructorArgs,
+    proxy: {
+      owner: upgradeAdmin,
+      proxyContract: DEFAULT_PROXY_TYPE,
+      execute: {
+        methodName: "initialize",
+        args: initArgs,
+      }
+    },
+    skipIfAlreadyDeployed,
+  });
+  if (!proxy.newlyDeployed) {
+    console.log(`${id} was already deployed: ${proxy.address}`);
+  }
+
+  const admin = bytes32ToToken(await hre.ethers.provider.getStorage(proxy.address, ADMIN_SLOT));
+  const target = (await getContractAt(contractName, proxy.address)) as ContractType;
+  const targetAdmin = (await getContractAt("ProxyAdmin", admin)) as ProxyAdmin;
+  
+  return {target, targetAdmin};
+}
+
+const main: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+  const [deployer] = await hre.getUnnamedAccounts();
+  const {deployments} = hre; 
+
+  const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
+  const WITHDRAW_PROFIT_ROLE = toBytes32("WITHDRAW_PROFIT_ROLE");
+  const PAUSER_ROLE = toBytes32("PAUSER_ROLE");
+
+  assert(isSet(process.env.DEPLOY_ID), "DEPLOY_ID must be set");
+  console.log(`Deployment ID: ${process.env.DEPLOY_ID}`);
+
+  let network: Network;
+  let config: NetworkConfig;
+  console.log("Deploying contracts set");
+  ({network, config} = await getNetworkConfig());
+  if (!network) {
+    ({network, config} = await getHardhatNetworkConfig());
+  }
+
+  await logDeployers();
+
+  const {mainAsset, mainAssetConfig, mainAssetInfo} = getMainAsset(config);
+
+  assert(mainAssetConfig.BasicPool, "BasicPool should be present.");
+  let usdcAddress = ZERO_ADDRESS;
+  if (config.Tokens.USDC) {
+    usdcAddress = config.Tokens.USDC.Address;
+    assertAddress(usdcAddress, "USDC must be an address");
+  }
+  assertAddress(mainAssetInfo.Address, `${mainAsset} must be an address`);
+  assertAddress(config.Admin, "Admin must be an address");
+  assertAddress(config.WithdrawProfit, "WithdrawProfit must be an address");
+  assertAddress(config.Pauser, "Pauser must be an address");
+  assertAddress(config.RebalanceCaller, "RebalanceCaller must be an address");
+  assertAddress(config.RepayerCaller, "RepayerCaller must be an address");
+  assertAddress(config.SetInputOutputTokens, "SetInputOutputTokens must be an address");
+  assertAddress(config.MpcAddress, "MpcAddress must be an address");
+  assertAddress(config.SignerAddress, "SignerAddress must be an address");
+  assertAddress(config.WrappedNativeToken, "WrappedNativeToken must be an address");
+
+  if (!config.CCTPV2) {
+    config.CCTPV2 = {
+      TokenMessenger: ZERO_ADDRESS,
+      MessageTransmitter: ZERO_ADDRESS,
+    };
+  }
+
+  const rebalancerRoutes: {Pools: string[], Domains: Network[], Providers: Provider[]} = {
+    Pools: [],
+    Domains: [],
+    Providers: [],
+  };
+  if (mainAssetConfig.RebalancerRoutes) {
+    for (const [pool, domainProviders] of Object.entries(mainAssetConfig.RebalancerRoutes)) {
+      for (const [domain, providers] of Object.entries(domainProviders)) {
+        for (const provider of providers) {
+          rebalancerRoutes.Pools.push(pool);
+          rebalancerRoutes.Domains.push(domain as Network);
+          rebalancerRoutes.Providers.push(provider);
+        }
+      }
+    }
+  }
+
+  const repayerRoutes: {Pools: string[], Domains: Network[], Providers: Provider[], OnlySupportedTokens: string[]} = {
+    Pools: [],
+    Domains: [],
+    Providers: [],
+    OnlySupportedTokens: [],
+  };
+  if (config.RepayerRoutes) {
+    for (const [pool, domainProviders] of Object.entries(config.RepayerRoutes)) {
+      for (const [domain, providers] of Object.entries(domainProviders.Domains)) {
+        for (const provider of providers) {
+          repayerRoutes.Pools.push(pool);
+          repayerRoutes.Domains.push(domain as Network);
+          repayerRoutes.Providers.push(provider);
+          repayerRoutes.OnlySupportedTokens.push(
+            resolveOnlySupportedToken(config.Tokens, domainProviders.OnlySupportedToken)
+          );
+        }
+      }
+    }
+  }
+
+  if (!config.AcrossV3SpokePool) {
+    config.AcrossV3SpokePool = ZERO_ADDRESS;
+  }
+  if (!config.StargateTreasurer) {
+    config.StargateTreasurer = ZERO_ADDRESS;
+  }
+  if (!config.OptimismStandardBridge) {
+    config.OptimismStandardBridge = ZERO_ADDRESS;
+  }
+  if (!config.BaseStandardBridge) {
+    config.BaseStandardBridge = ZERO_ADDRESS;
+  }
+  if (!config.ArbitrumGatewayRouter) {
+    config.ArbitrumGatewayRouter = ZERO_ADDRESS;
+  }
+  if (!config.Omnibridge) config.Omnibridge = ZERO_ADDRESS;
+  if (!config.GnosisUSDCxDAI) config.GnosisUSDCxDAI = ZERO_ADDRESS;
+  if (!config.GnosisUSDCTransmuter) config.GnosisUSDCTransmuter = ZERO_ADDRESS;
+  if (!config.GnosisAMB) config.GnosisAMB = ZERO_ADDRESS;
+  if (!config.USDT0OFT) config.USDT0OFT = ZERO_ADDRESS;
+  if (!config.USDT0FeeNativeToken) config.USDT0FeeNativeToken = ZERO_ADDRESS;
+
+  let mainPool: AccessControlUpgradeable | undefined = undefined;
+
+  const basicPoolId = idWithMainAsset(mainAsset, LiquidityPoolId);
+  let basicPool: LiquidityPool;
+  let basicPoolAdmin: ProxyAdmin;
+  if (mainAssetConfig.BasicPool) {
+    console.log(`Deploying ${basicPoolId}`);
+    ({target: basicPool, targetAdmin: basicPoolAdmin} = await deployProxy<LiquidityPool>(
+      hre,
+      "LiquidityPool",
+      deployer,
+      config.Admin,
+      [mainAssetInfo.Address, config.WrappedNativeToken],
+      [deployer, config.MpcAddress, config.SignerAddress],
+      basicPoolId,
+    ));
+
+    console.log(`${basicPoolId}Proxy: ${basicPool.target}`);
+    console.log(`${basicPoolId}ProxyAdmin: ${basicPoolAdmin.target}`);
+
+    rebalancerRoutes.Pools.push(await basicPool.getAddress());
+    rebalancerRoutes.Domains.push(network);
+    rebalancerRoutes.Providers.push(Provider.LOCAL);
+
+    repayerRoutes.Pools.push(await basicPool.getAddress());
+    repayerRoutes.Domains.push(network);
+    repayerRoutes.Providers.push(Provider.LOCAL);
+    repayerRoutes.OnlySupportedTokens.push(mainAssetInfo.Address);
+
+    if (!mainPool) {
+      mainPool = basicPool;
+    }
+  }
+
+  assert(mainPool, "Main pool is not defined");
+
+  rebalancerRoutes.Pools = await resolveXAddresses(rebalancerRoutes.Pools, false, false);
+
+  const rebalancerId = idWithMainAsset(mainAsset, "Rebalancer");
+  const {target: rebalancer, targetAdmin: rebalancerAdmin} = await deployProxy<Rebalancer>(
+    hre,
+    "Rebalancer",
+    deployer,
+    config.Admin,
+    [
+      DomainSolidity[network], mainAssetInfo.Address, usdcAddress,
+      config.Omnibridge, config.GnosisUSDCxDAI, config.GnosisUSDCTransmuter, config.GnosisAMB,
+      config.USDT0OFT, config.USDT0FeeNativeToken, config.CCTPV2.TokenMessenger, config.CCTPV2.MessageTransmitter,
+    ],
+    [
+      config.Admin,
+      config.RebalanceCaller,
+      rebalancerRoutes.Pools,
+      rebalancerRoutes.Domains.map(el => DomainSolidity[el]),
+      rebalancerRoutes.Providers.map(el => ProviderSolidity[el]),
+    ],
+    rebalancerId,
+  );
+
+  console.log(`RebalancerProxy: ${rebalancer.target}`);
+  console.log(`RebalancerProxyAdmin: ${rebalancerAdmin.target}`);
+
+  if (mainAssetConfig.BasicPool) {
+    await deployments.execute(
+      basicPoolId,
+      {
+        from: deployer,
+      },
+      "grantRole",
+      LIQUIDITY_ADMIN_ROLE, rebalancer.target,
+    );
+    await deployments.execute(
+      basicPoolId,
+      {
+        from: deployer,
+      },
+      "grantRole",
+      WITHDRAW_PROFIT_ROLE, config.WithdrawProfit,
+    );
+    await deployments.execute(
+      basicPoolId,
+      {
+        from: deployer,
+      },
+      "grantRole",
+      PAUSER_ROLE, config.Pauser,
+    );
+  }
+
+  repayerRoutes.Pools = await resolveXAddresses(repayerRoutes.Pools || [], false, false);
+  const inputOutputTokens = getInputOutputTokens(network, config);
+
+  const repayerId = "Repayer";
+  const {target: repayer, targetAdmin: repayerAdmin} = await deployProxy<Repayer>(
+    hre,
+    "Repayer",
+    deployer,
+    config.Admin,
+    [
+      DomainSolidity[network],
+      usdcAddress,
+      config.AcrossV3SpokePool,
+      config.WrappedNativeToken,
+      config.StargateTreasurer,
+      config.OptimismStandardBridge,
+      config.BaseStandardBridge,
+      config.ArbitrumGatewayRouter,
+      config.Omnibridge,
+      config.GnosisUSDCxDAI,
+      config.GnosisUSDCTransmuter,
+      config.GnosisAMB,
+      config.USDT0OFT,
+      config.USDT0FeeNativeToken,
+      config.CCTPV2.TokenMessenger,
+      config.CCTPV2.MessageTransmitter,
+    ],
+    [
+      config.Admin,
+      config.RepayerCaller,
+      config.SetInputOutputTokens,
+      repayerRoutes.Pools,
+      repayerRoutes.Domains.map(el => DomainSolidity[el]),
+      repayerRoutes.Providers.map(el => ProviderSolidity[el]),
+      repayerRoutes.OnlySupportedTokens,
+      inputOutputTokens,
+    ],
+    repayerId,
+    SKIP_IF_ALREADY_DEPLOYED,
+  );
+
+  console.log(`RepayerProxy: ${repayer.target}`);
+  console.log(`RepayerProxyAdmin: ${repayerAdmin.target}`);
+
+  if (!sameAddress(deployer, config.Admin)) {
+    if (mainAssetConfig.BasicPool) {
+      await deployments.execute(
+        basicPoolId,
+        {
+          from: deployer,
+        },
+        "grantRole",
+        DEFAULT_ADMIN_ROLE, config.Admin,
+      );
+      await deployments.execute(
+        basicPoolId,
+        {
+          from: deployer,
+        },
+        "renounceRole",
+        DEFAULT_ADMIN_ROLE, deployer,
+      );
+    }
+  }
+
+  const multicall = (await deployments.deploy("CensoredTransferFromMulticall", {
+    from: deployer,
+  })).address;
+
+  console.log(`Multicall: ${multicall}`);
+  console.log(`Admin: ${config.Admin}`);
+  console.log(`LiquidityPool Withdraw Profit: ${config.WithdrawProfit}`);
+  console.log(`LiquidityPool Pauser: ${config.Pauser}`);
+  console.log(`MPC Address: ${config.MpcAddress}`);
+  console.log(`${mainAsset}: ${config.Tokens[mainAsset]!.Address}`);
+  console.log(`Signer Address: ${config.SignerAddress}`);
+  console.log(`${rebalancerId}: ${rebalancer.target}`);
+  console.log(`${rebalancerId}ProxyAdmin: ${rebalancerAdmin.target}`);
+  if (rebalancerRoutes.Pools.length > 0) {
+    console.log("RebalancerRoutes:");
+    const transposedRoutes = [];
+    for (let i = 0; i < rebalancerRoutes.Pools.length; i++) {
+      transposedRoutes.push({
+        Pool: rebalancerRoutes.Pools[i],
+        Domain: rebalancerRoutes.Domains[i],
+        Provider: rebalancerRoutes.Providers[i],
+      });
+    }
+    console.table(transposedRoutes);
+  }
+  console.log(`Repayer: ${repayer.target}`);
+  console.log(`RepayerProxyAdmin: ${repayerAdmin.target}`);
+  if (repayerRoutes.Pools.length > 0) {
+    console.log("RepayerRoutes:");
+    const transposedRoutes = [];
+    for (let i = 0; i < repayerRoutes.Pools.length; i++) {
+      transposedRoutes.push({
+        Pool: repayerRoutes.Pools[i],
+        Domain: repayerRoutes.Domains[i],
+        Provider: repayerRoutes.Providers[i],
+        OnlySupportedToken: repayerRoutes.OnlySupportedTokens[i],
+      });
+    }
+    console.table(transposedRoutes);
+  }
+  if (inputOutputTokens.length > 0) {
+    console.log("InputOutputTokens:");
+    console.table(flattenInputOutputTokens(inputOutputTokens));
+  }
+};
+
+export default main;

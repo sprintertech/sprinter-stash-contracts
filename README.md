@@ -166,3 +166,15 @@ According to CCTP V1 docs, attestation could be produced 9-19 minutes after the 
 9. Click Create Batch.
 10. Click Simulate.
 11. Click Send Batch.
+
+# Tron
+
+To test local deployments on Tron you need to run a local Tron runtime env.
+
+```
+docker pull tronbox/tre
+
+./tron.node.sh
+
+npm run deploy-localtron
+```

@@ -493,7 +493,13 @@ export async function getNetworkConfig() {
 }
 
 export async function getHardhatNetworkConfig() {
-  assert(hre.network.name === "hardhat" || hre.network.name === "localhost", "Only for Hardhat or localhost network");
+  assert(
+    hre.network.name === "hardhat" ||
+    hre.network.name === "localhost" ||
+    hre.network.name === "localtron" ||
+    hre.network.name === "tron",
+    "Only for Hardhat or localhost network"
+  );
   const network = Network.BASE;
   const [deployer, opsAdmin, superAdmin, mpc] = await hre.ethers.getSigners();
   process.env.DEPLOYER_ADDRESS = await resolveAddress(deployer);

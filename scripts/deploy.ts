@@ -447,7 +447,7 @@ export async function main() {
       config.Admin,
       [
         DomainSolidity[network],
-        config.Tokens.USDC.Address,
+        usdcAddress,
         config.AcrossV3SpokePool,
         config.WrappedNativeToken,
         config.StargateTreasurer,

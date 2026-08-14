@@ -1479,4 +1479,25 @@ export const prodNetworkConfig: NetworksConfig = {
       },
     },
   },
+  TRON: {
+    ChainId: 728126428,
+    USDT0OFT: "0x3a08F76772e200653bB55c2a92998DAcA62e0e97",
+    Tokens: {
+      USDT: tokenInfo("0xa614f803B6FD780986A42c78Ec9c7f77e6DeD13C", 6),
+    },
+    WrappedNativeToken: "0x891cdb91d149f23B1a45D9c5Ca78a88d0cB44C18",
+    Admin: "TBD",
+    WithdrawProfit: "TBD",
+    Pauser: "TBD",
+    RebalanceCaller: "TBD",
+    RepayerCaller: "0x9A5B33bd11329116A55F764c604a5152eE8Ca292",
+    SetInputOutputTokens: "TBD",
+    MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
+    SignerAddress: "TBD",
+    MainAssets: {
+      [Token.USDT]: {
+        BasicPool: true,
+      },
+    },
+  },
 };

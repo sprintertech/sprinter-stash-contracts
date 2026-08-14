@@ -1288,4 +1288,65 @@ export const stageNetworkConfig: PartialNetworksConfig = {
       },
     },
   },
+  TRON: {
+    ChainId: 728126428,
+    USDT0OFT: "0x3a08F76772e200653bB55c2a92998DAcA62e0e97",
+    Tokens: {
+      USDT: tokenInfo("0xa614f803B6FD780986A42c78Ec9c7f77e6DeD13C", 6),
+    },
+    WrappedNativeToken: "0x891cdb91d149f23B1a45D9c5Ca78a88d0cB44C18",
+    Admin: "0x626073e71Da79Cf399B3dBC3699B6beF26b04076",
+    WithdrawProfit: "0x626073e71Da79Cf399B3dBC3699B6beF26b04076",
+    Pauser: "0x626073e71Da79Cf399B3dBC3699B6beF26b04076",
+    RebalanceCaller: "0x626073e71Da79Cf399B3dBC3699B6beF26b04076",
+    RepayerCaller: "0xc1d6EEa5ce163d7D9f1952Db220830Aae16Cb607",
+    SetInputOutputTokens: "0x626073e71Da79Cf399B3dBC3699B6beF26b04076",
+    MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
+    SignerAddress: "0x626073e71Da79Cf399B3dBC3699B6beF26b04076",
+    RepayerRoutes: {
+      [LiquidityPoolAaveUSDCProxy]: {
+        Domains: {
+          [Network.ETHEREUM]: [Provider.USDT0],
+        },
+      },
+      [LiquidityPoolAaveUSDCV4]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [Provider.USDT0],
+          [Network.POLYGON_MAINNET]: [Provider.USDT0],
+        },
+      },
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+      [LiquidityPoolUSDTProxy]: {
+        OnlySupportedToken: Token.USDT,
+        Domains: {
+          [Network.STABLE]: [
+            Provider.USDT0,
+          ],
+          [Network.TEMPO]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+    },
+    MainAssets: {
+      [Token.USDT]: {
+        RebalancerRoutes: {
+          [LiquidityPoolAaveUSDTProxy]: {
+            [Network.ARBITRUM_ONE]: [Provider.USDT0],
+          },
+          [LiquidityPoolUSDTProxy]: {
+            [Network.STABLE]: [Provider.USDT0],
+            [Network.TEMPO]: [Provider.USDT0],
+          },
+        },
+        BasicPool: true,
+      },
+    },
+  },
 };

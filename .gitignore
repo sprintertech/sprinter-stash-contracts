@@ -21,3 +21,10 @@ crytic-export
 
 CLAUDE.md
 .claude/
+
+/artifacts-tron
+/cache-tron
+
+/local-temp
+
+/deployments/localtron

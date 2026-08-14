@@ -9,11 +9,13 @@ import {DEFAULT_PROXY_TYPE} from "../network.config";
 import {ICreateX} from "../typechain-types";
 import {expect} from "chai";
 import dotenv from "dotenv";
+import {mineIfNeeded} from "../scripts/helpers";
 dotenv.config();
 
 export async function setupTests(): Promise<void> {
   let snapshot: any;
   before(async function () {
+    await mineIfNeeded();
     snapshot = await hre.ethers.provider.send("evm_snapshot", []);
   });
   after(async function () {

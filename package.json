@@ -6,7 +6,7 @@
   "scripts": {
     "compile": "hardhat compile",
     "compile:tron": "TRON=true hardhat compile --network localtron",
-    "compile-all": "hardhat clean && TRON=true hardhat compile --network localtron && hardhat compile",
+    "compile-all": "mv ./cache/hardhat-network-fork ./temp-fork-cache && hardhat clean && mv ./temp-fork-cache ./cache/hardhat-network-fork && TRON=true hardhat compile --network localtron && hardhat compile",
     "deploy": "hardhat run ./scripts/deploy.ts",
     "deploy-local": "VERIFY=false hardhat run ./scripts/deploy.ts --network localhost",
     "deploy-localtron": "TRON=true MAIN_ASSET=USDC npx hardhat deploy --network localtron --reset",

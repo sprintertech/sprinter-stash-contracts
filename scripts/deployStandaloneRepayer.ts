@@ -14,7 +14,7 @@ import {
 import {Repayer} from "../typechain-types";
 import {
   Network, StandaloneRepayerConfig, StandaloneRepayerEnv, Provider,
-  prodNetworkConfig,
+  prodNetworkConfig, NetworksConfig,
 } from "../network.config";
 
 export async function main() {
@@ -42,7 +42,7 @@ export async function main() {
 
   await logDeployers();
 
-  const prodConfig = prodNetworkConfig[network];
+  const prodConfig = (prodNetworkConfig as NetworksConfig)[network];
   let usdcAddress = ZERO_ADDRESS;
   if (prodConfig.Tokens.USDC) {
     usdcAddress = prodConfig.Tokens.USDC.Address;

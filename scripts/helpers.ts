@@ -19,6 +19,7 @@ import {
   LiquidityPoolUSDCStablecoinVersions,
   LiquidityPoolAaveUSDCLongTermVersions,
   ERC4626AdapterUSDCVersions,
+  NetworksConfig,
   PartialNetworksConfig,
   Token,
   TokenInfo,
@@ -465,10 +466,10 @@ export async function getNetworkConfig() {
   if (hre.network.name === "hardhat" && Object.values(Network).includes(process.env.DRY_RUN as Network)) {
     message += "dry run, ";
     network = process.env.DRY_RUN as Network;
-    config = prodNetworkConfig[network];
+    config = (prodNetworkConfig as NetworksConfig)[network];
   } else if (Object.values(Network).includes(hre.network.name as Network)) {
     network = hre.network.name as Network;
-    config = prodNetworkConfig[network];
+    config = (prodNetworkConfig as NetworksConfig)[network];
   }
   if (config! && network!) {
     if (process.env.DEPLOY_TYPE === "STAGE") {
@@ -477,9 +478,9 @@ export async function getNetworkConfig() {
         `DEPLOYER_ADDRESS(${process.env.DEPLOYER_ADDRESS}) must match
          STAGE_DEPLOYER_ADDRESS(${process.env.STAGE_DEPLOYER_ADDRESS})`
       );
-      assert(stageNetworkConfig[network], "Stage config must be defined");
+      assert((stageNetworkConfig as PartialNetworksConfig)[network], "Stage config must be defined");
       message += "stage, ";
-      config = stageNetworkConfig[network]!;
+      config = (stageNetworkConfig as PartialNetworksConfig)[network]!;
     } else {
       assert(
         process.env.DEPLOYER_ADDRESS !== process.env.STAGE_DEPLOYER_ADDRESS,
@@ -503,7 +504,7 @@ export async function getHardhatNetworkConfig() {
   const network = Network.BASE;
   const [deployer, opsAdmin, superAdmin, mpc] = await hre.ethers.getSigners();
   process.env.DEPLOYER_ADDRESS = await resolveAddress(deployer);
-  const config = prodNetworkConfig[network];
+  const config = (prodNetworkConfig as NetworksConfig)[network];
   config.ChainId = 31337;
   const {mainAsset, mainAssetConfig} = getMainAsset(config);
   assert(mainAssetConfig.Hub, "Hub must be in config");

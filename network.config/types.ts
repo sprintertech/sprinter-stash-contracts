@@ -170,14 +170,7 @@ export interface NetworkConfig {
   // (i.e. USDT0OFT.nativeToken() returns a non-zero address) instead of native currency.
   USDT0FeeNativeToken?: string;
   Tokens: {
-    [Token.USDC]?: TokenInfo;
-    [Token.USDT]?: TokenInfo;
-    [Token.DAI]?: TokenInfo;
-    [Token.WETH]?: TokenInfo;
-    [Token.WBTC]?: TokenInfo;
-    [Token.EURe]?: TokenInfo;
-    [Token.USDG]?: TokenInfo;
-    [Token.PYUSD]?: TokenInfo;
+    [key in Token]?: TokenInfo;
   };
   WrappedNativeToken: string;
   RepayerRoutes?: RepayerRoutesConfig;

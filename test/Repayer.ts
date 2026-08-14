@@ -227,6 +227,7 @@ describe("Repayer", function () {
     expect(await repayer.layerZeroEndpointId(Domain.GNOSIS_CHAIN)).to.equal(30145n);
     expect(await repayer.layerZeroEndpointId(Domain.TEMPO)).to.equal(30410n);
     expect(await repayer.layerZeroEndpointId(Domain.STABLE)).to.equal(30396n);
+    expect(await repayer.layerZeroEndpointId(Domain.TRON)).to.equal(30420n);
     // 8n is a reserved Solidity Domain slot (formerly OP_SEPOLIA) with no configured route.
     await expect(repayer.layerZeroEndpointId(8n))
       .to.be.revertedWithCustomError(repayer, "UnsupportedDomain()");

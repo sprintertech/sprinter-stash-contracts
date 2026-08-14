@@ -19,7 +19,7 @@ import {
   LiquidityPoolAaveUSDTProxy,
 } from "./ids";
 
-export const stageNetworkConfig: PartialNetworksConfig = {
+export const stageNetworkConfig = {
   ETHEREUM: {
     ChainId: 1,
     CCTPV2: {
@@ -1349,4 +1349,4 @@ export const stageNetworkConfig: PartialNetworksConfig = {
       },
     },
   },
-};
+} satisfies PartialNetworksConfig;

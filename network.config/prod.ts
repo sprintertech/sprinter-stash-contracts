@@ -15,7 +15,7 @@ import {
   LiquidityPoolAaveUSDTProxy,
 } from "./ids";
 
-export const prodNetworkConfig: NetworksConfig = {
+export const prodNetworkConfig = {
   ETHEREUM: {
     ChainId: 1,
     CCTPV2: {
@@ -1500,4 +1500,4 @@ export const prodNetworkConfig: NetworksConfig = {
       },
     },
   },
-};
+} satisfies NetworksConfig;

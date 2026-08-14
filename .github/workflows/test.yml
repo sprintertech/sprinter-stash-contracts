@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Compile contracts
-        run: npm run compile
+        run: npm run compile-all
       - name: Hardhat Tests
         run: FORK_BLOCK_NUMBER=40729100 npm run test
       - name: Hardhat Fork Tests Ethereum

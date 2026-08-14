@@ -169,6 +169,12 @@ According to CCTP V1 docs, attestation could be produced 9-19 minutes after the 
 
 # Tron
 
+Tron related modules only work with Node version 20.
+
+```
+nvm use 20
+```
+
 To test local deployments on Tron you need to run a local Tron runtime env.
 
 ```

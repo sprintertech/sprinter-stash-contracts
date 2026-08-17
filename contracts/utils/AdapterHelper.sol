@@ -16,6 +16,9 @@ abstract contract AdapterHelper is IRoute {
     error NotPayable();
     error InvalidOutputToken();
     error InvalidToken();
+    /// @notice Raised by adapters that can only bridge to their own address on the destination
+    /// chain, when the caller specifies a different destination pool.
+    error InvalidDestinationPool();
 
     modifier notPayable() {
         require(msg.value == 0, NotPayable());

@@ -31,6 +31,7 @@ export const stageNetworkConfig: PartialNetworksConfig = {
     OptimismStandardBridge: "0x99C9fc46f92E8a1c0deC1b1747d010903E884bE1",
     BaseStandardBridge: "0x3154Cf16ccdb4C6d922629664174b904d80F2C35",
     ArbitrumGatewayRouter: "0x72Ce9c846789fdB6fC1f34aC4AD25Dd9ef7031ef",
+    PolygonPosRootChainManager: "0xA0c68C638235ee32657e8f720a23ceC1bFc77C77",
     Omnibridge: "0x88ad09518695c6c3712AC10a214bE5109a655671",
     GnosisAMB: "0x4C36d2919e407f0Cc2Ee3c993ccF8ac26d9CE64e",
     USDT0OFT: "0x6C96dE32CEa08842dcc4058c14d3aaAD7Fa41dee",
@@ -79,6 +80,7 @@ export const stageNetworkConfig: PartialNetworksConfig = {
             Provider.STARGATE,
             Provider.USDT0,
             Provider.CCTP_V2,
+            Provider.POLYGON_POS_BRIDGE,
           ],
           [Network.GNOSIS_CHAIN]: [
             Provider.GNOSIS_OMNIBRIDGE,
@@ -768,7 +770,7 @@ export const stageNetworkConfig: PartialNetworksConfig = {
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
-          [Network.ETHEREUM]: [Provider.ACROSS, Provider.CCTP_V2],
+          [Network.ETHEREUM]: [Provider.ACROSS, Provider.CCTP_V2, Provider.POLYGON_POS_BRIDGE],
           [Network.GNOSIS_CHAIN]: [
             Provider.STARGATE,
           ],

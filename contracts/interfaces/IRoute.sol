@@ -37,7 +37,8 @@ interface IRoute {
         ARBITRUM_GATEWAY,
         GNOSIS_OMNIBRIDGE,
         USDT0,
-        CCTP_V2
+        CCTP_V2,
+        POLYGON_POS_BRIDGE
     }
 
     enum PoolType {

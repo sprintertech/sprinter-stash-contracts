@@ -367,6 +367,7 @@ describe("USDT as a main pool asset", function () {
           ZERO_ADDRESS, networkConfig.BASE.WrappedNativeToken, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
           ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
           cctpV2TokenMessenger, cctpV2MessageTransmitter,
+          ZERO_ADDRESS,
         )
       ) as Repayer;
       const repayerInit = (await repayerImpl.initialize.populateTransaction(

@@ -25,7 +25,6 @@ abstract contract GnosisOmnibridgeAdapter is AdapterHelper {
     event GnosisOmnibridgeTransferInitiated(address indexed token, address indexed receiver, uint256 amount);
 
     error InsufficientBalance();
-    error InvalidDestinationPool();
 
     constructor(
         Domain localDomain,

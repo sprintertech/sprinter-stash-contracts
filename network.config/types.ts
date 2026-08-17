@@ -28,6 +28,7 @@ export enum Provider {
   GNOSIS_OMNIBRIDGE = "GNOSIS_OMNIBRIDGE",
   USDT0 = "USDT0",
   CCTP_V2 = "CCTP_V2",
+  POLYGON_POS_BRIDGE = "POLYGON_POS_BRIDGE",
 }
 
 export enum Token {
@@ -161,6 +162,8 @@ export interface NetworkConfig {
   OptimismStandardBridge?: string;
   BaseStandardBridge?: string;
   ArbitrumGatewayRouter?: string;
+  // Polygon PoS RootChainManager. Only set on Ethereum, the only chain that has one.
+  PolygonPosRootChainManager?: string;
   Omnibridge?: string;
   GnosisAMB?: string;
   GnosisUSDCxDAI?: string;
@@ -209,6 +212,7 @@ export interface StandaloneRepayerConfig {
   OptimismStandardBridge?: string;
   BaseStandardBridge?: string;
   ArbitrumGatewayRouter?: string;
+  PolygonPosRootChainManager?: string;
   Omnibridge?: string;
   GnosisUSDCxDAI?: string;
   GnosisUSDCTransmuter?: string;

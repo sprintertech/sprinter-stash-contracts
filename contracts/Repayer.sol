@@ -17,7 +17,9 @@ import {SuperchainStandardBridgeAdapter} from "./utils/SuperchainStandardBridgeA
 import {ArbitrumGatewayAdapter} from "./utils/ArbitrumGatewayAdapter.sol";
 import {GnosisOmnibridgeAdapter} from "./utils/GnosisOmnibridgeAdapter.sol";
 import {USDT0Adapter} from "./utils/USDT0Adapter.sol";
+import {PolygonPosBridgeAdapter} from "./utils/PolygonPosBridgeAdapter.sol";
 import {ERC7201Helper} from "./utils/ERC7201Helper.sol";
+import {HelperLib} from "./utils/HelperLib.sol";
 
 /// @title Performs repayment to Liquidity Pools on same/different chains.
 /// Routes, which is a destination pool/domain and a bridging provider, have to be approved by admin.
@@ -33,7 +35,8 @@ contract Repayer is
     SuperchainStandardBridgeAdapter,
     ArbitrumGatewayAdapter,
     GnosisOmnibridgeAdapter,
-    USDT0Adapter
+    USDT0Adapter,
+    PolygonPosBridgeAdapter
 {
     using SafeERC20 for IERC20;
     using BitMaps for BitMaps.BitMap;
@@ -111,7 +114,8 @@ contract Repayer is
         address usdt0Oft,
         address usdt0FeeNativeToken,
         address cctpV2TokenMessenger,
-        address cctpV2MessageTransmitter
+        address cctpV2MessageTransmitter,
+        address polygonPosRootChainManager
     )
         CCTPV2Adapter(
             usdc,
@@ -131,6 +135,7 @@ contract Repayer is
             ethereumAmb
         )
         USDT0Adapter(usdt0Oft, usdt0FeeNativeToken)
+        PolygonPosBridgeAdapter(polygonPosRootChainManager)
     {
         ERC7201Helper.validateStorageLocation(
             STORAGE_LOCATION,
@@ -197,7 +202,7 @@ contract Repayer is
             if (thisBalance > 0) WRAPPED_NATIVE_TOKEN.deposit{value: thisBalance}();
         }
 
-        require(token.balanceOf(address(this)) >= amount, InsufficientBalance());
+        require(HelperLib.balanceOfThis(token) >= amount, InsufficientBalance());
         require(isRouteAllowed(destinationPool, destinationDomain, provider), RouteDenied());
 
         emit InitiateRepay(token, amount, destinationPool, destinationDomain, provider);
@@ -260,6 +265,19 @@ contract Repayer is
         } else
         if (provider == Provider.USDT0) {
             initiateTransferUSDT0(token, amount, destinationPool, destinationDomain, extraData, _msgSender());
+        } else
+        if (provider == Provider.POLYGON_POS_BRIDGE) {
+            // When bridging from Polygon, the PoS exit releases the tokens to the burner, so they
+            // must come back to the Repayer itself and be forwarded through process().
+            initiateTransferPolygonPosBridge(
+                token,
+                amount,
+                destinationPool,
+                destinationDomain,
+                extraData,
+                DOMAIN,
+                $.inputOutputTokens[address(token)]
+            );
         } else {
             revert UnsupportedProvider();
         }
@@ -273,16 +291,22 @@ contract Repayer is
         require(isRouteAllowed(destinationPool, DOMAIN, Provider.LOCAL), RouteDenied());
         IERC20 token;
         uint256 amount = 0;
+        bool processedToThis = false;
         if (provider == Provider.CCTP_V2) {
             (token, amount) = processTransferCCTPV2(destinationPool, extraData);
         } else
         if (provider == Provider.GNOSIS_OMNIBRIDGE) {
             (token, amount) = processTransferGnosisOmnibridge(address(this), DOMAIN, extraData);
-            if (destinationPool != address(this)) {
-                token.safeTransfer(destinationPool, amount);
-            }
+            processedToThis = true;
+        } else
+        if (provider == Provider.POLYGON_POS_BRIDGE) {
+            (token, amount) = processTransferPolygonPosBridge(extraData);
+            processedToThis = true;
         } else {
             revert UnsupportedProvider();
+        }
+        if (processedToThis && destinationPool != address(this)) {
+            token.safeTransfer(destinationPool, amount);
         }
         IERC20 onlySupportedToken = _getStorage().poolOnlySupportsToken[destinationPool];
         if (onlySupportedToken != IERC20(address(0))) {
@@ -421,7 +445,7 @@ contract Repayer is
         address inputToken,
         Domain destinationDomain,
         bytes32 outputToken
-    ) public view returns (bool isAllowed, int8 localDecimalsGreaterBy) {
+    ) external view returns (bool isAllowed, int8 localDecimalsGreaterBy) {
         InputOutputTokenData storage inputOutputTokenData = _getStorage().inputOutputTokens[inputToken][outputToken];
         isAllowed = inputOutputTokenData.destinationDomains.get(uint256(destinationDomain));
         localDecimalsGreaterBy = inputOutputTokenData.localDecimalsGreaterBy[destinationDomain];

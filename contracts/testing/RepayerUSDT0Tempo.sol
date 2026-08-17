@@ -93,7 +93,8 @@ contract RepayerUSDT0Tempo {
             usdt0OftAddress,
             usdt0FeeNativeTokenAddress,
             address(0), // cctpV2TokenMessenger
-            address(0) // cctpV2MessageTransmitter
+            address(0), // cctpV2MessageTransmitter
+            address(0) // polygonPosRootChainManager
         );
 
         address[] memory pools = new address[](1);

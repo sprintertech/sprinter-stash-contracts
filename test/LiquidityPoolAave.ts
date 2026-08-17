@@ -2836,16 +2836,20 @@ describe("LiquidityPoolAave", function () {
       const {
         liquidityPool, usdc, USDC_DEC, usdcOwner, liquidityAdmin,
         withdrawProfit, user, directBorrower, mockTarget, mpc_signer,
-        usdcDebtToken, aToken,
+        usdcDebtToken, aToken, weth, wethOwner, aavePool,
       } = fixture;
       await enableUSDCBorrowing(fixture);
 
       const amountCollateral = 10000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
       await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
+      // Increase health factor with unrelated aToken asset.
+      const amountWeth = 10n * ETH;
+      await weth.connect(wethOwner).approve(aavePool, amountWeth);
+      await aavePool.connect(wethOwner).supply(weth, amountWeth, liquidityPool, 0);
 
       // Regular borrow USDC: mockTarget pulls it, creating aave debt with 0 pool balance
-      const regularBorrowAmount = 7000n * USDC_DEC;
+      const regularBorrowAmount = 9500n * USDC_DEC;
       const callData = await mockTarget.fulfill.populateTransaction(usdc, regularBorrowAmount, "0x");
       const signature = await signBorrow(
         mpc_signer, liquidityPool, user, usdc, regularBorrowAmount, mockTarget, callData.data
@@ -2871,15 +2875,20 @@ describe("LiquidityPoolAave", function () {
         liquidityPool, usdc, USDC_DEC, usdcOwner, liquidityAdmin,
         withdrawProfit, user, directBorrower, mockTarget, mpc_signer,
         usdcDebtToken, aToken, eurc, eurcOwner, EURC_DEC,
+        weth, wethOwner, aavePool,
       } = fixture;
       await enableUSDCBorrowing(fixture);
 
       const amountCollateral = 10000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, amountCollateral);
       await liquidityPool.connect(liquidityAdmin).deposit(amountCollateral);
+      // Increase health factor with unrelated aToken asset.
+      const amountWeth = 10n * ETH;
+      await weth.connect(wethOwner).approve(aavePool, amountWeth);
+      await aavePool.connect(wethOwner).supply(weth, amountWeth, liquidityPool, 0);
 
       // Regular borrow USDC: mockTarget pulls it, creating aave debt with 0 pool balance
-      const regularBorrowAmount = 7000n * USDC_DEC;
+      const regularBorrowAmount = 9500n * USDC_DEC;
       const callData = await mockTarget.fulfill.populateTransaction(usdc, regularBorrowAmount, "0x");
       const signature = await signBorrow(
         mpc_signer, liquidityPool, user, usdc, regularBorrowAmount, mockTarget, callData.data
@@ -3915,17 +3924,22 @@ describe("LiquidityPoolAave", function () {
       const {
         liquidityPool, usdc, usdcOwner, USDC_DEC, aToken, usdcDebtToken,
         eurc, eurcOwner, EURC_DEC, liquidityAdmin, withdrawProfit, user, directBorrower,
+        weth, wethOwner, aavePool,
       } = fixture;
       await enableUSDCBorrowing(fixture);
 
       const deposit = 10000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, deposit);
       await liquidityPool.connect(liquidityAdmin).deposit(deposit);
+      // Increase health factor with unrelated aToken asset.
+      const amountWeth = 10n * ETH;
+      await weth.connect(wethOwner).approve(aavePool, amountWeth);
+      await aavePool.connect(wethOwner).supply(weth, amountWeth, liquidityPool, 0);
 
-      // 7000 regular borrow + 500 direct borrow = 7500 USDC Aave debt.
-      // Borrow fees on 7500 USDC exceed supply yield on 10000 USDC collateral (confirmed by
+      // 9500 regular borrow + 500 direct borrow = 10000 USDC Aave debt.
+      // Borrow fees on 10000 USDC exceed supply yield on 10000 USDC collateral (confirmed by
       // the existing "Should revert withdrawing asset profit" test in this file).
-      const regularBorrowAmount = 7000n * USDC_DEC;
+      const regularBorrowAmount = 9500n * USDC_DEC;
       await borrowUSDCFromAave(fixture, regularBorrowAmount, 0n);
 
       const directBorrowAmount = 500n * USDC_DEC;
@@ -3961,15 +3975,20 @@ describe("LiquidityPoolAave", function () {
       const {
         liquidityPool, usdc, usdcOwner, USDC_DEC, usdcDebtToken,
         eurc, eurcOwner, EURC_DEC, liquidityAdmin, withdrawProfit, user, directBorrower,
+        weth, wethOwner, aavePool,
       } = fixture;
       await enableUSDCBorrowing(fixture);
 
       const deposit = 10000n * USDC_DEC;
       await usdc.connect(usdcOwner).transfer(liquidityPool, deposit);
       await liquidityPool.connect(liquidityAdmin).deposit(deposit);
+      // Increase health factor with unrelated aToken asset.
+      const amountWeth = 10n * ETH;
+      await weth.connect(wethOwner).approve(aavePool, amountWeth);
+      await aavePool.connect(wethOwner).supply(weth, amountWeth, liquidityPool, 0);
 
-      // Same borrow setup as test 6: 7500 total USDC Aave debt → fees > interest
-      const regularBorrowAmount = 7000n * USDC_DEC;
+      // Same borrow setup as test 6: 10000 total USDC Aave debt → fees > interest
+      const regularBorrowAmount = 9500n * USDC_DEC;
       await borrowUSDCFromAave(fixture, regularBorrowAmount, 0n);
 
       const directBorrowAmount = 500n * USDC_DEC;

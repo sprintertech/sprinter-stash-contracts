@@ -1446,6 +1446,9 @@ export const prodNetworkConfig: NetworksConfig = {
           [Network.POLYGON_MAINNET]: [
             Provider.USDT0,
           ],
+          [Network.ARBITRUM_ONE]: [
+            Provider.USDT0,
+          ],
         },
       },
       [LiquidityPoolAaveUSDCLongTermV3]: {
@@ -1512,6 +1515,9 @@ export const prodNetworkConfig: NetworksConfig = {
       [LiquidityPoolAaveUSDCV4]: {
         Domains: {
           [Network.POLYGON_MAINNET]: [
+            Provider.USDT0,
+          ],
+          [Network.ARBITRUM_ONE]: [
             Provider.USDT0,
           ],
         },

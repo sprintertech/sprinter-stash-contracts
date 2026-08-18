@@ -452,7 +452,7 @@ export const stageNetworkConfig = {
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
-          [Network.ETHEREUM]: [Provider.ACROSS, Provider.CCTP_V2],
+          [Network.ETHEREUM]: [Provider.ACROSS, Provider.CCTP_V2, Provider.USDT0],
           [Network.GNOSIS_CHAIN]: [
             Provider.STARGATE,
           ],
@@ -770,7 +770,12 @@ export const stageNetworkConfig = {
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
-          [Network.ETHEREUM]: [Provider.ACROSS, Provider.CCTP_V2, Provider.POLYGON_POS_BRIDGE],
+          [Network.ETHEREUM]: [
+            Provider.ACROSS,
+            Provider.CCTP_V2,
+            Provider.POLYGON_POS_BRIDGE,
+            Provider.USDT0,
+          ],
           [Network.GNOSIS_CHAIN]: [
             Provider.STARGATE,
           ],
@@ -909,7 +914,7 @@ export const stageNetworkConfig = {
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
-          [Network.ETHEREUM]: [Provider.ACROSS, Provider.CCTP_V2],
+          [Network.ETHEREUM]: [Provider.ACROSS, Provider.CCTP_V2, Provider.USDT0],
           [Network.GNOSIS_CHAIN]: [
             Provider.STARGATE,
           ],

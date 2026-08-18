@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Add Tron Solc
-        run: mkdir -p ~/.tron/solc/ && cp -n ./deploy/tron-solc/soljson_v0.8.26.js ~/.tron/solc/
+        run: mkdir -p ~/.tron/solc/ && cp -n ./bin/soljson_v0.8.26.js ~/.tron/solc/
       - name: Compile contracts
         run: npm run compile-all
       - name: Hardhat Tests

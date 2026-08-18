@@ -342,7 +342,7 @@
     "dry:upgrade-usdcpoolaave-gnosis-stage": "MAIN_ASSET=USDC DRY_RUN=GNOSIS_CHAIN DEPLOY_TYPE=STAGE VERIFY=false ts-node --files ./scripts/upgradePoolAave.ts",
     "lint": "npm run lint:solidity && npm run lint:ts",
     "lint:solidity": "solhint 'contracts/**/*.sol'",
-    "lint:ts": "eslint --ignore-pattern 'coverage/'",
+    "lint:ts": "eslint --ignore-pattern 'coverage/' --ignore-pattern 'bin/'",
     "test": "hardhat test --typecheck",
     "test:deploy": "ts-node --files ./scripts/deploy.ts",
     "test:ethereum": "FORK_TEST=ETHEREUM hardhat test --typecheck ./specific-fork-test/ethereum/*.ts",

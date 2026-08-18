@@ -1345,7 +1345,7 @@ const config: HardhatUserConfig = {
         ? {[networkConfig[
             `${process.env.DRY_RUN || process.env.FORK_TEST}` as Network
           ]!.ChainId]: {hardforkHistory: {cancun: 0}}}
-        : {[networkConfig.BASE.ChainId]: {hardforkHistory: {cancun: 0,}}},
+        : {[networkConfig.BASE.ChainId]: {hardforkHistory: {cancun: 0}}},
     },
   },
   sourcify: {

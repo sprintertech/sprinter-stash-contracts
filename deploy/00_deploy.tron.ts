@@ -22,7 +22,6 @@ import {HardhatRuntimeEnvironment} from "hardhat/types";
 import {DeployFunction} from "hardhat-deploy/types";
 
 const ADMIN_SLOT = "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103";
-const SKIP_IF_ALREADY_DEPLOYED = true;
 
 interface Initializable extends BaseContract {
   initialize: {
@@ -38,7 +37,6 @@ export async function deployProxy<ContractType extends Initializable>(
   contructorArgs: any[] = [],
   initArgs: any[] = [],
   id: string = contractName,
-  skipIfAlreadyDeployed: boolean = false,
 ): Promise<{target: ContractType; targetAdmin: ProxyAdmin;}> {
   const {deployments} = hre;
   const proxy = await deployments.deploy(id, {
@@ -46,29 +44,44 @@ export async function deployProxy<ContractType extends Initializable>(
     from: deployer,
     args: contructorArgs,
     proxy: {
-      owner: upgradeAdmin,
       proxyContract: DEFAULT_PROXY_TYPE,
       execute: {
         methodName: "initialize",
         args: initArgs,
-      }
+      },
     },
-    skipIfAlreadyDeployed,
   });
-  if (!proxy.newlyDeployed) {
-    console.log(`${id} was already deployed: ${proxy.address}`);
-  }
 
   const admin = bytes32ToToken(await hre.ethers.provider.getStorage(proxy.address, ADMIN_SLOT));
   const target = (await getContractAt(contractName, proxy.address)) as ContractType;
   const targetAdmin = (await getContractAt("ProxyAdmin", admin)) as ProxyAdmin;
+
+  if (!proxy.newlyDeployed) {
+    console.log(`${id} was already deployed: ${proxy.address}`);
+  } else {
+    const stubAdmin = await deployments.get("ProxyAdmin");
+    stubAdmin.address = admin;
+    stubAdmin.transactionHash = proxy.transactionHash;
+    stubAdmin.receipt = proxy.receipt;
+    // Have to manually save ProxyAdmin artifact because hardhat-deploy doesn't support deploy from constructor.
+    await deployments.save(`${id}ProxyAdmin`, stubAdmin);
+    console.log(`Transferring ownership of ${id} to ${upgradeAdmin}`);
+    await deployments.execute(`${id}ProxyAdmin`, {from: deployer}, "transferOwnership", upgradeAdmin);
+  }
   
   return {target, targetAdmin};
 }
 
 const main: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const [deployer] = await hre.getUnnamedAccounts();
-  const {deployments} = hre; 
+  const {deployments} = hre;
+  const validateDeployers = hre.network.name !== "localtron";
+
+  // Deploy stub proxy admin.
+  await deployments.deploy("ProxyAdmin", {
+    from: deployer,
+    args: [deployer],
+  });
 
   const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");
   const WITHDRAW_PROFIT_ROLE = toBytes32("WITHDRAW_PROFIT_ROLE");
@@ -80,12 +93,12 @@ const main: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   let network: Network;
   let config: NetworkConfig;
   console.log("Deploying contracts set");
-  ({network, config} = await getNetworkConfig());
+  ({network, config} = await getNetworkConfig(validateDeployers));
   if (!network) {
     ({network, config} = await getHardhatNetworkConfig());
   }
 
-  await logDeployers();
+  await logDeployers(validateDeployers);
 
   const {mainAsset, mainAssetConfig, mainAssetInfo} = getMainAsset(config);
 
@@ -172,6 +185,7 @@ const main: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (!config.GnosisAMB) config.GnosisAMB = ZERO_ADDRESS;
   if (!config.USDT0OFT) config.USDT0OFT = ZERO_ADDRESS;
   if (!config.USDT0FeeNativeToken) config.USDT0FeeNativeToken = ZERO_ADDRESS;
+  if (!config.PolygonPosRootChainManager) config.PolygonPosRootChainManager = ZERO_ADDRESS;
 
   let mainPool: AccessControlUpgradeable | undefined = undefined;
 
@@ -288,6 +302,7 @@ const main: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       config.USDT0FeeNativeToken,
       config.CCTPV2.TokenMessenger,
       config.CCTPV2.MessageTransmitter,
+      config.PolygonPosRootChainManager,
     ],
     [
       config.Admin,
@@ -300,7 +315,6 @@ const main: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       inputOutputTokens,
     ],
     repayerId,
-    SKIP_IF_ALREADY_DEPLOYED,
   );
 
   console.log(`RepayerProxy: ${repayer.target}`);
@@ -371,6 +385,42 @@ const main: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log("InputOutputTokens:");
     console.table(flattenInputOutputTokens(inputOutputTokens));
   }
+
+  const REBALANCER_ROLE = toBytes32("REBALANCER_ROLE");
+  const REPAYER_ROLE = toBytes32("REPAYER_ROLE");
+  const SET_TOKENS_ROLE = toBytes32("SET_TOKENS_ROLE");
+
+  assert(await basicPoolAdmin!.owner() === config.Admin, "Basic pool admin owner mismatch");
+  assert(await basicPool!.mpcAddress() === config.MpcAddress, "Basic pool MPC address mismatch");
+  assert(await basicPool!.signerAddress() === config.SignerAddress, "Basic pool admin signer address mismatch");
+  assert(await basicPool!.hasRole(DEFAULT_ADMIN_ROLE, config.Admin), "Basic pool admin default admin role mismatch");
+  assert(
+    await basicPool!.hasRole(DEFAULT_ADMIN_ROLE, deployer) === false,
+    "Basic pool admin default admin role mismatch",
+  );
+  assert(
+    await basicPool!.hasRole(LIQUIDITY_ADMIN_ROLE, rebalancer.target),
+    "Basic pool admin liquidity admin role mismatch",
+  );
+  assert(
+    await basicPool!.hasRole(WITHDRAW_PROFIT_ROLE, config.WithdrawProfit),
+    "Basic pool admin withdraw profit role mismatch",
+  );
+  assert(await basicPool!.hasRole(PAUSER_ROLE, config.Pauser), "Basic pool admin pauser role mismatch");
+  assert(await rebalancerAdmin!.owner() === config.Admin, "Rebalancer admin owner mismatch");
+  assert(await rebalancer!.DOMAIN() === DomainSolidity[network], "Rebalancer domain mismatch");
+  assert(await rebalancer!.ASSETS() === mainAssetInfo.Address, "Rebalancer assets mismatch");
+  assert(await rebalancer!.hasRole(DEFAULT_ADMIN_ROLE, config.Admin), "Rebalancer default admin role mismatch");
+  assert(await rebalancer!.hasRole(DEFAULT_ADMIN_ROLE, deployer) === false, "Rebalancer default admin role mismatch");
+  assert(await rebalancer!.hasRole(REBALANCER_ROLE, config.RebalanceCaller), "Rebalancer rebalancer role mismatch");
+  assert(await rebalancer!.USDT0_OFT() === config.USDT0OFT, "Rebalancer USDT0 OFT mismatch");
+  assert(await repayerAdmin!.owner() === config.Admin, "Repayer admin owner mismatch");
+  assert(await repayer!.DOMAIN() === DomainSolidity[network], "Repayer domain mismatch");
+  assert(await repayer!.USDT0_OFT() === config.USDT0OFT, "Rebalancer USDT0 OFT mismatch");
+  assert(await repayer!.hasRole(DEFAULT_ADMIN_ROLE, config.Admin), "Repayer default admin role mismatch");
+  assert(await repayer!.hasRole(DEFAULT_ADMIN_ROLE, deployer) === false, "Repayer default admin role mismatch");
+  assert(await repayer!.hasRole(REPAYER_ROLE, config.RepayerCaller), "Repayer repayer role mismatch");
+  assert(await repayer!.hasRole(SET_TOKENS_ROLE, config.SetInputOutputTokens), "Repayer set tokens role mismatch");
 };
 
 export default main;

@@ -9,7 +9,7 @@
     "compile-all": "mkdir -p ./cache/hardhat-network-fork && mv ./cache/hardhat-network-fork ./temp-fork-cache && hardhat clean && mv ./temp-fork-cache ./cache/hardhat-network-fork && TRON=true hardhat compile --network localtron && hardhat compile",
     "deploy": "hardhat run ./scripts/deploy.ts",
     "deploy-local": "VERIFY=false hardhat run ./scripts/deploy.ts --network localhost",
-    "deploy-localtron": "TRON=true MAIN_ASSET=USDC npx hardhat deploy --network localtron --reset",
+    "deploy-localtron": "DRY_RUN=TRON TRON=true DEPLOY_TYPE=STAGE MAIN_ASSET=USDT npx hardhat deploy --network localtron --reset",
     "deploy-basesepolia": "hardhat run ./scripts/deploy.ts --network BASE_SEPOLIA",
     "deploy-ethereumsepolia": "hardhat run ./scripts/deploy.ts --network ETHEREUM_SEPOLIA",
     "deploy-arbitrumsepolia": "hardhat run ./scripts/deploy.ts --network ARBITRUM_SEPOLIA",

@@ -459,11 +459,15 @@ export function flattenInputOutputTokens(inputOutputTokens: Repayer.InputOutputT
   return flatInputOutputTokens;
 }
 
-export async function getNetworkConfig() {
+export async function getNetworkConfig(validateStageDeployer: boolean = true) {
   let network: Network;
   let config: NetworkConfig;
   let message = "Using config for: ";
-  if (hre.network.name === "hardhat" && Object.values(Network).includes(process.env.DRY_RUN as Network)) {
+  if (
+    (hre.network.name === "hardhat" ||
+    hre.network.name === "localtron") &&
+    Object.values(Network).includes(process.env.DRY_RUN as Network)
+  ) {
     message += "dry run, ";
     network = process.env.DRY_RUN as Network;
     config = (prodNetworkConfig as NetworksConfig)[network];
@@ -473,7 +477,7 @@ export async function getNetworkConfig() {
   }
   if (config! && network!) {
     if (process.env.DEPLOY_TYPE === "STAGE") {
-      assert(
+      validateStageDeployer && assert(
         process.env.DEPLOYER_ADDRESS === process.env.STAGE_DEPLOYER_ADDRESS,
         `DEPLOYER_ADDRESS(${process.env.DEPLOYER_ADDRESS}) must match
          STAGE_DEPLOYER_ADDRESS(${process.env.STAGE_DEPLOYER_ADDRESS})`
@@ -482,7 +486,7 @@ export async function getNetworkConfig() {
       message += "stage, ";
       config = (stageNetworkConfig as PartialNetworksConfig)[network]!;
     } else {
-      assert(
+      validateStageDeployer && assert(
         process.env.DEPLOYER_ADDRESS !== process.env.STAGE_DEPLOYER_ADDRESS,
         `DEPLOYER_ADDRESS(${process.env.DEPLOYER_ADDRESS}) must not match
          STAGE_DEPLOYER_ADDRESS(${process.env.STAGE_DEPLOYER_ADDRESS})`
@@ -497,8 +501,7 @@ export async function getHardhatNetworkConfig() {
   assert(
     hre.network.name === "hardhat" ||
     hre.network.name === "localhost" ||
-    hre.network.name === "localtron" ||
-    hre.network.name === "tron",
+    hre.network.name === "localtron",
     "Only for Hardhat or localhost network"
   );
   const network = Network.BASE;

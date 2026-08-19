@@ -1317,7 +1317,7 @@ const config: HardhatUserConfig = {
     },
     [Network.TRON]: {
       chainId: networkConfig.TRON.ChainId,
-      url: process.env.TRON_RPC || "https://api.trongrid.io/jsonrpc",
+      url: process.env.TRON_RPC || "https://tron-rpc.publicnode.com/jsonrpc",
       tron: true,
       accounts,
     },

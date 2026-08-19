@@ -1,0 +1,83 @@
+TRON=true DEPLOY_TYPE=STAGE MAIN_ASSET=USDT npx hardhat deploy --network TRON
+
+detected tron network, replacing deployments extension with custom one
+Nothing to compile
+No need to generate any newer typings.
+Deployment ID: MVP
+Deploying contracts set
+Using config for: stage, TRON
+Deployer        : 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+DEPLOYER_ADDRESS: 0xdBD91aD22bE5304e385b7b0A2Cfe91164e416e11
+Using main asset: USDT
+Deploying LiquidityPoolUSDT
+Tron transaction broadcast, waiting for response...
+Tron transaction broadcast, waiting for response...
+Transferring ownership of LiquidityPoolUSDT to 0x626073e71Da79Cf399B3dBC3699B6beF26b04076
+Tron transaction broadcast, waiting for response...
+LiquidityPoolUSDTProxy: 0x0335291595005a2E5171d2F2ac8C8De4AF21085a
+LiquidityPoolUSDTProxyAdmin: 0xe69395bBaaae84b843630495be707A4334EA7c39
+Tron transaction broadcast, waiting for response...
+Tron transaction broadcast, waiting for response...
+Transferring ownership of RebalancerUSDT to 0x626073e71Da79Cf399B3dBC3699B6beF26b04076
+Tron transaction broadcast, waiting for response...
+RebalancerProxy: 0xf12fc5137229C5f13e874c5F1e11818A9f616B85
+RebalancerProxyAdmin: 0xcf71751bcBC390B3890FCC01324dC75f7B5185a7
+Tron transaction broadcast, waiting for response...
+Tron transaction broadcast, waiting for response...
+Tron transaction broadcast, waiting for response...
+Tron transaction broadcast, waiting for response...
+Tron transaction broadcast, waiting for response...
+Transferring ownership of Repayer to 0x626073e71Da79Cf399B3dBC3699B6beF26b04076
+Tron transaction broadcast, waiting for response...
+RepayerProxy: 0x0a1e34E855311A0eaf4D8F4Af2a6391D20241cBb
+RepayerProxyAdmin: 0xA9b3B06E414c018E18f46b974fc3C5801324a8bb
+Tron transaction broadcast, waiting for response...
+Tron transaction broadcast, waiting for response...
+Tron transaction broadcast, waiting for response...
+Multicall: 0xd4025B9F9a737BB93B492D0135764621a5C03B02
+Admin: 0x626073e71Da79Cf399B3dBC3699B6beF26b04076
+LiquidityPool Withdraw Profit: 0x626073e71Da79Cf399B3dBC3699B6beF26b04076
+LiquidityPool Pauser: 0x626073e71Da79Cf399B3dBC3699B6beF26b04076
+MPC Address: 0x6adAF8c96151962198a9b73132c16E99F4682Eb5
+USDT: 0xa614f803B6FD780986A42c78Ec9c7f77e6DeD13C
+Signer Address: 0x626073e71Da79Cf399B3dBC3699B6beF26b04076
+RebalancerUSDT: 0xf12fc5137229C5f13e874c5F1e11818A9f616B85
+RebalancerUSDTProxyAdmin: 0xcf71751bcBC390B3890FCC01324dC75f7B5185a7
+RebalancerRoutes:
+┌─────────┬──────────────────────────────────────────────┬────────────────┬──────────┐
+│ (index) │ Pool                                         │ Domain         │ Provider │
+├─────────┼──────────────────────────────────────────────┼────────────────┼──────────┤
+│ 0       │ '0x29ded76318fb2d01644fc816d09d48de8cb4739e' │ 'ARBITRUM_ONE' │ 'USDT0'  │
+│ 1       │ '0x756c4097f7f82a63ecd20f26ebf1edad979a2178' │ 'STABLE'       │ 'USDT0'  │
+│ 2       │ '0x756c4097f7f82a63ecd20f26ebf1edad979a2178' │ 'TEMPO'        │ 'USDT0'  │
+│ 3       │ '0x0335291595005a2E5171d2F2ac8C8De4AF21085a' │ 'TRON'         │ 'LOCAL'  │
+└─────────┴──────────────────────────────────────────────┴────────────────┴──────────┘
+Repayer: 0x0a1e34E855311A0eaf4D8F4Af2a6391D20241cBb
+RepayerProxyAdmin: 0xA9b3B06E414c018E18f46b974fc3C5801324a8bb
+RepayerRoutes:
+┌─────────┬──────────────────────────────────────────────┬───────────────────┬──────────┬──────────────────────────────────────────────┐
+│ (index) │ Pool                                         │ Domain            │ Provider │ OnlySupportedToken                           │
+├─────────┼──────────────────────────────────────────────┼───────────────────┼──────────┼──────────────────────────────────────────────┤
+│ 0       │ '0xd73abd244837256b0f0adcf5417950984b9964f8' │ 'ETHEREUM'        │ 'USDT0'  │ '0x0000000000000000000000000000000000000000' │
+│ 1       │ '0x4e13849d29a9a7a200196dc16722ddeb67b6e769' │ 'ARBITRUM_ONE'    │ 'USDT0'  │ '0x0000000000000000000000000000000000000000' │
+│ 2       │ '0x4e13849d29a9a7a200196dc16722ddeb67b6e769' │ 'POLYGON_MAINNET' │ 'USDT0'  │ '0x0000000000000000000000000000000000000000' │
+│ 3       │ '0x29ded76318fb2d01644fc816d09d48de8cb4739e' │ 'ARBITRUM_ONE'    │ 'USDT0'  │ '0x0000000000000000000000000000000000000000' │
+│ 4       │ '0x756c4097f7f82a63ecd20f26ebf1edad979a2178' │ 'STABLE'          │ 'USDT0'  │ '0xa614f803B6FD780986A42c78Ec9c7f77e6DeD13C' │
+│ 5       │ '0x756c4097f7f82a63ecd20f26ebf1edad979a2178' │ 'TEMPO'           │ 'USDT0'  │ '0xa614f803B6FD780986A42c78Ec9c7f77e6DeD13C' │
+│ 6       │ '0x0335291595005a2E5171d2F2ac8C8De4AF21085a' │ 'TRON'            │ 'LOCAL'  │ '0xa614f803B6FD780986A42c78Ec9c7f77e6DeD13C' │
+└─────────┴──────────────────────────────────────────────┴───────────────────┴──────────┴──────────────────────────────────────────────┘
+InputOutputTokens:
+┌─────────┬──────────────────────────────────────────────┬───────────────────┬──────────────────────────────────────────────┬──────────────┐
+│ (index) │ InputToken                                   │ Domain            │ OutputToken                                  │ DecimalsDiff │
+├─────────┼──────────────────────────────────────────────┼───────────────────┼──────────────────────────────────────────────┼──────────────┤
+│ 0       │ '0xa614f803B6FD780986A42c78Ec9c7f77e6DeD13C' │ 'ETHEREUM'        │ '0xdAC17F958D2ee523a2206206994597C13D831ec7' │ 0            │
+│ 1       │ '0xa614f803B6FD780986A42c78Ec9c7f77e6DeD13C' │ 'OP_MAINNET'      │ '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58' │ 0            │
+│ 2       │ '0xa614f803B6FD780986A42c78Ec9c7f77e6DeD13C' │ 'ARBITRUM_ONE'    │ '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9' │ 0            │
+│ 3       │ '0xa614f803B6FD780986A42c78Ec9c7f77e6DeD13C' │ 'BASE'            │ '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2' │ 0            │
+│ 4       │ '0xa614f803B6FD780986A42c78Ec9c7f77e6DeD13C' │ 'POLYGON_MAINNET' │ '0xc2132D05D31c914a87C6611C10748AEb04B58e8F' │ 0            │
+│ 5       │ '0xa614f803B6FD780986A42c78Ec9c7f77e6DeD13C' │ 'UNICHAIN'        │ '0x9151434b16b9763660705744891fA906F660EcC5' │ 0            │
+│ 6       │ '0xa614f803B6FD780986A42c78Ec9c7f77e6DeD13C' │ 'BSC'             │ '0x55d398326f99059fF775485246999027B3197955' │ -12          │
+│ 7       │ '0xa614f803B6FD780986A42c78Ec9c7f77e6DeD13C' │ 'GNOSIS_CHAIN'    │ '0x4ECaBa5870353805a9F068101A40E0f32ed605C6' │ 0            │
+│ 8       │ '0xa614f803B6FD780986A42c78Ec9c7f77e6DeD13C' │ 'TEMPO'           │ '0x20C00000000000000000000014f22CA97301EB73' │ 0            │
+│ 9       │ '0xa614f803B6FD780986A42c78Ec9c7f77e6DeD13C' │ 'STABLE'          │ '0x779Ded0c9e1022225f8E0630b35a9b54bE713736' │ 0            │
+└─────────┴──────────────────────────────────────────────┴───────────────────┴──────────────────────────────────────────────┴──────────────┘

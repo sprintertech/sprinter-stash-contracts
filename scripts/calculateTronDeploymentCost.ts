@@ -14,11 +14,18 @@ const DEPLOYMENTS_DIR = path.join(__dirname, "..", "deployments", "localtron");
 interface DeploymentArtifact {
   receipt: {gasUsed: string};
   bytecode: string;
+  args: string[];
 }
 
 function bytecodeSize(bytecode: string): number {
   const hex = bytecode.startsWith("0x") ? bytecode.slice(2) : bytecode;
   return hex.length / 2;
+}
+
+// Constructor args are ABI-encoded as 32-byte words, except dynamic-length args
+// (eg. proxy init calldata), which are encoded at their own byte length.
+function argsSize(args: string[]): number {
+  return args.reduce((total, arg) => total + (arg.length <= 66 ? 32 : arg.length / 2), 0);
 }
 
 function main() {
@@ -31,7 +38,7 @@ function main() {
 
   let totalGasUsed = 0n;
   let totalBytecodeSize = 0;
-  const rows: {Contract: string, GasUsed: string, BytecodeSize: number}[] = [];
+  const rows: {Contract: string, GasUsed: string, BytecodeSize: number, ArgsSize: number}[] = [];
 
   for (const file of files) {
     const artifact: DeploymentArtifact = JSON.parse(
@@ -39,10 +46,13 @@ function main() {
     );
     const gasUsed = BigInt(artifact.receipt.gasUsed);
     const size = bytecodeSize(artifact.bytecode);
+    const argsBytes = argsSize(artifact.args);
 
     totalGasUsed += gasUsed;
-    totalBytecodeSize += size;
-    rows.push({Contract: path.basename(file, ".json"), GasUsed: gasUsed.toString(), BytecodeSize: size});
+    totalBytecodeSize += size + argsBytes;
+    rows.push({
+      Contract: path.basename(file, ".json"), GasUsed: gasUsed.toString(), BytecodeSize: size, ArgsSize: argsBytes,
+    });
   }
 
   console.table(rows);

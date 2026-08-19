@@ -50,6 +50,7 @@ export async function deployProxy<ContractType extends Initializable>(
         args: initArgs,
       },
     },
+    skipIfAlreadyDeployed: true,
   });
 
   const admin = bytes32ToToken(await hre.ethers.provider.getStorage(proxy.address, ADMIN_SLOT));
@@ -81,6 +82,7 @@ const main: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   await deployments.deploy("ProxyAdmin", {
     from: deployer,
     args: [deployer],
+    skipIfAlreadyDeployed: true,
   });
 
   const LIQUIDITY_ADMIN_ROLE = toBytes32("LIQUIDITY_ADMIN_ROLE");

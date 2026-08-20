@@ -3,6 +3,7 @@ import {Signer, BaseContract, AddressLike, resolveAddress, ContractTransaction, 
 import {
   deploy, deployX, getContractAt, getCreateAddress, getDeployXAddressBase,
   resolveXAddress, resolveProxyXAddress, assertCode,
+  resolveMultichainAddress,
 } from "../test/helpers";
 import {
   TransparentUpgradeableProxy, ProxyAdmin, Repayer,
@@ -439,6 +440,19 @@ export function getInputOutputTokens(network: Network, config: NetworkConfig) {
   return inputOutputTokens;
 }
 
+export async function getDestinationThisAddresses(network: Network) {
+  const envConfigs = getNetworkConfigsForCurrentEnv();
+  const destinationThisAddresses: Repayer.ThisAddressesStruct[] = [];
+  for (const [envNetwork, envConfig] of Object.entries(envConfigs) as [Network, NetworkConfig][]) {
+    if (envNetwork === network || !envConfig.Repayer) continue;
+    destinationThisAddresses.push({
+      domain: DomainSolidity[envNetwork],
+      thisAddress: await resolveMultichainAddress(envConfig.Repayer),
+    });
+  }
+  return destinationThisAddresses;
+}
+
 export function flattenInputOutputTokens(inputOutputTokens: Repayer.InputOutputTokenStruct[]) {
   const flatInputOutputTokens: {
     InputToken: string;
@@ -502,7 +516,7 @@ export async function getHardhatNetworkConfig() {
     hre.network.name === "hardhat" ||
     hre.network.name === "localhost" ||
     hre.network.name === "localtron",
-    "Only for Hardhat or localhost network"
+    "Only for Hardhat or local network"
   );
   const network = Network.BASE;
   const [deployer, opsAdmin, superAdmin, mpc] = await hre.ethers.getSigners();

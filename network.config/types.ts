@@ -176,6 +176,7 @@ export interface NetworkConfig {
     [key in Token]?: TokenInfo;
   };
   WrappedNativeToken: string;
+  Repayer?: string; // Set only on chains where Repayer is deployed.
   RepayerRoutes?: RepayerRoutesConfig;
   Admin: string; // Every contracts admin/owner.
   WithdrawProfit: string;

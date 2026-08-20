@@ -55,6 +55,7 @@ contract Repayer is
         mapping(address inputToken =>
             mapping(bytes32 outputToken => InputOutputTokenData)) inputOutputTokens;
         mapping(address pool => IERC20 token) poolOnlySupportsToken;
+        mapping(Domain domain => bytes32) thisAddress;
     }
 
     bytes32 private constant STORAGE_LOCATION = 0xa6615d19cc0b2a17ee46271ca76cd3f303efb9bf682e7eb5c4e7290e895cde00;
@@ -81,11 +82,13 @@ contract Repayer is
         int8 localDecimalsGreaterBy,
         bool isAllowed
     );
+    event SetThisAddress(Domain domain, bytes32 thisAddress);
 
     error ZeroAmount();
     error RouteDenied();
     error UnsupportedProvider();
     error InvalidPoolAssets();
+    error DestinationDomainNotSupported();
 
     struct DestinationToken {
         Domain destinationDomain;
@@ -96,6 +99,11 @@ contract Repayer is
     struct InputOutputToken {
         address inputToken;
         DestinationToken[] destinationTokens;
+    }
+
+    struct ThisAddresses {
+        Domain domain;
+        bytes32 thisAddress;
     }
 
     constructor(
@@ -158,13 +166,15 @@ contract Repayer is
         Domain[] calldata domains,
         Provider[] calldata providers,
         IERC20[] calldata poolOnlySupportsToken,
-        InputOutputToken[] calldata inputOutputTokens
+        InputOutputToken[] calldata inputOutputTokens,
+        ThisAddresses[] calldata thisAddresses
     ) external initializer() {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(REPAYER_ROLE, repayer);
         _grantRole(SET_TOKENS_ROLE, setTokens);
         _setRoute(pools, domains, providers, poolOnlySupportsToken, true);
         _setInputOutputTokens(inputOutputTokens, true);
+        _setThisAddresses(thisAddresses);
     }
 
     function setRoute(
@@ -184,6 +194,12 @@ contract Repayer is
         _setInputOutputTokens(inputOutputTokens, isAllowed);
     }
 
+    function setThisAddresses(
+        ThisAddresses[] calldata thisAddresses
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setThisAddresses(thisAddresses);
+    }
+
     /// @notice If the selected provider requires native currency payment to cover fees,
     /// then caller has to include it in the transaction. It is then the responsibility
     /// of the Adapter to forward the payment and return any change back to the caller.
@@ -196,6 +212,8 @@ contract Repayer is
         Provider provider,
         bytes calldata extraData
     ) external payable override onlyRole(REPAYER_ROLE) {
+        bytes32 destinationThisAddress = getThisAddress(destinationDomain);
+        require(destinationThisAddress != bytes32(0), DestinationDomainNotSupported());
         require(amount > 0, ZeroAmount());
         if (token == WRAPPED_NATIVE_TOKEN) {
             uint256 thisBalance = address(this).balance - msg.value;
@@ -221,7 +239,13 @@ contract Repayer is
             _processRepayLOCAL(token, amount, destinationPool);
         } else
         if (provider == Provider.CCTP_V2) {
-            initiateTransferCCTPV2(token, amount, destinationPool, destinationDomain);
+            initiateTransferCCTPV2(
+                token,
+                amount,
+                destinationPool,
+                destinationDomain,
+                destinationThisAddress
+            );
         } else
         if (provider == Provider.ACROSS) {
             initiateTransferAcross(
@@ -261,10 +285,24 @@ contract Repayer is
         if (provider == Provider.GNOSIS_OMNIBRIDGE) {
             // When bridging USDC to Gnosis, we must bridge to self to swap USDCxDAI on Gnosis through process().
             // It is the Repayment Service responsibility to specify Repayer itself as destination explicitly.
-            initiateTransferGnosisOmnibridge(token, amount, destinationPool, destinationDomain, DOMAIN);
+            initiateTransferGnosisOmnibridge(
+                token,
+                amount,
+                destinationPool,
+                destinationDomain,
+                DOMAIN,
+                destinationThisAddress
+            );
         } else
         if (provider == Provider.USDT0) {
-            initiateTransferUSDT0(token, amount, destinationPool, destinationDomain, extraData, _msgSender());
+            initiateTransferUSDT0(
+                token,
+                amount,
+                _addressToBytes32(destinationPool),
+                destinationDomain,
+                extraData,
+                _msgSender()
+            );
         } else
         if (provider == Provider.POLYGON_POS_BRIDGE) {
             // When bridging from Polygon, the PoS exit releases the tokens to the burner, so they
@@ -387,13 +425,31 @@ contract Repayer is
         }
     }
 
+    function _setThisAddresses(ThisAddresses[] calldata thisAddresses) internal {
+        RepayerStorage storage $ = _getStorage();
+        for (uint256 i = 0; i < thisAddresses.length; ++i) {
+            ThisAddresses memory thisAddress = thisAddresses[i];
+            require(thisAddress.domain != DOMAIN, UnsupportedDomain());
+            $.thisAddress[thisAddress.domain] = thisAddress.thisAddress;
+            emit SetThisAddress(thisAddress.domain, thisAddress.thisAddress);
+        }
+    }
+
+    // Address where Repayer is deployed on the destination domain.
+    function getThisAddress(Domain domain) public view returns (bytes32) {
+        if (domain == DOMAIN) {
+            return _addressToBytes32(address(this));
+        }
+        return _getStorage().thisAddress[domain];
+    }
+
     function getAllRoutes()
         external view returns (
             address[] memory pools,
             Domain[] memory domains,
             Provider[] memory providers,
             IERC20[] memory poolOnlySupportsToken
-        ) 
+        )
     {
         RepayerStorage storage $ = _getStorage();
         uint256 totalPools = $.knownPools.length();
@@ -433,9 +489,7 @@ contract Repayer is
     }
 
     function isRouteAllowed(address pool, Domain domain, Provider provider) public view returns (bool) {
-        // As long as we deploy the Repayer contract on the same address on every supported domain this will work.
-        // If we are to ever deploy it to new address, we will need to change this logic.
-        if (pool == address(this)) {
+        if (_addressToBytes32(pool) == getThisAddress(domain)) {
             return true;
         }
         return _getStorage().allowedRoutes[pool].get(_toIndex(domain, provider));

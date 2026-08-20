@@ -3,15 +3,16 @@ import {
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {expect} from "chai";
 import hre from "hardhat";
-import {AbiCoder, hexlify, toUtf8Bytes, AddressLike, BigNumberish, BytesLike} from "ethers";
+import {AbiCoder, hexlify, toUtf8Bytes, AddressLike, BigNumberish, BytesLike, encodeBytes32String} from "ethers";
 import {anyValue} from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import {
-  getCreateAddress, getContractAt, deploy, deployX, toBytes32, getBalance,
-  destinationToken, setupTests,
+  getCreateAddress, getContractAt, deploy, deployX, allRemoteDomains, toBytes32, getBalance,
+  destinationToken, setupTests, stubDestinationThisAddress,
 } from "./helpers";
 import {
   ProviderSolidity as Provider, DomainSolidity as Domain, ZERO_ADDRESS,
   DEFAULT_ADMIN_ROLE, assertAddress, ETH, addressToBytes32,
+  ZERO_BYTES32,
 } from "../scripts/common";
 import {
   TestUSDC, TransparentUpgradeableProxy, ProxyAdmin,
@@ -154,6 +155,7 @@ describe("Repayer", function () {
           ]
         },
       ],
+      allRemoteDomains(Domain.BASE)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer", {},
@@ -255,7 +257,7 @@ describe("Repayer", function () {
     expect(await isOutputTokenAllowed(repayer, usdc, Domain.ETHEREUM, addressToBytes32(usdc.target))).to.be.false;
 
     await expect(repayer.connect(admin).initialize(
-      admin, repayUser, setTokensUser, [], [], [], [], []
+      admin, repayUser, setTokensUser, [], [], [], [], [], []
     )).to.be.reverted;
   });
 
@@ -1031,6 +1033,7 @@ describe("Repayer", function () {
           destinationToken(Domain.OP_MAINNET, addressToBytes32(outputToken))
         ]
       }],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -1094,6 +1097,7 @@ describe("Repayer", function () {
           destinationToken(Domain.OP_MAINNET, addressToBytes32(outputToken))
         ]
       }],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -1163,6 +1167,7 @@ describe("Repayer", function () {
           destinationToken(Domain.BASE, addressToBytes32(outputToken))
         ]
       }],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -1229,6 +1234,7 @@ describe("Repayer", function () {
           destinationToken(Domain.OP_MAINNET, addressToBytes32(eurc.target))
         ]
       }],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -1294,6 +1300,7 @@ describe("Repayer", function () {
           destinationToken(Domain.OP_MAINNET, addressToBytes32(usdc.target))
         ]
       }],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -1355,6 +1362,7 @@ describe("Repayer", function () {
       [Provider.LOCAL, Provider.SUPERCHAIN_STANDARD_BRIDGE],
       [ZERO_ADDRESS, ZERO_ADDRESS],
       [],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -1445,6 +1453,7 @@ describe("Repayer", function () {
       [Provider.LOCAL, Provider.SUPERCHAIN_STANDARD_BRIDGE],
       [ZERO_ADDRESS, ZERO_ADDRESS],
       [],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer4", {},
@@ -1507,6 +1516,7 @@ describe("Repayer", function () {
           destinationToken(Domain.ARBITRUM_ONE, addressToBytes32(l2TokenAddress))
         ]
       }],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -1585,6 +1595,7 @@ describe("Repayer", function () {
           destinationToken(Domain.ARBITRUM_ONE, addressToBytes32(weth.target))
         ]
       }],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -1651,6 +1662,7 @@ describe("Repayer", function () {
           destinationToken(Domain.ARBITRUM_ONE, addressToBytes32(l2TokenAddress))
         ]
       }],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -1730,6 +1742,7 @@ describe("Repayer", function () {
           destinationToken(Domain.ARBITRUM_ONE, addressToBytes32(l2TokenAddress))
         ]
       }],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -1804,6 +1817,7 @@ describe("Repayer", function () {
           destinationToken(Domain.ARBITRUM_ONE, addressToBytes32(wrongOutputToken))
         ]
       }],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -1870,6 +1884,7 @@ describe("Repayer", function () {
       [Provider.LOCAL, Provider.ARBITRUM_GATEWAY],
       [ZERO_ADDRESS, ZERO_ADDRESS],
       [],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -1935,6 +1950,7 @@ describe("Repayer", function () {
       [Provider.LOCAL],
       [ZERO_ADDRESS],
       [],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -2035,6 +2051,7 @@ describe("Repayer", function () {
       [Provider.LOCAL, Provider.ARBITRUM_GATEWAY],
       [ZERO_ADDRESS, ZERO_ADDRESS],
       [],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -2100,6 +2117,7 @@ describe("Repayer", function () {
       [Provider.LOCAL, Provider.ARBITRUM_GATEWAY],
       [ZERO_ADDRESS, ZERO_ADDRESS],
       [],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -2186,6 +2204,7 @@ describe("Repayer", function () {
         inputToken,
         destinationTokens: [destinationToken(remoteDomain, addressToBytes32(outputToken))],
       }],
+      allRemoteDomains(localDomain)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, `TransparentUpgradeableProxy${id}`, {},
@@ -2409,11 +2428,16 @@ describe("Repayer", function () {
 
   it("Should allow repayer to initiate Polygon PoS withdraw from Polygon", async function () {
     const fixture = await loadFixture(deployAll);
-    const {usdc, repayUser, polygonChildToken} = fixture;
+    const {usdc, admin, repayUser, polygonChildToken} = fixture;
     const repayer = await deployPolygonPosRepayer(fixture, Domain.POLYGON_MAINNET, {
       inputToken: polygonChildToken.target,
       outputToken: usdc.target,
     });
+    // The PoS exit credits the burner, so the Repayer must bridge to itself — override the
+    // generic placeholder from allRemoteDomains() with this Repayer's own address for ETHEREUM.
+    await repayer.connect(admin).setThisAddresses([
+      {domain: Domain.ETHEREUM, thisAddress: addressToBytes32(repayer.target)}
+    ]);
 
     const CHILD_DEC = 10n ** (await polygonChildToken.decimals());
     const amount = 4n * CHILD_DEC;
@@ -2856,7 +2880,8 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
       [liquidityPool, liquidityPool], [Domain.BASE, Domain.AVALANCHE],
-      [Provider.LOCAL, Provider.CCTP_V2], [ZERO_ADDRESS, ZERO_ADDRESS], []
+      [Provider.LOCAL, Provider.CCTP_V2], [ZERO_ADDRESS, ZERO_ADDRESS], [],
+      allRemoteDomains(Domain.BASE)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayerNoCCTPV2", {},
@@ -2890,7 +2915,8 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
       [liquidityPool, liquidityPool], [Domain.BASE, Domain.AVALANCHE],
-      [Provider.LOCAL, Provider.CCTP_V2], [ZERO_ADDRESS, ZERO_ADDRESS], []
+      [Provider.LOCAL, Provider.CCTP_V2], [ZERO_ADDRESS, ZERO_ADDRESS], [],
+      allRemoteDomains(Domain.BASE)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer,
@@ -3513,12 +3539,18 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
       [liquidityPool], [Domain.GNOSIS_CHAIN], [Provider.GNOSIS_OMNIBRIDGE], [ZERO_ADDRESS], [],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
       repayerImpl, admin, repayerInit
     )) as TransparentUpgradeableProxy;
     const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+    // Bridging USDC to Gnosis must target the Repayer itself on the destination domain — override
+    // the generic placeholder from allRemoteDomains() with this Repayer's own address.
+    await repayer.connect(admin).setThisAddresses([
+      {domain: Domain.GNOSIS_CHAIN, thisAddress: addressToBytes32(repayer.target)}
+    ]);
 
     await usdc.transfer(repayer, 10n * USDC_DEC);
 
@@ -3574,6 +3606,7 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
       [liquidityPool], [Domain.ETHEREUM], [Provider.GNOSIS_OMNIBRIDGE], [ZERO_ADDRESS], [],
+      allRemoteDomains(Domain.GNOSIS_CHAIN)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -3634,12 +3667,18 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
       [liquidityPool], [Domain.ETHEREUM], [Provider.GNOSIS_OMNIBRIDGE], [ZERO_ADDRESS], [],
+      allRemoteDomains(Domain.GNOSIS_CHAIN)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
       repayerImpl, admin, repayerInit
     )) as TransparentUpgradeableProxy;
     const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+    // Bridging ASSETS (USDCe) to Ethereum must target the Repayer itself on the destination
+    // domain — override the generic placeholder from allRemoteDomains() with its own address.
+    await repayer.connect(admin).setThisAddresses([
+      {domain: Domain.ETHEREUM, thisAddress: addressToBytes32(repayer.target)}
+    ]);
 
     // Fund repayer with USDCe and the swap contract with USDC
     await usdc2.transfer(repayer, 10n * USDC_DEC);
@@ -3703,6 +3742,7 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
       [liquidityPool], [Domain.ETHEREUM], [Provider.GNOSIS_OMNIBRIDGE], [ZERO_ADDRESS], [],
+      allRemoteDomains(Domain.GNOSIS_CHAIN)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -3751,6 +3791,7 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
       [liquidityPool], [Domain.GNOSIS_CHAIN], [Provider.GNOSIS_OMNIBRIDGE], [ZERO_ADDRESS], [],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -3795,6 +3836,7 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
       [liquidityPool], [Domain.GNOSIS_CHAIN], [Provider.GNOSIS_OMNIBRIDGE], [ZERO_ADDRESS], [],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -3954,6 +3996,7 @@ describe("Repayer", function () {
       [Provider.GNOSIS_OMNIBRIDGE, Provider.GNOSIS_OMNIBRIDGE],
       [ZERO_ADDRESS, ZERO_ADDRESS],
       [],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -3999,6 +4042,7 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
       [liquidityPool], [Domain.ETHEREUM], [Provider.LOCAL], [ZERO_ADDRESS], [],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -4070,6 +4114,7 @@ describe("Repayer", function () {
       admin, repayUser, setTokensUser,
       // poolSupportsAllTokens=true bypasses ASSETS check in _setRoute for LOCAL route
       [liquidityPool], [Domain.GNOSIS_CHAIN], [Provider.LOCAL], [ZERO_ADDRESS], [],
+      allRemoteDomains(Domain.GNOSIS_CHAIN)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -4140,6 +4185,7 @@ describe("Repayer", function () {
     // No pool route needed — isRouteAllowed(repayer, ...) auto-passes when pool == address(this)
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser, [], [], [], [], [],
+      allRemoteDomains(Domain.GNOSIS_CHAIN)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -4205,6 +4251,7 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
       [liquidityPool], [Domain.GNOSIS_CHAIN], [Provider.LOCAL], [ZERO_ADDRESS], [],
+      allRemoteDomains(Domain.GNOSIS_CHAIN)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -4275,6 +4322,7 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
       [liquidityPool], [Domain.GNOSIS_CHAIN], [Provider.LOCAL], [ZERO_ADDRESS], [],
+      allRemoteDomains(Domain.GNOSIS_CHAIN)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -4321,6 +4369,7 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
       [liquidityPool], [Domain.ETHEREUM], [Provider.LOCAL], [usdc.target], [],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -4411,6 +4460,7 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
       [liquidityPool], [Domain.ETHEREUM], [Provider.LOCAL], [ZERO_ADDRESS], [],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer2", {},
@@ -4471,6 +4521,7 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
       [liquidityPool], [Domain.ARBITRUM_ONE], [Provider.USDT0], [ZERO_ADDRESS], [],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayerUSDT0Adapter", {},
@@ -4501,7 +4552,7 @@ describe("Repayer", function () {
 
     await expect(tx)
       .to.emit(repayer, "USDT0Transfer")
-      .withArgs(testUsdt0.target, liquidityPool.target, "30110", amount);
+      .withArgs(testUsdt0.target, addressToBytes32(liquidityPool.target), "30110", amount);
     await expect(tx).to.changeEtherBalance(repayUser, -(await testOFT.NATIVE_FEE()));
   });
 
@@ -4541,6 +4592,7 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
       [liquidityPool], [Domain.ETHEREUM], [Provider.USDT0], [ZERO_ADDRESS], [],
+      allRemoteDomains(Domain.ARBITRUM_ONE)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayerUSDT0Native", {},
@@ -4571,7 +4623,7 @@ describe("Repayer", function () {
 
     await expect(tx)
       .to.emit(repayer, "USDT0Transfer")
-      .withArgs(testUsdt0.target, liquidityPool.target, "30101", amount);
+      .withArgs(testUsdt0.target, addressToBytes32(liquidityPool.target), "30101", amount);
     await expect(tx).to.changeEtherBalance(repayUser, -(await testOFT.NATIVE_FEE()));
   });
 
@@ -4612,6 +4664,7 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
       [liquidityPool], [Domain.ARBITRUM_ONE], [Provider.USDT0], [ZERO_ADDRESS], [],
+      allRemoteDomains(Domain.BASE)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayerUSDT0AdapterNonEthereum", {},
@@ -4638,7 +4691,7 @@ describe("Repayer", function () {
       .withArgs(repayer.target, testOFT.target, amount);
     await expect(tx)
       .to.emit(repayer, "USDT0Transfer")
-      .withArgs(testUsdt0.target, liquidityPool.target, "30110", amount);
+      .withArgs(testUsdt0.target, addressToBytes32(liquidityPool.target), "30110", amount);
   });
 
   it("Should perform USDT0 repay paying the LayerZero fee in an ERC20 token", async function () {
@@ -4677,6 +4730,7 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
       [liquidityPool], [Domain.ARBITRUM_ONE], [Provider.USDT0], [ZERO_ADDRESS], [],
+      allRemoteDomains(Domain.BASE)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayerUSDT0FeeNativeToken", {},
@@ -4711,7 +4765,7 @@ describe("Repayer", function () {
       .withArgs(repayer.target, testOFT.target, amount);
     await expect(tx)
       .to.emit(repayer, "USDT0Transfer")
-      .withArgs(testUsdt0.target, liquidityPool.target, "30110", amount);
+      .withArgs(testUsdt0.target, addressToBytes32(liquidityPool.target), "30110", amount);
     // Mock refunds (feeAmount - feeTokenFee) directly to repayUser: net cost is exactly feeTokenFee.
     expect(await feeToken.balanceOf(repayUser)).to.equal(feeTokenBalanceBefore - feeTokenFee);
     expect(await feeToken.balanceOf(repayer)).to.equal(0n);
@@ -4753,6 +4807,7 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
       [liquidityPool], [Domain.ARBITRUM_ONE], [Provider.USDT0], [ZERO_ADDRESS], [],
+      allRemoteDomains(Domain.BASE)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayerUSDT0FeeNativeTokenNotPayable", {},
@@ -4813,6 +4868,7 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
       [liquidityPool], [Domain.ARBITRUM_ONE], [Provider.USDT0], [ZERO_ADDRESS], [],
+      allRemoteDomains(Domain.BASE)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayerUSDT0FeeNativeTokenBadExtraData", {},
@@ -4867,6 +4923,7 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
       [liquidityPool], [Domain.ARBITRUM_ONE], [Provider.USDT0], [ZERO_ADDRESS], [],
+      allRemoteDomains(Domain.BASE)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayerUSDT0SlippageOk", {},
@@ -4891,7 +4948,7 @@ describe("Repayer", function () {
     );
     await expect(tx)
       .to.emit(repayer, "USDT0Transfer")
-      .withArgs(testUsdt0.target, liquidityPool.target, "30110", amount);
+      .withArgs(testUsdt0.target, addressToBytes32(liquidityPool.target), "30110", amount);
   });
 
   it("Should revert USDT0 repay when minAmountLD is below the accepted slippage tolerance", async function () {
@@ -4927,6 +4984,7 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
       [liquidityPool], [Domain.ARBITRUM_ONE], [Provider.USDT0], [ZERO_ADDRESS], [],
+      allRemoteDomains(Domain.BASE)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayerUSDT0SlippageTooHigh", {},
@@ -4983,6 +5041,7 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
       [liquidityPool], [Domain.ETHEREUM], [Provider.USDT0], [ZERO_ADDRESS], [],
+      allRemoteDomains(Domain.BASE)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayerUSDT0TokenMismatch", {},
@@ -5030,6 +5089,7 @@ describe("Repayer", function () {
     const repayerInit = (await repayerImpl.initialize.populateTransaction(
       admin, repayUser, setTokensUser,
       [liquidityPool], [Domain.ETHEREUM], [Provider.USDT0], [ZERO_ADDRESS], [],
+      allRemoteDomains(Domain.BASE)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayerUSDT0Zero", {},
@@ -5160,6 +5220,7 @@ describe("Repayer", function () {
             ]
           },
         ],
+      allRemoteDomains(Domain.BSC)
       )).data;
       const repayerProxy = (await deployX(
         "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayerBSC", {},
@@ -5446,7 +5507,12 @@ describe("Repayer", function () {
   });
 
   it("Should allow initiating remote repay to repayer's own address without an explicit route", async function () {
-    const {repayer, usdc, USDC_DEC, repayUser, cctpV2TokenMessenger} = await loadFixture(deployAll);
+    const {repayer, usdc, USDC_DEC, repayUser, cctpV2TokenMessenger, admin} = await loadFixture(deployAll);
+    // The self-address bypass in isRouteAllowed() compares against getThisAddress(domain) — set
+    // it to this Repayer's own address for ETHEREUM (deployAll only configures a placeholder).
+    await repayer.connect(admin).setThisAddresses([
+      {domain: Domain.ETHEREUM, thisAddress: addressToBytes32(repayer.target)}
+    ]);
 
     await usdc.transfer(repayer, 10n * USDC_DEC);
     const tx = repayer.connect(repayUser).initiateRepay(
@@ -5490,5 +5556,133 @@ describe("Repayer", function () {
       .withArgs(ZERO_ADDRESS, repayer.target, 4n * USDC_DEC);
 
     expect(await usdc.balanceOf(repayer)).to.equal(4n * USDC_DEC);
+  });
+
+  describe("This addresses", function () {
+    it("Should return this Repayer's own address for the local domain", async function () {
+      const {repayer} = await loadFixture(deployAll);
+
+      expect(await repayer.getThisAddress(Domain.BASE)).to.equal(addressToBytes32(repayer.target));
+    });
+
+    it("Should return the configured address for a remote domain set at initialize time", async function () {
+      const {repayer} = await loadFixture(deployAll);
+
+      expect(await repayer.getThisAddress(Domain.ARBITRUM_ONE)).to.equal(
+        stubDestinationThisAddress(Domain.ARBITRUM_ONE)
+      );
+      expect(await repayer.getThisAddress(Domain.GNOSIS_CHAIN)).to.equal(
+        stubDestinationThisAddress(Domain.GNOSIS_CHAIN)
+      );
+    });
+
+    it("Should return zero for a domain that was never configured", async function () {
+      const fixture = await loadFixture(deployAll);
+      const {
+        deployer, admin, repayUser, setTokensUser, usdc, liquidityPool,
+        acrossV3SpokePool, weth, stargateTreasurerTrue, optimismBridge, baseBridge, arbitrumGatewayRouter,
+        cctpV2TokenMessenger, cctpV2MessageTransmitter, polygonRootChainManager,
+      } = fixture;
+      const repayerImpl = (
+        await deployX("Repayer", deployer, "RepayerNoThisAddresses", {},
+          Domain.BASE, usdc, acrossV3SpokePool, weth, stargateTreasurerTrue, optimismBridge, baseBridge,
+          arbitrumGatewayRouter,
+          ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+          cctpV2TokenMessenger, cctpV2MessageTransmitter, polygonRootChainManager,
+        )
+      ) as Repayer;
+      const repayerInit = (await repayerImpl.initialize.populateTransaction(
+        admin, repayUser, setTokensUser, [liquidityPool], [Domain.BASE], [Provider.LOCAL], [ZERO_ADDRESS], [], []
+      )).data;
+      const repayerProxy = (await deployX(
+        "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayerNoThisAddresses", {},
+        repayerImpl, admin, repayerInit
+      )) as TransparentUpgradeableProxy;
+      const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+      expect(await repayer.getThisAddress(Domain.ARBITRUM_ONE)).to.equal(ZERO_BYTES32);
+      expect(await repayer.getThisAddress(Domain.BASE)).to.equal(addressToBytes32(repayer.target));
+    });
+
+    it("Should revert initiateRepay if destination domain has no this address set", async function () {
+      const fixture = await loadFixture(deployAll);
+      const {
+        deployer, admin, repayUser, setTokensUser, usdc, USDC_DEC, liquidityPool,
+        acrossV3SpokePool, weth, stargateTreasurerTrue, optimismBridge, baseBridge, arbitrumGatewayRouter,
+        cctpV2TokenMessenger, cctpV2MessageTransmitter, polygonRootChainManager,
+      } = fixture;
+      const repayerImpl = (
+        await deployX("Repayer", deployer, "RepayerNoThisAddresses2", {},
+          Domain.BASE, usdc, acrossV3SpokePool, weth, stargateTreasurerTrue, optimismBridge, baseBridge,
+          arbitrumGatewayRouter,
+          ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+          cctpV2TokenMessenger, cctpV2MessageTransmitter, polygonRootChainManager,
+        )
+      ) as Repayer;
+      const repayerInit = (await repayerImpl.initialize.populateTransaction(
+        admin, repayUser, setTokensUser,
+        [liquidityPool, liquidityPool], [Domain.BASE, Domain.ETHEREUM], [Provider.LOCAL, Provider.CCTP_V2],
+        [ZERO_ADDRESS, ZERO_ADDRESS], [], []
+      )).data;
+      const repayerProxy = (await deployX(
+        "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayerNoThisAddresses2", {},
+        repayerImpl, admin, repayerInit
+      )) as TransparentUpgradeableProxy;
+      const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
+
+      await usdc.transfer(repayer, 10n * USDC_DEC);
+      expect(await repayer.isRouteAllowed(liquidityPool, Domain.ETHEREUM, Provider.CCTP_V2)).to.be.true;
+      await expect(repayer.connect(repayUser).initiateRepay(
+        usdc, 4n * USDC_DEC, liquidityPool, Domain.ETHEREUM, Provider.CCTP_V2, "0x"
+      )).to.be.revertedWithCustomError(repayer, "DestinationDomainNotSupported()");
+    });
+
+    it("Should treat the Repayer's own address as an allowed route on a remote domain", async function () {
+      const {repayer, admin} = await loadFixture(deployAll);
+      const remoteRepayerAddress = hre.ethers.getAddress(`0x${"33".repeat(20)}`);
+      const remoteRepayer = addressToBytes32(remoteRepayerAddress);
+
+      expect(await repayer.isRouteAllowed(remoteRepayerAddress, Domain.OP_MAINNET, Provider.ACROSS)).to.be.false;
+      await repayer.connect(admin).setThisAddresses([{domain: Domain.OP_MAINNET, thisAddress: remoteRepayer}]);
+      expect(await repayer.isRouteAllowed(remoteRepayerAddress, Domain.OP_MAINNET, Provider.ACROSS)).to.be.true;
+    });
+
+    it("Should allow admin to set and update this addresses, emitting SetThisAddress", async function () {
+      const {repayer, admin} = await loadFixture(deployAll);
+      const addressA = encodeBytes32String("someprettylongaddresshere");
+      const addressB = addressToBytes32(`0x${"22".repeat(20)}`);
+
+      const tx = repayer.connect(admin).setThisAddresses([
+        {domain: Domain.WORLD_CHAIN, thisAddress: addressA},
+        {domain: Domain.HYPER_EVM, thisAddress: addressB},
+      ]);
+      await expect(tx).to.emit(repayer, "SetThisAddress").withArgs(Domain.WORLD_CHAIN, addressA);
+      await expect(tx).to.emit(repayer, "SetThisAddress").withArgs(Domain.HYPER_EVM, addressB);
+      expect(await repayer.getThisAddress(Domain.WORLD_CHAIN)).to.equal(addressA);
+      expect(await repayer.getThisAddress(Domain.HYPER_EVM)).to.equal(addressB);
+
+      const updateTx = repayer.connect(admin).setThisAddresses([
+        {domain: Domain.WORLD_CHAIN, thisAddress: addressB},
+      ]);
+      await expect(updateTx).to.emit(repayer, "SetThisAddress").withArgs(Domain.WORLD_CHAIN, addressB);
+      expect(await repayer.getThisAddress(Domain.WORLD_CHAIN)).to.equal(addressB);
+      expect(await repayer.getThisAddress(Domain.HYPER_EVM)).to.equal(addressB);
+    });
+
+    it("Should not allow others to set this addresses", async function () {
+      const {repayer, repayUser} = await loadFixture(deployAll);
+
+      await expect(repayer.connect(repayUser).setThisAddresses([
+        {domain: Domain.WORLD_CHAIN, thisAddress: addressToBytes32(repayer.target)},
+      ])).to.be.revertedWithCustomError(repayer, "AccessControlUnauthorizedAccount(address,bytes32)");
+    });
+
+    it("Should not allow setting this address for the local domain", async function () {
+      const {repayer, admin} = await loadFixture(deployAll);
+
+      await expect(repayer.connect(admin).setThisAddresses([
+        {domain: Domain.BASE, thisAddress: addressToBytes32(repayer.target)},
+      ])).to.be.revertedWithCustomError(repayer, "UnsupportedDomain()");
+    });
   });
 });

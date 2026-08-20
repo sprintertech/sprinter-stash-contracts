@@ -5,11 +5,11 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {AbiCoder} from "ethers";
 import {
-  getCreateAddress, getContractAt, deploy, deployX,
+  getCreateAddress, getContractAt, deploy, deployX, allRemoteDomains,
 } from "../../test/helpers";
 import {
   ProviderSolidity as Provider, DomainSolidity as Domain,
-  DEFAULT_ADMIN_ROLE, assertAddress, ZERO_ADDRESS,
+  DEFAULT_ADMIN_ROLE, assertAddress, ZERO_ADDRESS, addressToBytes32,
 } from "../../scripts/common";
 import {
   TransparentUpgradeableProxy, ProxyAdmin,
@@ -78,6 +78,7 @@ describe("Repayer USDT0 (Ethereum fork)", function () {
       [Provider.USDT0],
       [ZERO_ADDRESS],
       [],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
 
     const repayerProxy = (await deployX(
@@ -133,7 +134,7 @@ describe("Repayer USDT0 (Ethereum fork)", function () {
 
     await expect(tx)
       .to.emit(repayer, "USDT0Transfer")
-      .withArgs(usdt.target, liquidityPool.target, "30110", amount);
+      .withArgs(usdt.target, addressToBytes32(liquidityPool.target), "30110", amount);
 
     expect(await usdt.balanceOf(repayer)).to.equal(usdtBalanceBefore - amount);
   });

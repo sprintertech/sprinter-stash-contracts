@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IGnosisOmnibridge, IGnosisAMB, IUSDCTransmuter} from ".././interfaces/IGnosisOmnibridge.sol";
 import {AdapterHelper} from "./AdapterHelper.sol";
+import {HelperLib} from "./HelperLib.sol";
 
 abstract contract GnosisOmnibridgeAdapter is AdapterHelper {
     using SafeERC20 for IERC20;
@@ -67,14 +68,15 @@ abstract contract GnosisOmnibridgeAdapter is AdapterHelper {
         uint256 amount,
         address destinationPool,
         Domain destinationDomain,
-        Domain localDomain
+        Domain localDomain,
+        bytes32 destinationAddressThis
     ) internal notPayable {
         require(address(OMNIBRIDGE) != address(0), ZeroAddress());
         if (localDomain == Domain.ETHEREUM) {
             require(destinationDomain == Domain.GNOSIS_CHAIN, UnsupportedDomain());
             if (address(token) == address(LOCAL_USDC)) {
                 // Must bridge USDC to self to swap USDCxDAI on Gnosis through process().
-                require(destinationPool == address(this), InvalidDestinationPool());
+                require(_addressToBytes32(destinationPool) == destinationAddressThis, InvalidDestinationPool());
             }
         } else
         if (localDomain == Domain.GNOSIS_CHAIN) {
@@ -129,7 +131,7 @@ abstract contract GnosisOmnibridgeAdapter is AdapterHelper {
         if (localDomain == Domain.GNOSIS_CHAIN) {
             // Only needed to process GNOSIS_USDCXDAI -> USDCe that arrive when USDC is sent from Ethereum.
             amount = abi.decode(extraData, (uint256));
-            uint256 balance = GNOSIS_USDCXDAI.balanceOf(address(this));
+            uint256 balance = HelperLib.balanceOfThis(GNOSIS_USDCXDAI);
             require(balance >= amount, InsufficientBalance());
             IUSDCTransmuter usdceSwap = GNOSIS_USDC_TRANSMUTER;
             GNOSIS_USDCXDAI.forceApprove(address(usdceSwap), balance);

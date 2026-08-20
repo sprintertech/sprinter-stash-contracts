@@ -5,7 +5,8 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {AbiCoder} from "ethers";
 import {
-  getCreateAddress, getContractAt, deploy, deployX,
+  getCreateAddress, getContractAt, deploy, deployX, allRemoteDomains,
+  stubDestinationThisAddress,
 } from "../../test/helpers";
 import {
   ProviderSolidity as Provider, DomainSolidity as Domain,
@@ -67,6 +68,7 @@ describe("Rebalancer USDT0 (Arbitrum fork)", function () {
       [localPool, remotePool, remotePool],
       [Domain.ARBITRUM_ONE, Domain.TEMPO, Domain.STABLE],
       [Provider.LOCAL, Provider.USDT0, Provider.USDT0],
+      allRemoteDomains(Domain.ARBITRUM_ONE)
     )).data;
 
     const rebalancerProxy = (await deployX(
@@ -111,7 +113,7 @@ describe("Rebalancer USDT0 (Arbitrum fork)", function () {
       .withArgs(amount, localPool.target, remotePool.target, Domain.TEMPO, Provider.USDT0);
     await expect(tx)
       .to.emit(rebalancer, "USDT0Transfer")
-      .withArgs(usdt0Token.target, rebalancer.target, "30410", amount);
+      .withArgs(usdt0Token.target, stubDestinationThisAddress(Domain.TEMPO), "30410", amount);
 
     expect(await usdt0Token.balanceOf(localPool)).to.equal(0n);
     expect(await usdt0Token.balanceOf(rebalancer)).to.equal(0n);

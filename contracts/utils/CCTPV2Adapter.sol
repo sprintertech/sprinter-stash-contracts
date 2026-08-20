@@ -5,8 +5,10 @@ import {ICCTPV2TokenMessenger, ICCTPV2MessageTransmitter} from "../interfaces/IC
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {AdapterHelper} from "./AdapterHelper.sol";
 
-/// @notice The child contract has to be deployed to the same address across chains, otherwise
-/// processTransferCCTPV2() won't work, as the same address has to call receiveMessage().
+/// @notice processTransferCCTPV2() must be called by the address configured as the child
+/// contract's own address on the destination domain (see destinationAddressThis), since it is
+/// set as CCTP's destinationCaller. This no longer requires the child to be deployed to the
+/// same address across chains.
 /// Only supports CCTP V2 standard transfer (maxFee = 0, minFinalityThreshold = 2000).
 abstract contract CCTPV2Adapter is AdapterHelper {
     using SafeERC20 for IERC20;
@@ -30,7 +32,8 @@ abstract contract CCTPV2Adapter is AdapterHelper {
         IERC20 token,
         uint256 amount,
         address destinationPool,
-        Domain destinationDomain
+        Domain destinationDomain,
+        bytes32 destinationAddressThis
     ) internal notPayable {
         require(token == CCTP_V2_ONLY_SUPPORTED_TOKEN, InvalidToken());
         require(address(CCTP_V2_TOKEN_MESSENGER) != address(0), ZeroAddress());
@@ -42,7 +45,7 @@ abstract contract CCTPV2Adapter is AdapterHelper {
             domainCCTP(destinationDomain),
             _addressToBytes32(destinationPool),
             address(token),
-            _addressToBytes32(address(this)),
+            destinationAddressThis,
             0,
             2000
         );

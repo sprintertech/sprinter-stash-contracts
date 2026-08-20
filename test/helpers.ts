@@ -2,9 +2,9 @@ import hre from "hardhat";
 import {
   AddressLike, resolveAddress, Signer, BaseContract, toUtf8Bytes, TypedDataDomain,
   keccak256, concat, dataSlice, AbiCoder, EventLog, encodeBytes32String, isAddress,
-  BigNumberish, BytesLike,
+  BigNumberish, BytesLike, zeroPadValue, isHexString,
 } from "ethers";
-import {assert, CREATE_X_ADDRESS} from "../scripts/common";
+import {assert, CREATE_X_ADDRESS, DomainSolidity} from "../scripts/common";
 import {DEFAULT_PROXY_TYPE} from "../network.config";
 import {ICreateX} from "../typechain-types";
 import {expect} from "chai";
@@ -152,6 +152,13 @@ export async function resolveXAddresses(
   return await Promise.all(addressOrIds.map(el => resolveXAddress(el, codeCheck, onchain)));
 }
 
+export async function resolveMultichainAddress(addressOrId: string): Promise<string> {
+  if (isHexString(addressOrId, 32)) {
+    return addressOrId;
+  }
+  return resolveXAddress(addressOrId, false, false);
+}
+
 export async function getContractAt(
   contractName: string,
   address: AddressLike,
@@ -195,6 +202,18 @@ export async function deployX(
 
 export function toBytes32(str: string) {
   return encodeBytes32String(str);
+}
+
+export function stubDestinationThisAddress(domain: BigNumberish): string {
+  return zeroPadValue(toUtf8Bytes(`${domain} stub`), 32);
+}
+
+// Builds a ThisAddresses[] entry for every Domain except localDomain, so that tests written
+// before non-deterministic cross-domain deployment was introduced keep working unmodified.
+export function allRemoteDomains(localDomain: BigNumberish): {domain: BigNumberish, thisAddress: string}[] {
+  return Object.values(DomainSolidity)
+    .filter(domain => domain !== localDomain)
+    .map(domain => ({domain, thisAddress: stubDestinationThisAddress(domain)}));
 }
 
 export function divCeil(a: bigint, b: bigint): bigint {

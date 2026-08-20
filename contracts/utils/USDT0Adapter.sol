@@ -15,7 +15,7 @@ abstract contract USDT0Adapter is LayerZeroHelper {
     IOFT immutable public USDT0_OFT;
     address immutable public USDT0_FEE_NATIVE_TOKEN;
 
-    event USDT0Transfer(address token, address receiver, uint32 dstEid, uint256 amount);
+    event USDT0Transfer(address token, bytes32 receiver, uint32 dstEid, uint256 amount);
 
     error InvalidNativeToken();
     error InvalidExtraData();
@@ -41,7 +41,7 @@ abstract contract USDT0Adapter is LayerZeroHelper {
     function initiateTransferUSDT0(
         IERC20 token,
         uint256 amount,
-        address destinationPool,
+        bytes32 destinationPool,
         Domain destinationDomain,
         bytes calldata extraData,
         address caller
@@ -61,7 +61,7 @@ abstract contract USDT0Adapter is LayerZeroHelper {
 
         SendParam memory sendParam = SendParam({
             dstEid: dstEid,
-            to: _addressToBytes32(destinationPool),
+            to: destinationPool,
             amountLD: amount,
             minAmountLD: minAmountLD,
             extraOptions: new bytes(0),

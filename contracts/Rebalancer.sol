@@ -42,6 +42,7 @@ contract Rebalancer is
     );
     event ProcessRebalance(uint256 amount, address destinationPool, Provider provider);
     event SetRoute(address destinationPool, Domain destinationDomain, Provider provider, bool isAllowed);
+    event SetThisAddress(Domain domain, bytes32 thisAddress);
 
     error ZeroAmount();
     error RouteDenied();
@@ -49,11 +50,18 @@ contract Rebalancer is
     error UnsupportedProvider();
     error InvalidPoolAssets();
     error InvalidReceivedToken();
+    error DestinationDomainNotSupported();
 
     /// @custom:storage-location erc7201:sprinter.storage.Rebalancer
     struct RebalancerStorage {
         mapping(address pool => BitMaps.BitMap) allowedRoutes;
         EnumerableSet.AddressSet knownPools;
+        mapping(Domain domain => bytes32) thisAddress;
+    }
+
+    struct ThisAddresses {
+        Domain domain;
+        bytes32 thisAddress;
     }
 
     bytes32 private constant STORAGE_LOCATION = 0x81fbb040176d3bdbf3707b380997ee0038798f9e3ad0bae77fff3621ef225c00;
@@ -102,11 +110,13 @@ contract Rebalancer is
         address rebalancer,
         address[] calldata pools,
         Domain[] calldata domains,
-        Provider[] calldata providers
+        Provider[] calldata providers,
+        ThisAddresses[] calldata thisAddresses
     ) external initializer() {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(REBALANCER_ROLE, rebalancer);
         _setRoute(pools, domains, providers, true);
+        _setThisAddresses(thisAddresses);
     }
 
     function setRoute(
@@ -116,6 +126,12 @@ contract Rebalancer is
         bool isAllowed
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setRoute(pools, domains, providers, isAllowed);
+    }
+
+    function setThisAddresses(
+        ThisAddresses[] calldata thisAddresses
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setThisAddresses(thisAddresses);
     }
 
     function _setRoute(
@@ -144,6 +160,24 @@ contract Rebalancer is
             }
             emit SetRoute(pool, domain, provider, isAllowed);
         }
+    }
+
+    function _setThisAddresses(ThisAddresses[] calldata thisAddresses) internal {
+        RebalancerStorage storage $ = _getStorage();
+        for (uint256 i = 0; i < thisAddresses.length; ++i) {
+            ThisAddresses memory thisAddress = thisAddresses[i];
+            require(thisAddress.domain != DOMAIN, UnsupportedDomain());
+            $.thisAddress[thisAddress.domain] = thisAddress.thisAddress;
+            emit SetThisAddress(thisAddress.domain, thisAddress.thisAddress);
+        }
+    }
+
+    // Address where Rebalancer is deployed on the destination domain.
+    function getThisAddress(Domain domain) public view returns (bytes32) {
+        if (domain == DOMAIN) {
+            return _addressToBytes32(address(this));
+        }
+        return _getStorage().thisAddress[domain];
     }
 
     function getAllRoutes()
@@ -194,6 +228,8 @@ contract Rebalancer is
         Provider provider,
         bytes calldata extraData
     ) external payable override onlyRole(REBALANCER_ROLE) {
+        bytes32 destinationThisAddress = getThisAddress(destinationDomain);
+        require(destinationThisAddress != bytes32(0), DestinationDomainNotSupported());
         require(amount > 0, ZeroAmount());
         require(isRouteAllowed(sourcePool, DOMAIN, Provider.LOCAL), RouteDenied());
         require(isRouteAllowed(destinationPool, destinationDomain, provider), RouteDenied());
@@ -210,18 +246,24 @@ contract Rebalancer is
             _processRebalanceLOCAL(amount, destinationPool);
         } else
         if (provider == Provider.CCTP_V2) {
-            initiateTransferCCTPV2(ASSETS, amount, destinationPool, destinationDomain);
+            initiateTransferCCTPV2(ASSETS, amount, destinationPool, destinationDomain, destinationThisAddress);
         } else
         if (provider == Provider.GNOSIS_OMNIBRIDGE) {
             // We need to receive the tokens on the rebalancer contract
             // so that we can later call processRebalance(destinationPool, ..., 0x), to make sure we call deposit()
             // on the destination pool and swap tokens if needed.
-            destinationPool = address(this);
-            initiateTransferGnosisOmnibridge(ASSETS, amount, destinationPool, destinationDomain, DOMAIN);
+            destinationPool = _bytes32ToAddress(destinationThisAddress);
+            initiateTransferGnosisOmnibridge(
+                ASSETS,
+                amount,
+                destinationPool,
+                destinationDomain,
+                DOMAIN,
+                destinationThisAddress
+            );
         } else
         if (provider == Provider.USDT0) {
-            destinationPool = address(this);
-            initiateTransferUSDT0(ASSETS, amount, destinationPool, destinationDomain, extraData, _msgSender());
+            initiateTransferUSDT0(ASSETS, amount, destinationThisAddress, destinationDomain, extraData, _msgSender());
         } else {
             revert UnsupportedProvider();
         }

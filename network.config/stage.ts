@@ -54,6 +54,7 @@ export const stageNetworkConfig = {
     SetInputOutputTokens: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCV4]: {
         Domains: {
@@ -322,6 +323,7 @@ export const stageNetworkConfig = {
     SetInputOutputTokens: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
@@ -449,6 +451,7 @@ export const stageNetworkConfig = {
     SetInputOutputTokens: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
@@ -630,6 +633,7 @@ export const stageNetworkConfig = {
     SetInputOutputTokens: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
@@ -767,6 +771,7 @@ export const stageNetworkConfig = {
     SetInputOutputTokens: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
@@ -911,6 +916,7 @@ export const stageNetworkConfig = {
     SetInputOutputTokens: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
@@ -1032,6 +1038,7 @@ export const stageNetworkConfig = {
     SetInputOutputTokens: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
@@ -1113,6 +1120,7 @@ export const stageNetworkConfig = {
     SetInputOutputTokens: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
@@ -1195,6 +1203,7 @@ export const stageNetworkConfig = {
     SetInputOutputTokens: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
@@ -1253,6 +1262,7 @@ export const stageNetworkConfig = {
     SetInputOutputTokens: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
@@ -1310,6 +1320,7 @@ export const stageNetworkConfig = {
     SetInputOutputTokens: "0x626073e71Da79Cf399B3dBC3699B6beF26b04076",
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     SignerAddress: "0x626073e71Da79Cf399B3dBC3699B6beF26b04076",
+    Repayer: "0x0a1e34E855311A0eaf4D8F4Af2a6391D20241cBb",
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {

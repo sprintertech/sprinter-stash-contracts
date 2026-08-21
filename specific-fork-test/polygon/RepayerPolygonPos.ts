@@ -6,12 +6,11 @@ import hre from "hardhat";
 import {AbiCoder} from "ethers";
 import {
   getContractAt, deploy, deployX, allRemoteDomains,
-  stubDestinationThisAddress,
 } from "../../test/helpers";
 import {
   ProviderSolidity as Provider, DomainSolidity as Domain,
   assertAddress, ZERO_ADDRESS, ETH,
-  addressToBytes32, bytes32ToToken,
+  addressToBytes32,
 } from "../../scripts/common";
 import {
   TransparentUpgradeableProxy,

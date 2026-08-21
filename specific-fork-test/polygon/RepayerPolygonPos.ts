@@ -94,12 +94,12 @@ describe("Repayer Polygon PoS Bridge (Polygon fork)", function () {
     const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
 
     return {
-      deployer, repayUser, dai, liquidityPool, repayer,
+      deployer, repayUser, dai, liquidityPool, repayer, admin,
     };
   };
 
   it("Should allow repayer to burn DAI for a Polygon PoS exit to Ethereum on fork", async function () {
-    const {repayer, dai, repayUser} = await loadFixture(deployAll);
+    const {repayer, dai, repayUser, admin} = await loadFixture(deployAll);
 
     assertAddress(
       process.env.DAI_OWNER_POLYGON_ADDRESS,
@@ -115,16 +115,18 @@ describe("Repayer Polygon PoS Bridge (Polygon fork)", function () {
 
     const outputToken = networkConfig.ETHEREUM.Tokens.DAI!.Address;
     const extraData = AbiCoder.defaultAbiCoder().encode(["address"], [outputToken]);
-    const destinationRepayerAddress = bytes32ToToken(stubDestinationThisAddress(Domain.ETHEREUM));
+    await repayer.connect(admin).setThisAddresses([
+      {domain: Domain.ETHEREUM, thisAddress: addressToBytes32(repayer.target)},
+    ]);
 
     // The PoS exit on Ethereum credits whoever burned on Polygon, so the Repayer bridges to
     // itself and forwards the funds through processRepay() on the other side.
     const tx = repayer.connect(repayUser).initiateRepay(
-      dai, amount, destinationRepayerAddress, Domain.ETHEREUM, Provider.POLYGON_POS_BRIDGE, extraData
+      dai, amount, repayer, Domain.ETHEREUM, Provider.POLYGON_POS_BRIDGE, extraData
     );
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")
-      .withArgs(dai.target, amount, destinationRepayerAddress, Domain.ETHEREUM, Provider.POLYGON_POS_BRIDGE);
+      .withArgs(dai.target, amount, repayer.target, Domain.ETHEREUM, Provider.POLYGON_POS_BRIDGE);
     await expect(tx)
       .to.emit(repayer, "PolygonPosWithdrawInitiated")
       .withArgs(dai.target, amount);

@@ -28,6 +28,10 @@ export function sameAddress(a: any, b: any): boolean {
   return getAddress(a) === getAddress(b);
 }
 
+export function sameIgnoreCase(a: string, b: string): boolean {
+  return a.toLowerCase() === b.toLowerCase();
+}
+
 export function sleep(msec: number): Promise<boolean> {
   return new Promise((resolve) => {
     setTimeout(() => resolve(true), msec);

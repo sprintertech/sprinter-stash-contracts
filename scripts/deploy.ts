@@ -8,9 +8,11 @@ import {
   getProxyXAdmin, getInputOutputTokens, flattenInputOutputTokens,
   logDeployers, getMainAsset, idWithMainAsset, resolveOnlySupportedToken,
   mineIfNeeded,
+  getDestinationRepayerAddresses,
+  getDestinationRebalancerAddresses,
 } from "./helpers";
 import {
-  assert, isSet, ProviderSolidity, DomainSolidity, DEFAULT_ADMIN_ROLE, ZERO_ADDRESS,
+  assert, isSet, ProviderSolidity, DomainSolidity, SolidityDomain, DEFAULT_ADMIN_ROLE, ZERO_ADDRESS,
   sameAddress, assertAddress,
 } from "./common";
 import {
@@ -364,6 +366,7 @@ export async function main() {
   assert(mainPool, "Main pool is not defined");
   const rebalancerVersion = "Rebalancer";
   const rebalancerId = idWithMainAsset(mainAsset, "Rebalancer");
+  const destinationRebalancerAddresses = await getDestinationRebalancerAddresses(network, mainAsset);
 
   rebalancerRoutes.Pools = await resolveXAddresses(rebalancerRoutes.Pools, false);
 
@@ -383,6 +386,7 @@ export async function main() {
       rebalancerRoutes.Pools,
       rebalancerRoutes.Domains.map(el => DomainSolidity[el]),
       rebalancerRoutes.Providers.map(el => ProviderSolidity[el]),
+      destinationRebalancerAddresses,
     ],
     rebalancerId,
     verifier,
@@ -432,6 +436,7 @@ export async function main() {
   const inputOutputTokens = getInputOutputTokens(network, config);
 
   const repayerId = "Repayer";
+  const destinationRepayerAddresses = await getDestinationRepayerAddresses(network);
   let repayer: Repayer;
   let repayerAdmin: ProxyAdmin;
   try {
@@ -476,6 +481,7 @@ export async function main() {
         repayerRoutes.Providers.map(el => ProviderSolidity[el]),
         repayerRoutes.OnlySupportedTokens,
         inputOutputTokens,
+        destinationRepayerAddresses,
       ],
       repayerId,
     );
@@ -627,10 +633,32 @@ export async function main() {
       });
     }
     console.table(transposedRoutes);
+  } else {
+    console.log("No RepayerRoutes");
   }
   if (inputOutputTokens.length > 0) {
     console.log("InputOutputTokens:");
     console.table(flattenInputOutputTokens(inputOutputTokens));
+  } else {
+    console.log("No InputOutputTokens");
+  }
+  if (destinationRebalancerAddresses.length > 0) {
+    console.log("Destination Rebalancer Addresses:");
+    console.table(destinationRebalancerAddresses.map(el => ({
+      Network: SolidityDomain[Number(el.domain)],
+      ThisAddress: el.thisAddress,
+    })));
+  } else {
+    console.log("No Destination Rebalancer Addresses");
+  }
+  if (destinationRepayerAddresses.length > 0) {
+    console.log("Destination Repayer Addresses:");
+    console.table(destinationRepayerAddresses.map(el => ({
+      Network: SolidityDomain[Number(el.domain)],
+      ThisAddress: el.thisAddress,
+    })));
+  } else {
+    console.log("No Destination Repayer Addresses");
   }
 
   await verifier.verify(process.env.VERIFY === "true");

@@ -4,7 +4,7 @@ import {
   keccak256, concat, dataSlice, AbiCoder, EventLog, encodeBytes32String, isAddress,
   BigNumberish, BytesLike, zeroPadValue, isHexString,
 } from "ethers";
-import {assert, CREATE_X_ADDRESS, DomainSolidity} from "../scripts/common";
+import {addressToBytes32, assert, CREATE_X_ADDRESS, DomainSolidity} from "../scripts/common";
 import {DEFAULT_PROXY_TYPE} from "../network.config";
 import {ICreateX} from "../typechain-types";
 import {expect} from "chai";
@@ -156,7 +156,7 @@ export async function resolveMultichainAddress(addressOrId: string): Promise<str
   if (isHexString(addressOrId, 32)) {
     return addressOrId;
   }
-  return resolveXAddress(addressOrId, false, false);
+  return addressToBytes32(await resolveXAddress(addressOrId, false, false));
 }
 
 export async function getContractAt(

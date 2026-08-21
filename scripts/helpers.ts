@@ -12,7 +12,8 @@ import {
   sleep, assert, assertAddress, DomainSolidity, addressToBytes32, bytes32ToToken, SolidityDomain, ZERO_ADDRESS,
 } from "./common";
 import {
-  prodNetworkConfig, stageNetworkConfig, Network, NetworkConfig, StandaloneRepayerEnv, StandaloneRepayerConfig,
+  prodNetworkConfig, stageNetworkConfig, Network, NetworkConfig,
+  StandaloneRepayerEnv, StandaloneRepayerConfig,
   repayerConfig, DEFAULT_PROXY_TYPE,
   Provider,
   LiquidityPoolAaveUSDCVersions,
@@ -440,14 +441,60 @@ export function getInputOutputTokens(network: Network, config: NetworkConfig) {
   return inputOutputTokens;
 }
 
-export async function getDestinationThisAddresses(network: Network) {
+export async function getDestinationRepayerAddresses(network: Network, includeZeroAddress: boolean = false) {
   const envConfigs = getNetworkConfigsForCurrentEnv();
   const destinationThisAddresses: Repayer.ThisAddressesStruct[] = [];
-  for (const [envNetwork, envConfig] of Object.entries(envConfigs) as [Network, NetworkConfig][]) {
-    if (envNetwork === network || !envConfig.Repayer) continue;
+  for (const [envNetwork, envConfig] of Object.entries(envConfigs)) {
+    if (envNetwork === network) continue;
+    let repayerAddress = envConfig.Repayer;
+    if (!repayerAddress) {
+      if (includeZeroAddress) {
+        repayerAddress = ZERO_ADDRESS;
+      } else {
+        continue;
+      }
+    }
     destinationThisAddresses.push({
-      domain: DomainSolidity[envNetwork],
-      thisAddress: await resolveMultichainAddress(envConfig.Repayer),
+      domain: DomainSolidity[envNetwork as Network],
+      thisAddress: await resolveMultichainAddress(repayerAddress),
+    });
+  }
+  return destinationThisAddresses;
+}
+
+export async function getDestinationRebalancerAddresses(
+  network: Network,
+  mainAsset: Token,
+  includeZeroAddress: boolean = false,
+) {
+  const envConfigs = getNetworkConfigsForCurrentEnv();
+  const destinationThisAddresses: Repayer.ThisAddressesStruct[] = [];
+  for (const [envNetwork, envConfig] of Object.entries(envConfigs)) {
+    let rebalancerAddress = envConfig.MainAssets[mainAsset]?.Rebalancer;
+    if (envNetwork === network) continue;
+    if (!rebalancerAddress) {
+      if (includeZeroAddress) {
+        rebalancerAddress = ZERO_ADDRESS;
+      } else {
+        continue;
+      }
+    }
+    destinationThisAddresses.push({
+      domain: DomainSolidity[envNetwork as Network],
+      thisAddress: await resolveMultichainAddress(rebalancerAddress),
+    });
+  }
+  return destinationThisAddresses;
+}
+
+export async function getDestinationStandaloneRepayerAddresses(network: Network, repayerEnv: StandaloneRepayerEnv) {
+  const envConfigs = repayerConfig;
+  const destinationThisAddresses: Repayer.ThisAddressesStruct[] = [];
+  for (const [envNetwork, envConfig] of Object.entries(envConfigs)) {
+    if (envNetwork === network || !envConfig[repayerEnv]?.Repayer) continue;
+    destinationThisAddresses.push({
+      domain: DomainSolidity[envNetwork as Network],
+      thisAddress: await resolveMultichainAddress(envConfig[repayerEnv]!.Repayer),
     });
   }
   return destinationThisAddresses;

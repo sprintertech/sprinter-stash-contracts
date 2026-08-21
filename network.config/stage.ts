@@ -17,6 +17,8 @@ import {
   SUPPORTS_ONLY_USDC,
   LiquidityPoolUSDTProxy,
   LiquidityPoolAaveUSDTProxy,
+  RebalancerUSDCProxy,
+  RebalancerUSDTProxy,
 } from "./ids";
 
 export const stageNetworkConfig = {
@@ -255,6 +257,7 @@ export const stageNetworkConfig = {
     },
     MainAssets: {
       [Token.USDC]: {
+        Rebalancer: RebalancerUSDCProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDCV4]: {
             [Network.BASE]: [Provider.CCTP_V2],
@@ -378,6 +381,7 @@ export const stageNetworkConfig = {
     },
     MainAssets: {
       [Token.USDC]: {
+        Rebalancer: RebalancerUSDCProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDCProxy]: {
             [Network.ETHEREUM]: [Provider.CCTP_V2],
@@ -513,6 +517,7 @@ export const stageNetworkConfig = {
     },
     MainAssets: {
       [Token.USDC]: {
+        Rebalancer: RebalancerUSDCProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDCProxy]: {
             [Network.ETHEREUM]: [Provider.CCTP_V2],
@@ -579,6 +584,7 @@ export const stageNetworkConfig = {
           AssetsLimit: 10_000_000,
           Pool: LiquidityPoolAaveUSDTProxy,
         },
+        Rebalancer: RebalancerUSDTProxy,
         RebalancerRoutes: {
           [LiquidityPoolUSDTProxy]: {
             [Network.TEMPO]: [Provider.USDT0],
@@ -698,6 +704,7 @@ export const stageNetworkConfig = {
           ],
           Pool: LiquidityPoolAaveUSDCV4,
         },
+        Rebalancer: RebalancerUSDCProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDCProxy]: {
             [Network.ETHEREUM]: [Provider.CCTP_V2],
@@ -856,6 +863,7 @@ export const stageNetworkConfig = {
     },
     MainAssets: {
       [Token.USDC]: {
+        Rebalancer: RebalancerUSDCProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDCProxy]: {
             [Network.ETHEREUM]: [Provider.CCTP_V2],
@@ -995,6 +1003,7 @@ export const stageNetworkConfig = {
     },
     MainAssets: {
       [Token.USDC]: {
+        Rebalancer: RebalancerUSDCProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDCProxy]: {
             [Network.ETHEREUM]: [Provider.CCTP_V2],
@@ -1164,6 +1173,7 @@ export const stageNetworkConfig = {
     },
     MainAssets: {
       [Token.USDC]: {
+        Rebalancer: RebalancerUSDCProxy,
         RebalancerRoutes: {
           [LiquidityPoolUSDCV4]: {
             [Network.ETHEREUM]: [Provider.GNOSIS_OMNIBRIDGE],
@@ -1234,6 +1244,7 @@ export const stageNetworkConfig = {
     },
     MainAssets: {
       [Token.USDT]: {
+        Rebalancer: RebalancerUSDTProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDTProxy]: {
             [Network.ARBITRUM_ONE]: [Provider.USDT0],
@@ -1293,6 +1304,7 @@ export const stageNetworkConfig = {
     },
     MainAssets: {
       [Token.USDT]: {
+        Rebalancer: RebalancerUSDTProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDTProxy]: {
             [Network.ARBITRUM_ONE]: [Provider.USDT0],
@@ -1354,6 +1366,7 @@ export const stageNetworkConfig = {
     },
     MainAssets: {
       [Token.USDT]: {
+        Rebalancer: "0xf12fc5137229C5f13e874c5F1e11818A9f616B85",
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDTProxy]: {
             [Network.ARBITRUM_ONE]: [Provider.USDT0],

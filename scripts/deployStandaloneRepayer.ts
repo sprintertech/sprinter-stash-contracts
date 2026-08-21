@@ -6,10 +6,12 @@ import {
   getVerifier, deployProxyX, getHardhatStandaloneRepayerConfig, getStandaloneRepayerConfig,
   getInputOutputTokens, flattenInputOutputTokens,
   logDeployers, resolveOnlySupportedToken,
+  getDestinationStandaloneRepayerAddresses,
 } from "./helpers";
 import {resolveXAddress, toBytes32} from "../test/helpers";
 import {
   isSet, assert, ProviderSolidity, DomainSolidity, ZERO_ADDRESS, DEFAULT_ADMIN_ROLE, assertAddress,
+  SolidityDomain,
 } from "./common";
 import {Repayer} from "../typechain-types";
 import {
@@ -102,6 +104,7 @@ export async function main() {
 
   const inputOutputTokens = getInputOutputTokens(network, prodConfig);
   const repayerVersion = "Repayer";
+  const destinationRepayerAddresses = await getDestinationStandaloneRepayerAddresses(network, repayerEnv);
 
   const {target: repayer, targetAdmin: repayerAdmin} = await deployProxyX<Repayer>(
     verifier.deployX,
@@ -136,6 +139,7 @@ export async function main() {
       repayerRoutes.map(el => ProviderSolidity[el.Provider]),
       repayerRoutes.map(el => el.OnlySupportedToken),
       inputOutputTokens,
+      destinationRepayerAddresses,
     ],
     id,
     verifier,
@@ -157,6 +161,13 @@ export async function main() {
   if (inputOutputTokens.length > 0) {
     console.log("InputOutputTokens:");
     console.table(flattenInputOutputTokens(inputOutputTokens));
+  }
+  if (destinationRepayerAddresses.length > 0) {
+    console.log("Destination Repayer Addresses:");
+    console.table(destinationRepayerAddresses.map(el => ({
+      Network: SolidityDomain[Number(el.domain)],
+      ThisAddress: el.thisAddress,
+    })));
   }
 
   if (getAddress(deployer.address) != getAddress(config.Admin)) {

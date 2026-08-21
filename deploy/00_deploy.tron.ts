@@ -6,10 +6,12 @@ import {
   getHardhatNetworkConfig, getNetworkConfig,
   getInputOutputTokens, flattenInputOutputTokens,
   logDeployers, getMainAsset, idWithMainAsset, resolveOnlySupportedToken,
+  getDestinationRebalancerAddresses,
+  getDestinationRepayerAddresses,
 } from "../scripts/helpers";
 import {
   assert, isSet, ProviderSolidity, DomainSolidity, DEFAULT_ADMIN_ROLE, ZERO_ADDRESS,
-  sameAddress, assertAddress, bytes32ToToken,
+  sameAddress, assertAddress, bytes32ToToken, SolidityDomain,
 } from "../scripts/common";
 import {
   Rebalancer, Repayer, LiquidityPool, AccessControlUpgradeable, ProxyAdmin,
@@ -228,6 +230,7 @@ const main: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   rebalancerRoutes.Pools = await resolveXAddresses(rebalancerRoutes.Pools, false, false);
 
   const rebalancerId = idWithMainAsset(mainAsset, "Rebalancer");
+  const destinationRebalancerAddresses = await getDestinationRebalancerAddresses(network, mainAsset);
   const {target: rebalancer, targetAdmin: rebalancerAdmin} = await deployProxy<Rebalancer>(
     hre,
     "Rebalancer",
@@ -244,6 +247,7 @@ const main: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       rebalancerRoutes.Pools,
       rebalancerRoutes.Domains.map(el => DomainSolidity[el]),
       rebalancerRoutes.Providers.map(el => ProviderSolidity[el]),
+      destinationRebalancerAddresses,
     ],
     rebalancerId,
   );
@@ -282,6 +286,7 @@ const main: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const inputOutputTokens = getInputOutputTokens(network, config);
 
   const repayerId = "Repayer";
+  const destinationRepayerAddresses = await getDestinationRepayerAddresses(network);
   const {target: repayer, targetAdmin: repayerAdmin} = await deployProxy<Repayer>(
     hre,
     "Repayer",
@@ -315,6 +320,7 @@ const main: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       repayerRoutes.Providers.map(el => ProviderSolidity[el]),
       repayerRoutes.OnlySupportedTokens,
       inputOutputTokens,
+      destinationRepayerAddresses,
     ],
     repayerId,
   );
@@ -386,6 +392,24 @@ const main: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (inputOutputTokens.length > 0) {
     console.log("InputOutputTokens:");
     console.table(flattenInputOutputTokens(inputOutputTokens));
+  }
+  if (destinationRebalancerAddresses.length > 0) {
+    console.log("Destination Rebalancer Addresses:");
+    console.table(destinationRebalancerAddresses.map(el => ({
+      Network: SolidityDomain[Number(el.domain)],
+      ThisAddress: el.thisAddress,
+    })));
+  } else {
+    console.log("No Destination Rebalancer Addresses");
+  }
+  if (destinationRepayerAddresses.length > 0) {
+    console.log("Destination Repayer Addresses:");
+    console.table(destinationRepayerAddresses.map(el => ({
+      Network: SolidityDomain[Number(el.domain)],
+      ThisAddress: el.thisAddress,
+    })));
+  } else {
+    console.log("No Destination Repayer Addresses");
   }
 
   const REBALANCER_ROLE = toBytes32("REBALANCER_ROLE");

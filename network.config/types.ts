@@ -132,6 +132,7 @@ interface HubConfig {
 // configuration is specific to which token a given set of Liquidity Pools use as their main asset.
 export interface MainAssetConfig {
   Hub?: HubConfig;
+  Rebalancer?: string;
   RebalancerRoutes?: RebalancerRoutesConfig;
   AavePool?: AavePoolConfig;
   AavePoolLongTerm?: AavePoolLongTermConfig;
@@ -222,6 +223,7 @@ export interface StandaloneRepayerConfig {
   USDT0FeeNativeToken?: string;
   // Repayer tokens are used from the general network config.
   WrappedNativeToken: string;
+  Repayer?: string;
   RepayerRoutes: RepayerRoutesConfig;
   Admin: string;
   RepayerCallers: string[];

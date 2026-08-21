@@ -13,6 +13,8 @@ import {
   USDGStashDexProcessorProxy,
   LiquidityPoolUSDTProxy,
   LiquidityPoolAaveUSDTProxy,
+  RebalancerUSDCProxy,
+  RebalancerUSDTProxy,
 } from "./ids";
 
 export const prodNetworkConfig = {
@@ -180,6 +182,7 @@ export const prodNetworkConfig = {
     },
     MainAssets: {
       [Token.USDC]: {
+        Rebalancer: RebalancerUSDCProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDCV4]: {
             [Network.OP_MAINNET]: [Provider.CCTP_V2],
@@ -415,6 +418,7 @@ export const prodNetworkConfig = {
     },
     MainAssets: {
       [Token.USDC]: {
+        Rebalancer: RebalancerUSDCProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDCV4]: {
             [Network.BASE]: [Provider.CCTP_V2],
@@ -567,6 +571,7 @@ export const prodNetworkConfig = {
     },
     MainAssets: {
       [Token.USDC]: {
+        Rebalancer: RebalancerUSDCProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDCV4]: {
             [Network.BASE]: [Provider.CCTP_V2],
@@ -617,6 +622,7 @@ export const prodNetworkConfig = {
           AssetsLimit: 10_000_000,
           Pool: LiquidityPoolAaveUSDTProxy,
         },
+        Rebalancer: RebalancerUSDTProxy,
         RebalancerRoutes: {
           [LiquidityPoolUSDTProxy]: {
             [Network.TEMPO]: [Provider.USDT0],
@@ -743,6 +749,7 @@ export const prodNetworkConfig = {
           ],
           Pool: LiquidityPoolAaveUSDCV4,
         },
+        Rebalancer: RebalancerUSDCProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDCV4]: {
             [Network.OP_MAINNET]: [Provider.CCTP_V2],
@@ -874,6 +881,7 @@ export const prodNetworkConfig = {
     },
     MainAssets: {
       [Token.USDC]: {
+        Rebalancer: RebalancerUSDCProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDCV4]: {
             [Network.OP_MAINNET]: [Provider.CCTP_V2],
@@ -1000,6 +1008,7 @@ export const prodNetworkConfig = {
     },
     MainAssets: {
       [Token.USDC]: {
+        Rebalancer: RebalancerUSDCProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDCV4]: {
             [Network.OP_MAINNET]: [Provider.CCTP_V2],
@@ -1490,6 +1499,7 @@ export const prodNetworkConfig = {
     },
     MainAssets: {
       [Token.USDT]: {
+        Rebalancer: RebalancerUSDTProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDTProxy]: {
             [Network.ARBITRUM_ONE]: [Provider.USDT0],
@@ -1562,6 +1572,7 @@ export const prodNetworkConfig = {
     },
     MainAssets: {
       [Token.USDT]: {
+        Rebalancer: RebalancerUSDTProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDTProxy]: {
             [Network.ARBITRUM_ONE]: [Provider.USDT0],
@@ -1589,8 +1600,63 @@ export const prodNetworkConfig = {
     SetInputOutputTokens: "TBD",
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     SignerAddress: "TBD",
+    // Repayer: "TBD",
+    RepayerRoutes: {
+      [LiquidityPoolAaveUSDCProxy]: {
+        Domains: {
+          [Network.ETHEREUM]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+      [LiquidityPoolAaveUSDCV4]: {
+        Domains: {
+          [Network.POLYGON_MAINNET]: [
+            Provider.USDT0,
+          ],
+          [Network.ARBITRUM_ONE]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+      [LiquidityPoolAaveUSDCLongTermV3]: {
+        Domains: {
+          [Network.ETHEREUM]: [
+            Provider.USDT0,
+          ],
+        }
+      },
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+      [LiquidityPoolUSDTProxy]: {
+        OnlySupportedToken: Token.USDT,
+        Domains: {
+          [Network.TEMPO]: [
+            Provider.USDT0,
+          ],
+          [Network.STABLE]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+    },
     MainAssets: {
       [Token.USDT]: {
+        // Rebalancer: "TBD",
+        RebalancerRoutes: {
+          [LiquidityPoolAaveUSDTProxy]: {
+            [Network.ARBITRUM_ONE]: [Provider.USDT0],
+          },
+          [LiquidityPoolUSDTProxy]: {
+            [Network.TEMPO]: [Provider.USDT0],
+            [Network.STABLE]: [Provider.USDT0],
+          },
+        },
         BasicPool: true,
       },
     },

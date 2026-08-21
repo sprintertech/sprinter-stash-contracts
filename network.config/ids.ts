@@ -101,6 +101,8 @@ export const ERC4626AdapterUSDCVersions = [
 ] as const;
 
 export const RepayerProxy = DEFAULT_PROXY_TYPE + "Repayer";
+export const RebalancerUSDCProxy = DEFAULT_PROXY_TYPE + "Rebalancer";
+export const RebalancerUSDTProxy = RebalancerUSDCProxy + "USDT";
 export const PYUSDStashDexProcessorProxy = DEFAULT_PROXY_TYPE + "StashDexProcessorPYUSD";
 export const USDCStashDexProcessorProxy = DEFAULT_PROXY_TYPE + "StashDexProcessorUSDC";
 export const USDGStashDexProcessorProxy = DEFAULT_PROXY_TYPE + "StashDexProcessorUSDG";

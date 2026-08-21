@@ -9,7 +9,7 @@
     "compile-all": "mkdir -p ./cache/hardhat-network-fork && mv ./cache/hardhat-network-fork ./temp-fork-cache && hardhat clean && mv ./temp-fork-cache ./cache/hardhat-network-fork && TRON=true hardhat compile --network localtron && hardhat compile",
     "deploy": "hardhat run ./scripts/deploy.ts",
     "deploy-local": "VERIFY=false hardhat run ./scripts/deploy.ts --network localhost",
-    "deploy-localtron": "DRY_RUN=TRON TRON=true DEPLOY_TYPE=STAGE MAIN_ASSET=USDT npx hardhat deploy --network localtron --reset --tags Deploy && ts-node scripts/calculateTronDeploymentCost.ts",
+    "deploy-localtron": "DRY_RUN=TRON TRON=true DEPLOY_TYPE=STAGE MAIN_ASSET=USDT npx hardhat deploy --network localtron --reset --tags Deploy",
     "upgrade-repayer-localtron": "DRY_RUN=TRON TRON=true DEPLOY_TYPE=STAGE npx hardhat deploy --network localtron --tags UpgradeRepayer",
     "upgrade-rebalancer-localtron": "DRY_RUN=TRON TRON=true DEPLOY_TYPE=STAGE npx hardhat deploy --network localtron --tags UpgradeRebalancer",
     "deploy-basesepolia": "hardhat run ./scripts/deploy.ts --network BASE_SEPOLIA",

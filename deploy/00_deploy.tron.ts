@@ -21,11 +21,11 @@ import {
 } from "../network.config";
 import {HardhatRuntimeEnvironment} from "hardhat/types";
 import {DeployFunction} from "hardhat-deploy/types";
-import {deployProxy} from "../scripts/helpers.tron";
+import {deployProxy, ResourceCalculator} from "../scripts/helpers.tron";
 
 const main: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const [deployer] = await hre.getUnnamedAccounts();
-  const {deployments} = hre;
+  const calculator = ResourceCalculator.getInstance();
   const validateDeployers = hre.network.name !== "localtron";
   const deployEnv = process.env.DEPLOY_TYPE === "STAGE" ? "Stage_" : "Prod_";
 
@@ -198,7 +198,8 @@ const main: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log(`RebalancerProxyAdmin: ${rebalancerAdmin.target}`);
 
   if (mainAssetConfig.BasicPool && await basicPool!.hasRole(DEFAULT_ADMIN_ROLE, deployer)) {
-    await deployments.execute(
+    await calculator.execute(
+      hre,
       basicPoolId,
       {
         from: deployer,
@@ -207,7 +208,8 @@ const main: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       "grantRole",
       LIQUIDITY_ADMIN_ROLE, rebalancer.target,
     );
-    await deployments.execute(
+    await calculator.execute(
+      hre,
       basicPoolId,
       {
         from: deployer,
@@ -216,7 +218,8 @@ const main: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       "grantRole",
       WITHDRAW_PROFIT_ROLE, config.WithdrawProfit,
     );
-    await deployments.execute(
+    await calculator.execute(
+      hre,
       basicPoolId,
       {
         from: deployer,
@@ -275,7 +278,8 @@ const main: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   if (!sameAddress(deployer, config.Admin)) {
     if (mainAssetConfig.BasicPool && await basicPool!.hasRole(DEFAULT_ADMIN_ROLE, deployer)) {
-      await deployments.execute(
+      await calculator.execute(
+        hre,
         basicPoolId,
         {
           from: deployer,
@@ -284,7 +288,8 @@ const main: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         "grantRole",
         DEFAULT_ADMIN_ROLE, config.Admin,
       );
-      await deployments.execute(
+      await calculator.execute(
+        hre,
         basicPoolId,
         {
           from: deployer,
@@ -296,8 +301,9 @@ const main: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
   }
 
-  const multicall = (await deployments.deploy("CensoredTransferFromMulticall", {
+  const multicall = (await calculator.deploy(hre, "CensoredTransferFromMulticall", {
     from: deployer,
+    log: true,
   })).address;
 
   console.log(`Multicall: ${multicall}`);
@@ -400,6 +406,9 @@ const main: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   );
   assert(await repayer!.hasRole(REPAYER_ROLE, config.RepayerCaller), "Repayer repayer role mismatch");
   assert(await repayer!.hasRole(SET_TOKENS_ROLE, config.SetInputOutputTokens), "Repayer set tokens role mismatch");
+
+  console.log("Tron resources spent:");
+  calculator.report();
 };
 
 main.tags = ["Deploy"];

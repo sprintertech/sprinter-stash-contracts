@@ -14,7 +14,7 @@ import {
 } from "../network.config";
 import {HardhatRuntimeEnvironment} from "hardhat/types";
 import {DeployFunction} from "hardhat-deploy/types";
-import {upgradeProxy} from "../scripts/helpers.tron";
+import {upgradeProxy, ResourceCalculator} from "../scripts/helpers.tron";
 
 const main: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const [deployer] = await hre.getUnnamedAccounts();
@@ -97,6 +97,9 @@ const main: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     ],
     repayerId,
   );
+
+  console.log("Tron resources spent:");
+  ResourceCalculator.getInstance().report();
 };
 
 main.tags = ["UpgradeRepayer"];

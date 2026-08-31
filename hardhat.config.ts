@@ -1396,6 +1396,16 @@ const config: HardhatUserConfig = {
           browserURL: "https://stablescan.xyz"
         },
       },
+      {
+        // Robinhood Chain is not on Etherscan V2; its Blockscout serves an
+        // Etherscan-compatible API which hardhat-verify uses through this entry.
+        network: "ROBINHOOD",
+        chainId: networkConfig.ROBINHOOD.ChainId,
+        urls: {
+          apiURL: "https://robinhoodchain.blockscout.com/api",
+          browserURL: "https://robinhoodchain.blockscout.com"
+        },
+      },
     ],
   },
   warnings: {

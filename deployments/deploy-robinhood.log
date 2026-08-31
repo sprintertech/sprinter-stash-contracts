@@ -1,0 +1,42 @@
+Deployment ID: MVP
+Deploying Repayer
+Using config for: ROBINHOOD
+Deployer        : 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+DEPLOYER_ADDRESS: 0xD44E9811169e0e84363a9c689eEcbBc73ffDfE2b
+Repayer: 0x36364Acc7B9c67692CA215af09A41CBd10439511
+RepayerProxyAdmin: 0x2B5D04eF6b3279bCdA4B219b02FAF627dA1664CB
+RepayerImplementation: 0xA205AB8BFd68B5BE4eC8603e7f08e172d18af65B
+RepayerRoutes:
+┌─────────┬──────────────────────────────────────────────┬────────────────┬──────────┬──────────────────────────────────────────────┐
+│ (index) │ Pool                                         │ Domain         │ Provider │ OnlySupportedToken                           │
+├─────────┼──────────────────────────────────────────────┼────────────────┼──────────┼──────────────────────────────────────────────┤
+│ 0       │ '0x63Ff95c79bF61486c600Eb8aF4CcE4c0a9a4068B' │ 'ETHEREUM'     │ 'ACROSS' │ '0x0000000000000000000000000000000000000000' │
+│ 1       │ '0x2022a5600F854cc3218E636239f4DFce9e5357b5' │ 'ARBITRUM_ONE' │ 'ACROSS' │ '0x0000000000000000000000000000000000000000' │
+│ 2       │ '0x2022a5600F854cc3218E636239f4DFce9e5357b5' │ 'BASE'         │ 'ACROSS' │ '0x0000000000000000000000000000000000000000' │
+│ 3       │ '0x2022a5600F854cc3218E636239f4DFce9e5357b5' │ 'OP_MAINNET'   │ 'ACROSS' │ '0x0000000000000000000000000000000000000000' │
+└─────────┴──────────────────────────────────────────────┴────────────────┴──────────┴──────────────────────────────────────────────┘
+InputOutputTokens:
+┌─────────┬──────────────────────────────────────────────┬───────────────────┬──────────────────────────────────────────────┬──────────────┐
+│ (index) │ InputToken                                   │ Domain            │ OutputToken                                  │ DecimalsDiff │
+├─────────┼──────────────────────────────────────────────┼───────────────────┼──────────────────────────────────────────────┼──────────────┤
+│ 0       │ '0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73' │ 'ETHEREUM'        │ '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2' │ 0            │
+│ 1       │ '0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73' │ 'OP_MAINNET'      │ '0x4200000000000000000000000000000000000006' │ 0            │
+│ 2       │ '0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73' │ 'ARBITRUM_ONE'    │ '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1' │ 0            │
+│ 3       │ '0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73' │ 'BASE'            │ '0x4200000000000000000000000000000000000006' │ 0            │
+│ 4       │ '0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73' │ 'POLYGON_MAINNET' │ '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619' │ 0            │
+│ 5       │ '0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73' │ 'UNICHAIN'        │ '0x4200000000000000000000000000000000000006' │ 0            │
+│ 6       │ '0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73' │ 'BSC'             │ '0x2170Ed0880ac9A755fd29B2688956BD959F933F8' │ 0            │
+│ 7       │ '0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73' │ 'LINEA'           │ '0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f' │ 0            │
+│ 8       │ '0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73' │ 'GNOSIS_CHAIN'    │ '0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1' │ 0            │
+│ 9       │ '0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73' │ 'WORLD_CHAIN'     │ '0x4200000000000000000000000000000000000006' │ 0            │
+│ 10      │ '0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73' │ 'INK'             │ '0x4200000000000000000000000000000000000006' │ 0            │
+│ 11      │ '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168' │ 'ETHEREUM'        │ '0xe343167631d89B6Ffc58B88d6b7fB0228795491D' │ 0            │
+└─────────┴──────────────────────────────────────────────┴───────────────────┴──────────────────────────────────────────────┴──────────────┘
+
+Verification: hardhat-verify cannot reach robinhoodchain.blockscout.com (Cloudflare
+rejects its user agent and Etherscan V2 does not support chain 4663). All three
+contracts were verified manually through the Blockscout etherscan-compatible API
+(solidity-standard-json-input from artifacts/build-info):
+  Repayer implementation 0xA205AB8BFd68B5BE4eC8603e7f08e172d18af65B - Verified
+  TransparentUpgradeableProxy 0x36364Acc7B9c67692CA215af09A41CBd10439511 - Verified
+  ProxyAdmin 0x2B5D04eF6b3279bCdA4B219b02FAF627dA1664CB - Verified

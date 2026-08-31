@@ -29,7 +29,7 @@ describe("Repayer", function () {
     const REPAYER_ROLE = toBytes32("REPAYER_ROLE");
     const DEPOSIT_PROFIT_ROLE = toBytes32("DEPOSIT_PROFIT_ROLE");
 
-    const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.USDC.Address);
+    const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.USDC!.Address);
     assertAddress(forkNetworkConfig.Tokens.DAI?.Address, "DAI address is missing");
     const dai = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.DAI.Address);
     assertAddress(forkNetworkConfig.Tokens.WBTC?.Address, "WBTC address is missing");
@@ -134,13 +134,13 @@ describe("Repayer", function () {
         {
           inputToken: usdc,
           destinationTokens: [
-            destinationToken(Domain.OP_MAINNET, addressToBytes32(networkConfig.OP_MAINNET.Tokens.USDC.Address))
+            destinationToken(Domain.OP_MAINNET, addressToBytes32(networkConfig.OP_MAINNET.Tokens.USDC!.Address))
           ]
         },
         {
           inputToken: usdc,
           destinationTokens: [
-            destinationToken(Domain.BASE, addressToBytes32(networkConfig.BASE.Tokens.USDC.Address))
+            destinationToken(Domain.BASE, addressToBytes32(networkConfig.BASE.Tokens.USDC!.Address))
           ]
         },
         {
@@ -175,7 +175,7 @@ describe("Repayer", function () {
           inputToken: usdc,
           destinationTokens: [
             destinationToken(
-              Domain.POLYGON_MAINNET, addressToBytes32(networkConfig.POLYGON_MAINNET.Tokens.USDC.Address)
+              Domain.POLYGON_MAINNET, addressToBytes32(networkConfig.POLYGON_MAINNET.Tokens.USDC!.Address)
             ),
           ]
         },
@@ -522,7 +522,7 @@ describe("Repayer", function () {
     await usdc.connect(usdcOwner).transfer(repayer, 10n * USDC_DEC);
     await usdc.connect(usdcOwner).transfer(repayer, amount);
 
-    const outputToken = networkConfig.ARBITRUM_ONE.Tokens.USDC.Address;
+    const outputToken = networkConfig.ARBITRUM_ONE.Tokens.USDC!.Address;
 
     const data = AbiCoder.defaultAbiCoder().encode(
       ["uint256", "bytes"],
@@ -627,7 +627,7 @@ describe("Repayer", function () {
 
     // Polygon's canonical USDC is Circle-issued and is NOT what the PoS bridge would mint,
     // so the adapter must refuse rather than strand the funds as USDC.e.
-    const outputToken = getAddress(networkConfig.POLYGON_MAINNET.Tokens.USDC.Address);
+    const outputToken = getAddress(networkConfig.POLYGON_MAINNET.Tokens.USDC!.Address);
     const childToken = await polygonPosRootChainManager.rootToChildToken(usdc);
     expect(childToken).to.not.equal(outputToken);
 

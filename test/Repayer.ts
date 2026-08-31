@@ -782,11 +782,11 @@ describe("Repayer", function () {
       "V3SpokePoolInterface",
       networkConfig.BASE.AcrossV3SpokePool!
     );
-    const USDC_BASE_ADDRESS = networkConfig.BASE.Tokens.USDC.Address;
+    const USDC_BASE_ADDRESS = networkConfig.BASE.Tokens.USDC!.Address;
 
     assertAddress(process.env.USDC_OWNER_ADDRESS, "Env variables not configured (USDC_OWNER_ADDRESS missing)");
     const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;
-    const usdc = await hre.ethers.getContractAt("ERC20", networkConfig.BASE.Tokens.USDC.Address);
+    const usdc = await hre.ethers.getContractAt("ERC20", networkConfig.BASE.Tokens.USDC!.Address);
     const usdcOwner = await hre.ethers.getImpersonatedSigner(USDC_OWNER_ADDRESS);
 
     const repayerImpl2 = (
@@ -998,7 +998,7 @@ describe("Repayer", function () {
       sharedEthereumOmnibridge, sharedEthereumAmb,
     } = await loadFixture(deployAll);
     const amount = 4n * USDC_DEC;
-    const outputToken = networkConfig.OP_MAINNET.Tokens.USDC.Address;
+    const outputToken = networkConfig.OP_MAINNET.Tokens.USDC!.Address;
     const minGasLimit = 100000n;
 
     const repayerImpl = (
@@ -1061,7 +1061,7 @@ describe("Repayer", function () {
       sharedEthereumOmnibridge, sharedEthereumAmb,
     } = await loadFixture(deployAll);
     const amount = 4n * EURC_DEC;
-    const outputToken = networkConfig.OP_MAINNET.Tokens.USDC.Address;
+    const outputToken = networkConfig.OP_MAINNET.Tokens.USDC!.Address;
     const minGasLimit = 100000n;
 
     const repayerImpl = (
@@ -1130,7 +1130,7 @@ describe("Repayer", function () {
       sharedEthereumOmnibridge, sharedEthereumAmb,
     } = await loadFixture(deployAll);
     const amount = 4n * EURC_DEC;
-    const outputToken = networkConfig.OP_MAINNET.Tokens.USDC.Address;
+    const outputToken = networkConfig.OP_MAINNET.Tokens.USDC!.Address;
     const minGasLimit = 100000n;
 
     const repayerImpl = (
@@ -3135,7 +3135,7 @@ describe("Repayer", function () {
       "IStargate",
       stargatePoolUsdcAddress
     );
-    const USDC_BASE_ADDRESS = networkConfig.BASE.Tokens.USDC.Address;
+    const USDC_BASE_ADDRESS = networkConfig.BASE.Tokens.USDC!.Address;
 
     assertAddress(process.env.USDC_OWNER_ADDRESS, "Env variables not configured (USDC_OWNER_ADDRESS missing)");
     const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;
@@ -3221,7 +3221,7 @@ describe("Repayer", function () {
     const {repayer, USDC_DEC, admin, repayUser, liquidityPool} = await loadFixture(deployAll);
 
     const stargatePoolUsdcAddress = "0x27a16dc786820B16E5c9028b75B99F6f604b5d26";
-    const USDC_BASE_ADDRESS = networkConfig.BASE.Tokens.USDC.Address;
+    const USDC_BASE_ADDRESS = networkConfig.BASE.Tokens.USDC!.Address;
 
     assertAddress(process.env.USDC_OWNER_ADDRESS, "Env variables not configured (USDC_OWNER_ADDRESS missing)");
     const USDC_OWNER_ADDRESS = process.env.USDC_OWNER_ADDRESS;
@@ -5055,11 +5055,11 @@ describe("Repayer", function () {
     //   USDC_BSC / USDT_BSC:  destAmount * 10^12
     //   WBTC_BSC:             destAmount * 10^10
     // Slippage check: _destAmountToLocal(outputAmount, token, Domain.BSC) >= amount * 9980 / 10000
-    const USDC_BSC_ADDRESS = networkConfig.BSC.Tokens.USDC.Address;
+    const USDC_BSC_ADDRESS = networkConfig.BSC.Tokens.USDC!.Address;
     const USDT_BSC_ADDRESS = networkConfig.BSC.Tokens.USDT!.Address;
     const WBTC_BSC_ADDRESS = networkConfig.BSC.Tokens.WBTC!.Address;
     const WETH_BSC_ADDRESS = networkConfig.BSC.Tokens.WETH!.Address;
-    const USDC_ETHEREUM_ADDRESS = networkConfig.ETHEREUM.Tokens.USDC.Address;
+    const USDC_ETHEREUM_ADDRESS = networkConfig.ETHEREUM.Tokens.USDC!.Address;
     const USDT_ETHEREUM_ADDRESS = networkConfig.ETHEREUM.Tokens.USDT!.Address;
     const WBTC_ETHEREUM_ADDRESS = networkConfig.ETHEREUM.Tokens.WBTC!.Address;
     const WETH_ETHEREUM_ADDRESS = networkConfig.ETHEREUM.Tokens.WETH!.Address;

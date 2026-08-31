@@ -14,6 +14,7 @@ export enum Network {
   HYPER_EVM = "HYPER_EVM",
   TEMPO = "TEMPO",
   STABLE = "STABLE",
+  ROBINHOOD = "ROBINHOOD",
 }
 
 export enum Provider {
@@ -172,7 +173,8 @@ export interface NetworkConfig {
   // (i.e. USDT0OFT.nativeToken() returns a non-zero address) instead of native currency.
   USDT0FeeNativeToken?: string;
   Tokens: {
-    [Token.USDC]: TokenInfo;
+    // Optional because some repayer-only chains (e.g. ROBINHOOD) have no USDC deployment.
+    [Token.USDC]?: TokenInfo;
     [Token.USDT]?: TokenInfo;
     [Token.DAI]?: TokenInfo;
     [Token.WETH]?: TokenInfo;

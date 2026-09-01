@@ -24,6 +24,7 @@ export async function main() {
   await logDeployers();
 
   assert(config.StashDex, "StashDex must be configured");
+  assert(config.Tokens.USDC, "USDC must be configured");
   const usdc = config.Tokens.USDC.Address;
   // Register all tokens appearing in StashDex routes (both tokenIn and tokenOut) plus pool tokens.
   const tokenNameSet = new Set<Token>(Object.keys(config.StashDex.Pools) as Token[]);

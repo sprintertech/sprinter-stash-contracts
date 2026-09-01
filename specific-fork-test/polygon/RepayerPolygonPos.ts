@@ -32,7 +32,7 @@ describe("Repayer Polygon PoS Bridge (Polygon fork)", function () {
 
     assertAddress(forkNetworkConfig.Tokens.DAI?.Address, "DAI address is missing from POLYGON_MAINNET config");
 
-    const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.USDC.Address);
+    const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.USDC!.Address);
     // Polygon DAI is the PoS child of Ethereum DAI, so it exposes withdraw().
     const dai = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.DAI.Address);
     const weth = await hre.ethers.getContractAt("IWrappedNativeToken", forkNetworkConfig.WrappedNativeToken);

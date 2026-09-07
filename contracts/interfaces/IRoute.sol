@@ -25,7 +25,7 @@ interface IRoute {
         HYPER_EVM,
         TEMPO,
         STABLE,
-        TRON
+        TRON,
         ROBINHOOD
     }
 

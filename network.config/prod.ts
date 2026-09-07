@@ -1607,6 +1607,45 @@ export const prodNetworkConfig = {
           [Network.ETHEREUM]: [
             Provider.USDT0,
           ],
+        }
+      }
+    },
+    MainAssets: {
+      [Token.USDT]: {
+        // Rebalancer: "TBD",
+        RebalancerRoutes: {
+          [LiquidityPoolAaveUSDTProxy]: {
+            [Network.ARBITRUM_ONE]: [Provider.USDT0],
+          },
+          [LiquidityPoolUSDTProxy]: {
+            [Network.TEMPO]: [Provider.USDT0],
+            [Network.STABLE]: [Provider.USDT0],
+          },
+        },
+        BasicPool: true,
+      },
+    },
+  },
+  ROBINHOOD: {
+    ChainId: 4663,
+    AcrossV3SpokePool: "0xD29C85F15DF544bA632C9E25829fd29d767d7978",
+    Tokens: {
+      WETH: tokenInfo("0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73", 18),
+      USDG: tokenInfo("0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168", 6),
+    },
+    WrappedNativeToken: "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",
+    Admin: "0x4eA9E682BA79bC403523c9e8D98A05EaF3810636",
+    WithdrawProfit: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Pauser: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RebalanceCaller: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RepayerCaller: "0x9A5B33bd11329116A55F764c604a5152eE8Ca292",
+    SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
+    SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    RepayerRoutes: {
+      [LiquidityPoolAaveUSDCProxy]: {
+        Domains: {
+          [Network.ETHEREUM]: [Provider.ACROSS],
         },
       },
       [LiquidityPoolAaveUSDCV4]: {

@@ -15,6 +15,7 @@ export enum Network {
   TEMPO = "TEMPO",
   STABLE = "STABLE",
   TRON = "TRON",
+  ROBINHOOD = "ROBINHOOD",
 }
 
 export enum Provider {

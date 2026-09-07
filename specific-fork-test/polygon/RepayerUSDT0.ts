@@ -32,7 +32,7 @@ describe("Repayer USDT0 (Polygon fork)", function () {
 
     assertAddress(forkNetworkConfig.USDT0OFT, "USDT0OFT address is missing from POLYGON_MAINNET config");
 
-    const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.USDC.Address);
+    const usdc = await hre.ethers.getContractAt("ERC20", forkNetworkConfig.Tokens.USDC!.Address);
     const usdt0Oft = await hre.ethers.getContractAt("IOFT", forkNetworkConfig.USDT0OFT!);
     const usdt0Token = await hre.ethers.getContractAt("ERC20", await usdt0Oft.token());
     const weth = await hre.ethers.getContractAt("IWrappedNativeToken", forkNetworkConfig.WrappedNativeToken);

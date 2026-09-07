@@ -26,6 +26,7 @@ interface IRoute {
         TEMPO,
         STABLE,
         TRON
+        ROBINHOOD
     }
 
     enum Provider {

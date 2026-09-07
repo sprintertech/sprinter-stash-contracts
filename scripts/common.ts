@@ -91,6 +91,7 @@ export const DomainSolidity = {
   TEMPO: 19n,
   STABLE: 20n,
   TRON: 21n,
+  ROBINHOOD: 22n,
 };
 
 export const SolidityDomain: { [n: number]: Network } = {
@@ -110,6 +111,7 @@ export const SolidityDomain: { [n: number]: Network } = {
   19: Network.TEMPO,
   20: Network.STABLE,
   21: Network.TRON,
+  22: Network.ROBINHOOD,
 };
 
 export const SolidityProvider: { [n: number]: Provider } = {

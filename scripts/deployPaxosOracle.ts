@@ -29,6 +29,8 @@ export async function main() {
     usdcAddress = config.Tokens.USDC.Address;
     assertAddress(usdcAddress, "USDC must be an address");
   }
+  assert(config.Tokens.USDC, "USDC must be configured");
+
   // Register all tokens appearing in StashDex routes (both tokenIn and tokenOut) plus pool tokens.
   const tokenNameSet = new Set<Token>(Object.keys(config.StashDex.Pools) as Token[]);
   for (const {TokenIn, TokenOut} of config.StashDex.Routes) {

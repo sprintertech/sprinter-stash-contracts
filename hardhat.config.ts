@@ -1454,6 +1454,10 @@ const config: HardhatUserConfig = {
       chainId: networkConfig.TRON.ChainId,
       url: process.env.TRON_RPC || "https://tron-rpc.publicnode.com/jsonrpc",
       tron: true,
+    },
+    [Network.ROBINHOOD]: {
+      chainId: networkConfig.ROBINHOOD.ChainId,
+      url: process.env.ROBINHOOD_RPC || "https://rpc.mainnet.chain.robinhood.com",
       accounts,
     },
     hardhat: {
@@ -1477,11 +1481,15 @@ const config: HardhatUserConfig = {
         ? [{privateKey: process.env.PRIVATE_KEY!, balance: "100000000000000000000"}]
         : undefined,
       // https://github.com/NomicFoundation/hardhat/issues/5511
+      // ROBINHOOD (Arbitrum Orbit) block headers carry no blob-gas fields, so declaring
+      // cancun makes EDR panic with ExcessBlobGasNotSet — treat it as shanghai instead.
       chains: isSet(process.env.DRY_RUN) || isSet(process.env.FORK_TEST)
         ? {[networkConfig[
             `${process.env.DRY_RUN || process.env.FORK_TEST}` as Network
-          ]!.ChainId]: {hardforkHistory: {cancun: 0}}}
-        : {[networkConfig.BASE.ChainId]: {hardforkHistory: {cancun: 0}}},
+          ]!.ChainId]: {hardforkHistory: {
+            [(process.env.DRY_RUN || process.env.FORK_TEST) === Network.ROBINHOOD ? "shanghai" : "cancun"]: 0,
+          }}}
+        : {[networkConfig.BASE.ChainId]: {hardforkHistory: {cancun: 0,}}},
     },
   },
   sourcify: {
@@ -1496,6 +1504,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://explorer.inkonchain.com/api",
           browserURL: "https://explorer.inkonchain.com/",
+        },
+      },
+      {
+        network: "ROBINHOOD",
+        chainId: networkConfig.ROBINHOOD.ChainId,
+        urls: {
+          apiURL: "https://robinhoodchain.blockscout.com/api",
+          browserURL: "https://robinhoodchain.blockscout.com/",
         },
       },
     ]
@@ -1557,6 +1573,16 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api.tronscan.org/api",
           browserURL: "https://tronscan.org"
+        },
+      },
+      {
+        // Robinhood Chain is not on Etherscan V2; its Blockscout serves an
+        // Etherscan-compatible API which hardhat-verify uses through this entry.
+        network: "ROBINHOOD",
+        chainId: networkConfig.ROBINHOOD.ChainId,
+        urls: {
+          apiURL: "https://robinhoodchain.blockscout.com/api",
+          browserURL: "https://robinhoodchain.blockscout.com"
         },
       },
     ],

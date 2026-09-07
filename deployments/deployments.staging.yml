@@ -139,7 +139,7 @@ eip155:4217:
   RebalancerUSDT: "0xB6AE827F83831C78c428Abdd4c53aE6259c1383f"
   Repayer: "0x697ECA1cae710FA0348e2173900e6C09b180C35b"
 
-eip155:728126428:
+tron:728126428:
   deployment id: MVP
   env: stage
   name: TRON

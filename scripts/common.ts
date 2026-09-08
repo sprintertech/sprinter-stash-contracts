@@ -110,8 +110,8 @@ export const SolidityDomain: { [n: number]: Network } = {
   18: Network.HYPER_EVM,
   19: Network.TEMPO,
   20: Network.STABLE,
-  21: Network.TRON,
-  22: Network.ROBINHOOD,
+  21: Network.ROBINHOOD,
+  22: Network.TRON,
 };
 
 export const SolidityProvider: { [n: number]: Provider } = {

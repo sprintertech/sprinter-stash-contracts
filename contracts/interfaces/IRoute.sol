@@ -25,8 +25,8 @@ interface IRoute {
         HYPER_EVM,
         TEMPO,
         STABLE,
-        ROBINHOOD
-        TRON,
+        ROBINHOOD,
+        TRON
     }
 
     enum Provider {

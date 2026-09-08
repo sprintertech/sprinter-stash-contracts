@@ -166,3 +166,25 @@ According to CCTP V1 docs, attestation could be produced 9-19 minutes after the 
 9. Click Create Batch.
 10. Click Simulate.
 11. Click Send Batch.
+
+# Tron
+
+Tron related modules only work with Node version 20. Latest published compiler is 0.8.24, but tronbox has a 0.8.26 available so we include it in the repo here.
+
+```
+nvm use 20
+
+mkdir -p ~/.tron/solc/
+
+cp -n ./bin/soljson_v0.8.26.js ~/.tron/solc/
+```
+
+To test local deployments on Tron you need to run a local Tron runtime env.
+
+```
+docker pull tronbox/tre
+
+./tron.node.sh
+
+npm run deploy-localtron
+```

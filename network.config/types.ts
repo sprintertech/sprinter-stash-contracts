@@ -14,6 +14,7 @@ export enum Network {
   HYPER_EVM = "HYPER_EVM",
   TEMPO = "TEMPO",
   STABLE = "STABLE",
+  TRON = "TRON",
   ROBINHOOD = "ROBINHOOD",
 }
 
@@ -132,6 +133,7 @@ interface HubConfig {
 // configuration is specific to which token a given set of Liquidity Pools use as their main asset.
 export interface MainAssetConfig {
   Hub?: HubConfig;
+  Rebalancer?: string;
   RebalancerRoutes?: RebalancerRoutesConfig;
   AavePool?: AavePoolConfig;
   AavePoolLongTerm?: AavePoolLongTermConfig;
@@ -173,17 +175,10 @@ export interface NetworkConfig {
   // (i.e. USDT0OFT.nativeToken() returns a non-zero address) instead of native currency.
   USDT0FeeNativeToken?: string;
   Tokens: {
-    // Optional because some repayer-only chains (e.g. ROBINHOOD) have no USDC deployment.
-    [Token.USDC]?: TokenInfo;
-    [Token.USDT]?: TokenInfo;
-    [Token.DAI]?: TokenInfo;
-    [Token.WETH]?: TokenInfo;
-    [Token.WBTC]?: TokenInfo;
-    [Token.EURe]?: TokenInfo;
-    [Token.USDG]?: TokenInfo;
-    [Token.PYUSD]?: TokenInfo;
+    [key in Token]?: TokenInfo;
   };
   WrappedNativeToken: string;
+  Repayer?: string; // Set only on chains where Repayer is deployed.
   RepayerRoutes?: RepayerRoutesConfig;
   Admin: string; // Every contracts admin/owner.
   WithdrawProfit: string;
@@ -229,6 +224,7 @@ export interface StandaloneRepayerConfig {
   USDT0FeeNativeToken?: string;
   // Repayer tokens are used from the general network config.
   WrappedNativeToken: string;
+  Repayer?: string;
   RepayerRoutes: RepayerRoutesConfig;
   Admin: string;
   RepayerCallers: string[];

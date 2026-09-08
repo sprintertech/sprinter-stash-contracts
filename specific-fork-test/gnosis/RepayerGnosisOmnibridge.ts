@@ -4,7 +4,7 @@ import {
 import {expect} from "chai";
 import hre from "hardhat";
 import {
-  getCreateAddress, getContractAt, deploy, deployX,
+  getCreateAddress, getContractAt, deploy, deployX, allRemoteDomains,
 } from "../../test/helpers";
 import {
   ProviderSolidity as Provider, DomainSolidity as Domain,
@@ -72,6 +72,7 @@ describe("Repayer Gnosis Omnibridge (Gnosis Chain fork)", function () {
       [Provider.GNOSIS_OMNIBRIDGE, Provider.LOCAL],
       [ZERO_ADDRESS, usdce],
       [],
+      allRemoteDomains(Domain.GNOSIS_CHAIN)
     )).data;
 
     const repayerProxy = (await deployX(

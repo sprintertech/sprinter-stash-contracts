@@ -93,10 +93,12 @@ contract RebalancerUSDT0Tempo {
         IRoute.Provider[] memory providers = new IRoute.Provider[](2);
         providers[0] = IRoute.Provider.LOCAL;
         providers[1] = IRoute.Provider.USDT0;
+        Rebalancer.ThisAddresses[] memory thisAddresses = new Rebalancer.ThisAddresses[](1);
+        thisAddresses[0] = Rebalancer.ThisAddresses(IRoute.Domain.ARBITRUM_ONE, _addressToBytes32(address(this)));
 
         bytes memory initData = abi.encodeCall(
             rebalancerImpl.initialize,
-            (address(this), address(this), pools, domains, providers)
+            (address(this), address(this), pools, domains, providers, thisAddresses)
         );
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
             address(rebalancerImpl), address(this), initData

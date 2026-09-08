@@ -23,8 +23,10 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm ci
+      - name: Add Tron Solc
+        run: mkdir -p ~/.tron/solc/ && cp -n ./bin/soljson_v0.8.26.js ~/.tron/solc/
       - name: Compile contracts
-        run: npm run compile
+        run: npm run compile-all
       - name: Hardhat Tests
         run: FORK_BLOCK_NUMBER=49605395 npm run test
       - name: Hardhat Fork Tests Ethereum

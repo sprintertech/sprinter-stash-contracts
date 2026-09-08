@@ -3,14 +3,16 @@ import {
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {expect} from "chai";
 import hre from "hardhat";
-import {AbiCoder} from "ethers";
+import {AbiCoder, encodeBytes32String} from "ethers";
 import {
-  getCreateAddress, getContractAt, deploy, deployX, toBytes32,
-  setupTests,
+  getCreateAddress, getContractAt, deploy, deployX, allRemoteDomains, toBytes32,
+  setupTests, stubDestinationThisAddress,
 } from "./helpers";
 import {
   ProviderSolidity as Provider, DomainSolidity as Domain, ZERO_ADDRESS,
-  DEFAULT_ADMIN_ROLE,
+  DEFAULT_ADMIN_ROLE, addressToBytes32,
+  bytes32ToToken,
+  ZERO_BYTES32,
 } from "../scripts/common";
 import {
   TestUSDC, TransparentUpgradeableProxy, ProxyAdmin,
@@ -69,7 +71,8 @@ describe("Rebalancer", function () {
       rebalanceUser,
       [liquidityPool, liquidityPool2, liquidityPool],
       [Domain.BASE, Domain.BASE, Domain.ARBITRUM_ONE],
-      [Provider.LOCAL, Provider.LOCAL, Provider.CCTP_V2]
+      [Provider.LOCAL, Provider.LOCAL, Provider.CCTP_V2],
+      allRemoteDomains(Domain.BASE)
     )).data;
     const rebalancerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRebalancer", {},
@@ -122,7 +125,7 @@ describe("Rebalancer", function () {
     ]);
 
     await expect(rebalancer.connect(admin).initialize(
-      admin, rebalanceUser.address, [], [], []
+      admin, rebalanceUser.address, [], [], [], []
     )).to.be.reverted;
   });
 
@@ -382,7 +385,8 @@ describe("Rebalancer", function () {
     ) as Rebalancer;
     const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(
       admin, rebalanceUser,
-      [liquidityPool, liquidityPool], [Domain.BASE, Domain.ARBITRUM_ONE], [Provider.LOCAL, Provider.CCTP_V2]
+      [liquidityPool, liquidityPool], [Domain.BASE, Domain.ARBITRUM_ONE], [Provider.LOCAL, Provider.CCTP_V2],
+      allRemoteDomains(Domain.BASE)
     )).data;
     const rebalancerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRebalancerNoCCTPV2", {},
@@ -410,7 +414,8 @@ describe("Rebalancer", function () {
     ) as Rebalancer;
     const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(
       admin, rebalanceUser,
-      [liquidityPool, liquidityPool], [Domain.BASE, Domain.ARBITRUM_ONE], [Provider.LOCAL, Provider.CCTP_V2]
+      [liquidityPool, liquidityPool], [Domain.BASE, Domain.ARBITRUM_ONE], [Provider.LOCAL, Provider.CCTP_V2],
+      allRemoteDomains(Domain.BASE)
     )).data;
     const rebalancerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer,
@@ -631,6 +636,7 @@ describe("Rebalancer", function () {
       // gnosisPool: LOCAL route on GNOSIS_CHAIN (source); liquidityPool: destination route on ETHEREUM
       [gnosisPool, liquidityPool], [Domain.GNOSIS_CHAIN, Domain.ETHEREUM],
       [Provider.LOCAL, Provider.GNOSIS_OMNIBRIDGE],
+      allRemoteDomains(Domain.GNOSIS_CHAIN)
     )).data;
     const rebalancerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRebalancerGnosis", {},
@@ -638,6 +644,7 @@ describe("Rebalancer", function () {
     )) as TransparentUpgradeableProxy;
     const rebalancer = (await getContractAt("Rebalancer", rebalancerProxy, deployer)) as Rebalancer;
     await gnosisPool.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
+    const destinationRebalancerAddress = stubDestinationThisAddress(Domain.ETHEREUM);
 
     // Fund source pool with USDCe and swap contract with USDCxDAI
     await usdc2.transfer(gnosisPool, 10n * USDC);
@@ -652,7 +659,7 @@ describe("Rebalancer", function () {
     // Event uses USDCxDAI (after swap), not USDCe; receiver is always the Rebalancer on the destination chain
     await expect(tx)
       .to.emit(rebalancer, "GnosisOmnibridgeTransferInitiated")
-      .withArgs(usdc.target, rebalancer.target, 4n * USDC);
+      .withArgs(usdc.target, bytes32ToToken(destinationRebalancerAddress), 4n * USDC);
     // USDCe withdrawn from gnosisPool to rebalancer
     await expect(tx)
       .to.emit(usdc2, "Transfer")
@@ -699,6 +706,7 @@ describe("Rebalancer", function () {
     const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(
       admin, rebalanceUser,
       [gnosisPool], [Domain.GNOSIS_CHAIN], [Provider.LOCAL],
+      allRemoteDomains(Domain.GNOSIS_CHAIN)
     )).data;
     const rebalancerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRebalancerGnosis2", {},
@@ -763,6 +771,7 @@ describe("Rebalancer", function () {
     const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(
       admin, rebalanceUser,
       [gnosisPool], [Domain.GNOSIS_CHAIN], [Provider.LOCAL],
+      allRemoteDomains(Domain.GNOSIS_CHAIN)
     )).data;
     const rebalancerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRebalancerGnosis3", {},
@@ -826,6 +835,7 @@ describe("Rebalancer", function () {
     const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(
       admin, rebalanceUser,
       [gnosisPool], [Domain.GNOSIS_CHAIN], [Provider.LOCAL],
+      allRemoteDomains(Domain.GNOSIS_CHAIN)
     )).data;
     const rebalancerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRebalancerGnosis4", {},
@@ -861,6 +871,7 @@ describe("Rebalancer", function () {
       [liquidityPool, liquidityPool],
       [Domain.ETHEREUM, Domain.GNOSIS_CHAIN],
       [Provider.LOCAL, Provider.GNOSIS_OMNIBRIDGE],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const rebalancerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRebalancer2", {},
@@ -868,6 +879,7 @@ describe("Rebalancer", function () {
     )) as TransparentUpgradeableProxy;
     const rebalancer = (await getContractAt("Rebalancer", rebalancerProxy, deployer)) as Rebalancer;
     await liquidityPool.grantRole(LIQUIDITY_ADMIN_ROLE, rebalancer);
+    const destinationRebalancerAddress = stubDestinationThisAddress(Domain.GNOSIS_CHAIN);
 
     await usdc.transfer(liquidityPool, 10n * USDC);
 
@@ -879,7 +891,7 @@ describe("Rebalancer", function () {
       .withArgs(4n * USDC, liquidityPool.target, liquidityPool.target, Domain.GNOSIS_CHAIN, Provider.GNOSIS_OMNIBRIDGE);
     await expect(tx)
       .to.emit(rebalancer, "GnosisOmnibridgeTransferInitiated")
-      .withArgs(usdc.target, rebalancer.target, 4n * USDC);
+      .withArgs(usdc.target, bytes32ToToken(destinationRebalancerAddress), 4n * USDC);
     await expect(tx)
       .to.emit(usdc, "Transfer")
       .withArgs(rebalancer.target, ethereumOmnibridge.target, 4n * USDC);
@@ -908,6 +920,7 @@ describe("Rebalancer", function () {
       [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.LOCAL],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const rebalancerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRebalancer2", {},
@@ -966,6 +979,7 @@ describe("Rebalancer", function () {
       [liquidityPool],
       [Domain.ETHEREUM],
       [Provider.LOCAL],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const rebalancerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRebalancer2", {},
@@ -991,5 +1005,112 @@ describe("Rebalancer", function () {
     );
     await expect(tx)
       .to.be.revertedWithCustomError(rebalancer, "InvalidReceivedToken()");
+  });
+
+  describe("This addresses", function () {
+    it("Should return this Rebalancer's own address for the local domain", async function () {
+      const {rebalancer} = await loadFixture(deployAll);
+
+      expect(await rebalancer.getThisAddress(Domain.BASE)).to.equal(addressToBytes32(rebalancer.target));
+    });
+
+    it("Should return the configured address for a remote domain set at initialize time", async function () {
+      const {rebalancer} = await loadFixture(deployAll);
+
+      expect(await rebalancer.getThisAddress(Domain.ARBITRUM_ONE)).to.equal(
+        stubDestinationThisAddress(Domain.ARBITRUM_ONE)
+      );
+      expect(await rebalancer.getThisAddress(Domain.ETHEREUM)).to.equal(stubDestinationThisAddress(Domain.ETHEREUM));
+    });
+
+    it("Should return zero for a domain that was never configured", async function () {
+      const {deployer, admin, rebalanceUser, usdc, liquidityPool,
+        cctpV2TokenMessenger, cctpV2MessageTransmitter,
+      } = await loadFixture(deployAll);
+      const rebalancerImpl = (
+        await deployX("Rebalancer", deployer, "RebalancerNoThisAddresses", {},
+          Domain.BASE, usdc, usdc, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+          cctpV2TokenMessenger, cctpV2MessageTransmitter,
+        )
+      ) as Rebalancer;
+      const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(
+        admin, rebalanceUser, [liquidityPool], [Domain.BASE], [Provider.LOCAL], []
+      )).data;
+      const rebalancerProxy = (await deployX(
+        "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRebalancerNoThisAddresses", {},
+        rebalancerImpl, admin, rebalancerInit
+      )) as TransparentUpgradeableProxy;
+      const rebalancer = (await getContractAt("Rebalancer", rebalancerProxy, deployer)) as Rebalancer;
+
+      expect(await rebalancer.getThisAddress(Domain.ARBITRUM_ONE)).to.equal(ZERO_BYTES32);
+      expect(await rebalancer.getThisAddress(Domain.BASE)).to.equal(addressToBytes32(rebalancer.target));
+    });
+
+    it("Should revert initiateRebalance if destination domain has no this address set", async function () {
+      const {deployer, admin, rebalanceUser, usdc, USDC, liquidityPool,
+        cctpV2TokenMessenger, cctpV2MessageTransmitter,
+      } = await loadFixture(deployAll);
+      const rebalancerImpl = (
+        await deployX("Rebalancer", deployer, "RebalancerNoThisAddresses2", {},
+          Domain.BASE, usdc, usdc, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS,
+          cctpV2TokenMessenger, cctpV2MessageTransmitter,
+        )
+      ) as Rebalancer;
+      const rebalancerInit = (await rebalancerImpl.initialize.populateTransaction(
+        admin, rebalanceUser,
+        [liquidityPool, liquidityPool], [Domain.BASE, Domain.ARBITRUM_ONE], [Provider.LOCAL, Provider.CCTP_V2],
+        []
+      )).data;
+      const rebalancerProxy = (await deployX(
+        "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRebalancerNoThisAddresses2", {},
+        rebalancerImpl, admin, rebalancerInit
+      )) as TransparentUpgradeableProxy;
+      const rebalancer = (await getContractAt("Rebalancer", rebalancerProxy, deployer)) as Rebalancer;
+      await liquidityPool.grantRole(toBytes32("LIQUIDITY_ADMIN_ROLE"), rebalancer);
+
+      await usdc.transfer(liquidityPool, 10n * USDC);
+      expect(await rebalancer.isRouteAllowed(liquidityPool, Domain.ARBITRUM_ONE, Provider.CCTP_V2)).to.be.true;
+      await expect(rebalancer.connect(rebalanceUser).initiateRebalance(
+        4n * USDC, liquidityPool, liquidityPool, Domain.ARBITRUM_ONE, Provider.CCTP_V2, "0x"
+      )).to.be.revertedWithCustomError(rebalancer, "DestinationDomainNotSupported()");
+    });
+
+    it("Should allow admin to set and update this addresses, emitting SetThisAddress", async function () {
+      const {rebalancer, admin} = await loadFixture(deployAll);
+      const addressA = encodeBytes32String("someprettylongaddresshere");
+      const addressB = addressToBytes32(`0x${"22".repeat(20)}`);
+
+      const tx = rebalancer.connect(admin).setThisAddresses([
+        {domain: Domain.WORLD_CHAIN, thisAddress: addressA},
+        {domain: Domain.HYPER_EVM, thisAddress: addressB},
+      ]);
+      await expect(tx).to.emit(rebalancer, "SetThisAddress").withArgs(Domain.WORLD_CHAIN, addressA);
+      await expect(tx).to.emit(rebalancer, "SetThisAddress").withArgs(Domain.HYPER_EVM, addressB);
+      expect(await rebalancer.getThisAddress(Domain.WORLD_CHAIN)).to.equal(addressA);
+      expect(await rebalancer.getThisAddress(Domain.HYPER_EVM)).to.equal(addressB);
+
+      const updateTx = rebalancer.connect(admin).setThisAddresses([
+        {domain: Domain.WORLD_CHAIN, thisAddress: addressB},
+      ]);
+      await expect(updateTx).to.emit(rebalancer, "SetThisAddress").withArgs(Domain.WORLD_CHAIN, addressB);
+      expect(await rebalancer.getThisAddress(Domain.WORLD_CHAIN)).to.equal(addressB);
+      expect(await rebalancer.getThisAddress(Domain.HYPER_EVM)).to.equal(addressB);
+    });
+
+    it("Should not allow others to set this addresses", async function () {
+      const {rebalancer, rebalanceUser} = await loadFixture(deployAll);
+
+      await expect(rebalancer.connect(rebalanceUser).setThisAddresses([
+        {domain: Domain.WORLD_CHAIN, thisAddress: addressToBytes32(rebalancer.target)},
+      ])).to.be.revertedWithCustomError(rebalancer, "AccessControlUnauthorizedAccount(address,bytes32)");
+    });
+
+    it("Should not allow setting this address for the local domain", async function () {
+      const {rebalancer, admin} = await loadFixture(deployAll);
+
+      await expect(rebalancer.connect(admin).setThisAddresses([
+        {domain: Domain.BASE, thisAddress: addressToBytes32(rebalancer.target)},
+      ])).to.be.revertedWithCustomError(rebalancer, "UnsupportedDomain()");
+    });
   });
 });

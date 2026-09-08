@@ -5,8 +5,9 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {AbiCoder, MaxUint256} from "ethers";
 import {
-  getCreateAddress, getDeployXAddressBase, getContractAt, deploy, deployX, toBytes32,
+  getCreateAddress, getDeployXAddressBase, getContractAt, deploy, deployX, allRemoteDomains, toBytes32,
   signBorrow, setupTests,
+  stubDestinationThisAddress,
 } from "./helpers";
 import {
   ProviderSolidity as Provider, DomainSolidity as Domain, ZERO_ADDRESS,
@@ -221,6 +222,7 @@ describe("USDT as a main pool asset", function () {
         [pool1, pool2, pool2],
         [Domain.BASE, Domain.BASE, Domain.ARBITRUM_ONE],
         [Provider.LOCAL, Provider.LOCAL, Provider.USDT0],
+        allRemoteDomains(Domain.BASE)
       )).data;
       const rebalancerProxy = (await deployX(
         "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRebalancerUSDT0", {},
@@ -270,7 +272,13 @@ describe("USDT as a main pool asset", function () {
         .to.emit(rebalancer, "InitiateRebalance")
         .withArgs(amount, pool1.target, pool2.target, Domain.ARBITRUM_ONE, Provider.USDT0);
       await expect(initTx)
-        .to.emit(rebalancer, "USDT0Transfer");
+        .to.emit(rebalancer, "USDT0Transfer")
+        .withArgs(
+          testUsdt0.target,
+          stubDestinationThisAddress(Domain.ARBITRUM_ONE),
+          await rebalancer.layerZeroEndpointId(Domain.ARBITRUM_ONE),
+          amount
+        );
       expect(await testUsdt0.balanceOf(pool1)).to.equal(6n * USDT0_DEC);
       expect(await testUsdt0.balanceOf(rebalancer)).to.equal(0n);
       // The native (non-Ethereum) OFT variant burns the bridged amount rather than holding it.
@@ -318,6 +326,7 @@ describe("USDT as a main pool asset", function () {
         [localPool, remotePool],
         [Domain.BASE, Domain.ARBITRUM_ONE],
         [Provider.LOCAL, Provider.USDT0],
+        allRemoteDomains(Domain.BASE)
       )).data;
       const rebalancerProxy = (await deployX(
         "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRebalancerUSDT0FeeNativeTokenNotPayable",
@@ -377,6 +386,7 @@ describe("USDT as a main pool asset", function () {
         [Provider.LOCAL, Provider.LOCAL, Provider.LOCAL],
         [usdc, usdt, ZERO_ADDRESS],
         [],
+        allRemoteDomains(Domain.BASE)
       )).data;
       const repayerProxy = (await deployX(
         "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayerMixedAssets", {},

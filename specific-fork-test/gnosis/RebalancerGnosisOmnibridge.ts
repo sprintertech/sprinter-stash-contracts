@@ -4,7 +4,7 @@ import {
 import {expect} from "chai";
 import hre from "hardhat";
 import {
-  getCreateAddress, getContractAt, deploy, deployX,
+  getCreateAddress, getContractAt, deploy, deployX, allRemoteDomains,
 } from "../../test/helpers";
 import {
   ProviderSolidity as Provider, DomainSolidity as Domain,
@@ -64,6 +64,7 @@ describe("Rebalancer Gnosis Omnibridge (Gnosis Chain fork)", function () {
       [liquidityPool],
       [Domain.GNOSIS_CHAIN],
       [Provider.LOCAL],
+      allRemoteDomains(Domain.GNOSIS_CHAIN)
     )).data;
 
     const rebalancerProxy = (await deployX(

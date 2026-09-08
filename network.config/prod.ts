@@ -13,9 +13,11 @@ import {
   USDGStashDexProcessorProxy,
   LiquidityPoolUSDTProxy,
   LiquidityPoolAaveUSDTProxy,
+  RebalancerUSDCProxy,
+  RebalancerUSDTProxy,
 } from "./ids";
 
-export const prodNetworkConfig: NetworksConfig = {
+export const prodNetworkConfig = {
   ETHEREUM: {
     ChainId: 1,
     CCTPV2: {
@@ -48,6 +50,7 @@ export const prodNetworkConfig: NetworksConfig = {
     SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCV4]: {
         Domains: {
@@ -179,6 +182,7 @@ export const prodNetworkConfig: NetworksConfig = {
     },
     MainAssets: {
       [Token.USDC]: {
+        Rebalancer: RebalancerUSDCProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDCV4]: {
             [Network.OP_MAINNET]: [Provider.CCTP_V2],
@@ -246,6 +250,7 @@ export const prodNetworkConfig: NetworksConfig = {
     SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
@@ -331,6 +336,7 @@ export const prodNetworkConfig: NetworksConfig = {
     SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
@@ -412,6 +418,7 @@ export const prodNetworkConfig: NetworksConfig = {
     },
     MainAssets: {
       [Token.USDC]: {
+        Rebalancer: RebalancerUSDCProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDCV4]: {
             [Network.BASE]: [Provider.CCTP_V2],
@@ -479,6 +486,7 @@ export const prodNetworkConfig: NetworksConfig = {
     SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
@@ -563,6 +571,7 @@ export const prodNetworkConfig: NetworksConfig = {
     },
     MainAssets: {
       [Token.USDC]: {
+        Rebalancer: RebalancerUSDCProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDCV4]: {
             [Network.BASE]: [Provider.CCTP_V2],
@@ -613,6 +622,7 @@ export const prodNetworkConfig: NetworksConfig = {
           AssetsLimit: 10_000_000,
           Pool: LiquidityPoolAaveUSDTProxy,
         },
+        Rebalancer: RebalancerUSDTProxy,
         RebalancerRoutes: {
           [LiquidityPoolUSDTProxy]: {
             [Network.TEMPO]: [Provider.USDT0],
@@ -666,6 +676,7 @@ export const prodNetworkConfig: NetworksConfig = {
     SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
@@ -738,6 +749,7 @@ export const prodNetworkConfig: NetworksConfig = {
           ],
           Pool: LiquidityPoolAaveUSDCV4,
         },
+        Rebalancer: RebalancerUSDCProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDCV4]: {
             [Network.OP_MAINNET]: [Provider.CCTP_V2],
@@ -805,6 +817,7 @@ export const prodNetworkConfig: NetworksConfig = {
     SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
@@ -868,6 +881,7 @@ export const prodNetworkConfig: NetworksConfig = {
     },
     MainAssets: {
       [Token.USDC]: {
+        Rebalancer: RebalancerUSDCProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDCV4]: {
             [Network.OP_MAINNET]: [Provider.CCTP_V2],
@@ -930,6 +944,7 @@ export const prodNetworkConfig: NetworksConfig = {
     SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
@@ -993,6 +1008,7 @@ export const prodNetworkConfig: NetworksConfig = {
     },
     MainAssets: {
       [Token.USDC]: {
+        Rebalancer: RebalancerUSDCProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDCV4]: {
             [Network.OP_MAINNET]: [Provider.CCTP_V2],
@@ -1036,6 +1052,7 @@ export const prodNetworkConfig: NetworksConfig = {
     SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
@@ -1102,6 +1119,7 @@ export const prodNetworkConfig: NetworksConfig = {
     SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
@@ -1168,6 +1186,7 @@ export const prodNetworkConfig: NetworksConfig = {
     SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolUSDCV4]: {
         OnlySupportedToken: Token.USDC,
@@ -1231,6 +1250,7 @@ export const prodNetworkConfig: NetworksConfig = {
     SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolUSDCV4]: {
         OnlySupportedToken: Token.USDC,
@@ -1294,6 +1314,7 @@ export const prodNetworkConfig: NetworksConfig = {
     SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolUSDCV4]: {
         OnlySupportedToken: Token.USDC,
@@ -1365,6 +1386,7 @@ export const prodNetworkConfig: NetworksConfig = {
     SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolUSDCV4]: {
         OnlySupportedToken: Token.USDC,
@@ -1433,6 +1455,7 @@ export const prodNetworkConfig: NetworksConfig = {
     SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
@@ -1476,6 +1499,7 @@ export const prodNetworkConfig: NetworksConfig = {
     },
     MainAssets: {
       [Token.USDT]: {
+        Rebalancer: RebalancerUSDTProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDTProxy]: {
             [Network.ARBITRUM_ONE]: [Provider.USDT0],
@@ -1504,6 +1528,7 @@ export const prodNetworkConfig: NetworksConfig = {
     SetInputOutputTokens: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
     MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
     SignerAddress: "0x83B8D2eAda788943c3e80892f37f9c102271C1D6",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
@@ -1547,12 +1572,54 @@ export const prodNetworkConfig: NetworksConfig = {
     },
     MainAssets: {
       [Token.USDT]: {
+        Rebalancer: RebalancerUSDTProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDTProxy]: {
             [Network.ARBITRUM_ONE]: [Provider.USDT0],
           },
           [LiquidityPoolUSDTProxy]: {
             [Network.TEMPO]: [Provider.USDT0],
+          },
+        },
+        BasicPool: true,
+      },
+    },
+  },
+  TRON: {
+    ChainId: 728126428,
+    USDT0OFT: "0x3a08F76772e200653bB55c2a92998DAcA62e0e97",
+    Tokens: {
+      USDT: tokenInfo("0xa614f803B6FD780986A42c78Ec9c7f77e6DeD13C", 6),
+    },
+    WrappedNativeToken: "0x891cdb91d149f23B1a45D9c5Ca78a88d0cB44C18",
+    Admin: "TBD",
+    WithdrawProfit: "TBD",
+    Pauser: "TBD",
+    RebalanceCaller: "TBD",
+    RepayerCaller: "0x9A5B33bd11329116A55F764c604a5152eE8Ca292",
+    SetInputOutputTokens: "TBD",
+    MpcAddress: "0x3F68D470701522F1c9bb21CF44a33dBFa8E299C2",
+    SignerAddress: "TBD",
+    // Repayer: "TBD",
+    RepayerRoutes: {
+      [LiquidityPoolAaveUSDCProxy]: {
+        Domains: {
+          [Network.ETHEREUM]: [
+            Provider.USDT0,
+          ],
+        }
+      }
+    },
+    MainAssets: {
+      [Token.USDT]: {
+        // Rebalancer: "TBD",
+        RebalancerRoutes: {
+          [LiquidityPoolAaveUSDTProxy]: {
+            [Network.ARBITRUM_ONE]: [Provider.USDT0],
+          },
+          [LiquidityPoolUSDTProxy]: {
+            [Network.TEMPO]: [Provider.USDT0],
+            [Network.STABLE]: [Provider.USDT0],
           },
         },
         BasicPool: true,
@@ -1583,12 +1650,54 @@ export const prodNetworkConfig: NetworksConfig = {
       },
       [LiquidityPoolAaveUSDCV4]: {
         Domains: {
-          [Network.ARBITRUM_ONE]: [Provider.ACROSS],
-          [Network.BASE]: [Provider.ACROSS],
-          [Network.OP_MAINNET]: [Provider.ACROSS],
+          [Network.POLYGON_MAINNET]: [
+            Provider.USDT0,
+          ],
+          [Network.ARBITRUM_ONE]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+      [LiquidityPoolAaveUSDCLongTermV3]: {
+        Domains: {
+          [Network.ETHEREUM]: [
+            Provider.USDT0,
+          ],
+        }
+      },
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+      [LiquidityPoolUSDTProxy]: {
+        OnlySupportedToken: Token.USDT,
+        Domains: {
+          [Network.TEMPO]: [
+            Provider.USDT0,
+          ],
+          [Network.STABLE]: [
+            Provider.USDT0,
+          ],
         },
       },
     },
-    MainAssets: {},
+    MainAssets: {
+      [Token.USDT]: {
+        // Rebalancer: "TBD",
+        RebalancerRoutes: {
+          [LiquidityPoolAaveUSDTProxy]: {
+            [Network.ARBITRUM_ONE]: [Provider.USDT0],
+          },
+          [LiquidityPoolUSDTProxy]: {
+            [Network.TEMPO]: [Provider.USDT0],
+            [Network.STABLE]: [Provider.USDT0],
+          },
+        },
+        BasicPool: true,
+      },
+    },
   },
-};
+} satisfies NetworksConfig;

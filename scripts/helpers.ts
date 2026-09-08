@@ -3,6 +3,7 @@ import {Signer, BaseContract, AddressLike, resolveAddress, ContractTransaction, 
 import {
   deploy, deployX, getContractAt, getCreateAddress, getDeployXAddressBase,
   resolveXAddress, resolveProxyXAddress, assertCode,
+  resolveMultichainAddress,
 } from "../test/helpers";
 import {
   TransparentUpgradeableProxy, ProxyAdmin, Repayer,
@@ -11,7 +12,8 @@ import {
   sleep, assert, assertAddress, DomainSolidity, addressToBytes32, bytes32ToToken, SolidityDomain, ZERO_ADDRESS,
 } from "./common";
 import {
-  prodNetworkConfig, stageNetworkConfig, Network, NetworkConfig, StandaloneRepayerEnv, StandaloneRepayerConfig,
+  prodNetworkConfig, stageNetworkConfig, Network, NetworkConfig,
+  StandaloneRepayerEnv, StandaloneRepayerConfig,
   repayerConfig, DEFAULT_PROXY_TYPE,
   Provider,
   LiquidityPoolAaveUSDCVersions,
@@ -19,6 +21,7 @@ import {
   LiquidityPoolUSDCStablecoinVersions,
   LiquidityPoolAaveUSDCLongTermVersions,
   ERC4626AdapterUSDCVersions,
+  NetworksConfig,
   PartialNetworksConfig,
   Token,
   TokenInfo,
@@ -438,6 +441,65 @@ export function getInputOutputTokens(network: Network, config: NetworkConfig) {
   return inputOutputTokens;
 }
 
+export async function getDestinationRepayerAddresses(network: Network, includeZeroAddress: boolean = false) {
+  const envConfigs = getNetworkConfigsForCurrentEnv();
+  const destinationThisAddresses: Repayer.ThisAddressesStruct[] = [];
+  for (const [envNetwork, envConfig] of Object.entries(envConfigs)) {
+    if (envNetwork === network) continue;
+    let repayerAddress = envConfig.Repayer;
+    if (!repayerAddress) {
+      if (includeZeroAddress) {
+        repayerAddress = ZERO_ADDRESS;
+      } else {
+        continue;
+      }
+    }
+    destinationThisAddresses.push({
+      domain: DomainSolidity[envNetwork as Network],
+      thisAddress: await resolveMultichainAddress(repayerAddress),
+    });
+  }
+  return destinationThisAddresses;
+}
+
+export async function getDestinationRebalancerAddresses(
+  network: Network,
+  mainAsset: Token,
+  includeZeroAddress: boolean = false,
+) {
+  const envConfigs = getNetworkConfigsForCurrentEnv();
+  const destinationThisAddresses: Repayer.ThisAddressesStruct[] = [];
+  for (const [envNetwork, envConfig] of Object.entries(envConfigs)) {
+    let rebalancerAddress = envConfig.MainAssets[mainAsset]?.Rebalancer;
+    if (envNetwork === network) continue;
+    if (!rebalancerAddress) {
+      if (includeZeroAddress) {
+        rebalancerAddress = ZERO_ADDRESS;
+      } else {
+        continue;
+      }
+    }
+    destinationThisAddresses.push({
+      domain: DomainSolidity[envNetwork as Network],
+      thisAddress: await resolveMultichainAddress(rebalancerAddress),
+    });
+  }
+  return destinationThisAddresses;
+}
+
+export async function getDestinationStandaloneRepayerAddresses(network: Network, repayerEnv: StandaloneRepayerEnv) {
+  const envConfigs = repayerConfig;
+  const destinationThisAddresses: Repayer.ThisAddressesStruct[] = [];
+  for (const [envNetwork, envConfig] of Object.entries(envConfigs)) {
+    if (envNetwork === network || !envConfig[repayerEnv]?.Repayer) continue;
+    destinationThisAddresses.push({
+      domain: DomainSolidity[envNetwork as Network],
+      thisAddress: await resolveMultichainAddress(envConfig[repayerEnv]!.Repayer),
+    });
+  }
+  return destinationThisAddresses;
+}
+
 export function flattenInputOutputTokens(inputOutputTokens: Repayer.InputOutputTokenStruct[]) {
   const flatInputOutputTokens: {
     InputToken: string;
@@ -458,30 +520,34 @@ export function flattenInputOutputTokens(inputOutputTokens: Repayer.InputOutputT
   return flatInputOutputTokens;
 }
 
-export async function getNetworkConfig() {
+export async function getNetworkConfig(validateStageDeployer: boolean = true) {
   let network: Network;
   let config: NetworkConfig;
   let message = "Using config for: ";
-  if (hre.network.name === "hardhat" && Object.values(Network).includes(process.env.DRY_RUN as Network)) {
+  if (
+    (hre.network.name === "hardhat" ||
+    hre.network.name === "localtron") &&
+    Object.values(Network).includes(process.env.DRY_RUN as Network)
+  ) {
     message += "dry run, ";
     network = process.env.DRY_RUN as Network;
-    config = prodNetworkConfig[network];
+    config = (prodNetworkConfig as NetworksConfig)[network];
   } else if (Object.values(Network).includes(hre.network.name as Network)) {
     network = hre.network.name as Network;
-    config = prodNetworkConfig[network];
+    config = (prodNetworkConfig as NetworksConfig)[network];
   }
   if (config! && network!) {
     if (process.env.DEPLOY_TYPE === "STAGE") {
-      assert(
+      validateStageDeployer && assert(
         process.env.DEPLOYER_ADDRESS === process.env.STAGE_DEPLOYER_ADDRESS,
         `DEPLOYER_ADDRESS(${process.env.DEPLOYER_ADDRESS}) must match
          STAGE_DEPLOYER_ADDRESS(${process.env.STAGE_DEPLOYER_ADDRESS})`
       );
-      assert(stageNetworkConfig[network], "Stage config must be defined");
+      assert((stageNetworkConfig as PartialNetworksConfig)[network], "Stage config must be defined");
       message += "stage, ";
-      config = stageNetworkConfig[network]!;
+      config = (stageNetworkConfig as PartialNetworksConfig)[network]!;
     } else {
-      assert(
+      validateStageDeployer && assert(
         process.env.DEPLOYER_ADDRESS !== process.env.STAGE_DEPLOYER_ADDRESS,
         `DEPLOYER_ADDRESS(${process.env.DEPLOYER_ADDRESS}) must not match
          STAGE_DEPLOYER_ADDRESS(${process.env.STAGE_DEPLOYER_ADDRESS})`
@@ -493,11 +559,16 @@ export async function getNetworkConfig() {
 }
 
 export async function getHardhatNetworkConfig() {
-  assert(hre.network.name === "hardhat" || hre.network.name === "localhost", "Only for Hardhat or localhost network");
+  assert(
+    hre.network.name === "hardhat" ||
+    hre.network.name === "localhost" ||
+    hre.network.name === "localtron",
+    "Only for Hardhat or local network"
+  );
   const network = Network.BASE;
   const [deployer, opsAdmin, superAdmin, mpc] = await hre.ethers.getSigners();
   process.env.DEPLOYER_ADDRESS = await resolveAddress(deployer);
-  const config = prodNetworkConfig[network];
+  const config = (prodNetworkConfig as NetworksConfig)[network];
   config.ChainId = 31337;
   const {mainAsset, mainAssetConfig} = getMainAsset(config);
   assert(mainAssetConfig.Hub, "Hub must be in config");

@@ -87,6 +87,8 @@ contract RepayerUSDT0Stable {
         IERC20[] memory onlySupportedTokens = new IERC20[](1);
         onlySupportedTokens[0] = IERC20(address(0));
         Repayer.InputOutputToken[] memory inputOutputTokens = new Repayer.InputOutputToken[](0);
+        Repayer.ThisAddresses[] memory thisAddresses = new Repayer.ThisAddresses[](1);
+        thisAddresses[0] = Repayer.ThisAddresses(IRoute.Domain.ARBITRUM_ONE, _addressToBytes32(address(this)));
 
         bytes memory initData = abi.encodeCall(
             repayerImpl.initialize,
@@ -98,7 +100,8 @@ contract RepayerUSDT0Stable {
                 domains,
                 providers,
                 onlySupportedTokens,
-                inputOutputTokens
+                inputOutputTokens,
+                thisAddresses
             )
         );
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(

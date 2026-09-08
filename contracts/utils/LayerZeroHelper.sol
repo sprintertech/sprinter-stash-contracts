@@ -41,6 +41,9 @@ abstract contract LayerZeroHelper is AdapterHelper {
         } else
         if (destinationDomain == Domain.STABLE) {
             return 30396;
+        } else
+        if (destinationDomain == Domain.TRON) {
+            return 30420;
         } else {
             revert UnsupportedDomain();
         }

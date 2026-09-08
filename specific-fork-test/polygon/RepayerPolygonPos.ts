@@ -5,7 +5,7 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {AbiCoder} from "ethers";
 import {
-  getContractAt, deploy, deployX,
+  getContractAt, deploy, deployX, allRemoteDomains,
 } from "../../test/helpers";
 import {
   ProviderSolidity as Provider, DomainSolidity as Domain,
@@ -83,6 +83,7 @@ describe("Repayer Polygon PoS Bridge (Polygon fork)", function () {
           localDecimalsGreaterBy: 0n,
         }],
       }],
+      allRemoteDomains(Domain.POLYGON_MAINNET)
     )).data;
 
     const repayerProxy = (await deployX(
@@ -92,12 +93,12 @@ describe("Repayer Polygon PoS Bridge (Polygon fork)", function () {
     const repayer = (await getContractAt("Repayer", repayerProxy, deployer)) as Repayer;
 
     return {
-      deployer, repayUser, dai, liquidityPool, repayer,
+      deployer, repayUser, dai, liquidityPool, repayer, admin,
     };
   };
 
   it("Should allow repayer to burn DAI for a Polygon PoS exit to Ethereum on fork", async function () {
-    const {repayer, dai, repayUser} = await loadFixture(deployAll);
+    const {repayer, dai, repayUser, admin} = await loadFixture(deployAll);
 
     assertAddress(
       process.env.DAI_OWNER_POLYGON_ADDRESS,
@@ -113,6 +114,9 @@ describe("Repayer Polygon PoS Bridge (Polygon fork)", function () {
 
     const outputToken = networkConfig.ETHEREUM.Tokens.DAI!.Address;
     const extraData = AbiCoder.defaultAbiCoder().encode(["address"], [outputToken]);
+    await repayer.connect(admin).setThisAddresses([
+      {domain: Domain.ETHEREUM, thisAddress: addressToBytes32(repayer.target)},
+    ]);
 
     // The PoS exit on Ethereum credits whoever burned on Polygon, so the Repayer bridges to
     // itself and forwards the funds through processRepay() on the other side.
@@ -152,5 +156,8 @@ describe("Repayer Polygon PoS Bridge (Polygon fork)", function () {
     await expect(repayer.connect(repayUser).initiateRepay(
       dai, 4n * ETH, liquidityPool, Domain.ETHEREUM, Provider.POLYGON_POS_BRIDGE, extraData
     )).to.be.revertedWithCustomError(repayer, "InvalidDestinationPool()");
+    await expect(repayer.connect(repayUser).initiateRepay(
+      dai, 4n * ETH, repayer, Domain.ETHEREUM, Provider.POLYGON_POS_BRIDGE, extraData
+    )).to.be.revertedWithCustomError(repayer, "RouteDenied()");
   });
 });

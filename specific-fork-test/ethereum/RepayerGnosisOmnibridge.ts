@@ -4,11 +4,13 @@ import {
 import {expect} from "chai";
 import hre from "hardhat";
 import {
-  getCreateAddress, getContractAt, deploy, deployX,
+  getCreateAddress, getContractAt, deploy, deployX, allRemoteDomains,
+  stubDestinationThisAddress,
 } from "../../test/helpers";
 import {
   ProviderSolidity as Provider, DomainSolidity as Domain,
   DEFAULT_ADMIN_ROLE, assertAddress, ZERO_ADDRESS,
+  bytes32ToToken,
 } from "../../scripts/common";
 import {
   TransparentUpgradeableProxy, ProxyAdmin,
@@ -71,6 +73,7 @@ describe("Repayer Gnosis Omnibridge (Ethereum fork)", function () {
       [Provider.GNOSIS_OMNIBRIDGE],
       [ZERO_ADDRESS],
       [],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
 
     const repayerProxy = (await deployX(
@@ -106,21 +109,22 @@ describe("Repayer Gnosis Omnibridge (Ethereum fork)", function () {
 
     const ethereumOmnibridge = forkNetworkConfig.Omnibridge!;
     const bridgeBalanceBefore = await usdc.balanceOf(ethereumOmnibridge);
+    const destinationThisAddress = bytes32ToToken(stubDestinationThisAddress(Domain.GNOSIS_CHAIN));
 
     const tx = repayer.connect(repayUser).initiateRepay(
       usdc,
       amount,
-      repayer,
+      destinationThisAddress,
       Domain.GNOSIS_CHAIN,
       Provider.GNOSIS_OMNIBRIDGE,
       "0x"
     );
     await expect(tx)
       .to.emit(repayer, "InitiateRepay")
-      .withArgs(usdc.target, amount, repayer.target, Domain.GNOSIS_CHAIN, Provider.GNOSIS_OMNIBRIDGE);
+      .withArgs(usdc.target, amount, destinationThisAddress, Domain.GNOSIS_CHAIN, Provider.GNOSIS_OMNIBRIDGE);
     await expect(tx)
       .to.emit(repayer, "GnosisOmnibridgeTransferInitiated")
-      .withArgs(usdc.target, repayer.target, amount);
+      .withArgs(usdc.target, destinationThisAddress, amount);
     await expect(tx)
       .to.emit(usdc, "Transfer")
       .withArgs(repayer.target, ethereumOmnibridge, amount);

@@ -11,11 +11,13 @@ import {
 import {
   assert, isSet, ProviderSolidity, DomainSolidity, CCTPDomain, SolidityDomain, SolidityProvider,
   DEFAULT_ADMIN_ROLE, assertAddress, addressToBytes32, ZERO_ADDRESS,
-  sameAddress,
+  sameAddress, sameIgnoreCase,
 } from "./scripts/common";
 import "hardhat-ignore-warnings";
 import "solidity-coverage";
 import {createSender} from "./scripts/safe";
+import "@layerzerolabs/hardhat-deploy";
+import "@layerzerolabs/hardhat-tron";
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -176,7 +178,7 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
   const admin = await createSender(hre, sender);
   const {mainAsset, mainAssetConfig} = getMainAsset(config);
   if (!isAddress(args.rebalancer)) {
-    args.rebalancer = idWithMainAsset(mainAsset, "Rebalancer");
+    args.rebalancer = idWithMainAsset(mainAsset, args.rebalancer);
   }
   assert(["allow", "deny", "both"].includes(args.action), "Invalid action");
   const targetAddress = await resolveProxyXAddress(args.rebalancer);
@@ -298,6 +300,76 @@ task("update-routes-rebalancer", "Update Rebalancer routes based on current netw
     }
   } else {
     console.log("There are no excess routes to deny.");
+  }
+});
+
+task("update-thisaddresses-rebalancer", "Update Rebalancer this-addresses based on current network config")
+.addOptionalParam("rebalancer", "Rebalancer address or id", "Rebalancer", types.string)
+.setAction(async (args: {
+  rebalancer: string,
+}, hre) => {
+  const {resolveProxyXAddress} = await loadTestHelpers();
+  const {
+    getNetworkConfig, getMainAsset, idWithMainAsset, getDestinationRebalancerAddresses,
+  } = await loadScriptHelpers();
+  const {network, config} = await getNetworkConfig();
+
+  const [sender] = await hre.ethers.getSigners();
+  const admin = await createSender(hre, sender);
+  const {mainAsset} = getMainAsset(config);
+  if (!isAddress(args.rebalancer)) {
+    args.rebalancer = idWithMainAsset(mainAsset, args.rebalancer);
+  }
+  const targetAddress = await resolveProxyXAddress(args.rebalancer);
+  const target = (await hre.ethers.getContractAt("Rebalancer", targetAddress, admin)) as Rebalancer;
+
+  const localConfig = await getDestinationRebalancerAddresses(network, mainAsset, true);
+  const localConfigDisplay: {Domain: Network, ThisAddress: string}[] = localConfig.map(el => ({
+    Domain: SolidityDomain[Number(el.domain)],
+    ThisAddress: el.thisAddress as string,
+  }));
+
+  const onchainConfig: {Domain: Network, ThisAddress: string}[] = [];
+  for (const otherNetwork of Object.values(Network)) {
+    if (otherNetwork === network) continue;
+    const onchainThisAddress = await target.getThisAddress(DomainSolidity[otherNetwork]);
+    onchainConfig.push({Domain: otherNetwork, ThisAddress: onchainThisAddress});
+  }
+
+  console.log("The onchain configuration is:");
+  console.table(onchainConfig);
+  console.log("The updated configuration should be:");
+  console.table(localConfigDisplay);
+
+  const toUpdate = localConfigDisplay.filter(el => !onchainConfig.some(el2 =>
+    el2.Domain === el.Domain && sameIgnoreCase(el2.ThisAddress, el.ThisAddress)
+  ));
+
+  const hasRole = await target.hasRole(DEFAULT_ADMIN_ROLE, admin);
+
+  if (toUpdate.length > 0) {
+    const toUpdateParams = toUpdate.map(el => ({
+      domain: DomainSolidity[el.Domain],
+      thisAddress: el.ThisAddress,
+    }));
+    if (hasRole) {
+      await (await target.setThisAddresses(toUpdateParams)).wait();
+      console.log(`Following this-addresses are now set on ${targetAddress}.`);
+      console.table(toUpdate);
+    } else {
+      console.log("To update this-addresses execute the following transaction.");
+      console.log(`To: ${targetAddress}`);
+      console.log("Function: setThisAddresses");
+      console.log("Params:");
+      console.table(toUpdateParams.map(el => ({
+        ...el,
+        domain: `${el.domain} (${SolidityDomain[Number(el.domain)]})`,
+      })));
+      const updateTx = await target.setThisAddresses.populateTransaction(toUpdateParams);
+      console.log(`Raw data: ${updateTx.data}`);
+    }
+  } else {
+    console.log("There are no this-address updates needed.");
   }
 });
 
@@ -496,6 +568,71 @@ task("update-routes-repayer", "Update Repayer routes based on current network co
     }
   } else {
     console.log("There are no missing routes to allow.");
+  }
+});
+
+task("update-thisaddresses-repayer", "Update Repayer this-addresses based on current network config")
+.addOptionalParam("repayer", "Repayer address or id", "Repayer", types.string)
+.setAction(async (args: {
+  repayer: string,
+}, hre) => {
+  const {resolveProxyXAddress} = await loadTestHelpers();
+  const {getNetworkConfig, getDestinationRepayerAddresses} = await loadScriptHelpers();
+  const {network} = await getNetworkConfig();
+
+  const [sender] = await hre.ethers.getSigners();
+  const admin = await createSender(hre, sender);
+
+  const targetAddress = await resolveProxyXAddress(args.repayer);
+  const target = (await hre.ethers.getContractAt("Repayer", targetAddress, admin)) as Repayer;
+
+  const localConfig = await getDestinationRepayerAddresses(network, true);
+  const localConfigDisplay: {Domain: Network, ThisAddress: string}[] = localConfig.map(el => ({
+    Domain: SolidityDomain[Number(el.domain)],
+    ThisAddress: el.thisAddress as string,
+  }));
+
+  const onchainConfig: {Domain: Network, ThisAddress: string}[] = [];
+  for (const otherNetwork of Object.values(Network)) {
+    if (otherNetwork === network) continue;
+    const onchainThisAddress = await target.getThisAddress(DomainSolidity[otherNetwork]);
+    onchainConfig.push({Domain: otherNetwork, ThisAddress: onchainThisAddress});
+  }
+
+  console.log("The onchain configuration is:");
+  console.table(onchainConfig);
+  console.log("The updated configuration should be:");
+  console.table(localConfigDisplay);
+
+  const toUpdate = localConfigDisplay.filter(el => !onchainConfig.some(el2 =>
+    el2.Domain === el.Domain && sameIgnoreCase(el2.ThisAddress, el.ThisAddress)
+  ));
+
+  const hasRole = await target.hasRole(DEFAULT_ADMIN_ROLE, admin);
+
+  if (toUpdate.length > 0) {
+    const toUpdateParams = toUpdate.map(el => ({
+      domain: DomainSolidity[el.Domain],
+      thisAddress: el.ThisAddress,
+    }));
+    if (hasRole) {
+      await (await target.setThisAddresses(toUpdateParams)).wait();
+      console.log(`Following this-addresses are now set on ${targetAddress}.`);
+      console.table(toUpdate);
+    } else {
+      console.log("To update this-addresses execute the following transaction.");
+      console.log(`To: ${targetAddress}`);
+      console.log("Function: setThisAddresses");
+      console.log("Params:");
+      console.table(toUpdateParams.map(el => ({
+        ...el,
+        domain: `${el.domain} (${SolidityDomain[Number(el.domain)]})`,
+      })));
+      const updateTx = await target.setThisAddresses.populateTransaction(toUpdateParams);
+      console.log(`Raw data: ${updateTx.data}`);
+    }
+  } else {
+    console.log("There are no this-address updates needed.");
   }
 });
 
@@ -1131,6 +1268,16 @@ const config: HardhatUserConfig = {
         },
         viaIR: true,
       },
+    },
+    {
+      version: "0.8.26",
+      settings: {
+        optimizer: {
+          enabled: true,
+          runs: 999999,
+        },
+        viaIR: true,
+      },
     }],
     overrides: {
       "contracts/LiquidityPoolAave.sol": {
@@ -1164,7 +1311,7 @@ const config: HardhatUserConfig = {
         },
       },
       "contracts/Repayer.sol": {
-        version: "0.8.28",
+        version: isSet(process.env.TRON) ? "0.8.26" : "0.8.28",
         settings: {
           optimizer: {
             enabled: true,
@@ -1205,9 +1352,27 @@ const config: HardhatUserConfig = {
       }
     }
   },
+  tronSolc: {
+    enable: true,
+    filter: ["Repayer", "Rebalancer", "LiquidityPool", "Deps", "CensoredTransferFromMulticall", "ICreateX"],
+    compilers: [{version: "0.8.26"}], // highest version available in tronbox.
+    versionRemapping: [
+      ["0.8.28", "0.8.26"],
+    ],
+  },
   networks: {
     localhost: {
       url: "http://127.0.0.1:8545/",
+    },
+    localtron: {
+      url: "http://127.0.0.1:9090/jsonrpc",
+      tron: true,
+      accounts: [
+        "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+        "59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
+        "5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a",
+        "7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6",
+      ],
     },
     [Network.AVALANCHE]: {
       chainId: networkConfig.AVALANCHE.ChainId,
@@ -1285,6 +1450,11 @@ const config: HardhatUserConfig = {
       url: process.env[(isSet(process.env.VIRTUAL) ? "VIRTUAL_" : "") + "STABLE_RPC"],
       accounts,
     },
+    [Network.TRON]: {
+      chainId: networkConfig.TRON.ChainId,
+      url: process.env.TRON_RPC || "https://tron-rpc.publicnode.com/jsonrpc",
+      tron: true,
+    },
     [Network.ROBINHOOD]: {
       chainId: networkConfig.ROBINHOOD.ChainId,
       url: process.env.ROBINHOOD_RPC || "https://rpc.mainnet.chain.robinhood.com",
@@ -1294,6 +1464,7 @@ const config: HardhatUserConfig = {
       chainId: isSet(process.env.DRY_RUN) || isSet(process.env.FORK_TEST)
         ? networkConfig[`${process.env.DRY_RUN || process.env.FORK_TEST}` as Network]!.ChainId
         : networkConfig.BASE.ChainId,
+      blockGasLimit: 16000000,
       forking: {
         url: isSet(process.env.DRY_RUN) || isSet(process.env.FORK_TEST)
           ? process.env[`${process.env.DRY_RUN || process.env.FORK_TEST}_RPC`]!
@@ -1394,6 +1565,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api.stablescan.xyz/api",
           browserURL: "https://stablescan.xyz"
+        },
+      },
+      {
+        network: "tron",
+        chainId: networkConfig.TRON.ChainId,
+        urls: {
+          apiURL: "https://api.tronscan.org/api",
+          browserURL: "https://tronscan.org"
         },
       },
       {

@@ -5,7 +5,7 @@ import {assert, expect} from "chai";
 import hre from "hardhat";
 import {AbiCoder, getAddress} from "ethers";
 import {
-  getCreateAddress, getContractAt, deploy, deployX, toBytes32, getBalance,
+  getCreateAddress, getContractAt, deploy, deployX, allRemoteDomains, toBytes32, getBalance,
   destinationToken,
 } from "../../test/helpers";
 import {
@@ -180,6 +180,7 @@ describe("Repayer", function () {
           ]
         },
       ],
+      allRemoteDomains(Domain.ETHEREUM)
     )).data;
     const repayerProxy = (await deployX(
       "TransparentUpgradeableProxy", deployer, "TransparentUpgradeableProxyRepayer", {},

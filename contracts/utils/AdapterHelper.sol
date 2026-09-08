@@ -16,6 +16,7 @@ abstract contract AdapterHelper is IRoute {
     error NotPayable();
     error InvalidOutputToken();
     error InvalidToken();
+    error InvalidAddress();
     /// @notice Raised by adapters that can only bridge to their own address on the destination
     /// chain, when the caller specifies a different destination pool.
     error InvalidDestinationPool();
@@ -62,6 +63,11 @@ abstract contract AdapterHelper is IRoute {
 
     function _addressToBytes32(address addr) internal pure returns (bytes32) {
         return bytes32(uint256(uint160(addr)));
+    }
+
+    function _bytes32ToAddress(bytes32 addr) internal pure returns (address) {
+        require(uint256(addr) <= type(uint160).max, InvalidAddress());
+        return address(uint160(uint256(addr)));
     }
 
     function _validateOutputToken(

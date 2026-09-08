@@ -17,9 +17,11 @@ import {
   SUPPORTS_ONLY_USDC,
   LiquidityPoolUSDTProxy,
   LiquidityPoolAaveUSDTProxy,
+  RebalancerUSDCProxy,
+  RebalancerUSDTProxy,
 } from "./ids";
 
-export const stageNetworkConfig: PartialNetworksConfig = {
+export const stageNetworkConfig = {
   ETHEREUM: {
     ChainId: 1,
     CCTPV2: {
@@ -54,6 +56,7 @@ export const stageNetworkConfig: PartialNetworksConfig = {
     SetInputOutputTokens: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCV4]: {
         Domains: {
@@ -254,6 +257,7 @@ export const stageNetworkConfig: PartialNetworksConfig = {
     },
     MainAssets: {
       [Token.USDC]: {
+        Rebalancer: RebalancerUSDCProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDCV4]: {
             [Network.BASE]: [Provider.CCTP_V2],
@@ -322,6 +326,7 @@ export const stageNetworkConfig: PartialNetworksConfig = {
     SetInputOutputTokens: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
@@ -376,6 +381,7 @@ export const stageNetworkConfig: PartialNetworksConfig = {
     },
     MainAssets: {
       [Token.USDC]: {
+        Rebalancer: RebalancerUSDCProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDCProxy]: {
             [Network.ETHEREUM]: [Provider.CCTP_V2],
@@ -449,10 +455,11 @@ export const stageNetworkConfig: PartialNetworksConfig = {
     SetInputOutputTokens: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
-          [Network.ETHEREUM]: [Provider.ACROSS, Provider.CCTP_V2],
+          [Network.ETHEREUM]: [Provider.ACROSS, Provider.CCTP_V2, Provider.USDT0],
           [Network.GNOSIS_CHAIN]: [
             Provider.STARGATE,
           ],
@@ -510,6 +517,7 @@ export const stageNetworkConfig: PartialNetworksConfig = {
     },
     MainAssets: {
       [Token.USDC]: {
+        Rebalancer: RebalancerUSDCProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDCProxy]: {
             [Network.ETHEREUM]: [Provider.CCTP_V2],
@@ -576,6 +584,7 @@ export const stageNetworkConfig: PartialNetworksConfig = {
           AssetsLimit: 10_000_000,
           Pool: LiquidityPoolAaveUSDTProxy,
         },
+        Rebalancer: RebalancerUSDTProxy,
         RebalancerRoutes: {
           [LiquidityPoolUSDTProxy]: {
             [Network.TEMPO]: [Provider.USDT0],
@@ -630,6 +639,7 @@ export const stageNetworkConfig: PartialNetworksConfig = {
     SetInputOutputTokens: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
@@ -694,6 +704,7 @@ export const stageNetworkConfig: PartialNetworksConfig = {
           ],
           Pool: LiquidityPoolAaveUSDCV4,
         },
+        Rebalancer: RebalancerUSDCProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDCProxy]: {
             [Network.ETHEREUM]: [Provider.CCTP_V2],
@@ -767,10 +778,16 @@ export const stageNetworkConfig: PartialNetworksConfig = {
     SetInputOutputTokens: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
-          [Network.ETHEREUM]: [Provider.ACROSS, Provider.CCTP_V2, Provider.POLYGON_POS_BRIDGE],
+          [Network.ETHEREUM]: [
+            Provider.ACROSS,
+            Provider.CCTP_V2,
+            Provider.POLYGON_POS_BRIDGE,
+            Provider.USDT0,
+          ],
           [Network.GNOSIS_CHAIN]: [
             Provider.STARGATE,
           ],
@@ -846,6 +863,7 @@ export const stageNetworkConfig: PartialNetworksConfig = {
     },
     MainAssets: {
       [Token.USDC]: {
+        Rebalancer: RebalancerUSDCProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDCProxy]: {
             [Network.ETHEREUM]: [Provider.CCTP_V2],
@@ -906,10 +924,11 @@ export const stageNetworkConfig: PartialNetworksConfig = {
     SetInputOutputTokens: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
-          [Network.ETHEREUM]: [Provider.ACROSS, Provider.CCTP_V2],
+          [Network.ETHEREUM]: [Provider.ACROSS, Provider.CCTP_V2, Provider.USDT0],
           [Network.GNOSIS_CHAIN]: [
             Provider.STARGATE,
           ],
@@ -984,6 +1003,7 @@ export const stageNetworkConfig: PartialNetworksConfig = {
     },
     MainAssets: {
       [Token.USDC]: {
+        Rebalancer: RebalancerUSDCProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDCProxy]: {
             [Network.ETHEREUM]: [Provider.CCTP_V2],
@@ -1027,6 +1047,7 @@ export const stageNetworkConfig: PartialNetworksConfig = {
     SetInputOutputTokens: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
@@ -1108,6 +1129,7 @@ export const stageNetworkConfig: PartialNetworksConfig = {
     SetInputOutputTokens: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
@@ -1151,6 +1173,7 @@ export const stageNetworkConfig: PartialNetworksConfig = {
     },
     MainAssets: {
       [Token.USDC]: {
+        Rebalancer: RebalancerUSDCProxy,
         RebalancerRoutes: {
           [LiquidityPoolUSDCV4]: {
             [Network.ETHEREUM]: [Provider.GNOSIS_OMNIBRIDGE],
@@ -1190,6 +1213,7 @@ export const stageNetworkConfig: PartialNetworksConfig = {
     SetInputOutputTokens: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
@@ -1220,6 +1244,7 @@ export const stageNetworkConfig: PartialNetworksConfig = {
     },
     MainAssets: {
       [Token.USDT]: {
+        Rebalancer: RebalancerUSDTProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDTProxy]: {
             [Network.ARBITRUM_ONE]: [Provider.USDT0],
@@ -1248,6 +1273,7 @@ export const stageNetworkConfig: PartialNetworksConfig = {
     SetInputOutputTokens: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
     MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
     SignerAddress: "0xA8eeA59b4A17CE2689E57B4dE9e825FD25705414",
+    Repayer: RepayerProxy,
     RepayerRoutes: {
       [LiquidityPoolAaveUSDCProxy]: {
         Domains: {
@@ -1278,6 +1304,7 @@ export const stageNetworkConfig: PartialNetworksConfig = {
     },
     MainAssets: {
       [Token.USDT]: {
+        Rebalancer: RebalancerUSDTProxy,
         RebalancerRoutes: {
           [LiquidityPoolAaveUSDTProxy]: {
             [Network.ARBITRUM_ONE]: [Provider.USDT0],
@@ -1290,4 +1317,67 @@ export const stageNetworkConfig: PartialNetworksConfig = {
       },
     },
   },
-};
+  TRON: {
+    ChainId: 728126428,
+    USDT0OFT: "0x3a08F76772e200653bB55c2a92998DAcA62e0e97",
+    Tokens: {
+      USDT: tokenInfo("0xa614f803B6FD780986A42c78Ec9c7f77e6DeD13C", 6),
+    },
+    WrappedNativeToken: "0x891cdb91d149f23B1a45D9c5Ca78a88d0cB44C18",
+    Admin: "0x626073e71Da79Cf399B3dBC3699B6beF26b04076",
+    WithdrawProfit: "0x626073e71Da79Cf399B3dBC3699B6beF26b04076",
+    Pauser: "0x626073e71Da79Cf399B3dBC3699B6beF26b04076",
+    RebalanceCaller: "0x626073e71Da79Cf399B3dBC3699B6beF26b04076",
+    RepayerCaller: "0xc1d6EEa5ce163d7D9f1952Db220830Aae16Cb607",
+    SetInputOutputTokens: "0x626073e71Da79Cf399B3dBC3699B6beF26b04076",
+    MpcAddress: "0x6adAF8c96151962198a9b73132c16E99F4682Eb5",
+    SignerAddress: "0x626073e71Da79Cf399B3dBC3699B6beF26b04076",
+    Repayer: "0x0a1e34E855311A0eaf4D8F4Af2a6391D20241cBb",
+    RepayerRoutes: {
+      [LiquidityPoolAaveUSDCProxy]: {
+        Domains: {
+          [Network.ETHEREUM]: [Provider.USDT0],
+        },
+      },
+      [LiquidityPoolAaveUSDCV4]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [Provider.USDT0],
+          [Network.POLYGON_MAINNET]: [Provider.USDT0],
+        },
+      },
+      [LiquidityPoolAaveUSDTProxy]: {
+        Domains: {
+          [Network.ARBITRUM_ONE]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+      [LiquidityPoolUSDTProxy]: {
+        OnlySupportedToken: Token.USDT,
+        Domains: {
+          [Network.STABLE]: [
+            Provider.USDT0,
+          ],
+          [Network.TEMPO]: [
+            Provider.USDT0,
+          ],
+        },
+      },
+    },
+    MainAssets: {
+      [Token.USDT]: {
+        Rebalancer: "0xf12fc5137229C5f13e874c5F1e11818A9f616B85",
+        RebalancerRoutes: {
+          [LiquidityPoolAaveUSDTProxy]: {
+            [Network.ARBITRUM_ONE]: [Provider.USDT0],
+          },
+          [LiquidityPoolUSDTProxy]: {
+            [Network.STABLE]: [Provider.USDT0],
+            [Network.TEMPO]: [Provider.USDT0],
+          },
+        },
+        BasicPool: true,
+      },
+    },
+  },
+} satisfies PartialNetworksConfig;

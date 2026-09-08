@@ -90,8 +90,8 @@ export const DomainSolidity = {
   HYPER_EVM: 18n,
   TEMPO: 19n,
   STABLE: 20n,
-  TRON: 21n,
-  ROBINHOOD: 22n,
+  ROBINHOOD: 21n,
+  TRON: 22n,
 };
 
 export const SolidityDomain: { [n: number]: Network } = {
